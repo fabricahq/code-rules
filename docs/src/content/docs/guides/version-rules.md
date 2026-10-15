@@ -17,7 +17,7 @@ A **rule version** identifies one state of a rule, such as `1.3.0`. When a rule 
 
 Each rule has its own version, even though one library repository holds many rules. Each library release records every rule's version, and the summary of each change, in its Git tag, so the tags together hold each rule's full history. The rule file itself contains no version.
 
-A version covers the rule's Markdown file and its own supporting files. Library-wide files, such as group descriptions and shared diagrams, aren't part of any rule version.
+A version covers the rule's Markdown file and its own supporting files. Library-wide files, such as rule group descriptions and shared diagrams, aren't part of any rule version.
 
 ### How a rule gets a new version
 
@@ -85,7 +85,7 @@ Projects see skill changes in their update preview, beside rule changes. Unlike 
 
 ## Library releases
 
-New rule versions reach projects through library releases. A **library release** publishes all of a library's pending changes together: every rule that changed since the last library release gets its new version at the same moment, and changes to library-wide files, such as group descriptions and shared diagrams, go out with it.
+New rule versions reach projects through library releases. A **library release** publishes all of a library's pending changes together: every rule that changed since the last library release gets its new version at the same moment, and changes to library-wide files, such as rule group descriptions and shared diagrams, go out with it.
 
 A library release can be as small as a single rule change, published as soon as it's ready. It can also be a larger, meaningful collection of rule updates that you announce together and point users to as a snapshot of the library.
 
@@ -257,9 +257,9 @@ code-rules library change skills/triage-bug \
 
 A skill can only be replaced by a skill, and a rule only by a rule. Remove the retired skill from the manifest's levels, and update every skill whose `syllabus-skills-used` names the retired skill in the same pull request; `code-rules library check` fails until you do. To rename a skill, retire the old ID, replaced by the new one, and add the new ID as `new` in the same note, as you would [rename a rule](#rename-a-rule).
 
-### Change a shared file, group description, or skill level
+### Change a shared file, rule group description, or skill level
 
-Files in the library's shared `.code-rules/assets/` directory, such as a diagram, group descriptions in `_group.yaml`, and the manifest in `.code-rules/config.yaml`, with its [skill levels](/reference/library-format/#skill-levels), are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
+Files in the library's shared `.code-rules/assets/` directory, such as a diagram, rule group descriptions in `_group.yaml`, and the manifest in `.code-rules/config.yaml`, with its [skill levels](/reference/library-format/#skill-levels), are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
 
 A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that adds your library as a source gets them from the newest library release; one that only includes more of it keeps the library release it recorded.
 
@@ -282,7 +282,7 @@ Pending library release 3
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
 
-When you changed library-wide files, such as a group description, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed. Pending skill changes appear in the same list, by their skill IDs:
+When you changed library-wide files, such as a rule group description, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed. Pending skill changes appear in the same list, by their skill IDs:
 
 ```text
 Library is valid: 3 group(s), 6 rule(s), 3 skill(s).
@@ -321,7 +321,7 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 
 ### What the GitHub Release page looks like
 
-For a library release that changes four rules and a group description, the generated page, titled `release/4`, looks like this:
+For a library release that changes four rules and a rule group description, the generated page, titled `release/4`, looks like this:
 
 ```md wrap
 Library release 4 changes 4 rules: 1 new, 1 major, 1 minor, and 1 retired.

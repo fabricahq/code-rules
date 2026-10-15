@@ -62,7 +62,7 @@ As with packages for code, you can:
 - **Build reproducibly.** Every imported rule is vendored at its exact version, and keeps its source and license terms.
 - **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
 
-Agents don't read every rule on every task. Code Rules generates an index with a "when to read" cue for each group of rules, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
+Agents don't read every rule on every task. Code Rules generates an index with a "when to read" cue for each rule group, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
 
 ### Rules can evolve
 
@@ -103,7 +103,7 @@ When a change alters behavior that a caller or user relies on, add or update a t
 Assert the observable result, such as an order's new total, rather than which private helper was called.
 ```
 
-Then add the rule to a group:
+Then add the rule to a rule group:
 
 ```sh
 code-rules project add group practices/testing \
@@ -136,7 +136,7 @@ Paths relative to .code-rules/generated:
   Add: rules/local/practices/testing/test-changed-behavior.md
 ```
 
-`RULES.md` is an index that tells agents which groups to open for the task at hand:
+`RULES.md` is an index that tells agents which rule groups to open for the task at hand:
 
 ```md
 ### Testing
@@ -208,7 +208,7 @@ sources:
 
 ## Learn more
 
-- → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, groups, projects, and libraries fit together
+- → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, rule groups, projects, and libraries fit together
 - → [**Install**](https://code-rules.fabricahq.com/start-here/install/) Versions, custom directories, checksum verification, and upgrades
 - → [**Write a rule**](https://code-rules.fabricahq.com/guides/write-rules/) Write rules agents can actually follow
 - → [**Configuration**](https://code-rules.fabricahq.com/reference/configuration/) Every field in `config.yaml`

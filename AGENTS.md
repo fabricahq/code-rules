@@ -52,24 +52,24 @@ A rule expresses one independently adoptable engineering expectation in a Markdo
 
 A rule retains its identity and provenance when imported or rendered as a resolved definition. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
 
-#### Group
+#### Rule group
 
-A group collects related rules and explains when an agent should read them. There are two types of groups:
+A rule group collects related rules and explains when an agent should read them. There are two kinds of rule group:
 
 1. Technology groups live under `techs/` and cover named languages, frameworks, tools, platforms, or protocols.
 2. Practice groups live under `practices/` and cover concerns such as testing, observability, error handling, and architecture.
 
-Groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Group](docs/src/content/docs/concepts/groups.md).
+Rule groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Rule group](docs/src/content/docs/concepts/groups.md).
 
 #### Skill
 
-A skill is an Agent Skills folder whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Rules say what good work looks like; skills say what to do and in what order, and cite the rules each step applies. Skills don't belong to groups. A skill may declare a type, `playbook` or `review`, as a label only.
+A skill is an Agent Skills folder whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Rules say what good work looks like; skills say what to do and in what order, and cite the rules each step applies. Skills don't belong to rule groups. A skill may declare a type, `playbook` or `review`, as a label only.
 
 Code Rules installs included skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. See [Skill](docs/src/content/docs/concepts/skill.md).
 
 #### Library
 
-A library is a Git repository whose manifest publishes its groups and skills. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. A library sets a level for each skill it offers: required, recommended, or offered. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`, whose required skills install in every project that uses it and whose recommended skills install in projects that include them; a project explicitly chooses which sources, rules, and skills to include.
+A library is a Git repository whose manifest publishes its rule groups and skills. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. A library sets a level for each skill it offers: required, recommended, or offered. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`, whose required skills install in every project that uses it and whose recommended skills install in projects that include them; a project explicitly chooses which sources, rules, and skills to include.
 
 Projects may take from multiple sources, move to each rule's published versions, and each source's skills, on their own schedule, and add or replace rules and skills of their own. A source can also be a Git repository of skills that isn't a library. One configuration file and one `.code-rules/` layout serve projects and libraries alike.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
@@ -111,7 +111,7 @@ Rule and skill input validation and generated-file consistency checks are in sco
 ## Working in this repository
 
 This repository uses Code Rules to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules) and to keep its own conventions as local rules; [its guide](.code-rules/README.md) explains how to manage them.
-Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant groups and read their rules in full.
+Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant rule groups and read their rules in full.
 Follow the applicable rules and their exceptions, and check your work against them before finishing.
 If required rule files are unavailable or give conflicting instructions, report the issue rather than silently skipping a rule or choosing a policy.
 

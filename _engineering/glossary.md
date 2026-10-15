@@ -11,19 +11,19 @@ One independently adoptable engineering expectation, stating what to do, when it
 _Avoid_: Guideline, policy, standard
 
 **Rule ID**:
-A rule's group ID plus its own name, unique within its source; the source's name tells apart rules with the same ID from different sources.
+A rule's rule group ID plus its own name, unique within its source; the source's name tells apart rules with the same ID from different sources.
 _Avoid_: Rule name, slug, path
 
-**Group**:
-A named collection of related rules that tells agents when to read them; every group is either a technology group or a practice group.
-_Avoid_: Category, rule set, package
+**Rule group**:
+A named collection of related rules that tells agents when to read them. There are two kinds of rule group: technology groups and practice groups.
+_Avoid_: Group on its own, category, rule set, package
 
 **Technology group**:
-A group of rules about one named language, framework, tool, platform, or protocol.
+A rule group about one named language, framework, tool, platform, or protocol.
 _Avoid_: Tech stack, language group
 
 **Practice group**:
-A group of rules about one concern that cuts across technologies, such as testing or error handling.
+A rule group about one concern that cuts across technologies, such as testing or error handling.
 _Avoid_: Discipline, topic
 
 **Skill**:
@@ -85,7 +85,7 @@ A skill a library lists in one of its levels but takes from a borrowed source in
 _Avoid_: Endorsed skill, endorsement, re-exported skill
 
 **Authored content**:
-Rules, groups, skills, and assets written in the repo itself rather than taken from a source; a library publishes exactly its authored content.
+Rules, rule groups, skills, and assets written in the repo itself rather than taken from a source; a library publishes exactly its authored content.
 _Avoid_: Local rules, local skills, custom rules
 
 **Vendor snapshot**:
@@ -99,7 +99,7 @@ _Avoid_: User skill, global skill, local skill
 ### Selection
 
 **Selector**:
-An expression that names one rule or skill by ID, or everything under an ID prefix: a group, every group of one type, or a whole source.
+An expression that names one rule or skill by ID, or everything under an ID prefix: a rule group, every rule group of one type, or a whole source.
 _Avoid_: Glob, pattern, filter
 
 **Include**:
@@ -203,5 +203,5 @@ The copy of an included skill that Code Rules writes into each skill target unde
 _Avoid_: Deployed skill, skill copy
 
 **Generated guidance**:
-The files Code Rules writes for agents from the selected rules and installed skills: the rule index, group pages, and skill index. Nobody edits them by hand.
+The files Code Rules writes for agents from the selected rules and installed skills: the rule index, rule group pages, and skill index. Nobody edits them by hand.
 _Avoid_: Output, build artifacts, compiled rules

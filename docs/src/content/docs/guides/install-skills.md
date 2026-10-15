@@ -66,7 +66,7 @@ skills:
   include: [recommended, skills/deploy-preview]
 ```
 
-Including a group's rules never installs a skill, and including a skill never includes a group's rules. See [Skill selectors](/reference/configuration/#skill-selectors).
+Including a rule group's rules never installs a skill, and including a skill never includes a rule group's rules. See [Skill selectors](/reference/configuration/#skill-selectors).
 
 Sync takes the source's newest library release, records it in `.code-rules/vendor/fabrica/_source.json`, and installs every skill from that one release. Later syncs keep that release, even for skills you include later: a skill that isn't in the recorded release makes sync fail and name `code-rules project update fabrica`, the command that moves the source. See [Update skills](/guides/update/#update-skills).
 
@@ -96,7 +96,7 @@ The `mattpocock:` skills are **borrowed**: Fabrica's library lists them at a lev
 Narrow the list:
 
 - `--type review` lists only review skills, and `--type playbook` only playbooks.
-- `--applies-rules-from practices/testing` lists only skills whose `syllabus-rules-used` names a rule in that group.
+- `--applies-rules-from practices/testing` lists only skills whose `syllabus-rules-used` names a rule in that rule group.
 - `--json` returns the list for scripts.
 
 See [project list skills](/reference/cli/#project-list-skills) for every option.

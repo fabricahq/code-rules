@@ -29,7 +29,7 @@ skills/
 
 Each skill folder holds a `SKILL.md` file and anything the skill bundles. The Agent Skills format suggests `scripts/` for code the agent runs, `references/` for documents it reads when needed, and `assets/` for templates and other files it uses, but any layout inside the folder works. The `assets/` folder inside a skill belongs to the skill; it isn't a rule asset directory, and the shared `.code-rules/assets/` directory isn't part of any skill.
 
-`skills/` holds only skill folders, and is flat: a skill folder can't contain another skill's `SKILL.md`, and it can't contain `_group.yaml`. Skills don't belong to groups, so a skill folder is never inside `rules/`.
+`skills/` holds only skill folders, and is flat: a skill folder can't contain another skill's `SKILL.md`, and it can't contain `_group.yaml`. Skills don't belong to rule groups, so a skill folder is never inside `rules/`.
 
 ### Git-tracked files
 
@@ -129,7 +129,7 @@ metadata:
     practices/verification/verify-on-the-surface-users-touch
 ```
 
-In a library, each line is a rule ID in this library: the rule's path in `rules/` without `.md`, and without a source name, because each project chooses its own source names. Surrounding whitespace and blank lines are ignored. Each ID can appear once. A library's skill can cite rules from any group in its library, and only rules in its library. A skill in a repository that isn't a library can also cite its sources' rules by project ID; see [Skills in a project](#skills-in-a-project).
+In a library, each line is a rule ID in this library: the rule's path in `rules/` without `.md`, and without a source name, because each project chooses its own source names. Surrounding whitespace and blank lines are ignored. Each ID can appear once. A library's skill can cite rules from any rule group in its library, and only rules in its library. A skill in a repository that isn't a library can also cite its sources' rules by project ID; see [Skills in a project](#skills-in-a-project).
 
 When a project installs the skill, Code Rules takes every cited rule, even ones the project's rule `include` doesn't name, and appends a generated section to the installed `SKILL.md` that links to the project's version of each one. Cited rules are for reference only: they never join `RULES.md`. See [Installed copies](#installed-copies).
 
@@ -180,7 +180,7 @@ Check fails with these problems:
 | A folder name that breaks the [name grammar](#skill-ids) | `skills/Build_Feature: a skill name uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen` |
 | A skill folder without `SKILL.md` | `skills/build-feature: expected SKILL.md in the skill folder` |
 | A skill inside another skill's folder | `skills/build-feature/steps/SKILL.md: a skill folder can't contain another skill; move it to its own folder in skills/` |
-| Group metadata in a skill folder | `skills/build-feature/_group.yaml: a skill folder can't contain group metadata` |
+| Rule group metadata in a skill folder | `skills/build-feature/_group.yaml: a skill folder can't contain group metadata` |
 | A symbolic link, submodule, or Git LFS pointer | `skills/build-feature/scripts/verify.sh: symbolic links, submodules, and Git LFS pointers aren't supported in a skill folder` |
 | A Markdown file that isn't UTF-8 | `skills/build-feature/references/slicing.md: expected UTF-8 Markdown` |
 | No frontmatter at the start of `SKILL.md` | `skills/build-feature/SKILL.md: expected YAML frontmatter at the start of the file` |

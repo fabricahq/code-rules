@@ -53,7 +53,7 @@ The [file reference](/reference/library-format/#license-metadata) defines these 
 
 Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules validates the `library.license.spdxExpression` syntax and identifiers and preserves your declaration. It does not verify that the declaration matches the retained terms or grants the permissions you need.
 
-A library has one license declaration covering all its rules and groups. Per-rule and per-group overrides are unsupported.
+A library has one license declaration covering all its rules and rule groups. Overrides for a single rule or rule group are unsupported.
 Keep attribution with each rule, in its body or [structured attribution](/reference/rule-format/#rule-attribution). List required notices in the library manifest.
 If material requires a different declaration, maintain it in a separate compatible library. Do not relabel third-party material merely to fit a library's license.
 
@@ -107,7 +107,7 @@ The repository and commit in this example are illustrative.
 Guidance precedes this footer; preserved source metadata follows it. Every rule from a source displays its library's declaration; explicit attribution citations also appear in the footer.
 Generated rule files link to these standardized license and notice copies. Provenance records both original source paths and generated paths.
 The index links to provenance, which records source libraries, declared license expressions, retained files, and explicit attribution.
-When a group includes multiple libraries, retain each rule's licensing information instead of assigning one library's license to the group.
+When a rule group includes rules from multiple libraries, retain each rule's licensing information instead of assigning one library's license to the rule group.
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces a library's rule with an adaptation.
 Maintain third-party adaptations in a compatible library with the applicable library-wide declaration. A project's own rules and replacements are for original project guidance; an ID alone cannot establish licensing.
 

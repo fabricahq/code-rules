@@ -16,7 +16,7 @@ You can publish your team's rules and skills in a library, or take them from lib
 A library lives in a Git repository, in the same Code Rules directory, `.code-rules/`, that every repository uses. It contains:
 
 - **The manifest**, the `library` section of `.code-rules/config.yaml`, which makes the repository a library, declares its license, and sets the [level](#skill-levels) of each skill it offers.
-- **Groups** under `rules/techs/` and `rules/practices/`, each with group metadata and Markdown rule files.
+- **Rule groups** under `rules/techs/` and `rules/practices/`, each with rule group metadata and Markdown rule files.
 - **Skills** under `skills/`, one folder per skill, each with a `SKILL.md`. Optional.
 
 For example, a repository named "engineering-rules" might contain:
@@ -47,9 +47,9 @@ A library can also list skills from another repository at a level, **borrowing**
 
 Each [project](/concepts/project/) names the libraries it uses as **sources** in `.code-rules/config.yaml`, and includes rules and skills from each with selectors, such as `practices/testing/*` or `recommended`. A project can use several libraries and add its own rules and skills.
 
-Running `code-rules project sync` downloads the included rules and skills, generates the guidance agents read, and installs the skills. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
+Running `code-rules project sync` downloads the included rules and skills, generates the guidance agents read, and installs the skills. Rule groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 
-A project records the library release it took from each library, and the version of every rule and skill. Running `code-rules project update` moves them to newer versions and reports every one that changed, so each project takes updates on its own schedule. A project can also pin a rule to a version, with a reason, or include only specific rules instead of whole groups. Skills aren't pinned: all of a library's skills come from one library release, and move together when the project updates. See [Include rules](/guides/select-rules/), [Install skills](/guides/install-skills/), and [Update rules and skills](/guides/update/) for the steps.
+A project records the library release it took from each library, and the version of every rule and skill. Running `code-rules project update` moves them to newer versions and reports every one that changed, so each project takes updates on its own schedule. A project can also pin a rule to a version, with a reason, or include only specific rules instead of whole rule groups. Skills aren't pinned: all of a library's skills come from one library release, and move together when the project updates. See [Include rules](/guides/select-rules/), [Install skills](/guides/install-skills/), and [Update rules and skills](/guides/update/) for the steps.
 
 ## How a library publishes rules
 

@@ -5,7 +5,7 @@ description: "Author a focused engineering obligation with applicability, exampl
 
 A **rule** is a Markdown file that tells an agent how to apply one engineering practice. Writing a rule turns a recurring expectation or review comment into guidance you can reuse across tasks. A useful rule explains when it applies, what to do, and how to verify the result.
 
-This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
+This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a rule group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
 
 You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
@@ -38,13 +38,13 @@ The workflow below describes how the skill is intended to work.
 The same skill can revise an existing rule or review a proposed rule against the rubric.
 It should ask about missing policy decisions instead of silently choosing them for the library owner.
 
-## Choose a group
+## Choose a rule group
 
 Use a technology group when the obligation depends on a named technology.
 Use a practice group when it transfers across technologies.
 Place project-specific contracts in the applicable project's own rules, in its `.code-rules/rules/`.
 
-For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
+For a new rule group, use a [canonical rule group ID](/concepts/groups/#canonical-rule-group-ids) if one fits, and add [rule group metadata](/reference/rule-format/#rule-group-metadata) that helps agents recognize relevant work.
 
 ## Example rule
 
@@ -120,7 +120,7 @@ When publishing or adapting rules, follow [License rules](/guides/license-rules/
 
 For a step-by-step example with inspectable license provenance, follow [Adapt a third-party rule](/guides/adapt-rules/).
 
-The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
+The original repository does not have to change. The definition you give Code Rules must use its input format: a technology group or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
 
 For an existing compatible Code Rules library, [include its rules](/guides/select-rules/) instead. To use a third-party skill as a skill, install it from its repository instead of adapting it into a rule; see [Install skills](/guides/install-skills/). For a linter rule, style guide, skill whose practice you want as a rule, or other document that is not a compatible library:
 

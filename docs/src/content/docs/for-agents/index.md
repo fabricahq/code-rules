@@ -27,7 +27,7 @@ If required rule files are unavailable or give conflicting instructions,
 report the issue rather than silently skipping them or choosing a policy.
 ```
 
-`.code-rules/generated/RULES.md` then tells the agent how to select groups, read rules, and report findings, so these instructions stay short.
+`.code-rules/generated/RULES.md` then tells the agent how to select rule groups, read rules, and report findings, so these instructions stay short.
 The generated index is an explicit entry point.
 Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules.
 
@@ -35,8 +35,8 @@ Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules
 
 1. Read the task and the generated index.
 2. Identify affected technologies and engineering practices.
-3. Compare each group's **When to read this group** cue with the work. Use its **Description** to understand scope. Open every relevant or plausibly relevant group.
-4. Read every rule in each opened group completely, including all pages and linked full definitions. Then assess applicability using each rule's **When to read** cue, guidance, and exceptions.
+3. Compare each rule group's **When to read this group** cue with the work. Use its **Description** to understand scope. Open every relevant or plausibly relevant rule group.
+4. Read every rule in each opened rule group completely, including all pages and linked full definitions. Then assess applicability using each rule's **When to read** cue, guidance, and exceptions.
 5. Account for applicable obligations in the plan and implementation.
 6. Revisit selection if the work expands.
 
@@ -46,8 +46,8 @@ For retries in a TypeScript service, consider `techs/typescript`, `practices/tes
 Inspect the intended behavior, dependencies, imports, surrounding code, and changed files.
 Practice groups can apply even when no test files or logging packages change.
 
-Open each relevant or plausibly relevant group, read every rule in it completely, then apply the rules whose conditions match the work. Respect their exceptions.
-A group match alone is not evidence of a violation.
+Open each relevant or plausibly relevant rule group, read every rule in it completely, then apply the rules whose conditions match the work. Respect their exceptions.
+A rule group match alone is not evidence of a violation.
 
 A behavior change can require testing rules before anyone edits a test file.
 When an obligation depends on local contracts, read project context alongside the rules.
@@ -64,7 +64,7 @@ When you use a skill:
 1. Read its `SKILL.md` in full, including the generated **Rules this skill applies** section at the end, when it has one.
 2. Before each step, read in full every rule that section lists for the work the step does, at the generated path it gives. These are the project's versions of the rules: a rule the project wrote to use instead of a library rule is listed in its place, and a rule the project excluded is marked as excluded, with the reason. Don't apply an excluded rule.
 3. Follow the steps in order. When the skill uses other skills, its **Skills this skill uses** line names them; use their installed copies.
-4. Keep selecting groups from `RULES.md` as described above. A skill doesn't replace that selection: a rule that applies to the work applies whether or not the skill cites it.
+4. Keep selecting rule groups from `RULES.md` as described above. A skill doesn't replace that selection: a rule that applies to the work applies whether or not the skill cites it.
 
 Some rules a skill cites aren't listed in `RULES.md`, because the project takes them only for its skills. Read them when the skill's steps call for them; they don't apply to other work.
 
@@ -76,8 +76,8 @@ When `code-rules project sync`, `update`, or `check` warns that a personal skill
 
 ## Review independently
 
-Select groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
-For each finding, cite the resolved rule ID and its version when the group page shows one, the applicable condition, observed evidence, and practical consequence.
+Select rule groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
+For each finding, cite the resolved rule ID and its version when the rule group page shows one, the applicable condition, observed evidence, and practical consequence.
 
 Impact describes the consequence a rule helps prevent; it does not determine applicability, override exceptions, or set finding severity.
 Read **Why it matters** for context and assess the actual consequence of each finding.
@@ -87,7 +87,7 @@ Separate confirmed failures from hypotheses that need verification.
 
 ## Handle gaps and conflicts
 
-If a relevant group is missing, report the missing coverage.
+If a relevant rule group is missing, report the missing coverage.
 If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the recorded rules and skills during ordinary work. Taking changes from the project's sources is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.

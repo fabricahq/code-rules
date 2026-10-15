@@ -1,6 +1,6 @@
 ---
 title: "Include rules"
-description: "Choose groups and rules from libraries and adapt them to your project."
+description: "Choose rule groups and rules from libraries and adapt them to your project."
 ---
 
 :::caution[Preview]
@@ -9,16 +9,16 @@ This guide uses version 2 configuration, which isn't in a released version of Co
 
 You can **include rules** written by your team or others instead of writing every rule yourself. These rules come from **libraries**, repositories that publish rules for other projects to take.
 
-In this guide, you'll choose **groups** and rules to include, record your choices in `.code-rules/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+In this guide, you'll choose **rule groups** and rules to include, record your choices in `.code-rules/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
 
 Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
-## Choose groups for your project
+## Choose rule groups for your project
 
 Start with the project's technologies and engineering practices.
-Inspect its dependencies, architecture, and expected behavior, then read each library's group descriptions and `whenToRead` guidance.
+Inspect its dependencies, architecture, and expected behavior, then read each library's rule group descriptions and `whenToRead` guidance.
 
-For a TypeScript service that makes requests to other services, useful groups might include:
+For a TypeScript service that makes requests to other services, useful rule groups might include:
 
 - `techs/typescript` for language rules.
 - `practices/testing` for verifying behavior.
@@ -26,14 +26,14 @@ For a TypeScript service that makes requests to other services, useful groups mi
 - `practices/error-handling` for how failures reach callers.
 
 Include rules that cover the project's work, including practices that do not correspond to a package or filename.
-Agents choose which groups apply to each task using the [rule-loading process](/for-agents/).
+Agents choose which rule groups apply to each task using the [rule-loading process](/for-agents/).
 
 ## Include rules from each source
 
 In `.code-rules/config.yaml`, each library you take rules from gets a named entry under `sources`, such as `fabrica`. For each source, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
-- **Which rules to include:** `rules.include` lists [selectors](/reference/configuration/#rule-selectors). A group prefix, such as `practices/testing/*`, includes every rule in the group, including rules the library adds to it later. A rule ID, such as `techs/go/wrap-errors-with-operation`, includes that rule without the rest of its group.
+- **Which rules to include:** `rules.include` lists [selectors](/reference/configuration/#rule-selectors). A rule group prefix, such as `practices/testing/*`, includes every rule in the rule group, including rules the library adds to it later. A rule ID, such as `techs/go/wrap-errors-with-operation`, includes that rule without the rest of its rule group.
 - **Which versions to use:** by default, each rule moves to its newest version when you update. Add `rules.pins` to keep individual rules at exact versions. See [Choose versions](/reference/configuration/#choose-versions).
 - **Which skills to install:** optionally, `skills.include` names skills from the source. Including rules never installs a skill. See [Install skills](/guides/install-skills/).
 
@@ -58,14 +58,14 @@ See the [complete configuration example](/reference/configuration/#complete-exam
 To include every rule a library publishes, use `"*"`.
 Use `practices/*` for every practice group, or `techs/*` for every technology group.
 Exclusions and replacements still apply.
-When a library adds groups or rules that your selectors reach, `code-rules project update` adds them. Review them as part of that update.
+When a library adds rule groups or rules that your selectors reach, `code-rules project update` adds them. Review them as part of that update.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
-Define your own groups with `_group.yaml` under `.code-rules/rules/`; they need no configuration entry.
-The [Group concept](/concepts/groups/) explains the distinction between technology and practice groups.
+Define your own rule groups with `_group.yaml` under `.code-rules/rules/`; they need no configuration entry.
+The [Rule group concept](/concepts/groups/) explains the distinction between technology groups and practice groups.
 
 ## Adapt the selection to your project
 
@@ -75,20 +75,20 @@ Keep those decisions in configuration and authored files so agents read the reso
 
 ### Add a rule
 
-Write a Markdown rule in the matching group under `.code-rules/rules/`:
+Write a Markdown rule in the matching rule group under `.code-rules/rules/`:
 
 ```text
 .code-rules/rules/practices/testing/test-project-contracts.md
 ```
 
-The group needs `_group.yaml` metadata from an included library or from `.code-rules/rules/<group-id>/`.
-If you later stop including, or remove, the last library supplying the group, sync copies the group's last vendored metadata to `.code-rules/rules/<group-id>/_group.yaml` and warns that it did, so the rule keeps its group; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
+The rule group needs `_group.yaml` metadata from an included library or from `.code-rules/rules/<group-id>/`.
+If you later stop including, or remove, the last library supplying the rule group, sync copies the rule group's last vendored metadata to `.code-rules/rules/<group-id>/_group.yaml` and warns that it did, so the rule keeps its rule group; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 The rule joins the rules from your sources, and its ID has no source name: `practices/testing/test-project-contracts`.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
-For a group only your project has, include its own `_group.yaml`. It is discovered automatically.
-When a library later supplies that group, your metadata and rules stay in place. Your metadata supplies the project's group description; the library's rules join the group.
-Groups from sources retain source-labeled metadata from every contributing library.
+For a rule group only your project has, include its own `_group.yaml`. It is discovered automatically.
+When a library later supplies that rule group, your metadata and rules stay in place. Your metadata supplies the project's rule group description; the library's rules join the rule group.
+Rule groups from sources retain source-labeled metadata from every contributing library.
 
 ### Exclude a rule
 
@@ -105,7 +105,7 @@ sources:
 
 These are partial snippets, not complete source definitions.
 Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, pins, and `include`.
-Rule IDs are illustrative and must name rules the source's `include` reaches. An `id` can also be a prefix, such as `practices/observability/*`, to leave out a whole group that a wider `include` brings in.
+Rule IDs are illustrative and must name rules the source's `include` reaches. An `id` can also be a prefix, such as `practices/observability/*`, to leave out a whole rule group that a wider `include` brings in.
 An exclusion removes only the named source's rule, without introducing a replacement.
 The same rule path in another source remains active.
 The exclusion reason stays in project configuration; the generated files contain only active rules.
@@ -131,7 +131,7 @@ To start from the library's text instead of writing your own, [fork the rule](/r
 The resolved rule uses your complete definition, including its ID, title, reading cue, impact, body, attribution, and asset references.
 In this example, the generated ID is `techs/typescript/prefer-interfaces`.
 Configuration and provenance record what it replaced and why; generated rule guidance does not display that history.
-Its file stays in the target group and does not also become an additional rule.
+Its file stays in the target rule group and does not also become an additional rule.
 
 Replacing “prefer type aliases” with “prefer interfaces” leaves only your definition in the effective output.
 Include the intended scope and exceptions in that definition.
@@ -149,7 +149,7 @@ If one of your rules or another source contradicts an obligation from a source, 
 Source order never resolves the conflict.
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) to review the combined rules and resolve competing instructions.
 
-Review `generated/RULES.md`, each relevant group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.
+Review `generated/RULES.md`, each relevant rule group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.
 Commit configuration, your rules, vendor snapshots, and generated files together.
 Use [Update rules and skills](/guides/update/) when you take new library releases or change what you include later.
 To add procedures that apply these rules step by step, see [Install skills](/guides/install-skills/).

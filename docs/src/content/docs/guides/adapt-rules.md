@@ -53,7 +53,7 @@ library:
 ```
 
 Keep the complete license text and required notices at those paths.
-Rules and groups cannot override this declaration. Material requiring another declaration belongs in a separate library.
+Rules and rule groups cannot override this declaration. Material requiring another declaration belongs in a separate library.
 
 ## 3. Draft the definition and record attribution
 
@@ -93,7 +93,7 @@ The copies preserve the original text; provenance maps their source and generate
 
 ## 5. Maintain the adaptation
 
-Commit the adapted rule, group metadata, manifest, and retained terms together in the library.
+Commit the adapted rule, rule group metadata, manifest, and retained terms together in the library.
 When the original source changes, compare the old and new source and deliberately revise the adaptation.
 Changing a citation alone does not establish that the rule incorporates updated guidance.
 The library maintainer reviews that change once; consuming projects then take its new version through the normal update workflow.

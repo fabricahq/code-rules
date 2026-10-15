@@ -43,9 +43,9 @@ Code Rules is built around just a few simple concepts.
 
 You write a single best practice as a [rule](/concepts/rule/), written as a Markdown file. A rule tells an agent what to do, when it applies, and how to apply it.
 
-### Groups
+### Rule groups
 
-You organize rules into [groups](/concepts/groups/), where a group represents either a _technology_ like Go, Tailwind, Next.js, Typescript, or Playwright, or a _practice_ like testing, logging, or error handling.
+You organize rules into [rule groups](/concepts/groups/). There are two kinds of rule group: technology groups, for a _technology_ like Go, Tailwind, Next.js, Typescript, or Playwright, and practice groups, for a _practice_ like testing, logging, or error handling.
 
 ### Skills
 
@@ -53,7 +53,7 @@ A [skill](/concepts/skill/) is a reusable procedure, such as how to build a feat
 
 ### Projects
 
-You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add your own rules, groups, and skills. We recommend committing `/.code-rules`, and the skills Code Rules installs, to version control.
+You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add your own rules, rule groups, and skills. We recommend committing `/.code-rules`, and the skills Code Rules installs, to version control.
 
 ### Libraries
 
@@ -61,7 +61,7 @@ Finally, you probably want to include some pre-existing rules and skills from a 
 
 ### RULES.md
 
-Code Rules combines your own rules and the ones you include from sources into guidance under `.code-rules/generated/`. Agents start with `RULES.md`, an index that tells them which groups to read.
+Code Rules combines your own rules and the ones you include from sources into guidance under `.code-rules/generated/`. Agents start with `RULES.md`, an index that tells them which rule groups to read.
 
 An abbreviated `RULES.md` entry:
 
@@ -73,7 +73,7 @@ An abbreviated `RULES.md` entry:
 **Open group:** [Testing](groups/practices/testing.md)
 ```
 
-The linked group page contains the rules in full, or links to their full definitions. For example, it might tell an agent to add a regression test when fixing a bug. See [the generated file layout](/reference/files/) for details.
+The linked rule group page contains the rules in full, or links to their full definitions. For example, it might tell an agent to add a regression test when fixing a bug. See [the generated file layout](/reference/files/) for details.
 
 ### Installed skills
 

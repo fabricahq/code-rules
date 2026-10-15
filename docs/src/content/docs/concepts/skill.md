@@ -74,7 +74,7 @@ Keep opinions in rules and order in skills. When a skill needs a practice follow
 - When the rule gets a new version, every skill that cites it applies the new version, without a change to the skill.
 - Reviewers check work against the same rules the implementing agent followed.
 
-Skills don't belong to [groups](/concepts/groups/), and including a group's rules never installs a skill. When you install a skill, Code Rules also takes the rules it cites, even ones your rule `include` doesn't name. These **cited rules** are for reference: the skill links to them, but they don't join `RULES.md`, so installing a skill never widens the rules that apply to all of your project's work.
+Skills don't belong to [rule groups](/concepts/groups/), and including a rule group's rules never installs a skill. When you install a skill, Code Rules also takes the rules it cites, even ones your rule `include` doesn't name. These **cited rules** are for reference: the skill links to them, but they don't join `RULES.md`, so installing a skill never widens the rules that apply to all of your project's work.
 
 ## Where skills come from
 

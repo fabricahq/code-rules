@@ -17,7 +17,7 @@ This page explains which files Code Rules copies from a source and how it combin
 
 When you run `code-rules project sync`, Code Rules:
 
-1. Reads your configuration to find each source, the rules and skills you include from it, and your exceptions. A **group** collects related rules, such as testing practices or TypeScript conventions.
+1. Reads your configuration to find each source, the rules and skills you include from it, and your exceptions. A **rule group** collects related rules, such as testing practices or TypeScript conventions.
 2. Copies what you include into your project. The copy of one source is its **vendor snapshot**. Each rule in it comes from the library release that published its version, and every skill from the source's one recorded library release or commit.
 3. Combines the included rules with your authored rules and configured exceptions, then generates files for your agents to read.
 4. Installs each skill, and the skills it calls, into your [skill targets](/reference/configuration/#skill-targets), such as `.claude/skills/`.
@@ -36,7 +36,7 @@ Installed skills live outside it, in the target folders at the repository root. 
 
 Sources have no declared type. Code Rules decides each time it fetches one:
 
-- A repository with a [library manifest](/reference/library-format/#the-manifest) in `.code-rules/config.yaml` is a **library**. It publishes rules, groups, and skills from its Code Rules directory, sets skill levels, and, once it has `release/<number>` tags, versioned rules and skills.
+- A repository with a [library manifest](/reference/library-format/#the-manifest) in `.code-rules/config.yaml` is a **library**. It publishes rules, rule groups, and skills from its Code Rules directory, sets skill levels, and, once it has `release/<number>` tags, versioned rules and skills.
 - A repository without one is a **non-library source**. It supplies skills only, and every skill in it is offered. See [Non-library sources](#non-library-sources).
 
 A source without `release/<number>` tags must have a `ref`, so Code Rules never takes a repository from an unknown revision. `code-rules project add source` adds either kind; see [project add source](/reference/cli/#project-add-source).
@@ -49,10 +49,10 @@ From a library, the snapshot includes:
 
 - The rules you include, including rules your project excludes or replaces, with their asset directories.
 - Supporting files, such as images and examples, from the library's shared `assets/` directory, when an included rule links to them.
-- Group metadata, which describes each group and when to read it.
+- Rule group metadata, which describes each rule group and when to read it.
 - The library's `config.yaml`, for its manifest, and its declared license and notice files.
 - Each installed skill's whole folder, `skills/<name>/`, including skills your project excludes or replaces, and the skills that installed skills call.
-- The rules that installed skills cite, with their asset directories and group metadata.
+- The rules that installed skills cite, with their asset directories and rule group metadata.
 - The folders of [borrowed skills](/reference/configuration/#borrowed-skills) the project installs, under `borrowed/<borrowed-source>/`, from the commit the project resolved for that borrowed source.
 
 Keeping the original rules and skills lets you review a source's changes even when your project uses a replacement. Make project-specific changes in your authored content; syncing replaces the vendored files.
@@ -63,22 +63,22 @@ A skill's folder is copied as Git tracks it: only tracked files, so ignored file
 
 ## How Code Rules chooses the rules your agents read
 
-Each source's `rules.include` names rules by ID or by prefix, such as `practices/testing/*` for a group, `practices/*` for every practice rule, or `"*"` for every rule; see [Rule selectors](/reference/configuration/#rule-selectors). Code Rules finds the matching rules in the source before applying your exceptions, and records both your selectors and the rules they matched. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
+Each source's `rules.include` names rules by ID or by prefix, such as `practices/testing/*` for a rule group, `practices/*` for every practice rule, or `"*"` for every rule; see [Rule selectors](/reference/configuration/#rule-selectors). Code Rules finds the matching rules in the source before applying your exceptions, and records both your selectors and the rules they matched. Invalid rule groups and rules without rule group metadata cause an error instead of being silently skipped.
 
 Code Rules then decides which rules are **active**, meaning included in the generated guidance:
 
-1. Starts with the rules your `include` selectors match, and discovers authored groups from their `_group.yaml` files.
+1. Starts with the rules your `include` selectors match, and discovers authored rule groups from their `_group.yaml` files.
 2. Removes the rules your `exclude` entries match.
 3. Adds the authored rules your exclusions name as `replacedBy`, in place of the rules they exclude.
 4. Adds your remaining authored rules.
 
 Each included rule's project ID starts with its source name. For example, `team:practices/testing/check-retries` identifies the `check-retries` rule from the `team` source. This keeps rules from different sources distinct, even when their paths match. Authored rules have no source name.
 
-A replacement contributes its complete authored definition: ID, title, metadata, body, attribution, and links to supporting files. It must belong to the same group as the rule it replaces. Each authored rule appears only once, even when used as a replacement.
+A replacement contributes its complete authored definition: ID, title, metadata, body, attribution, and links to supporting files. It must belong to the same rule group as the rule it replaces. Each authored rule appears only once, even when used as a replacement.
 
 ## How Code Rules chooses the skills to install
 
-Skills don't belong to groups, so including a group's rules never installs a skill. For each source, Code Rules installs:
+Skills don't belong to rule groups, so including a rule group's rules never installs a skill. For each source, Code Rules installs:
 
 1. The skills the library [requires](/reference/configuration/#skill-levels), whatever `skills.include` says.
 2. The skills `skills.include` adds: the recommended ones for `recommended`, every one the source offers for `"*"`, and each skill it names.
@@ -88,15 +88,15 @@ It then removes the skills your `skills.exclude` entries name, which can't inclu
 
 A borrowed skill's files come from the borrowed source's repository, at the commit the project resolved for it, or at the commit of the project's own source for that repository when it declares one.
 
-Code Rules also takes every rule in each installed library skill's `syllabus-rules-used` list, from the same library, and every rule an authored skill cites by project ID, from the named source, even when your `include` doesn't name it. These **cited rules** are reference-only: each gets its generated rule file, and the installed skill's [generated section](/reference/files/#installed-skills) links to it, but `RULES.md` and the group pages don't list it, so installing a skill never widens the rules your agents apply to all work. A cited rule your project also includes is an ordinary rule. A cited rule your project excludes or replaces follows that choice: the installed skill says it's excluded, or links to your replacement. Rules cited by a skill you exclude aren't taken for it.
+Code Rules also takes every rule in each installed library skill's `syllabus-rules-used` list, from the same library, and every rule an authored skill cites by project ID, from the named source, even when your `include` doesn't name it. These **cited rules** are reference-only: each gets its generated rule file, and the installed skill's [generated section](/reference/files/#installed-skills) links to it, but `RULES.md` and the rule group pages don't list it, so installing a skill never widens the rules your agents apply to all work. A cited rule your project also includes is an ordinary rule. A cited rule your project excludes or replaces follows that choice: the installed skill says it's excluded, or links to your replacement. Rules cited by a skill you exclude aren't taken for it.
 
 Code Rules does not read rule text to detect contradictory instructions. Two sources can supply conflicting rules, and both remain active unless you configure an exclusion or replacement. The order of sources in your configuration does not establish priority. See [Resolve conflicting rules](/guides/conflicting-guidance/).
 
 ## Where agents read the result
 
-Code Rules writes the active rules and reading indexes to `generated/`. Agents start at `generated/RULES.md`, open relevant groups, and read the applicable rules in full.
+Code Rules writes the active rules and reading indexes to `generated/`. Agents start at `generated/RULES.md`, open relevant rule groups, and read the applicable rules in full.
 
-The generated files also include library summaries, retained license files, and **provenance**: records of where rules and skills came from, which rules they replaced, and which library required, recommended, or offered each skill. Replacement targets and reasons stay in configuration and provenance, outside the rule guidance. Group descriptions remain labeled by source so you can see which library supplied them.
+The generated files also include library summaries, retained license files, and **provenance**: records of where rules and skills came from, which rules they replaced, and which library required, recommended, or offered each skill. Replacement targets and reasons stay in configuration and provenance, outside the rule guidance. Rule group descriptions remain labeled by source so you can see which library supplied them.
 
 The same files support implementation and review. Your project chooses how to check that agents follow the rules; Code Rules does not enforce compliance. Likewise, Code Rules installs skills but doesn't run them, decide when agents use them, or check that agents followed them.
 
@@ -112,7 +112,7 @@ Each source's `vendor/<source-name>/_source.json` records the library release or
 
 With the same configuration and recorded versions, Code Rules produces the same paths and file contents. With unchanged vendored files, authored content, tool version, and rendering options, a build produces the same generated guidance and installed skills. Reordering sources or selectors in configuration does not change their generated order.
 
-`code-rules project update` reports each changed rule and skill with its change, versions, level, and summary, and applies the changes only after you confirm. Both commands report changed files, including group metadata, version records, and installed skill folders.
+`code-rules project update` reports each changed rule and skill with its change, versions, level, and summary, and applies the changes only after you confirm. Both commands report changed files, including rule group metadata, version records, and installed skill folders.
 
 ### How rule versions are resolved
 
@@ -187,7 +187,7 @@ Markdown links, images, and reference links must point to files within the allow
 
 A rule or Markdown attachment cannot link to another rule document on disk, even if that rule is also selected. Each rule must work independently because projects can exclude or replace it. Put shared supporting explanations in the library's shared assets directory.
 
-Within an included group, Markdown files outside asset directories count as rules, including files in nested folders. Declared license and notice files and the group-root `README.md` are exceptions. Put other supporting Markdown, such as `_README.md`, in an asset directory.
+Within an included rule group, Markdown files outside asset directories count as rules, including files in nested folders. Declared license and notice files and the `README.md` at the rule group's root are exceptions. Put other supporting Markdown, such as `_README.md`, in an asset directory.
 
 Markdown assets, license files, and notice files must use UTF-8 text. Other assets can be binary files; Code Rules preserves their original bytes.
 

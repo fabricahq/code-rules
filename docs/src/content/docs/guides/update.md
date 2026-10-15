@@ -63,12 +63,12 @@ When a rule moves through several versions, each summary starts with the version
 | `patch` | Work that complied with the previous version still complies. The rule adds no new guidance. |
 | `minor` | Work that complied with the previous version still complies. The rule adds new guidance. |
 | `major` | Work that complied with the previous version could fail this one. |
-| `new` | A rule the library added that your selectors reach, such as one in a group you include with `practices/testing/*`. |
+| `new` | A rule the library added that your selectors reach, such as one in a rule group you include with `practices/testing/*`. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
 | `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule) since the version your rule is based on, its `basedOn`, which a fork records. The preview lists those changes. Without `basedOn`, it lists the changes since the version your project's lock records, which your rule may already have. Your rule doesn't change unless you replace it with a fork of the newest version. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
-When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
+When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as rule group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
 
 Read the major changes, new rules, and retirements closely: each can change what your code must do. Skills appear in the same list; see [Update skills](#update-skills). For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
@@ -255,7 +255,7 @@ A pin can also move a rule to a specific version: set `version`, and `code-rules
 
 A retired rule or skill appears in the preview with its last version, the summary explaining why, and its replacement if it has one. A rule never replaces a skill, or the reverse. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped, or the skill's installed folders are removed. For a rule with a replacement, read the replacement, and check that your selectors include it; for a skill, check that you include its replacement. To keep using a skill the library retires, [fork it](/guides/install-skills/#fork-a-skill) before you apply the update.
 
-To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or include by ID a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only source of its group's metadata, the update writes that metadata to `.code-rules/rules/<group-id>/_group.yaml` so the fork keeps its group.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or include by ID a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only source of its rule group's metadata, the update writes that metadata to `.code-rules/rules/<group-id>/_group.yaml` so the fork keeps its rule group.
 
 ## Take one library release
 
@@ -290,8 +290,8 @@ Commit the configuration, vendor snapshots, generated files, and installed skill
 Edit the source's `rules.include` or `skills.include`, or its `exclude` lists, and run `code-rules project sync`.
 Sync takes newly included rules and skills from the library release or commit your project already recorded for the source, and leaves the rest of your rules and skills unchanged. Each new rule gets the newest version that library release or an earlier one published. When something you include isn't in the recorded revision, such as a skill the library published after your last update, sync fails and names `code-rules project update SOURCE`, which moves the whole source.
 The vendor snapshot must match your selectors before an offline build can use it.
-Regeneration removes a group index only when no source or authored group still supplies it.
-You don't need to create group metadata before you stop including, or remove, the last source supplying an authored rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last vendored copy, to `.code-rules/rules/<group-id>/_group.yaml` and warns that it did. See [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group). Review the file afterward; it's now yours to edit. If `.code-rules/rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
+Regeneration removes a rule group index only when no source or authored rule group still supplies it.
+You don't need to create rule group metadata before you stop including, or remove, the last source supplying an authored rule's rule group: sync writes the rule group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the rule group, from its last vendored copy, to `.code-rules/rules/<group-id>/_group.yaml` and warns that it did. See [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule). Review the file afterward; it's now yours to edit. If `.code-rules/rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 

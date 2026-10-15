@@ -44,7 +44,7 @@ You may see a reminder that the library has no declared license. We'll address t
 
 ## 2. Add your first rule
 
-A **group** collects related rules and tells agents when to read them. Create a group named "Error handling" to hold rules about how your code handles errors:
+A **rule group** collects related rules and tells agents when to read them. Create a practice group named "Error handling" to hold rules about how your code handles errors:
 
 ```sh
 code-rules library add group practices/error-handling \
@@ -53,7 +53,7 @@ code-rules library add group practices/error-handling \
   --when-to-read 'When implementing or reviewing error handling and error messages.'
 ```
 
-Use the CLI to create a draft rule in that group:
+Use the CLI to create a draft rule in that rule group:
 
 ```sh
 code-rules library add rule practices/error-handling/make-errors-actionable \
@@ -116,7 +116,7 @@ You've written a rule. Now check that Code Rules can read it:
 code-rules library check
 ```
 
-The result should report **1 group and 1 rule**, and preview the first library release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the manifest, group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
+The result should report **1 group and 1 rule**, and preview the first library release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the manifest, rule group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
 
 There is no library build step. A library publishes source rules; each consuming project builds its own agent guidance after choosing rules and applying its exclusions and replacements. See [how project builds work](/start-here/set-up-project/#3-build-the-guidance-your-agent-will-read).
 
@@ -190,7 +190,7 @@ code-rules project add source acme-rules \
   --rules 'practices/error-handling/*'
 ```
 
-This adds the library's repository to `.code-rules/config.yaml` under the source name `acme-rules`, and includes every rule in its error-handling group. The project moves to each rule's newest version whenever someone runs `code-rules project update`.
+This adds the library's repository to `.code-rules/config.yaml` under the source name `acme-rules`, and includes every rule in its error handling practice group. The project moves to each rule's newest version whenever someone runs `code-rules project update`.
 
 Download the rules and build the project's agent guidance:
 
@@ -199,7 +199,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
+Open `.code-rules/generated/RULES.md` and follow its "Error handling" rule group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
 
 The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#6-give-the-rules-to-your-agent). Then commit the project's configuration, vendored rules, generated guidance, and agent instructions together.
 
@@ -221,4 +221,4 @@ Complete `.code-rules/skills/fix-bug/SKILL.md`, list the rules its steps apply, 
 
 As your library grows, [write focused rules](/guides/write-rules/) and [skills](/guides/write-skills/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to take updates](/guides/update/).
 
-For metadata and supporting files, see [Rule and group format](/reference/rule-format/), [Skill format](/reference/skill-format/), and [Library format](/reference/library-format/).
+For metadata and supporting files, see [Rule and rule group format](/reference/rule-format/), [Skill format](/reference/skill-format/), and [Library format](/reference/library-format/).

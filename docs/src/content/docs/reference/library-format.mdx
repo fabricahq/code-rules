@@ -9,9 +9,9 @@ import { FileTree } from '@astrojs/starlight/components';
 This page describes the version 2 layout and manifest, which aren't in a released version of Code Rules yet. The released CLI reads `rule-library.yaml` and rules at the repository root.
 :::
 
-A **library** is a repository whose manifest publishes its authored rule **groups**, **skills**, and shared assets for other repositories. Libraries are useful because projects take from them: you write rules and skills once and reuse them in every codebase that needs them. A **project** is a repository that takes rules and skills for its own work. A repository can be both.
+A **library** is a repository whose manifest publishes its authored **rule groups**, **skills**, and shared assets for other repositories. Libraries are useful because projects take from them: you write rules and skills once and reuse them in every codebase that needs them. A **project** is a repository that takes rules and skills for its own work. A repository can be both.
 
-Libraries live in Git repositories. This page covers what makes a repository a library. For the rule and group files inside it, see [Rule and group format](/reference/rule-format/); for skill folders, see [Skill format](/reference/skill-format/). For how each rule and skill is versioned, see [Rule and skill versions](/reference/rule-versions/).
+Libraries live in Git repositories. This page covers what makes a repository a library. For the rule and rule group files inside it, see [Rule and rule group format](/reference/rule-format/); for skill folders, see [Skill format](/reference/skill-format/). For how each rule and skill is versioned, see [Rule and skill versions](/reference/rule-versions/).
 
 ## Library layout
 
@@ -56,21 +56,21 @@ A library uses the same Code Rules directory as every other repository. The tree
 
 A library publishes exactly its **authored content**:
 
-- **Rule groups** under `rules/techs/` and `rules/practices/`, each with its group metadata and rules.
+- **Rule groups** under `rules/techs/` and `rules/practices/`, each with its rule group metadata and rules.
 - **Skills** under `skills/`, one folder per skill.
-- **Library-wide files**: the manifest in `config.yaml`, group metadata, shared files in `assets/`, and the declared license and notice files.
+- **Library-wide files**: the manifest in `config.yaml`, rule group metadata, shared files in `assets/`, and the declared license and notice files.
 
 `vendor/` and `generated/` are the library's own project files, for the sources it takes from and the guidance its own agents read. Projects never take them from the library.
 
-Code Rules discovers groups only under `rules/techs/` and `rules/practices/`, and skills only as `skills/<name>/SKILL.md`. A rule's ID is its path in `rules/` without `.md`, such as `practices/testing/verify-retry-limits`, and a skill's ID is `skills/<name>`.
-Within a group, Markdown files outside reserved asset directories are rules. The group-root `README.md` and declared license and notice files, which can't use a rule's path, are exempt. Group READMEs are authoring documentation, not generated rule guidance.
+Code Rules discovers rule groups only under `rules/techs/` and `rules/practices/`, and skills only as `skills/<name>/SKILL.md`. A rule's ID is its path in `rules/` without `.md`, such as `practices/testing/verify-retry-limits`, and a skill's ID is `skills/<name>`.
+Within a rule group, Markdown files outside reserved asset directories are rules. The `README.md` at the rule group's root and declared license and notice files, which can't use a rule's path, are exempt. Rule group READMEs are authoring documentation, not generated rule guidance.
 [Change notes](/reference/rule-versions/#change-notes), which record how rules and skills changed, live in `changes/`. Projects never take them.
 Library releases are Git tags, not files; see [Library releases](/reference/rule-versions/#library-releases).
 Other supporting files, including `_README.md`, must live in an asset directory.
-Rules and [group metadata](/reference/rule-format/#group-metadata) must use valid paths; a prefix selector also rejects rules whose group metadata is missing.
-The builder does not inspect the contents of groups a project doesn't include.
+Rules and [rule group metadata](/reference/rule-format/#rule-group-metadata) must use valid paths; a prefix selector also rejects rules whose rule group metadata is missing.
+The builder does not inspect the contents of rule groups a project doesn't include.
 
-`config.yaml`, change notes, and group metadata use one YAML document per file. Duplicate keys, anchors, aliases, and explicit tags are rejected. Generated snapshot and provenance files remain JSON.
+`config.yaml`, change notes, and rule group metadata use one YAML document per file. Duplicate keys, anchors, aliases, and explicit tags are rejected. Generated snapshot and provenance files remain JSON.
 
 ## The manifest
 
@@ -102,11 +102,11 @@ The manifest replaces `rule-library.yaml`, and the Code Rules directory replaces
 
 ## Skills
 
-Each folder in `skills/` is one skill, and its `SKILL.md` names it. `skills/` holds only skill folders, each directly inside it. Skills don't belong to groups, so a skill folder is never inside `rules/`, or inside another skill.
+Each folder in `skills/` is one skill, and its `SKILL.md` names it. `skills/` holds only skill folders, each directly inside it. Skills don't belong to rule groups, so a skill folder is never inside `rules/`, or inside another skill.
 
 `code-rules library check` validates every skill, and a project installs only the skills it includes, its required skills, and the skills they call. A skill's version covers its whole folder; see [What a version covers](/reference/rule-versions/#what-a-version-covers). For the folder's contents, the `SKILL.md` fields, and every check, see [Skill format](/reference/skill-format/).
 
-A skill can cite rules from any group in the library with `syllabus-rules-used`, and a project that installs it takes those rules too, for reference. Rules can't link to skills, and skills can't link to rules or other library files: a skill cites rules by ID, and its links stay inside its own folder.
+A skill can cite rules from any rule group in the library with `syllabus-rules-used`, and a project that installs it takes those rules too, for reference. Rules can't link to skills, and skills can't link to rules or other library files: a skill cites rules by ID, and its links stay inside its own folder.
 
 ### Skill levels
 
@@ -168,13 +168,13 @@ generated/libraries/<source-name>/licenses/notices/002.md
 
 `<source-name>` is the name the project gave the source. Unique notice files are numbered in declaration order; repeated paths and a notice path identical to the license path are copied only once. No notice files are generated when none are declared. Contents, including whitespace and line endings, are preserved. Output paths are not configurable. Vendor snapshots retain the original names for traceability. Declared terms are retained even when exclusions or replacements leave no active rules from that library.
 
-One library-wide license declaration covers every group, rule, and skill the library authors. Rule- and group-level `license` or `licenses` fields are rejected. A skill's `SKILL.md` can carry the Agent Skills `license` field, but it's informational: `code-rules library check` warns when it differs from the library's SPDX expression; see [Skill format](/reference/skill-format/#licenses). A borrowed skill keeps its own repository's terms, which Code Rules finds as it does for any [non-library source](/reference/imports/#non-library-sources).
+One library-wide license declaration covers every rule group, rule, and skill the library authors. A `license` or `licenses` field on a rule or rule group is rejected. A skill's `SKILL.md` can carry the Agent Skills `license` field, but it's informational: `code-rules library check` warns when it differs from the library's SPDX expression; see [Skill format](/reference/skill-format/#licenses). A borrowed skill keeps its own repository's terms, which Code Rules finds as it does for any [non-library source](/reference/imports/#non-library-sources).
 Keep original attribution with each rule and include required notices in the manifest. Material requiring a different declaration belongs in a separate library.
 See [License rules](/guides/license-rules/) for publisher guidance and the boundary with the consuming project's license.
 
 ## Read libraries from other tools
 
-Tools written in Go, such as a catalog of libraries, can read library release tags, release records, rule files, group metadata, and the [canonical group list](/concepts/groups/#canonical-group-ids) with the `github.com/fabricahq/code-rules/coderules` package, whose Go documentation describes its API. Code Rules reads libraries through the same package, so both read them the same way. The package only parses text the tool has already read, such as with a Git library; it has no Git, filesystem, or network access. It follows Code Rules' version, and its API may change before Code Rules 1.0.0.
+Tools written in Go, such as a catalog of libraries, can read library release tags, release records, rule files, rule group metadata, and the [canonical rule group list](/concepts/groups/#canonical-rule-group-ids) with the `github.com/fabricahq/code-rules/coderules` package, whose Go documentation describes its API. Code Rules reads libraries through the same package, so both read them the same way. The package only parses text the tool has already read, such as with a Git library; it has no Git, filesystem, or network access. It follows Code Rules' version, and its API may change before Code Rules 1.0.0.
 
 ## Related guides
 

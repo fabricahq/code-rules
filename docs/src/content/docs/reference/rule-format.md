@@ -1,21 +1,21 @@
 ---
-title: "Rule and group format"
-description: "What Code Rules accepts in rule files, group metadata, and supporting assets."
+title: "Rule and rule group format"
+description: "What Code Rules accepts in rule files, rule group metadata, and supporting assets."
 ---
 
 :::caution[Preview]
-The `.code-rules/rules/` and `.code-rules/assets/` paths on this page are the version 2 layout, which isn't in a released version of Code Rules yet. The released CLI reads a library's groups and shared assets at the repository root, and a project's own groups in `.code-rules/local/`.
+The `.code-rules/rules/` and `.code-rules/assets/` paths on this page are the version 2 layout, which isn't in a released version of Code Rules yet. The released CLI reads a library's rule groups and shared assets at the repository root, and a project's own rule groups in `.code-rules/local/`.
 :::
 
-This page defines what Code Rules accepts in a rule file and in group metadata. The same format applies to rules in a library and to a project's own rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
+This page defines what Code Rules accepts in a rule file and in rule group metadata. The same format applies to rules in a library and to a project's own rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
 
-Each rule is a Markdown file, and related rules belong to a **group**: a directory under `.code-rules/rules/techs/` or `.code-rules/rules/practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where groups live in a library.
+Each rule is a Markdown file, and related rules belong to a **rule group**: a directory under `.code-rules/rules/techs/` or `.code-rules/rules/practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where rule groups live in a library.
 
-Group metadata and rule frontmatter use YAML. Duplicate keys, anchors, aliases, and explicit tags are rejected.
+Rule group metadata and rule frontmatter use YAML. Duplicate keys, anchors, aliases, and explicit tags are rejected.
 
-## Group metadata
+## Rule group metadata
 
-Library authors define each group's selection guidance in its `_group.yaml`, before any project includes the group.
+Library authors define each rule group's selection guidance in its `_group.yaml`, before any project includes the rule group.
 The builder reads that source metadata and renders its `whenToRead` cues in the generated root index; it does not infer them from the current rules.
 Use the existing `whenToRead` field for this guidance rather than adding a separate `whenToUse` field.
 
@@ -26,10 +26,10 @@ whenToRead: When adding or changing behavior, fixing a bug, or modifying tests, 
   no test files are in the diff.
 ```
 
-All three group fields are required non-blank strings. Surrounding whitespace is trimmed. Unknown fields are rejected.
-The directory supplies the group's ID and type.
-Both `RULES.md` and the group page include its name, description, and when-to-read guidance. A project's own group metadata takes precedence as a complete record; otherwise each contributing library remains source-labeled.
-Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the group's reading cues.
+All three rule group fields are required non-blank strings. Surrounding whitespace is trimmed. Unknown fields are rejected.
+The directory supplies the rule group's ID and type.
+Both `RULES.md` and the rule group page include its name, description, and when-to-read guidance. A project's own rule group metadata takes precedence as a complete record; otherwise each contributing library remains source-labeled.
+Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the rule group's reading cues.
 
 ## Rule metadata
 
@@ -44,7 +44,7 @@ Agents select rules using `whenToRead`, follow the full guidance and exceptions,
 All applicable rules matter regardless of impact.
 
 `whenToRead` is a required non-empty string describing work that should trigger reading, including before code exists.
-The group field of the same name is also one string, describing the group’s scope of applicability.
+The rule group field of the same name is also one string, describing the rule group’s scope of applicability.
 The full body defines obligations, implementation guidance, exceptions, and validation guidance.
 Existing snapshots and a project's own replacements must add rule-level `whenToRead` before building with this format.
 
@@ -89,7 +89,7 @@ Use two optional locations for supporting files:
 
 A rule owns `assets/<filename-without-.md>/` beside its Markdown file.
 For example, `practices/testing/nested/retry.md` owns `practices/testing/nested/assets/retry/`.
-Each owned directory must have an adjacent rule. The directory name `assets` is reserved and cannot contain active rules or group metadata.
+Each owned directory must have an adjacent rule. The directory name `assets` is reserved and cannot contain active rules or rule group metadata.
 Markdown within assets is supporting text and does not need rule frontmatter.
 
 Keep the rule's obligations and exceptions in the rule itself. Use assets for explanations, images, sample data, and other supporting material.

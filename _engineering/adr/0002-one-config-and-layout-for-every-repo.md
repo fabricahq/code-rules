@@ -5,5 +5,5 @@ Libraries had their own manifest file and kept their content at the repository r
 ## Consequences
 
 - Sources aren't typed. Code Rules detects a source without a manifest, whose skills are all offered, and a source without library releases, which needs a `ref`; one command adds any kind of source.
-- Vendor snapshots are kept per source, because two sources can both hold the same group ID.
+- Vendor snapshots are kept per source, because two sources can both hold the same rule group ID.
 - Rule IDs don't change, because they're relative to the authored content, not to the folder that holds it.

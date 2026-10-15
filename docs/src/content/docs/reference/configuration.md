@@ -69,7 +69,7 @@ Replace them with libraries, rules, and skills your project can access.
 
 Unknown fields are rejected, at every level.
 Every part of a source except `repository` is optional. A source with no `include` still installs the skills its library [requires](#skill-levels).
-Authored rules, groups, and skills are discovered from `rules/` and `skills/` in the Code Rules directory; they need no configuration entry. See [Project files](/reference/files/).
+Authored rules, rule groups, and skills are discovered from `rules/` and `skills/` in the Code Rules directory; they need no configuration entry. See [Project files](/reference/files/).
 
 ## Selectors
 
@@ -80,13 +80,13 @@ The selection from a source is everything its `include` lists name, minus everyt
 | Selector | Includes |
 | --- | --- |
 | `practices/testing/verify-retry-limits` | One rule, by its ID. |
-| `practices/testing/*` | Every rule in the `practices/testing` group, at any depth, including rules the library adds to it later. |
+| `practices/testing/*` | Every rule in the `practices/testing` rule group, at any depth, including rules the library adds to it later. |
 | `practices/*` | Every practice rule, in every practice group. `techs/*` is every technology rule. |
 | `"*"` | Every rule in the source. |
 
 A selector is a rule ID, or a prefix that ends in `/*`. The `*` is allowed only at the end, after a `/`, or alone: `techs/go*`, `techs/*/testing`, and `**` are rejected. A rule ID names the rule's path in its library's `rules/` folder, without `.md`.
 
-`exclude` entries take the same forms. Use a prefix to leave out a whole group that a wider `include` brings in:
+`exclude` entries take the same forms. Use a prefix to leave out a whole rule group that a wider `include` brings in:
 
 ```yaml
 rules:
@@ -98,7 +98,7 @@ rules:
 
 `pins` take single rule IDs only.
 
-Each rule ID in `include` must name a rule the source publishes, and each prefix must match at least one rule, except `"*"`. A rule included by an ID and also by a prefix is included once. When a rule brings in its group, it brings the group's metadata, so the group appears in the generated index with only the included rules.
+Each rule ID in `include` must name a rule the source publishes, and each prefix must match at least one rule, except `"*"`. A rule included by an ID and also by a prefix is included once. When a rule brings in its rule group, it brings the rule group's metadata, so the rule group appears in the generated index with only the included rules.
 
 ### Skill selectors
 
@@ -156,7 +156,7 @@ rules:
 | --- | --- |
 | `id` | Required. A [rule selector](#rule-selectors). |
 | `reason` | Required non-blank text explaining why the repository leaves the rule out. |
-| `replacedBy` | Optional, with a single rule ID only. The ID of an authored rule in `rules/` that agents read in place of the excluded rule. It must be in the same group as the rule it replaces, and each authored rule can replace only one rule. |
+| `replacedBy` | Optional, with a single rule ID only. The ID of an authored rule in `rules/` that agents read in place of the excluded rule. It must be in the same rule group as the rule it replaces, and each authored rule can replace only one rule. |
 | `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
 
 An excluded rule is still kept in the source's vendor snapshot, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your rule needs the same change:
@@ -295,7 +295,7 @@ Each installed skill gets a folder `<target>/<install-name>/`. Code Rules writes
 
 ## Library manifest
 
-The `library` section makes a repository a library. It publishes the repository's authored rules, groups, skills, and assets, and sets the level of each skill it offers:
+The `library` section makes a repository a library. It publishes the repository's authored rules, rule groups, skills, and assets, and sets the level of each skill it offers:
 
 ```yaml
 # fabricahq/.code-rules: .code-rules/config.yaml
@@ -422,27 +422,27 @@ A project chooses rule versions one by one, with pins, but not skill versions. A
 
 ### Where each rule's files come from
 
-Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, the manifest, and license files, and every skill's whole folder come from the source's one recorded library release, or from the revision your `ref` names. That library release is never older than the one that published any included rule version. When it no longer has the metadata of an included rule's group, such as the group of a retired rule you pinned, the group's metadata comes from the newest library release among its included rule versions that still has it.
+Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as rule group metadata, shared assets, the manifest, and license files, and every skill's whole folder come from the source's one recorded library release, or from the revision your `ref` names. That library release is never older than the one that published any included rule version. When it no longer has the metadata of an included rule's rule group, such as the rule group of a retired rule you pinned, that rule group's metadata comes from the newest library release among its included rule versions that still has it.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
-## Groups
+## Rule groups
 
-Rules from the same group ID combine into one generated group, whatever source supplies them.
-Including `practices/testing/*` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
+Rules from the same rule group ID combine into one generated rule group, whatever source supplies them.
+Including `practices/testing/*` from two sources combines both sets of rules into one effective testing rule group, with a rule group page and individual resolved rule files.
 Source order never establishes precedence.
 
-Every valid authored rule in `rules/` joins its group, and needs no configuration entry.
+Every valid authored rule in `rules/` joins its rule group, and needs no configuration entry.
 An authored rule with the same ID as an included rule doesn't replace it; name it in an exclusion's `replacedBy` to do that.
 An authored rule that an exclusion names as `replacedBy` appears once under its own ID; the excluded rule is removed from active output.
 The complete authored definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
-An authored `_group.yaml` defines a group, including an empty group, without any configuration entry.
-If authored metadata exists for an included group, its complete description and reading cues take precedence for discovery.
+An authored `_group.yaml` defines a rule group, including an empty one, without any configuration entry.
+If authored metadata exists for an included rule group, its complete description and reading cues take precedence for discovery.
 Otherwise, descriptions from every contributing library remain source-labeled.
-Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
-Authored rules without either authored or included group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last source supplying an authored rule's group, it writes the group's last vendored metadata to `rules/<group-id>/_group.yaml` instead of failing; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
+Provenance retains all rule group metadata and identifies the sources supplying the effective discovery guidance.
+Authored rules without either authored or included rule group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last source supplying an authored rule's rule group, it writes that rule group's last vendored metadata to `rules/<group-id>/_group.yaml` instead of failing; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 
-The generated index shows group names, applicability guidance, and explicit **Open group** links. Without authored metadata, guidance from multiple libraries remains labeled by source.
+The generated index shows rule group names, applicability guidance, and explicit **Open group** links. Without authored metadata, guidance from multiple libraries remains labeled by source.
 Code Rules does not silently choose one library's description over another's.
 
 ## Conflicting rules

@@ -57,7 +57,7 @@ export default defineConfig({
       ] },
       { label: 'Concepts', collapsed: true, items: [
         { label: 'Rule', slug: 'concepts/rule' },
-        { label: 'Group', slug: 'concepts/groups' },
+        { label: 'Rule group', slug: 'concepts/groups' },
         { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Library', slug: 'concepts/libraries' },
         { label: 'Project', slug: 'concepts/project' },
@@ -86,7 +86,7 @@ export default defineConfig({
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
         { label: 'Rules, skills, and libraries', collapsed: true, items: [
-          { label: 'Rule and group format', slug: 'reference/rule-format' },
+          { label: 'Rule and rule group format', slug: 'reference/rule-format' },
           { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
           { label: 'Skill format', slug: 'reference/skill-format' },
           { label: 'Library format', slug: 'reference/library-format' },

@@ -32,7 +32,7 @@ A new configuration gets `schemaVersion: 2` and `skillTargets: [claude, agents]`
 
 Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. A version 1 configuration fails with a message that shows the version 2 shape; see [No backward compatibility](/reference/configuration/#no-backward-compatibility).
 
-Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and rule group guides](/reference/files/#project-and-rule-group-guides).
 
 ### project add source
 
@@ -73,16 +73,16 @@ Sync checks the source when it first reads it. A source without `release/<number
 code-rules project add group ID [options]
 ```
 
-Create an authored group in `.code-rules/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create an authored rule group in `.code-rules/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
-| `--name TEXT` | Required. Group display name. |
-| `--description TEXT` | Required. What the group covers. |
-| `--when-to-read TEXT` | Required. When an agent should read the group. |
+| `--name TEXT` | Required. Rule group display name. |
+| `--description TEXT` | Required. What the rule group covers. |
+| `--when-to-read TEXT` | Required. When an agent should read the rule group. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-A group can exist before it has rules. Authored groups need no source declaration. Existing group files are preserved.
+A rule group can exist before it has rules. Authored rule groups need no source declaration. Existing rule group files are preserved.
 
 ### project add rule
 
@@ -90,7 +90,7 @@ A group can exist before it has rules. Authored groups need no source declaratio
 code-rules project add rule ID [options]
 ```
 
-Create a rule in an existing authored group, at `.code-rules/rules/ID.md`. `ID` includes the group path and rule name, such as `practices/testing/check-retries`, without `.md`.
+Create a rule in an existing authored rule group, at `.code-rules/rules/ID.md`. `ID` includes the rule group path and rule name, such as `practices/testing/check-retries`, without `.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -101,7 +101,7 @@ Create a rule in an existing authored group, at `.code-rules/rules/ID.md`. `ID` 
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `code-rules project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `code-rules:draft` marker before building. Existing rules are not overwritten.
+Create the rule group first with `code-rules project add group`. A missing rule group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `code-rules:draft` marker before building. Existing rules are not overwritten.
 
 #### Fork a library rule
 
@@ -109,7 +109,7 @@ Create the group first with `code-rules project add group`. A missing group fail
 code-rules project add rule ID --from LIBRARY@VERSION [options]
 ```
 
-Copy one version of a library rule into `.code-rules/rules/` so the project controls its text. Use a fork to change what a rule says. To take one rule without the rest of its group, [include it by ID](/reference/configuration/#rule-selectors) instead, and to keep a rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `.code-rules/rules/practices/testing/verify-retry-limits.md`.
+Copy one version of a library rule into `.code-rules/rules/` so the project controls its text. Use a fork to change what a rule says. To take one rule without the rest of its rule group, [include it by ID](/reference/configuration/#rule-selectors) instead, and to keep a rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `.code-rules/rules/practices/testing/verify-retry-limits.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -120,7 +120,7 @@ Copy one version of a library rule into `.code-rules/rules/` so the project cont
 Metadata options and `--body-file` don't apply to a fork. The command:
 
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
-2. Writes them under `.code-rules/rules/`. When neither authored group metadata nor a source the project includes supplies the rule's group, it also creates the authored group from the library's group metadata.
+2. Writes them under `.code-rules/rules/`. When neither authored rule group metadata nor a source the project includes supplies the rule's rule group, it also creates the authored rule group from the library's rule group metadata.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL, and the entry links to that address.
 4. When the `LIBRARY` source includes the rule and its last sync took it, adds an `exclude` entry for it with your reason, the fork's ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned copy, now decides what agents read. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
 
@@ -250,9 +250,9 @@ A preview that writes nothing exits `0`, because available updates aren't an err
 
 In JSON output, each source in `value.sources` also has a `skills` list, whose rows have the same fields as its `rules`, plus `level`, with the levels `from` and `to` when the level changed, absent otherwise; and `scripts`, a list of the flagged scripts, each with its `path`, relative to the skill's folder, and its `change`, `added` or `changed`, empty when the row flags none. A skill row's `change` can also be `dropped` or `level`. A source whose `ref` names a branch or tag, and each entry in a source's `borrowed` list, has `commit`, with the commits `from` and `to`, absent when it doesn't move, and `tagMoved: true` when a tag now names a different commit. Rows for skills from a non-library source or a borrowed source have a `change` of `added`, `changed`, or `removed`, and `files`, the paths of the changed files relative to the skill's folder, empty for other rows.
 
-The preview doesn't list changes to rules or skills you excluded without a replacement. `--keep` and pins in configuration never change which rules are included. When a rule you exclude or include by ID is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your authored rules in a group with no metadata, such as a fork of a retired rule, it writes the group's metadata to `rules/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
+The preview doesn't list changes to rules or skills you excluded without a replacement. `--keep` and pins in configuration never change which rules are included. When a rule you exclude or include by ID is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your authored rules in a rule group with no metadata, such as a fork of a retired rule, it writes the rule group's metadata to `rules/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 
-An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as the manifest, group metadata, shared assets, and the library's license files, to the newest library release, or the commit its `ref` names now, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A source whose `ref` names a library release or a commit doesn't move; change `ref` and run `code-rules project update SOURCE` to take the revision it names. A `SOURCE:RULE` update leaves the library-wide files where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published. The source's skills and skill levels always move with its library-wide files.
+An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as the manifest, rule group metadata, shared assets, and the library's license files, to the newest library release, or the commit its `ref` names now, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A source whose `ref` names a library release or a commit doesn't move; change `ref` and run `code-rules project update SOURCE` to take the revision it names. A `SOURCE:RULE` update leaves the library-wide files where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published. The source's skills and skill levels always move with its library-wide files.
 
 #### Replace a fork with the newest version
 
@@ -303,7 +303,7 @@ List the skills the repository's sources offer, with their levels, so you can ch
 | Option | Meaning |
 | --- | --- |
 | `--type TYPE` | Only skills of this type: `playbook` or `review`. |
-| `--applies-rules-from GROUP` | Only skills whose `syllabus-rules-used` names a rule in this group, such as `practices/architecture`. |
+| `--applies-rules-from GROUP` | Only skills whose `syllabus-rules-used` names a rule in this rule group, such as `practices/architecture`. |
 
 ```text
 $ code-rules project list skills --applies-rules-from practices/architecture
@@ -326,7 +326,7 @@ Each row shows:
 
 Authored skills aren't listed. Skills are sorted by project ID. To install one, add it to that source's `skills.include` and run `code-rules project sync`, or `code-rules project update SOURCE` when it isn't in the recorded revision yet.
 
-Skills don't belong to groups, so `--applies-rules-from` finds skills by the rules they cite: a skill that cites rules in several groups appears under each of them, and a skill that cites no rules, including every skill from a non-library source, appears only without the option. Both options can be combined.
+Skills don't belong to rule groups, so `--applies-rules-from` finds skills by the rules they cite: a skill that cites rules in several rule groups appears under each of them, and a skill that cites no rules, including every skill from a non-library source, appears only without the option. Both options can be combined.
 
 JSON output lists the skills in `value.skills`, each with its `name`, `id`, `level`, `status` (`installed` or `available`), and, where they apply, `setBy`, with the `library` and `release`, its `type`, and its `version` or `commit`.
 
@@ -360,17 +360,17 @@ If you omit the license options, the manifest leaves the license undeclared. Ini
 code-rules library add group ID [options]
 ```
 
-Create a group in `.code-rules/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`. It writes the same files as `code-rules project add group`.
+Create a rule group in `.code-rules/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`. It writes the same files as `code-rules project add group`.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--name TEXT` | Required. Group display name. |
-| `--description TEXT` | Required. What the group covers. |
-| `--when-to-read TEXT` | Required. When an agent should read the group. |
+| `--name TEXT` | Required. Rule group display name. |
+| `--description TEXT` | Required. What the rule group covers. |
+| `--when-to-read TEXT` | Required. When an agent should read the rule group. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Empty groups are valid. Existing group files are preserved.
+Empty rule groups are valid. Existing rule group files are preserved.
 
 ### library add rule
 
@@ -378,7 +378,7 @@ Empty groups are valid. Existing group files are preserved.
 code-rules library add rule ID [options]
 ```
 
-Create a rule in an existing group, at `.code-rules/rules/ID.md`. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
+Create a rule in an existing rule group, at `.code-rules/rules/ID.md`. `ID` includes the rule group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -390,7 +390,7 @@ Create a rule in an existing group, at `.code-rules/rules/ID.md`. `ID` includes 
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `code-rules library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `code-rules library change`. Like `code-rules library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
+Create the rule group first with `code-rules library add group`; rule creation does not create missing rule groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `code-rules library change`. Like `code-rules library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
 
 ### library add skill
 
@@ -437,14 +437,14 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 code-rules library check [options]
 ```
 
-Validate the manifest, all groups and rules, all skills and their levels, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule and skill has a change note. Does not change files.
+Validate the manifest, all rule groups and rules, all skills and their levels, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule and skill has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--non-interactive` | Accepted; library check does not prompt. |
 
-Reports group, rule, and skill counts, `value.groupCount`, `value.ruleCount`, and `value.skillCount` in JSON, such as `Library is valid: 3 group(s), 6 rule(s), 3 skill(s).`, and file-specific errors. The human output leaves out the skill count when the library has no skills. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
+Reports rule group, rule, and skill counts, `value.groupCount`, `value.ruleCount`, and `value.skillCount` in JSON, such as `Library is valid: 3 group(s), 6 rule(s), 3 skill(s).`, and file-specific errors. The human output leaves out the skill count when the library has no skills. Empty rule groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
 Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `syllabus-skill-type`, `syllabus-rules-used`, and `syllabus-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message.
 
@@ -467,7 +467,7 @@ A skill is compared with the newest library release whose release record has a `
 
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `code-rules library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
-When checks pass, the result previews the pending library release: each rule and skill, its change, and its current and next version, in one list sorted by ID. When no rule or skill change is pending and no library-wide file changed, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as the manifest, group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `value.pendingRelease.skills` lists pending skill changes in the same form. `code-rules library release` reports the rules and skills it publishes in `value.rules` and `value.skills` the same way.
+When checks pass, the result previews the pending library release: each rule and skill, its change, and its current and next version, in one list sorted by ID. When no rule or skill change is pending and no library-wide file changed, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as the manifest, rule group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `value.pendingRelease.skills` lists pending skill changes in the same form. `code-rules library release` reports the rules and skills it publishes in `value.rules` and `value.skills` the same way.
 
 ### library release
 
@@ -598,7 +598,7 @@ Every command accepts `--json`, which prints one JSON response and disables prom
 
 Authoring commands accept `--non-interactive`. Without it, commands can prompt for missing required metadata or source selections when running in a terminal. With `--non-interactive`, `--json`, or no terminal, missing required inputs cause an error. Positional arguments such as `ID` and `ALIAS` must always be supplied.
 
-Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing groups, rules, skills, and source names fail before prompts.
+Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing rule groups, rules, skills, and source names fail before prompts.
 
 Both init commands, both check commands, `code-rules project list skills`, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, `code-rules project build`, and `code-rules project list skills` do not need or accept it.
 
@@ -626,9 +626,9 @@ Every list in a value is always present, empty when there's nothing to report, i
 
 Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Code Rules directory, except paths in a skill target, which are relative to the project root. Generated guidance, installed skills, and the managed Code Rules guide must all be current for success.
 
-Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
+Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or rule group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build, except paths in a skill target, such as `.claude/skills/build-feature/SKILL.md`, which are relative to the project root. Authoring commands, such as init, add source, add group, add rule, add skill, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, a rename, a personal skill with the same name, or authored group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build, except paths in a skill target, such as `.claude/skills/build-feature/SKILL.md`, which are relative to the project root. Authoring commands, such as init, add source, add group, add rule, add skill, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, a rename, a personal skill with the same name, or authored rule group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/code-rules/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 
@@ -644,7 +644,7 @@ Code Rules shows as they are:
 
 - names you chose locally, such as branch and remote names,
 - the repository addresses in project configuration, which can't contain credentials, and
-- library content, such as rule files, change notes, group descriptions, and release records.
+- library content, such as rule files, change notes, rule group descriptions, and release records.
 
 Human output still shows control characters in that text as visible escapes, as [Command output](#command-output) describes.
 

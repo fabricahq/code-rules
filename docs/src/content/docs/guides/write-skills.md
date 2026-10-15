@@ -112,7 +112,7 @@ metadata:
 
 A bare ID names a rule or skill this repository authors. A library's skills cite only bare IDs, because each project chooses its own source names. A project that installs the skill takes every cited rule, even ones its rule `include` doesn't name, and installs every skill it calls.
 
-The cited rules are for the skill. They don't join the project's `RULES.md`, so installing your skill never adds rules to unrelated work. Cite every rule a step depends on, including rules from groups you'd expect projects to include anyway: a project may not have included them.
+The cited rules are for the skill. They don't join the project's `RULES.md`, so installing your skill never adds rules to unrelated work. Cite every rule a step depends on, including rules from rule groups you'd expect projects to include anyway: a project may not have included them.
 
 A library's skill can't cite a rule or call a skill from another library. If your skill depends on another library's practice, write or adapt the rule in your library first. A skill in a repository that isn't a library can cite its sources' rules with project IDs, such as `fabrica:practices/testing/verify-retries`; `code-rules project check` fails when one of those rules is retired, so your skill never points at a rule that's gone.
 
@@ -229,7 +229,7 @@ library:
 - **Recommended** skills install in projects that include `recommended`.
 - **Offered** skills install only when a project names them or includes `"*"`. A skill you don't list is offered, so list only the skills you have an opinion about.
 
-Levels are library-wide settings, like group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `code-rules library check` fails when two skills you list, including skills you [borrow](/reference/configuration/#borrowed-skills) from other repositories, have the same name, so your projects never inherit a clash.
+Levels are library-wide settings, like rule group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `code-rules library check` fails when two skills you list, including skills you [borrow](/reference/configuration/#borrowed-skills) from other repositories, have the same name, so your projects never inherit a clash.
 
 ## Record a change note
 

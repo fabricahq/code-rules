@@ -33,9 +33,9 @@ my-project/
 Inside `.code-rules/`:
 
 - **Configuration** in `config.yaml` names the project's sources and the rules and skills it includes from each, plus versions, renames, and any rules or skills to exclude or replace.
-- **Authored content** in `rules/`, `skills/`, and `assets/` holds the groups, rules, skills, and shared files you write for this project.
+- **Authored content** in `rules/`, `skills/`, and `assets/` holds the rule groups, rules, skills, and shared files you write for this project.
 - **Vendor snapshots** in `vendor/` keep a copy of what the project takes from each source, with a record of the library release or commit it came from.
-- **Generated guidance** in `generated/` combines your included rules into `RULES.md`, group pages, and rule files that agents can read, and lists installed skills in `SKILLS.md`.
+- **Generated guidance** in `generated/` combines your included rules into `RULES.md`, rule group pages, and rule files that agents can read, and lists installed skills in `SKILLS.md`.
 
 Outside `.code-rules/`, Code Rules writes **installed skills** into `.claude/skills/` and `.agents/skills/`, the targets your configuration names. It manages only the skill folders it installed there; other tools' skills in the same folders stay untouched.
 

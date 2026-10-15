@@ -38,7 +38,7 @@ Run the commands below from the project root. After initialization, you can also
 
 A rule you write in `.code-rules/rules/` belongs to this project. Let's add one about testing changed behavior.
 
-First create its group. A group collects related rules and tells agents when to read them:
+First create its rule group. A rule group collects related rules and tells agents when to read them:
 
 ```sh
 code-rules project add group practices/testing \
@@ -47,7 +47,7 @@ code-rules project add group practices/testing \
   --when-to-read 'When adding or changing behavior, fixing bugs, or reviewing tests.'
 ```
 
-Use the CLI to create a draft rule in that group:
+Use the CLI to create a draft rule in that rule group:
 
 ```sh
 code-rules project add rule practices/testing/test-changed-behavior \
@@ -94,12 +94,12 @@ code-rules project build
 `code-rules project build` reads your rules and `.code-rules/config.yaml`, validates them, and writes the results into `.code-rules/generated/`. It:
 
 - **Applies your choices:** includes the rules your configuration names, leaves out rules you've excluded, and substitutes your own replacements for library rules where configured.
-- **Organizes the rules for reading:** creates `RULES.md` and group indexes with links and instructions that help agents find and read relevant rules. See [a sample `RULES.md` and the files it links to](/reference/files/#example-follow-a-rule-from-the-index).
+- **Organizes the rules for reading:** creates `RULES.md` and rule group indexes with links and instructions that help agents find and read relevant rules. See [a sample `RULES.md` and the files it links to](/reference/files/#example-follow-a-rule-from-the-index).
 - **Splits large indexes into pages:** keeps navigation manageable without shortening the full rule text.
 
 If two rules give conflicting advice, you decide which to exclude or replace in configuration. `code-rules project build` applies those decisions; it doesn't detect or resolve contradictory advice on its own.
 
-For this first build, open `.code-rules/generated/RULES.md` and follow its links to the Testing group and your rule. You've turned your source rule into part of the organized guidance your agent will use.
+For this first build, open `.code-rules/generated/RULES.md` and follow its links to the Testing rule group and your rule. You've turned your source rule into part of the organized guidance your agent will use.
 
 Keep editing rules in `.code-rules/rules/`, then build again to update the agent's copy. Don't edit `generated/` directly.
 
@@ -115,7 +115,7 @@ This checks the rule files, not whether your application follows the rules.
 
 Now let's reuse rules someone else has written. A **library** is a repository that publishes rule groups and skills for projects to take.
 
-The [Fabrica public library](https://github.com/fabricahq/public-rules) includes a code-design group. Its rules help agents structure functions, modules, and folders, such as **Express operations as meaningful steps**, which keeps functions understandable without extracting unnecessary helpers. Read them before deciding to include them.
+The [Fabrica public library](https://github.com/fabricahq/public-rules) includes a code design practice group. Its rules help agents structure functions, modules, and folders, such as **Express operations as meaningful steps**, which keeps functions understandable without extracting unnecessary helpers. Read them before deciding to include them.
 
 From the same project root, run:
 
@@ -125,7 +125,7 @@ code-rules project add source fabrica \
   --rules 'practices/code-design/*'
 ```
 
-This adds the library's repository to `.code-rules/config.yaml` under the source name `fabrica`, and includes every rule in its code-design group with the selector `practices/code-design/*`.
+This adds the library's repository to `.code-rules/config.yaml` under the source name `fabrica`, and includes every rule in its code design practice group with the selector `practices/code-design/*`.
 
 Each rule in Fabrica's library has its own version. The project follows each rule's newest version whenever you run `code-rules project update`.
 
@@ -136,7 +136,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` again. You'll now see your own Testing group and the library's "Code design" group. Your rule remains yours to edit. Each rule from the library shows its version and retains its source and license information.
+Open `.code-rules/generated/RULES.md` again. You'll now see your own Testing rule group and the library's "Code design" rule group. Your rule remains yours to edit. Each rule from the library shows its version and retains its source and license information.
 
 ## 5. Install a skill
 
@@ -163,7 +163,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Code Rules writes the skill to `.claude/skills/build-feature/` and `.agents/skills/build-feature/`, where your coding agent finds skills. It also installs any skill that `build-feature` uses, and takes the rules it cites, even from groups you didn't include, so its links always work. The skill comes from the same library release as your rules: sync never moves a source, so it takes new rules and skills from the library release it recorded in step 4. If the library also requires skills of every project, sync installs those too; `code-rules project list skills` shows each skill's level. Those rules are there for the skill to reference; they don't join `RULES.md`.
+Code Rules writes the skill to `.claude/skills/build-feature/` and `.agents/skills/build-feature/`, where your coding agent finds skills. It also installs any skill that `build-feature` uses, and takes the rules it cites, even from rule groups you didn't include, so its links always work. The skill comes from the same library release as your rules: sync never moves a source, so it takes new rules and skills from the library release it recorded in step 4. If the library also requires skills of every project, sync installs those too; `code-rules project list skills` shows each skill's level. Those rules are there for the skill to reference; they don't join `RULES.md`.
 
 Open `.claude/skills/build-feature/SKILL.md`. The steps come from the library. The section at the end, **Rules this skill applies**, is generated for your project: it links to your project's version of each rule the skill cites. `.code-rules/generated/SKILLS.md` lists every installed skill. To edit a skill, don't change the installed copy, which `code-rules project check` would reject; see [Install skills](/guides/install-skills/) to fork it.
 
