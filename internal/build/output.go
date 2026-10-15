@@ -67,7 +67,7 @@ func prepare(resolved resolution, options Options) (Output, error) {
 		return Output{}, err
 	}
 	files["provenance.json"] = provenance
-	folders, skillFiles, err := renderSkills(resolved.Skills)
+	folders, skillFiles, err := renderSkills(resolved.Skills, excludedSkills(resolved.Sources))
 	if err != nil {
 		return Output{}, err
 	}
@@ -111,9 +111,16 @@ func libraryReadme(source resolvedSource) string {
 	if len(source.Skills) > 0 {
 		items := []string{}
 		for _, id := range source.Skills {
-			items = append(items, "- `"+id+"`")
+			item := "- `" + id + "`"
+			switch exclusion, excluded := source.Configured.SkillExclude[id]; {
+			case excluded && exclusion.ReplacedBy != "":
+				item += ": replaced by the authored skill `" + exclusion.ReplacedBy + "`"
+			case excluded:
+				item += ": excluded"
+			}
+			items = append(items, item)
 		}
-		sections = append(sections, "## Skills", "This source installs these skills from the resolved commit. [SKILLS.md](../../SKILLS.md) says what each one does and where it's installed.", strings.Join(items, "\n"))
+		sections = append(sections, "## Skills", "This source supplies these skills from the resolved commit, and the project installs each one it doesn't exclude or replace. [SKILLS.md](../../SKILLS.md) says what each one does, where it's installed, and why the project excludes or replaces one.", strings.Join(items, "\n"))
 	}
 	if len(source.Pins) > 0 {
 		sections = append(sections, "## Pins", "`code-rules project update` keeps these rules at their pinned versions.", pinList(source.Pins))
@@ -224,6 +231,12 @@ type provenanceSkill struct {
 	Uses     []string `json:"uses"`
 	// Targets lists the folders the skill is installed in, by path from the repository root.
 	Targets []string `json:"targets"`
+	// Upstream is the origin of the skill an authored skill replaces, Reason the exclusion's reason, and BasedOn the
+	// commit the replacement was copied from; each is null when the skill replaces none, and BasedOn also when the
+	// exclusion records none.
+	Upstream *provenanceSkillOrigin `json:"upstream"`
+	Reason   *string                `json:"replacementReason"`
+	BasedOn  *string                `json:"basedOn"`
 }
 
 // provenanceSkillOrigin identifies the source, repository, and commit that supplied a skill, and its folder there:
@@ -237,6 +250,16 @@ type provenanceSkillOrigin struct {
 	Folder     string  `json:"folder"`
 	Version    *string `json:"version"`
 	Release    *int    `json:"release"`
+}
+
+// skillOrigin returns the origin of skill: its source, repository, ref, and commit, which are null for an authored
+// skill, and its folder.
+func skillOrigin(skill resolvedSkill) provenanceSkillOrigin {
+	origin := provenanceSkillOrigin{Folder: skill.Folder}
+	if skill.Source != "" {
+		origin.Source, origin.Repository, origin.Ref, origin.Commit = &skill.Source, &skill.Repository, nullableText(skill.Ref), &skill.Commit
+	}
+	return origin
 }
 
 // provenanceGroup retains all guidance plus the sources chosen for display.
@@ -325,11 +348,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		}
 	}
 	for _, skill := range resolved.Skills {
-		origin := provenanceSkillOrigin{Folder: skill.Folder}
-		if skill.Source != "" {
-			origin.Source, origin.Repository, origin.Ref, origin.Commit = &skill.Source, &skill.Repository, nullableText(skill.Ref), &skill.Commit
+		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Level: nullableText(skill.Level), Targets: skill.Targets}
+		if replaced := skill.Replaces; replaced != nil {
+			upstream := skillOrigin(replaced.Upstream)
+			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())
 		}
-		result.Skills = append(result.Skills, provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: origin, Level: nullableText(skill.Level), Included: skill.Included, UsedBy: skill.UsedBy, Uses: skill.Uses, Targets: skill.Targets})
+		record.Included, record.UsedBy, record.Uses = skill.Included, skill.UsedBy, skill.Uses
+		result.Skills = append(result.Skills, record)
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })
 	slices.SortFunc(result.Groups, func(a, b provenanceGroup) int { return strings.Compare(a.ID, b.ID) })

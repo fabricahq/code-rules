@@ -31,6 +31,9 @@ import (
 type File struct {
 	Path              string
 	Content, Previous []byte
+	// Executable makes the file executable by everyone who can read it, whatever the process's umask, as a skill's
+	// script needs; otherwise it isn't executable.
+	Executable bool
 }
 
 // ReadOptional reads one bounded regular, unlinked file; only absence returns nil.
@@ -274,7 +277,11 @@ func (p *publication) publish(index int, file File) error {
 		return err
 	}
 	_, writeErr := out.Write(file.Content)
-	if err = errors.Join(writeErr, out.Close()); err != nil {
+	var modeErr error
+	if file.Executable {
+		modeErr = out.Chmod(0755)
+	}
+	if err = errors.Join(writeErr, modeErr, out.Close()); err != nil {
 		return err
 	}
 	if err = verifyTarget(p.ctx, p.root, file); err != nil {

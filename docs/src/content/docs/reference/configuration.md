@@ -6,7 +6,7 @@ description: "Fields in .code-rules/config.yaml."
 The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules and skills it includes from each, its exceptions, and where it installs skills. The **Code Rules directory**, `.code-rules/`, also holds `rules/`, `assets/`, `skills/`, `vendor/`, and `generated/`.
 
 :::note[Preview]
-`skillTargets`, `skills.include`, `skills.uses`, and sources that aren't libraries come in the next Code Rules release.
+`skillTargets`, `skills.include`, `skills.uses`, `skills.exclude`, and sources that aren't libraries come in the next Code Rules release.
 :::
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
@@ -25,12 +25,15 @@ sources:
     repository: https://github.com/fabricahq/public-rules.git
     rules:
       include: [techs/typescript/*, practices/testing/*]
-    skills:
-      include: [skills/build-feature]
       exclude:
         - id: techs/typescript/prefer-type-aliases
           reason: Our public extension API relies on declaration merging.
           replacedBy: techs/typescript/prefer-interfaces
+    skills:
+      include: [skills/build-feature, skills/write-changelog]
+      exclude:
+        - id: skills/write-changelog
+          reason: Release Planner writes our release notes.
   acme:
     repository: https://github.com/acme/.code-rules.git
     rules:
@@ -64,6 +67,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, or `"*"` alone for every skill the source offers. See [Select skills](#select-skills). |
 | `sources.<name>.skills.uses` | Optional map of a skill ID to the skill IDs it uses that its own `syllabus-skills-used` doesn't list. See [Declare the skills a skill uses](#declare-the-skills-a-skill-uses). |
+| `sources.<name>.skills.exclude` | Optional list of skills to leave out, each with a skill ID as its `id` and a `reason`, and optionally an authored skill that `replacedBy` names to install instead, with the commit it's `basedOn`. See [Exclude or replace a skill](#exclude-or-replace-a-skill). |
 | `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
@@ -157,7 +161,7 @@ sources:
 
 Sync also installs every skill an included skill uses, from the same source; see [Declare the skills a skill uses](#declare-the-skills-a-skill-uses).
 
-Skill levels, such as `recommended`, and the `rename` and `exclude` fields aren't supported yet.
+Skill levels, such as `recommended`, and the `rename` field aren't supported yet.
 
 ### Declare the skills a skill uses
 
@@ -181,6 +185,44 @@ Each key is a skill the source installs, because `skills.include` selects it or 
 Sync fails, writing nothing, when a skill uses one the source's revision doesn't have, naming both skills, and when skills use each other in a cycle. A `skills.uses` entry that names a skill the recorded revision lacks fails with `skill-not-in-revision`, because sync never moves a source. Offline, `code-rules project build` and `code-rules project check` ask for `code-rules project sync` when `skills.uses` changed what the source installs.
 
 Dependencies don't cross sources: a source's skill uses skills from its own repository. A skill you author in `.code-rules/skills/` can use a source's skill by its project ID, such as `pstack:skills/how`, but Code Rules doesn't install it for that: the source must install it, so add it to the source's `skills.include`.
+
+## Exclude or replace a skill
+
+A source's `skills.exclude` list leaves skills that `skills.include` selects out of the installed skills. Each entry records why, and can name an authored skill to install instead:
+
+```yaml
+skills:
+  include: ["*"]
+  exclude:
+    - id: skills/write-changelog
+      reason: Release Planner writes our release notes.
+    - id: skills/fix-bug
+      reason: We use our own bug workflow.
+      replacedBy: skills/fix-bug
+      basedOn: "3f9c2a7b1d4e6f8091a2b3c4d5e6f708192a3b4c"
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Required. The ID of one skill the source installs, because `skills.include` selects it or another installed skill uses it, such as `skills/write-changelog`; `"*"` is rejected. To install none of a source's skills, remove `skills.include`. Each `id` can appear once. The skill must be in the revision the source record locks: build, check, and sync fail when it isn't, such as after a newer revision removed it. |
+| `reason` | Required non-blank text explaining why the project leaves the skill out. |
+| `replacedBy` | Optional. The ID of an authored skill, `skills/<name>` for `.code-rules/skills/<name>/`, that the project installs in place of the excluded skill. Each authored skill can replace only one skill. |
+| `basedOn` | Optional, and only with `replacedBy`. The full 40-character commit SHA, in quotes, of the source's repository whose copy of the skill your skill is based on. [Forking a skill](/reference/cli/#project-add-skill) records the commit it copied here. Offline commands check only that it's a full commit SHA; `code-rules project sync` checks that the repository has the commit, and otherwise fails with `version-not-found`, and that the commit has the skill. |
+
+:::note[Preview]
+Skills have no versions yet, so `basedOn` records a commit for every source, library or not.
+:::
+
+An excluded skill isn't installed into the skill targets, and `generated/SKILLS.md` lists it, with your reason, under **Excluded skills**. A replacement is installed under its own name, and `SKILLS.md` names the skill it replaces and your reason. The excluded skill's files stay in `vendor/`, so updates can compare them.
+
+The `code-rules project update` preview lists a replaced skill as `replaced` when the source's copy of the skill at the revision the update takes differs from the copy your skill is based on, naming the files that differ:
+
+- With `basedOn`, it compares with the skill at that commit. If you merge the changes into your skill by hand, edit `basedOn` to the commit you merged. Code Rules never advances it, because only you know whether your skill took the changes in.
+- Without `basedOn`, such as for a replacement you wrote yourself, it compares with the skill at the commit the source record locks, so the files it lists may already be in your skill.
+
+The update never changes your skill.
+
+When another installed skill uses a skill you exclude, by its `syllabus-skills-used` or `skills.uses`, it uses your replacement instead, and `generated/SKILLS.md` lists your skill among the skills it uses. With no replacement, sync, update, and build warn that the skill it uses isn't installed.
 
 ## Repository addresses
 
@@ -244,7 +286,7 @@ Renaming a source changes its generated project rule IDs and any external refere
 The `id` of each of its `rules.exclude` and `rules.pins` entries remains library-relative.
 Replacing a repository under an existing source name also requires reviewing those entries.
 
-A skill's project ID works the same way: `<source-name>:<skill-id>`, such as `fabrica:skills/build-feature`, while a skill authored in `.code-rules/skills/` keeps its bare ID, such as `skills/release-checklist`. Installed copies are named by install name, not ID, so two skills with the same install name can't both be installed: build and sync fail with `skill-name-clash` until you stop including one of them.
+A skill's project ID works the same way: `<source-name>:<skill-id>`, such as `fabrica:skills/build-feature`, while a skill authored in `.code-rules/skills/` keeps its bare ID, such as `skills/release-checklist`. Installed copies are named by install name, not ID, so two skills with the same install name can't both be installed: build and sync fail with `skill-name-clash` until you stop including or exclude one of them.
 
 ## Choose versions
 

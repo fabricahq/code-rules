@@ -54,6 +54,9 @@ type Source struct {
 	// folder path in the source's repository, sorted; it is empty, never nil, when skills.uses declares none. Whether
 	// each key is a skill the source installs, and each value a skill it has, is checked when sync reads the source.
 	SkillUses map[string][]string `json:"skillUses,omitempty"`
+	// SkillExclude maps the ID of each skill that skills.exclude leaves out to its exclusion; it is empty, never nil,
+	// when there are none. An excluded skill is still imported, so updates can compare it with its replacement.
+	SkillExclude map[string]SkillExclusion `json:"skillExclude,omitempty"`
 }
 
 // HasRules reports whether the source includes rules.
@@ -278,33 +281,39 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
-	if result.Skills, result.SkillUses, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
+	if result.Skills, result.SkillUses, result.SkillExclude, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
 		return Source{}, err
 	}
 	return result, nil
 }
 
-// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*", and uses, the skills
-// each skill uses beyond what it declares. A missing object includes no skills.
-func parseSkillFields(input json.RawMessage, location string) ([]string, map[string][]string, error) {
-	selected, uses := []string{}, map[string][]string{}
+// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*"; uses, the skills each
+// skill uses beyond what it declares; and exclude, as parseSkillExclusions reads it. A missing object includes no
+// skills, declares no uses, and excludes none.
+func parseSkillFields(input json.RawMessage, location string) ([]string, map[string][]string, map[string]SkillExclusion, error) {
 	if input == nil {
-		return selected, uses, nil
+		return []string{}, map[string][]string{}, map[string]SkillExclusion{}, nil
 	}
 	fields, err := decode.Object(input, location)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	if err := decode.KnownFields(fields, []string{"include", "uses"}, location); err != nil {
-		return nil, nil, err
+	if err := decode.KnownFields(fields, []string{"include", "uses", "exclude"}, location); err != nil {
+		return nil, nil, nil, err
 	}
-	if selected, err = ParseSkillSelection(fields["include"], location+".include"); err != nil {
-		return nil, nil, err
+	selected, err := ParseSkillSelection(fields["include"], location+".include")
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	if uses, err = parseSkillUses(fields["uses"], location+".uses"); err != nil {
-		return nil, nil, err
+	uses, err := parseSkillUses(fields["uses"], location+".uses")
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	return selected, uses, nil
+	exclude, err := parseSkillExclusions(fields["exclude"], location+".exclude")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return selected, uses, exclude, nil
 }
 
 // parseSkillUses validates skills.uses, a mapping of skill IDs to lists of the skill IDs each uses, each list

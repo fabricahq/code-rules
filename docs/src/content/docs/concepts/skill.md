@@ -71,6 +71,8 @@ A skill's ID is its folder's path in the repository that holds it, such as `skil
 
 All of a source's skills come from one revision, the library release or commit the project recorded for that source, so skills that call each other always match. Sync never moves that revision; `code-rules project update` moves a library source to its newest library release.
 
+A project can [exclude](/guides/install-skills/#exclude-a-skill) a source's skill it doesn't want, with a reason, or [fork](/guides/install-skills/#fork-a-skill) it into an authored skill that installs in its place under the same name. Updates list the source's later changes to a skill the project forked, so the project can decide whether its fork needs them.
+
 See [Install skills](/guides/install-skills/) to add skills to a project.
 
 ## How agents use installed skills

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/build"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -95,5 +96,67 @@ func TestInstalledFoldersListsOnlySkillTargetFolders(t *testing.T) {
 		if got := build.InstalledFolders([]byte(unreadable)); len(got) != 0 {
 			t.Errorf("InstalledFolders(%q) = %v, want none", unreadable, got)
 		}
+	}
+}
+
+// replacementConfig parses a configuration whose source team, from a non-library repository, includes every skill
+// and has the skills.exclude entries in exclude, a JSON list.
+func replacementConfig(t *testing.T, exclude string) rules.Configuration {
+	t.Helper()
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":"https://example.invalid/team.git","ref":"main","skills":{"include":["*"],"exclude":` + exclude + `}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return config
+}
+
+// skillSnapshot returns team's snapshot, whose commit has the skills review and fix.
+func skillSnapshot() map[string]build.Library {
+	return map[string]build.Library{"team": {Snapshot: library.Snapshot{
+		Commit: strings.Repeat("c", 40), NonLibrary: true, SkillSelection: []string{"*"}, Executable: []string{},
+		Skills: map[string]library.ImportedSkill{"skills/review": {}, "skills/fix": {}},
+		Files: map[string][]byte{
+			"skills/review/SKILL.md": []byte("---\nname: review\ndescription: Review.\n---\n# Review\n"),
+			"skills/fix/SKILL.md":    []byte("---\nname: fix\ndescription: Fix.\n---\n# Fix\n"),
+		},
+	}}}
+}
+
+func TestGenerateInstallsAReplacementInPlaceOfTheSkillItReplaces(t *testing.T) {
+	config := replacementConfig(t, `[{"id":"skills/review","reason":"Ours.","replacedBy":"skills/our-review","basedOn":"`+strings.Repeat("b", 40)+`"},{"id":"skills/fix","reason":"We fix in CI."}]`)
+	local := map[string]build.SkillFiles{"skills/our-review": {Files: map[string][]byte{"SKILL.md": []byte("---\nname: our-review\ndescription: Our review.\n---\n# Review\n")}}}
+	output, err := build.Generate(config, skillSnapshot(), nil, build.Options{ToolVersion: "test", LocalSkills: local})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(output.SkillIDs, []string{"skills/our-review"}) || output.Skills[".claude/skills/review"].Files != nil || output.Skills[".claude/skills/fix"].Files != nil {
+		t.Fatalf("installed %v", output.SkillIDs)
+	}
+	index := string(output.Files["SKILLS.md"])
+	for _, want := range []string{
+		"- **Replaces:** `team:skills/review`, which the project excludes, based on its copy at commit `" + strings.Repeat("b", 40) + "`\n- **Reason:** Ours.",
+		"## Excluded skills\n\nThe project's configuration excludes these skills, so they aren't installed.",
+		"- `team:skills/fix`: We fix in CI.",
+	} {
+		if !strings.Contains(index, want) {
+			t.Errorf("SKILLS.md lacks %q:\n%s", want, index)
+		}
+	}
+}
+
+func TestGenerateRejectsInvalidReplacements(t *testing.T) {
+	local := map[string]build.SkillFiles{"skills/ours": {Files: map[string][]byte{"SKILL.md": []byte("---\nname: ours\n---\n")}}}
+	for name, test := range map[string]struct{ exclude, location, problem string }{
+		"missing skill":     {`[{"id":"skills/plan","reason":"No."}]`, "sources.team.skills.exclude.skills/plan", "the source doesn't install skill skills/plan"},
+		"no authored skill": {`[{"id":"skills/review","reason":"No.","replacedBy":"skills/missing"}]`, "sources.team.skills.exclude.skills/review.replacedBy", "the project has no authored skill skills/missing; add .code-rules/skills/missing/SKILL.md"},
+		"one replacing two": {`[{"id":"skills/fix","reason":"No.","replacedBy":"skills/ours"},{"id":"skills/review","reason":"No.","replacedBy":"skills/ours"}]`, "sources.team.skills.exclude.skills/review.replacedBy", "skills/ours already replaces the skill sources.team.skills.exclude.skills/fix names"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := build.Generate(replacementConfig(t, test.exclude), skillSnapshot(), nil, build.Options{ToolVersion: "test", LocalSkills: local})
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || validation.ValidationLocation() != test.location || !strings.Contains(validation.ValidationProblem(), test.problem) {
+				t.Fatalf("got %v; want %q at %s", err, test.problem, test.location)
+			}
+		})
 	}
 }

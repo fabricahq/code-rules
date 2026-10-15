@@ -59,7 +59,8 @@ type skillPreview struct {
 
 // previewSkills reads the skills source installs at each of plans' revisions and compares them with recorded, the
 // source's snapshot with its skills' files, or nil when the project has none, returning each revision's preview by
-// commit. A revision it can't read keeps its failure, so only choosing that revision fails; a cancellation fails
+// commit. It leaves out the skills the source excludes, which the project doesn't install; the preview lists a
+// replaced one as a replaced skill row instead. A revision it can't read keeps its failure, so only choosing that revision fails; a cancellation fails
 // at once.
 func (r *repository) previewSkills(ctx context.Context, source rules.Source, recorded *library.Snapshot, plans []sourcePlan) (map[string]skillPreview, error) {
 	previews := map[string]skillPreview{}
@@ -75,7 +76,11 @@ func (r *repository) previewSkills(ctx context.Context, source rules.Source, rec
 			previews[plan.commit] = skillPreview{err: err}
 			continue
 		}
-		previews[plan.commit] = skillPreview{rows: skillChanges(recorded, installed)}
+		rows := slices.DeleteFunc(skillChanges(recorded, installed), func(row SkillUpdate) bool {
+			_, excluded := source.SkillExclude[row.ID]
+			return excluded
+		})
+		previews[plan.commit] = skillPreview{rows: rows}
 	}
 	return previews, nil
 }

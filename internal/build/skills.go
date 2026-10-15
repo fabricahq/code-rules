@@ -67,28 +67,42 @@ type resolvedSkill struct {
 	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its syllabus-skills-used
 	// and its source's skills.uses, and of those that use it; each is empty, never nil, when there are none.
 	Uses, UsedBy []string
+	// Replaces is the source's skill an authored skill is installed in place of, or nil when it replaces none.
+	Replaces *skillReplacement
 }
 
-// resolveSkills returns, sorted by project ID, the skills of every configured source's snapshot and the authored
-// skills in local, keyed by ID, skills/<name>, each with the skills it uses and those that use it. It fails when a
-// SKILL.md is missing or its frontmatter unreadable, when an install name isn't valid, with *ClashError when two
-// skills share an install name, and as linkSkillUses does for an authored skill's uses.
-func resolveSkills(config rules.Configuration, libraries map[string]Library, local map[string]SkillFiles) ([]resolvedSkill, error) {
+// resolveSkills returns, sorted by project ID, the skills of every configured source's snapshot that the source
+// doesn't exclude, and the authored skills in local, keyed by ID, skills/<name>, each with the skill it replaces and
+// the skills it uses and those that use it. It fails when a SKILL.md is missing or its frontmatter unreadable, when
+// an install name isn't valid, when an exclusion is invalid, as skillReplacements checks it, with *ClashError when
+// two skills share an install name, and as linkSkillUses does for an authored skill's uses. It also returns
+// linkSkillUses' warnings about uses of skills the project excludes without a replacement.
+func resolveSkills(config rules.Configuration, libraries map[string]Library, local map[string]SkillFiles) ([]resolvedSkill, []string, error) {
+	replacements, err := skillReplacements(config, libraries, local)
+	if err != nil {
+		return nil, nil, err
+	}
 	result := []resolvedSkill{}
 	for _, source := range config.Sources {
 		snapshot := libraries[source.Name].Snapshot
 		for _, id := range slices.Sorted(maps.Keys(snapshot.Skills)) {
+			if _, excluded := source.SkillExclude[id]; excluded {
+				continue
+			}
 			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
 			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			result = append(result, skill)
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(local)) {
 		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
+		if replacement, replaces := replacements[id]; replaces {
+			skill.Replaces = &replacement
+		}
 		if err := describeSkill(&skill, id+"/"+skills.File); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		result = append(result, skill)
 	}
@@ -100,14 +114,15 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			result[i].Targets = append(result[i].Targets, folder+"/"+skill.Name)
 		}
 		if other, taken := names[skill.Name]; taken {
-			return nil, &ClashError{Name: skill.Name, IDs: [2]string{other, skill.ID}}
+			return nil, nil, &ClashError{Name: skill.Name, IDs: [2]string{other, skill.ID}}
 		}
 		names[skill.Name] = skill.ID
 	}
-	if err := linkSkillUses(result, config); err != nil {
-		return nil, err
+	warnings, err := linkSkillUses(result, config)
+	if err != nil {
+		return nil, nil, err
 	}
-	return result, nil
+	return result, warnings, nil
 }
 
 // describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, type, and
@@ -157,11 +172,12 @@ func (skill resolvedSkill) installed() SkillFiles {
 }
 
 // renderSkills returns the installed skill folders by path from the repository root, and, when the project installs
-// any skill, SKILLS.md and installed-skills.json by path in generated/.
-func renderSkills(resolved []resolvedSkill) (map[string]SkillFiles, map[string][]byte, error) {
+// any skill or excludes one of its sources' skills, SKILLS.md and installed-skills.json by path in generated/.
+// excluded lists the skills the project excludes without a replacement.
+func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[string]SkillFiles, map[string][]byte, error) {
 	folders := map[string]SkillFiles{}
 	files := map[string][]byte{}
-	if len(resolved) == 0 {
+	if len(resolved) == 0 && len(excluded) == 0 {
 		return folders, files, nil
 	}
 	type record struct {
@@ -196,7 +212,7 @@ func renderSkills(resolved []resolvedSkill) (map[string]SkillFiles, map[string][
 		return nil, nil, fmt.Errorf("encode installed skills: %w", err)
 	}
 	files[InstalledSkillsFile] = encoded.Bytes()
-	files["SKILLS.md"] = []byte(generatedMarkdown(skillsIndex(resolved)))
+	files["SKILLS.md"] = []byte(generatedMarkdown(skillsIndex(resolved, excluded)))
 	return folders, files, nil
 }
 
@@ -277,9 +293,9 @@ func folderDigest(folder SkillFiles) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// skillsIndex renders SKILLS.md: one entry per installed skill, saying what it does, where it comes from, and where
-// agents find it.
-func skillsIndex(resolved []resolvedSkill) string {
+// skillsIndex renders SKILLS.md: one entry per installed skill, saying what it does, where it comes from, what it
+// replaces, and where agents find it, then the skills the project excludes, each with its reason.
+func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.code-rules/skills/` and rebuild."}
 	for _, skill := range resolved {
 		lines := []string{"### " + skill.Name}
@@ -295,6 +311,7 @@ func skillsIndex(resolved []resolvedSkill) string {
 		default:
 			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, commit `%s`", skill.ID, skill.Commit))
 		}
+		facts = append(facts, replacementFacts(skill.Replaces)...)
 		if skill.Level != "" {
 			setBy := "`" + skill.Source + "`"
 			if skill.Release != 0 {
@@ -332,5 +349,25 @@ func skillsIndex(resolved []resolvedSkill) string {
 		lines = append(lines, strings.Join(facts, "\n"))
 		sections = append(sections, strings.Join(lines, "\n\n"))
 	}
+	if len(excluded) > 0 {
+		items := []string{}
+		for _, skill := range excluded {
+			items = append(items, "- `"+skill.ID+"`: "+escapeText(skill.Reason))
+		}
+		sections = append(sections, "## Excluded skills", "The project's configuration excludes these skills, so they aren't installed. Their sources still supply them, so updates can show their changes.", strings.Join(items, "\n"))
+	}
 	return strings.Join(sections, "\n\n") + "\n"
+}
+
+// replacementFacts returns the SKILLS.md lines that say which skill an authored skill replaces, the commit it was
+// based on, and why, or none when it replaces none.
+func replacementFacts(replacement *skillReplacement) []string {
+	if replacement == nil {
+		return nil
+	}
+	replaces := "- **Replaces:** `" + replacement.Upstream.ID + "`, which the project excludes"
+	if !replacement.BasedOn.IsZero() {
+		replaces += ", based on its copy at commit `" + replacement.BasedOn.Canonical() + "`"
+	}
+	return []string{replaces, "- **Reason:** " + escapeText(replacement.Reason)}
 }

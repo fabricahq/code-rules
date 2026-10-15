@@ -11,6 +11,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // skillFile returns a SKILL.md for skill name whose syllabus-skills-used lists used.
@@ -128,5 +129,38 @@ func TestGenerateRejectsAnAuthoredSkillThatUsesASkillTheProjectDoesNotInstall(t 
 				t.Fatalf("got %v\nwant %s: %s", err, test.location, test.problem)
 			}
 		})
+	}
+}
+
+func TestGenerateRedirectsAUseOfAnExcludedSkillToItsReplacement(t *testing.T) {
+	snapshot := map[string]library.ImportedSkill{
+		"skills/build": {Level: "offered", Included: true, UsedBy: []string{}},
+		"skills/tdd":   {Level: "offered", UsedBy: []string{"skills/build"}},
+		"skills/how":   {Level: "offered", Included: true, UsedBy: []string{}},
+	}
+	files := map[string][]byte{"skills/build": skillFile("build", "skills/tdd", "skills/how"), "skills/tdd": skillFile("tdd"), "skills/how": skillFile("how")}
+	config, libraries := fixture(t, `[]`)
+	config.SkillTargets = []string{"claude"}
+	config.Sources[0].SkillExclude = map[string]rules.SkillExclusion{
+		"skills/tdd": {Reason: "Ours.", ReplacedBy: "skills/our-tdd"},
+		"skills/how": {Reason: "Not needed."},
+	}
+	team := libraries["team"]
+	team.Snapshot.Skills = snapshot
+	team.Snapshot.Files = map[string][]byte{}
+	for id, data := range files {
+		team.Snapshot.Files[id+"/SKILL.md"] = data
+	}
+	libraries["team"] = team
+	local := map[string]SkillFiles{"skills/our-tdd": {Files: map[string][]byte{"SKILL.md": skillFile("our-tdd")}, Executable: []string{}}}
+	output, err := Generate(config, libraries, nil, Options{ToolVersion: "test", LocalSkills: local})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if index := string(output.Files["SKILLS.md"]); !strings.Contains(index, "### build\n\nbuild.\n\n- **Skill:** `team:skills/build`") || !strings.Contains(index, "- **Uses:** `our-tdd`\n") {
+		t.Errorf("SKILLS.md doesn't show build using our-tdd:\n%s", index)
+	}
+	if len(output.ExcludedUses) != 1 || !strings.Contains(output.ExcludedUses[0], "team:skills/build uses team:skills/how, which the project excludes without a replacement") {
+		t.Fatalf("excluded uses = %q", output.ExcludedUses)
 	}
 }

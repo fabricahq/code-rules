@@ -70,7 +70,7 @@ The directories serve different purposes:
 - **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of each selected rule at its recorded version, along with the library files it needs. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `rules/` instead.
 - **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and authored rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
 
-- **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill.
+- **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill. A fork of a source's skill, which `code-rules project add skill --from` writes, lives here too, and a `skills.exclude` entry names it as the skill's replacement.
 - **Skill target folders: installed copies of every skill.** Build and sync copy each skill into each folder that `skillTargets` names, `.claude/skills/` and `.agents/skills/`, with a marker line saying not to edit it, and record the folders they installed in `generated/installed-skills.json`. They never replace or remove a folder there that they didn't install. Commit the copies; edit the skill's source instead. Check fails while a copy differs from what build would write.
 
 When a skill cites rules in `syllabus-rules-used`, the installed `SKILL.md` ends with a generated section that links to the project's version of each one, relative to the copy, so the same copy works in every skill target:
@@ -140,7 +140,7 @@ See [Plan, write, and review](/for-agents/) for instructions you can add to `AGE
 | `rules/` | Individual resolved rules, available even when a group also includes them inline. |
 | `libraries/` | Source summaries and retained license and notice files. |
 | `provenance.json` | Machine-readable source versions, origins, replacement decisions, and installed skills. |
-| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, and how many rules it applies, or, with no skill targets, links to those rules. It also lists the skills each one uses, by install name, and says why a source's skill is installed: `included`, `used by <name>` when only other skills use it, or both. `RULES.md` links to it when the project installs a skill. |
+| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, how many rules it applies, and, for a replacement, the skill it replaces and why. It also lists the skills each one uses, by install name, and says why a source's skill is installed: `included`, `used by <name>` when only other skills use it, or both. Then it lists the skills the project excludes, with their reasons. `RULES.md` links to it when the project installs a skill. |
 | `installed-skills.json` | The skill folders Code Rules installed, with each skill's ID, install name, and folder digest, so later commands replace or remove only those folders. |
 
 Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.
