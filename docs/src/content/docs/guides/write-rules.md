@@ -5,9 +5,11 @@ description: "Author a focused engineering obligation with applicability, exampl
 
 A **rule** is a Markdown file that tells an agent how to apply one engineering practice. Writing a rule turns a recurring expectation or review comment into guidance you can reuse across tasks. A useful rule explains when it applies, what to do, and how to verify the result.
 
-This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
+This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a rule group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
 
 You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
+
+A rule states one expectation. To give agents ordered steps for a whole task, such as fixing a bug, that apply several rules, write a [skill](/concepts/skill/) that cites them instead; see [Write a skill](/guides/write-skills/).
 
 ## Rubric, template, and skill
 
@@ -36,13 +38,13 @@ The workflow below describes how the skill is intended to work.
 The same skill can revise an existing rule or review a proposed rule against the rubric.
 It should ask about missing policy decisions instead of silently choosing them for the library owner.
 
-## Choose a group
+## Choose a rule group
 
 Use a technology group when the obligation depends on a named technology.
 Use a practice group when it transfers across technologies.
-Place project-specific contracts in the applicable project's local rules.
+Place project-specific contracts in the applicable project's own rules, in its `.code-rules/rules/`.
 
-For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
+For a new rule group, use a [canonical rule group ID](/concepts/groups/#canonical-rule-group-ids) if one fits, and add [rule group metadata](/reference/rule-format/#rule-group-metadata) that helps agents recognize relevant work.
 
 ## Example rule
 
@@ -118,16 +120,16 @@ When publishing or adapting rules, follow [License rules](/guides/license-rules/
 
 For a step-by-step example with inspectable license provenance, follow [Adapt a third-party rule](/guides/adapt-rules/).
 
-The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
+The original repository does not have to change. The definition you give Code Rules must use its input format: a technology group or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
 
-For an existing compatible Code Rules library, use the normal import workflow. For a linter rule, style guide, skill, or other document that is not a compatible library:
+For an existing compatible Code Rules library, [include its rules](/guides/select-rules/) instead. To use a third-party skill as a skill, install it from its repository instead of adapting it into a rule; see [Install skills](/guides/install-skills/). For a linter rule, style guide, skill whose practice you want as a rule, or other document that is not a compatible library:
 
 1. Identify the exact source revision and establish permission to copy, adapt, and redistribute the material for your intended use. Preserve the applicable license and notices.
 2. Create an adapted definition in a compatible library, which may contain just this one rule. Preserve the original separately when useful for reviewing future updates.
 3. Add the required metadata and an activity-based `whenToRead` cue. Preserve the obligation, important conditions, exceptions, and examples; explain deliberate changes. A detector's analysis limitations do not automatically become exceptions to a written rule.
-4. Declare the library-wide license and notice files in `rule-library.yaml`. Record per-rule [attribution](/reference/rule-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
+4. Declare the library-wide license and notice files in the library's [manifest](/reference/library-format/#the-manifest). Record per-rule [attribution](/reference/rule-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
 5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the resolved rule, license links, and provenance. Commit the adapted source and retained notices together.
 
-An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and rule versions while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
+An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the original commit. The adapted library has its own repository and rule versions while retaining the earlier attribution chain. A project's own rules are for guidance you author for that project.
 
 For later updates, compare the original pinned material with the new source, then deliberately revise the adaptation. Updating a source citation alone does not establish that the adapted rule incorporates the newer guidance.

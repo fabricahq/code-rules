@@ -1,18 +1,22 @@
 ---
 title: "Create your first library"
-description: "Write and validate one shared rule, then publish it for projects to import."
+description: "Write and validate one shared rule, then publish it for projects to take."
 ---
 
-Let's publish rules that other projects can use. A **library** is a collection of rule groups you maintain independently of the projects that import it. A **rule** is a Markdown file that explains one practice you want agents to follow.
+:::caution[Preview]
+This walkthrough uses the version 2 library layout, with the manifest in `.code-rules/config.yaml`, which isn't in a released version of Code Rules yet. The released CLI writes `rule-library.yaml` and keeps rules at the repository root.
+:::
+
+Let's publish rules that other projects can use. A **library** is a repository whose manifest publishes its rule groups, and optionally skills, for other projects to take. You maintain it independently of those projects. A **rule** is a Markdown file that explains one practice you want agents to follow.
 
 In this walkthrough, you'll:
 
 1. Create a library and write one rule about error messages.
 2. Check the rule's format and choose terms for sharing it.
 3. Commit the library and publish the rule's first version in a library release.
-4. Import the rule into a project and inspect the guidance its agents will read.
+4. Include the rule in a project and inspect the guidance its agents will read.
 
-You need [Code Rules installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can stay [local to that project](/start-here/set-up-project/).
+You need [Code Rules installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can live [in that project](/start-here/set-up-project/).
 
 ## 1. Create a repository for your library
 
@@ -27,7 +31,8 @@ code-rules library init
 
 `engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates:
 
-- `rule-library.yaml`, which identifies the library format.
+- `.code-rules/config.yaml`, with a `library` section, the **manifest**, that makes the repository a library.
+- `.code-rules/rules/` and `.code-rules/skills/`, where you write the rules and skills the library publishes.
 - A README for authors at the repository root.
 - `.github/workflows/code-rules.yml`, which checks pull requests once the library is on GitHub.
 
@@ -39,7 +44,7 @@ You may see a reminder that the library has no declared license. We'll address t
 
 ## 2. Add your first rule
 
-A **group** collects related rules and tells agents when to read them. Create a group named "Error handling" to hold rules about how your code handles errors:
+A **rule group** collects related rules and tells agents when to read them. Create a practice group named "Error handling" to hold rules about how your code handles errors:
 
 ```sh
 code-rules library add group practices/error-handling \
@@ -48,7 +53,7 @@ code-rules library add group practices/error-handling \
   --when-to-read 'When implementing or reviewing error handling and error messages.'
 ```
 
-Use the CLI to create a draft rule in that group:
+Use the CLI to create a draft rule in that rule group:
 
 ```sh
 code-rules library add rule practices/error-handling/make-errors-actionable \
@@ -58,7 +63,7 @@ code-rules library add rule practices/error-handling/make-errors-actionable \
   --impact-description 'Helps people recover from a failure without guessing what went wrong.'
 ```
 
-Open `practices/error-handling/make-errors-actionable.md` in your editor and replace its entire contents with this complete rule:
+Open `.code-rules/rules/practices/error-handling/make-errors-actionable.md` in your editor and replace its entire contents with this complete rule:
 
 ```md
 ---
@@ -82,7 +87,7 @@ Check the message against the failure it describes: the explanation should be ac
 
 The fields at the top describe the rule; the Markdown below tells the agent what to do. Replacing the draft removes its unfinished-draft marker.
 
-The rule's path without `.md` is its ID: `practices/error-handling/make-errors-actionable`. Keep that path stable after projects start importing it.
+The rule's path in `.code-rules/rules/` without `.md` is its ID: `practices/error-handling/make-errors-actionable`. Keep that path stable after projects start including it.
 
 Your library now looks like this:
 
@@ -90,58 +95,63 @@ Your library now looks like this:
 engineering-rules/
   .github/workflows/code-rules.yml
   README.md
-  rule-library.yaml
-  practices/
-    error-handling/
-      _group.yaml
-      README.md
-      make-errors-actionable.md
+  .code-rules/
+    config.yaml
+    rules/
+      practices/
+        error-handling/
+          _group.yaml
+          README.md
+          make-errors-actionable.md
+    skills/
 ```
 
-Library rules live directly under `practices/` or `techs/`. Publishing a library does not require a Code Rules directory or generated agent guidance. Those belong to projects that consume rules.
+Library rules live under `.code-rules/rules/practices/` or `.code-rules/rules/techs/`, in the same Code Rules directory every repository uses. A library doesn't need generated agent guidance to publish; that belongs to the projects that take its rules, including the library repository itself if you also use it as a project.
 
 ## 3. Check the library
 
-You've written a rule. Now check that Code Rules can read and import it:
+You've written a rule. Now check that Code Rules can read it:
 
 ```sh
 code-rules library check
 ```
 
-The result should report **1 group and 1 rule**, and preview the first library release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the library metadata, group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
+The result should report **1 group and 1 rule**, and preview the first library release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the manifest, rule group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
 
-There is no library build step. A library publishes source rules; each consuming project builds its own agent guidance after selecting rules and applying its exclusions and replacements. See [how project builds work](/start-here/set-up-project/#3-build-the-guidance-your-agent-will-read).
+There is no library build step. A library publishes source rules; each consuming project builds its own agent guidance after choosing rules and applying its exclusions and replacements. See [how project builds work](/start-here/set-up-project/#3-build-the-guidance-your-agent-will-read).
 
 ## 4. Choose terms before sharing
 
 Decide who may use, adapt, and redistribute the library. Public visibility alone does not grant those permissions. Use [License rules](/guides/license-rules/) to choose and record terms, especially when including someone else's material.
 
-For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md`, then set `rule-library.yaml` to:
+For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md` at the repository root, then declare it in the manifest in `.code-rules/config.yaml`:
 
 ```yaml
-formatVersion: 1
-license:
-  spdxExpression: MIT
-  file: LICENSE.md
-  notices: []
+schemaVersion: 2
+sources: {}
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices: []
 ```
 
 This records your choice; Code Rules does not supply or infer the license text. Retain any required notices for adapted material and declare them in `notices`.
 
-Check the library again after adding the license file and metadata:
+Check the library again after adding the license file and declaration:
 
 ```sh
 code-rules library check
 ```
 
-The check verifies that the declared files exist and that the metadata is valid. It does not decide whether you have permission to publish someone else's material.
+The check verifies that the declared files exist and that the declaration is valid. It does not decide whether you have permission to publish someone else's material.
 
 ## 5. Publish the library
 
 Once the library passes its checks and you've reviewed the rule and license, commit the files:
 
 ```sh
-git add .github README.md rule-library.yaml LICENSE.md practices/
+git add .github README.md LICENSE.md .code-rules/
 git commit -m "Create the first shared rule"
 ```
 
@@ -175,12 +185,12 @@ Each rule has its own version. From now on, every change to a rule needs a **cha
 In a [project you've set up](/start-here/set-up-project/), run the following from its root directory. Replace the example URL below with your library's Git URL:
 
 ```sh
-code-rules project add library acme-rules \
+code-rules project add source acme-rules \
   --repository https://github.com/YOUR-ORG/engineering-rules.git \
-  --groups practices/error-handling
+  --rules 'practices/error-handling/*'
 ```
 
-This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. The project follows each rule's newest version whenever someone runs `code-rules project update`.
+This adds the library's repository to `.code-rules/config.yaml` under the source name `acme-rules`, and includes every rule in its error handling practice group. The project moves to each rule's newest version whenever someone runs `code-rules project update`.
 
 Download the rules and build the project's agent guidance:
 
@@ -189,14 +199,26 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
+Open `.code-rules/generated/RULES.md` and follow its "Error handling" rule group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
 
-The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#5-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
+The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#6-give-the-rules-to-your-agent). Then commit the project's configuration, vendored rules, generated guidance, and agent instructions together.
 
-Other projects can import the same library. You maintain the shared rule in the library, and each project chooses when to adopt your updates.
+Other projects can take rules from the same library. You maintain the shared rule in the library, and each project chooses when to take your updates.
+
+## Optional: add a skill
+
+A library can also hold **skills**: coarser-grained playbooks, such as how to fix a reported bug, that cite the rules they apply. Skills live in `.code-rules/skills/` beside your rules and are versioned like rules. Create a draft:
+
+```sh
+code-rules library add skill fix-bug \
+  --description 'Fix a reported bug and prove it with a regression test. Use when a task starts from a bug report.' \
+  --type playbook
+```
+
+Complete `.code-rules/skills/fix-bug/SKILL.md`, list the rules its steps apply, such as `practices/error-handling/make-errors-actionable`, in its `syllabus-rules-used` metadata, and run `code-rules library check`. The skill is offered: projects install it only when they name it. To recommend it to every project, or require it, add it to the manifest's `library.skills` levels; see [Skill levels](/reference/library-format/#skill-levels). Your library has published its first library release, so record the new skill with `code-rules library change skills/fix-bug --summary '...'` before you publish the next one. [Write a skill](/guides/write-skills/) walks through each step.
 
 ## Next steps
 
-As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
+As your library grows, [write focused rules](/guides/write-rules/) and [skills](/guides/write-skills/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to take updates](/guides/update/).
 
-For metadata and supporting files, see [Rule and group format](/reference/rule-format/) and [Library format](/reference/library-format/).
+For metadata and supporting files, see [Rule and rule group format](/reference/rule-format/), [Skill format](/reference/skill-format/), and [Library format](/reference/library-format/).

@@ -756,6 +756,32 @@ func TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns(t *testing.T) {
 	}
 }
 
+// TestImport_RecordsTheRetiredRulesOfAnExclusionSelector: the last sync selected techs/empty while it had no rules;
+// the library later published and retired x in it. Adding an exclusion of techs/empty/* to an otherwise unchanged
+// selection only warns, and the record lists x as retired, so offline checks accept the selector too.
+func TestImport_RecordsTheRetiredRulesOfAnExclusionSelector(t *testing.T) {
+	h := newHistory(t)
+	include := `"rules":{"include":["techs/go/*","techs/empty/*"]`
+	recorded, err := h.sync(t, h.source(t, include+`}`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.release(t, 4, map[string][]byte{"techs/empty/x.md": versionedRule("x 1.0.0")},
+		"formatVersion: 1\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  techs/empty/x: 1.0.0\n  practices/testing/c: 1.0.0\nchanges:\n  techs/empty/x: {change: new, summaries: [Add the rule.]}\n")
+	h.release(t, 5, map[string][]byte{"techs/empty/x.md": nil},
+		"formatVersion: 1\nrelease: 5\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nretired:\n  techs/empty/x: {lastVersion: 1.0.0, summaries: [No longer recommended.]}\n")
+	imported, err := h.sync(t, h.source(t, include+`,"exclude":[{"id":"techs/empty/*","reason":"Old."}]}`), &recorded.Snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], "sources.team.rules.exclude names techs/empty/*, which matches only rules the library retired") {
+		t.Fatalf("warnings %q", imported.Warnings)
+	}
+	if imported.Snapshot.Release != recorded.Snapshot.Release || !slices.Equal(imported.Snapshot.RetiredRules, []string{"techs/empty/x", "techs/go/b"}) {
+		t.Fatalf("release %d, retired rules %v; want release %d with techs/empty/x and techs/go/b", imported.Snapshot.Release, imported.Snapshot.RetiredRules, recorded.Snapshot.Release)
+	}
+}
+
 // TestImport_RejectsABasedOnVersionTheRuleNeverPublished, listing the versions it did publish, newest first.
 func TestImport_RejectsABasedOnVersionTheRuleNeverPublished(t *testing.T) {
 	h := newHistory(t)
