@@ -7,16 +7,24 @@ import (
 )
 
 // Library supplies a validated selected catalog and its caller-verified snapshot record: the revision that
-// supplied its library-wide files and each imported rule's version and commit. Snapshot.Files is not used.
-// Snapshot freshness and Git authenticity belong to the import/snapshot boundary.
+// supplied its library-wide files and every skill, each imported rule's version and commit, and each installed
+// skill. Of Snapshot.Files, only the skills' files are used. Snapshot freshness and Git authenticity belong to the
+// import/snapshot boundary.
 type Library struct {
 	Catalog  library.Catalog
 	Snapshot library.Snapshot
 }
 
-// Output owns generated-root-relative file contents, including byte-exact license and notice copies.
+// Output owns generated-root-relative file contents, including byte-exact license and notice copies, and the
+// installed skill folders.
 type Output struct {
 	Files map[string][]byte `json:"files"`
+	// Skills maps each installed skill folder, by path from the repository root, such as .claude/skills/tdd, to
+	// its files. It is empty, never nil, when the project installs no skill or has no skill targets.
+	Skills map[string]SkillFiles `json:"skills"`
+	// SkillIDs lists, sorted, the project ID of every skill the project installs, including when it has no skill
+	// targets to install copies in.
+	SkillIDs []string `json:"skillIds"`
 }
 
 // Options provides the declared tool version and Markdown line limit and inline byte limit.
@@ -26,16 +34,22 @@ type Options struct {
 	IndexMaxLines int
 	// GroupInlineMaxBytes defaults to 8 KiB when nil; zero forces summary-only group pages.
 	GroupInlineMaxBytes *int
+	// LocalSkills holds the project's authored skills by ID, skills/<name>, each with its files.
+	LocalSkills map[string]SkillFiles
 }
 
 // Generate applies adoption policies and renders the complete generated file tree.
 // Configuration and catalogs must be validated; callers verify each library's source identity. localFiles holds the
 // project's authored files keyed as a library keys its own: rules, group metadata, and rule assets by their path in
-// rules/, and shared assets by their path in the Code Rules directory, assets/<path>. It leaves inputs unchanged,
-// preserves retained bytes, and returns no partial output on failure.
+// rules/, and shared assets by their path in the Code Rules directory, assets/<path>. It installs every skill the
+// sources' snapshots record and every authored skill into each skill target. It leaves inputs unchanged, preserves
+// retained bytes, and returns no partial output on failure; two skills with one install name fail with *ClashError.
 func Generate(config rules.Configuration, libraries map[string]Library, localFiles map[string][]byte, options Options) (Output, error) {
 	resolved, err := resolve(config, libraries, localFiles)
 	if err != nil {
+		return Output{}, err
+	}
+	if resolved.Skills, err = resolveSkills(config, libraries, options.LocalSkills); err != nil {
 		return Output{}, err
 	}
 	if options.IndexMaxLines == 0 {

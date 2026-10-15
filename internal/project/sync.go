@@ -122,8 +122,17 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if err != nil {
 		return FileChanges{}, err
 	}
+	installs, err := planSkillFolders(ctx, root, before.generated, output)
+	if err != nil {
+		return FileChanges{}, err
+	}
 	changes := compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
+	// The report's paths are relative to the Code Rules directory, one folder below the repository root.
+	mergeChanges(&changes, prefixChanges(installs.changes, "../"))
 	targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
+	maps.Copy(targets, installs.targets)
+	executable := maps.Clone(installs.executable)
+	executable[filetxn.Vendor] = vendorExecutable(snapshots)
 	for _, group := range slices.Sorted(maps.Keys(kept)) {
 		file := path.Join("rules", group, "_group.yaml")
 		targets[filetxn.LocalGroupMetadata(group)] = map[string][]byte{file: kept[group]}
@@ -152,6 +161,9 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	slices.Sort(changes.Added)
 	slices.Sort(changes.Changed)
 	slices.Sort(changes.Removed)
+	if warning := noSkillTargetsWarning(output, in.config.SkillTargets); warning != "" {
+		warnings = append(warnings, warning)
+	}
 	changes.Warnings = warnings
 	if in.edited != nil {
 		targets[filetxn.Config] = map[string][]byte{configurationFile: in.edited}
@@ -159,8 +171,11 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		slices.Sort(changes.Changed)
 	}
 	includeProjectGuide(targets, in.guide, &changes)
-	err = w.Apply(targets, func() error {
+	err = w.ApplyModes(targets, executable, func() error {
 		if err := requireUnchanged(ctx, root, before); err != nil {
+			return err
+		}
+		if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
 			return err
 		}
 		return requireGuideUnchanged(ctx, root, in.guide)
