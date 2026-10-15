@@ -7,7 +7,7 @@ This runbook builds the latest Syllabus CLI from source and walks through each n
 **How to open it.** Install the Runbooks app as the [installation page](https://runbooks.gruntwork.io/intro/installation/) describes, and install its `runbooks` command from the app's welcome screen. Then open this folder:
 
 ```bash
-runbooks open <path to syllabus>/_walkthrough/skills
+runbooks open <path to your code-rules checkout>/_walkthrough/skills
 ```
 
 You can also open it straight from GitHub, without a checkout:
@@ -59,10 +59,6 @@ variables:
     default: claude/skills-preview
     validations:
       - required
-  - name: CodeRulesCheckout
-    type: string
-    description: Optional. The path of a syllabus checkout to build as it is, instead of cloning the branch. Leave it empty to clone.
-    default: ""
 ```
 </Inputs>
 

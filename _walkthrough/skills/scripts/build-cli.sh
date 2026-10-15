@@ -3,22 +3,15 @@
 set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 
-CHECKOUT="{{ .inputs.CodeRulesCheckout }}"
 BRANCH="{{ .inputs.Branch }}"
-if [ -n "$CHECKOUT" ]; then
-  SRC="$CHECKOUT"
-  echo "Using your checkout at $SRC, as it is:"
-  git -C "$SRC" log -1 --format='%h %s (%cr)'
+SRC="$WORK/syllabus"
+if [ -d "$SRC/.git" ]; then
+  show git -C "$SRC" fetch -q origin "$BRANCH"
+  show git -C "$SRC" checkout -q -B "$BRANCH" FETCH_HEAD
 else
-  SRC="$WORK/syllabus"
-  if [ -d "$SRC/.git" ]; then
-    show git -C "$SRC" fetch -q origin "$BRANCH"
-    show git -C "$SRC" checkout -q -B "$BRANCH" FETCH_HEAD
-  else
-    show git clone -q --branch "$BRANCH" --single-branch https://github.com/fabricahq/code-rules.git "$SRC"
-  fi
-  git -C "$SRC" log -1 --format='Building %h %s (%cr)'
+  show git clone -q --branch "$BRANCH" --single-branch https://github.com/fabricahq/code-rules.git "$SRC"
 fi
+git -C "$SRC" log -1 --format='Building %h %s (%cr)'
 
 cd "$SRC"
 show go build -o "$CR" ./cmd/syllabus

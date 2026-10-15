@@ -1,5 +1,5 @@
 # Runs every block of the walkthrough in document order, as Runbooks' test runner does:
-#   bun cli/index.ts test <path to syllabus>/_walkthrough/skills
+#   bun cli/index.ts test <path to your code-rules checkout>/_walkthrough/skills
 # from a checkout of gruntwork-io/runbooks. It clones and builds the branch, so it needs network access.
 version: 1
 
