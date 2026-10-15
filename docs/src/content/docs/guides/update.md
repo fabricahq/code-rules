@@ -147,6 +147,35 @@ A retired rule appears in the preview with its last version, the summary explain
 
 To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `rules/<group-id>/_group.yaml` so the fork keeps its group.
 
+## Review skill scripts
+
+:::note[Preview]
+Skill rows and the scripts warning in the update preview come in the next Code Rules release.
+:::
+
+A source's [skills](/concepts/skill/) move with its library-wide files, so an update of a whole library can change them. The preview lists each skill that changes after the rules, with the files that changed, and flags each executable script that's new or changed:
+
+```text
+team
+  minor     techs/go/errors  1.0.0 -> 1.1.0
+            Wrap errors.
+  changed   skills/build-feature
+            Changed: references/notes.md, scripts/run.sh, scripts/setup.sh
+            script changed: scripts/run.sh
+            script added: scripts/setup.sh
+  added     skills/plan
+            script added: scripts/plan.sh
+  Shared files: release 1 -> 2
+
+Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.
+```
+
+- `changed` lists a skill whose files differ, including a file whose executable bit changed.
+- `added` lists a skill the update starts installing, such as one you newly named in `skills.include`. Each of its executable files is flagged as `script added`.
+- `removed` lists a skill the update stops installing.
+
+A script is any file in the skill's folder whose executable bit is set at the new revision. The preview flags one the update adds as `script added`, and one it changes, or makes executable, as `script changed`. A script that stays the same isn't flagged, and neither is a file that isn't executable, such as `references/notes.md` above. Code Rules never runs these scripts, but your agents may, so read each flagged script before you confirm. The warning doesn't block the update. With `--json`, the rows are in each source's `skills` list and the warning in `value.warnings`; see [project update](/reference/cli/#skills-and-their-scripts).
+
 ## Import one library release
 
 To import exactly what one library release published, set the source's `ref` to its tag:
@@ -170,6 +199,7 @@ sources:
 
 - Inspect the diff of `.code-rules/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
 - For each `replaced` rule in the preview, compare the library's old and new text before deciding whether your local rule still makes sense.
+- Inspect the diff of the installed skills in your skill targets, such as `.claude/skills/`, especially the scripts the preview flagged, which your agents may run.
 - When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
 
 Commit the configuration, vendor snapshots, and generated files together.
