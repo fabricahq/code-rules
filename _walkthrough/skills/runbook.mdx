@@ -2,7 +2,7 @@
 
 This runbook builds the latest Syllabus CLI from source and walks through each new feature, one section at a time, against demo repositories it creates on your machine.
 
-<Admonition type="warning" title="Unreleased preview build" description="This builds `claude/skills-preview`, a branch that combines the draft pull requests #117 to #125 of fabricahq/syllabus. None of it is released, and commands, messages, and file formats may still change." />
+<Admonition type="warning" title="Unreleased preview build" description="This builds `claude/skills-preview`, a branch that combines the draft pull requests #117 to #126 of fabricahq/code-rules, including the rename to Syllabus. None of it is released, and commands, messages, and file formats may still change." />
 
 **How to open it.** Install the Runbooks app as the [installation page](https://runbooks.gruntwork.io/intro/installation/) describes, and install its `runbooks` command from the app's welcome screen. Then open this folder:
 
@@ -55,7 +55,7 @@ variables:
       - required
   - name: Branch
     type: string
-    description: The fabricahq/syllabus branch to clone and build.
+    description: The fabricahq/code-rules branch to clone and build.
     default: claude/skills-preview
     validations:
       - required
