@@ -85,6 +85,15 @@ quote_command() {
   printf '\n$ %s\n' "$out"
 }
 
+# show_files copies the files of the repository at $1, without .git, to the Files panel's Generated files, under the
+# folder name $2. The copy is a snapshot: later blocks that change the repository don't change it.
+show_files() {
+  [ -n "${GENERATED_FILES:-}" ] || return 0
+  rm -rf "${GENERATED_FILES:?}/$2"
+  mkdir -p "$GENERATED_FILES/$2"
+  tar -C "$1" --exclude=.git -cf - . | tar -C "$GENERATED_FILES/$2" -xf -
+}
+
 # show prints a command, then runs it.
 show() { quote_command "$@"; "$@"; }
 

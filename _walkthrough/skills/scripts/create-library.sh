@@ -116,3 +116,4 @@ show syllabus library release --no-github-release --non-interactive
 echo
 echo "Tags in the hosted library:"
 git ls-remote --tags origin
+show_files "$LIB" acme-library
