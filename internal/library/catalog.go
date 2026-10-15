@@ -91,9 +91,6 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 	if !sourceAlias.MatchString(source) {
 		return Catalog{}, bad("source", "expected a lowercase source alias")
 	}
-	if selection.Pattern != "" && selection.Groups != nil {
-		return Catalog{}, bad("groups", "specify a pattern or explicit IDs, not both")
-	}
 	encoded, err := json.Marshal(selection)
 	if err != nil {
 		return Catalog{}, fmt.Errorf("encode group selection: %v", err)
@@ -277,17 +274,11 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	return entries, nil
 }
 
-// groups expands supported patterns over metadata-bearing directories, including empty groups.
+// groups returns, sorted, the selection's listed groups and its wildcard's expansion over metadata-bearing
+// directories, including empty groups.
 func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]string, error) {
-	if selection.Pattern == "" {
-		return slices.Clone(selection.Groups), nil
-	}
-	roots := []string{"practices", "techs"}
-	if selection.Pattern != "*" {
-		roots = []string{strings.TrimSuffix(selection.Pattern, "/*")}
-	}
-	ids := []string{}
-	for _, root := range roots {
+	ids := slices.Clone(selection.Groups)
+	for _, root := range selection.Roots() {
 		entries, err := r.entries(root, true)
 		if err != nil {
 			return nil, err
@@ -315,7 +306,8 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 			ids = append(ids, id)
 		}
 	}
-	return ids, nil
+	slices.Sort(ids)
+	return slices.Compact(ids), nil
 }
 
 // individualRules validates individually selected rule IDs and indexes them by group.

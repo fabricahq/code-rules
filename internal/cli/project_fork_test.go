@@ -45,7 +45,7 @@ func newForkFixture(t *testing.T) forkFixture {
 	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	u.write(t, "config.yaml", "schemaVersion: 1\nsources:\n  team:\n    repository: "+f.Repository+"\n    groups:\n      - techs/go\n")
+	u.write(t, "config.yaml", "schemaVersion: 2\nsources:\n  team:\n    repository: "+f.Repository+"\n    rules:\n      include:\n        - techs/go/*\n")
 	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
@@ -88,7 +88,7 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if got := string(f.read(t, "local/techs/go/errors.md")); got != string(updateRule("Read [the guide](assets/errors/guide.md).")) {
 		t.Fatalf("fork %q", got)
 	}
-	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n      techs/go/errors:\n        reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
+	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n        - id: techs/go/errors\n          reason: Our wording.\n          replacedBy: techs/go/errors\n          basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", f.read(t, "config.yaml"))
 	}
 	for _, command := range [][]string{{"project", "build"}, {"project", "check"}} {
@@ -196,7 +196,7 @@ func TestForkRule_AsksForTheReasonInATerminal(t *testing.T) {
 	if err != nil || result.ExitCode != 0 || !strings.Contains(result.Stdout, "Rule forked from team 1.1.0, published in library release 2.") {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
-	if !strings.Contains(string(f.read(t, "config.yaml")), "reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n") || string(f.read(t, "local/techs/go/errors.md")) != string(updateRule("Wrap errors.")) {
+	if !strings.Contains(string(f.read(t, "config.yaml")), "reason: Our wording.\n          replacedBy: techs/go/errors\n") || string(f.read(t, "local/techs/go/errors.md")) != string(updateRule("Wrap errors.")) {
 		t.Fatalf("configuration:\n%s", f.read(t, "config.yaml"))
 	}
 }

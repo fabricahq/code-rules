@@ -10,8 +10,8 @@ import (
 )
 
 // SourceInput selects a repository, library groups, individual rules, and an optional exact ref.
-// Groups may be one wildcard selector instead of explicit group paths. At least one group or rule is required.
-// An empty Ref means the source follows rule versions. Pins and exclusions are configured separately.
+// Groups may combine group paths with the wildcards *, techs/*, and practices/*. At least one group or rule is
+// required. An empty Ref means the source follows rule versions. Pins and exclusions are configured separately.
 type SourceInput struct {
 	Repository string
 	Ref        string
@@ -25,14 +25,10 @@ func ParseSourceRef(input string) (rules.GitRef, error) {
 	return rules.ParseGitRef(strings.TrimSpace(input), "--ref")
 }
 
-// ParseSourceGroups validates explicit paths or one wildcard without interpreting comma-separated prompt text.
+// ParseSourceGroups validates group paths and wildcards without interpreting comma-separated prompt text.
 // No groups is an empty explicit selection.
 func ParseSourceGroups(groups []string) (rules.GroupSelection, error) {
-	var selection any = append([]string{}, groups...)
-	if len(groups) == 1 && (groups[0] == "*" || groups[0] == "techs/*" || groups[0] == "practices/*") {
-		selection = groups[0]
-	}
-	data, err := json.Marshal(selection)
+	data, err := json.Marshal(append([]string{}, groups...))
 	if err != nil {
 		return rules.GroupSelection{}, err
 	}
@@ -62,7 +58,7 @@ func parseSourceInput(input SourceInput) (rules.Source, error) {
 	if source.Rules, err = ParseSourceRules(input.Rules); err != nil {
 		return rules.Source{}, err
 	}
-	if source.Groups.Pattern == "" && len(source.Groups.Groups) == 0 && len(source.Rules) == 0 {
+	if source.Groups.IsEmpty() && len(source.Rules) == 0 {
 		return rules.Source{}, &ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
 	}
 	return source, nil

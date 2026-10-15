@@ -351,7 +351,7 @@ func forkUpdateRefusal(configuration rules.Configuration, decision UpdateDecisio
 		return invalidArguments(where + "no source named " + decision.Source + " in .code-rules/config.yaml")
 	}
 	if exclusion := configuration.Sources[index].Exclude[decision.Rule]; exclusion.ReplacedBy == "" {
-		return invalidArguments(where + "sources." + decision.Source + " doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run code-rules project add rule " + decision.Rule + " --from " + decision.Source + "@VERSION")
+		return invalidArguments(where + "sources." + decision.Source + ".rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run code-rules project add rule " + decision.Rule + " --from " + decision.Source + "@VERSION")
 	}
 	return nil
 }

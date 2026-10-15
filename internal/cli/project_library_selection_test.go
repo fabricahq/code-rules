@@ -12,21 +12,24 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// TestLibrarySelectionFlags records groups, rules, and an optional exact ref, and rejects invalid selections without writes.
+// TestLibrarySelectionFlags records groups, rules, and an optional exact ref, writing them as rules.include selectors,
+// and rejects invalid selections without writes.
 func TestLibrarySelectionFlags(t *testing.T) {
 	binary := buildCLI(t)
 	repository := "https://example.invalid/rules.git"
+	include := func(selectors ...any) map[string]any { return map[string]any{"include": selectors} }
 	for _, tc := range []struct {
 		name string
 		args []string
 		code int
 		want map[string]any
 	}{
-		{"groups without ref", []string{"--groups", "techs/go"}, 0, map[string]any{"repository": repository, "groups": []any{"techs/go"}}},
-		{"tag ref", []string{"--ref", "release/5", "--groups", "techs/go"}, 0, map[string]any{"repository": repository, "groups": []any{"techs/go"}, "ref": "release/5"}},
+		{"groups without ref", []string{"--groups", "techs/go"}, 0, map[string]any{"repository": repository, "rules": include("techs/go/*")}},
+		{"tag ref", []string{"--ref", "release/5", "--groups", "techs/go"}, 0, map[string]any{"repository": repository, "rules": include("techs/go/*"), "ref": "release/5"}},
 		{"rules only", []string{"--rules", "techs/go/wrap-errors", "--rules", "practices/testing/verify-retry-limits"}, 0,
-			map[string]any{"repository": repository, "rules": []any{"practices/testing/verify-retry-limits", "techs/go/wrap-errors"}}},
-		{"groups and rules", []string{"--groups", "*", "--rules", "techs/go/wrap-errors"}, 0, map[string]any{"repository": repository, "groups": "*", "rules": []any{"techs/go/wrap-errors"}}},
+			map[string]any{"repository": repository, "rules": include("practices/testing/verify-retry-limits", "techs/go/wrap-errors")}},
+		{"groups and rules", []string{"--groups", "*", "--rules", "techs/go/wrap-errors"}, 0, map[string]any{"repository": repository, "rules": include("*", "techs/go/wrap-errors")}},
+		{"wildcard and groups", []string{"--groups", "techs/*", "--groups", "practices/testing"}, 0, map[string]any{"repository": repository, "rules": include("techs/*", "practices/testing/*")}},
 		{"no selection", nil, 2, nil},
 		{"version range", []string{"--ref", ">= 1.2.0, < 2.0.0", "--groups", "techs/go"}, 2, nil},
 		{"branch", []string{"--ref", "refs/heads/main", "--groups", "techs/go"}, 2, nil},

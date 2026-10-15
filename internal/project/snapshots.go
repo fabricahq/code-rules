@@ -347,7 +347,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	where := "vendor/" + source.Name + "/_source.json"
-	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
+	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || !source.Groups.Equal(record.Selection) || !slices.Equal(source.Rules, record.RuleSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
@@ -355,14 +355,20 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		// A pin of a rule the library retired keeps nothing, so any version passes; sync warns about it.
 		rule, imported := record.Rules[id]
 		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && !slices.Contains(record.RetiredRules, id) {
-			return invalidSnapshot(where, "sources."+source.Name+".pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
+			return invalidSnapshot(where, "sources."+source.Name+".rules.pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
 		}
 	}
-	// An exclusion naming neither an imported rule nor a retired one could be a typo that leaves the intended rule
+	// An exclusion matching neither an imported rule nor a retired one could be a typo that leaves the intended rule
 	// active; only the library, which sync reads, can tell.
 	for _, id := range slices.Sorted(maps.Keys(source.Exclude)) {
-		if _, imported := record.Rules[id]; !imported && !slices.Contains(record.RetiredRules, id) {
-			return invalidSnapshot("sources."+source.Name+".exclude."+id, "names no rule the library supplies to this source; run code-rules project sync to check it against the library")
+		matches := func(rule string) bool { return rules.SelectorMatches(id, rule) }
+		if !slices.ContainsFunc(slices.Collect(maps.Keys(record.Rules)), matches) && !slices.ContainsFunc(record.RetiredRules, matches) {
+			return invalidSnapshot("sources."+source.Name+".rules.exclude."+id, "names no rule the library supplies to this source; run code-rules project sync to check it against the library")
+		}
+	}
+	for _, group := range source.Groups.Groups {
+		if !slices.Contains(record.Groups, group) {
+			return invalidSnapshot(where, "resolved groups differ from the explicit selection")
 		}
 	}
 	if source.Groups.Pattern == "" && !slices.Equal(record.Groups, source.Groups.Groups) {

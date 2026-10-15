@@ -47,7 +47,7 @@ func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "groups": []string{"techs/go"}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "rules": map[string]any{"include": []string{"techs/go/*"}}}}})
 	writeFixture(t, root, "config.yaml", string(raw))
 	return f, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
 }
@@ -91,7 +91,7 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if before.Digest() != after.Digest() {
 		t.Fatal("repeat/check changed bytes")
 	}
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{}}`)
 	retired, err := Sync(ctx, options, imports.Options{GitPath: "/missing/git"})
 	if err != nil || len(retired.Removed) == 0 {
 		t.Fatalf("retire: %+v %v", retired, err)
@@ -128,7 +128,7 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				raw = bytes.Replace(raw, []byte(`"groups"`), []byte(`"pins":{"techs/go/errors":{"version":"9.0.0","reason":"Typo."}},"groups"`), 1)
+				raw = bytes.Replace(raw, []byte(`"include"`), []byte(`"pins":[{"id":"techs/go/errors","version":"9.0.0","reason":"Typo."}],"include"`), 1)
 				writeFixture(t, root, configurationFile, string(raw))
 			} else if scenario == "invalid-local" {
 				writeFixture(t, root, "local/techs/go/bad.md", "invalid")
@@ -191,7 +191,7 @@ func TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeFixture(t, root, ".code-rules-transaction/staged", "left by an interrupted command")
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{},"unknown":true}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{},"unknown":true}`)
 	root.Close()
 	_, err = Sync(context.Background(), options, git)
 	if err == nil || strings.Contains(err.Error(), "No files were written") || !strings.Contains(err.Error(), "recovered an interrupted earlier command") {

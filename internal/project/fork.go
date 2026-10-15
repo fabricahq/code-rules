@@ -86,8 +86,8 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 			if err != nil || !imported {
 				return err
 			}
-			if _, excluded := replaces.Exclude[id]; excluded {
-				return &ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
+			if _, excluded := replaces.Exclusion(id); excluded {
+				return &ValidationError{Location: "sources." + replaces.Name + ".rules.exclude", Problem: "the source already excludes " + id + ", and a fork never replaces an existing exclusion; delete the entry that excludes it to fork the rule"}
 			}
 			plan.replaces = replaces.Name
 			if pin, pinned := replaces.Pins[id]; pinned {
@@ -137,7 +137,6 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned fork", nil)
 	}
-	replacedBy := path.Join("local", p.id+".md")
 	switch {
 	case p.replaces != "" && strings.TrimSpace(reason) == "":
 		return AuthoringResult{}, &ValidationError{Location: "--reason", Problem: "give the reason the project uses the fork instead of the rule it imports from " + p.replaces}
@@ -162,7 +161,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			}
 		}
 		if p.replaces != "" {
-			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy, BasedOn: &p.version}}}
+			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: p.id, BasedOn: &p.version}}}
 			if p.pin != nil {
 				edit.Unpin = []string{p.id}
 			}
@@ -175,7 +174,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 		return files, nil
 	})
 	if err == nil && p.pin != nil {
-		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list the library's changes after %s, the version the fork is based on, for you to compare with the fork.", p.replaces, p.id, p.pin.Version, p.version))
+		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.rules.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list the library's changes after %s, the version the fork is based on, for you to compare with the fork.", p.replaces, p.id, p.pin.Version, p.version))
 	}
 	return result, err
 }
@@ -249,7 +248,7 @@ func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, err
 }
 
 // forkLibrary returns the library that name identifies, labeled for diagnostics, and the configured source that
-// selects rule id of group from it, through its groups or its rules list, or nil when none does. A name without a
+// selects rule id of group from it, through a group or wildcard selector or by its ID, or nil when none does. A name without a
 // colon is a configured source name; any other is a repository address, matched to a configured source by
 // repository.
 func forkLibrary(config rules.Configuration, name, id, group string) (rules.Source, *rules.Source, error) {

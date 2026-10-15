@@ -5,6 +5,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 	run("project", "init")
 	name := filepath.Join(directory, ".code-rules/config.yaml")
 	original, err := os.ReadFile(name)
-	if err != nil || !strings.HasPrefix(string(original), "schemaVersion: 1\n") {
+	if err != nil || !strings.HasPrefix(string(original), "schemaVersion: 2\n") {
 		t.Fatal(string(original), err)
 	}
 	if _, err := os.Stat(filepath.Join(directory, ".code-rules/config.json")); !os.IsNotExist(err) {
@@ -46,7 +47,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 	if !strings.Contains(string(data), "    ref: v1.2.3\n") || strings.Contains(string(data), "exclude") {
 		t.Fatal("unexpected source declaration", string(data))
 	}
-	text := "# Company rule selections\n" + strings.Replace(string(data), "    ref: v1.2.3\n", "    ref: v1.2.3\n    exclude:\n      techs/go/old:\n        reason: 'Keep our local policy' # retained reason\n", 1)
+	text := "# Company rule selections\n" + strings.Replace(string(data), "      include:\n", "      exclude:\n        - id: techs/go/old\n          reason: 'Keep our local policy' # retained reason\n      include:\n", 1)
 	if err := os.WriteFile(name, []byte(text), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +105,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data = []byte(strings.Replace(string(data), "    ref: v1.0.0\n", "    ref: v1.0.0\n    exclude:\n      techs/go/old:\n        reason: > # keep this reason\n          Heading:\n\n            * first item\n            * second item\n", 1))
+	data = []byte(strings.Replace(string(data), "      include:\n", "      exclude:\n        - id: techs/go/old\n          reason: > # keep this reason\n            Heading:\n\n              * first item\n              * second item\n      include:\n", 1))
 	if err := os.WriteFile(name, data, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -145,11 +146,35 @@ func TestLegacyConfigIsNotLoaded(t *testing.T) {
 	if err := os.MkdirAll(root, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{"schemaVersion":2,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	out, diagnostic, code := runCLI(t, binary, directory, "project", "build")
 	if code == 0 || !strings.Contains(diagnostic, "config.yaml: missing configuration") {
 		t.Fatal(code, out, diagnostic)
+	}
+}
+
+// TestProjectCommands_RejectAVersionOneConfiguration fails each command that reads the configuration with the
+// version 2 example, writing nothing.
+func TestProjectCommands_RejectAVersionOneConfiguration(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	config := "schemaVersion: 1\nsources:\n  team:\n    repository: https://example.invalid/team.git\n    groups: [techs/go]\n"
+	if err := os.WriteFile(filepath.Join(directory, ".code-rules/config.yaml"), []byte(config), 0600); err != nil {
+		t.Fatal(err)
+	}
+	before := projectFileContents(t, directory)
+	for _, args := range [][]string{{"project", "check"}, {"project", "sync"}, {"project", "build"}, {"project", "add", "library", "other", "--repository", "https://example.invalid/other.git", "--groups", "techs/go", "--non-interactive"}} {
+		out, diagnostic, code := runCLI(t, binary, directory, args...)
+		if code != 1 || out != "" || !strings.HasPrefix(diagnostic, "Error: version 1 configuration is no longer supported") || !strings.Contains(diagnostic, "\n\nschemaVersion: 2\nsources:\n") || !strings.Contains(diagnostic, "\nLocation: schemaVersion\n") {
+			t.Errorf("%v: exit %d\n%s%s", args, code, out, diagnostic)
+		}
+	}
+	if !reflect.DeepEqual(before, projectFileContents(t, directory)) {
+		t.Fatal("a command changed the project")
 	}
 }

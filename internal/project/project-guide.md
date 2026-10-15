@@ -80,7 +80,7 @@ code-rules project check
 
 Confirm that `.code-rules/local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders, remove unused sections, and remove the `<!-- code-rules:draft -->` marker before building.
 
-Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions in the configuration, optionally naming a local rule as `replacedBy`, when overriding imported rules; adding a local rule does not automatically replace an imported rule.
+Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions in the configuration, optionally naming a local rule by its rule ID as `replacedBy`, when overriding imported rules; adding a local rule does not automatically replace an imported rule.
 
 #### Add a third-party library
 
@@ -96,17 +96,19 @@ code-rules project check
 
 `code-rules project add library` records the declaration without fetching. `code-rules project sync` imports each selected rule's newest version from the library's releases, validates it, and installs vendor and generated files together. It records every rule's version in `.code-rules/vendor/team/_source.json`, and later syncs import those same versions. If any source fails, the previous complete output stays in place. Inspect the rule versions and retained terms in `.code-rules/generated/libraries/team/README.md` and `.code-rules/vendor/team/`.
 
-Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`. To import single rules without the rest of their group, repeat `--rules` with library rule IDs such as `techs/go/shared`; supply at least one `--groups` or `--rules`. `--ref` imports the library exactly as it was at one tag, such as a library release tag `release/5`, or a full commit SHA. Branch names and abbreviated commits aren't supported.
+Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`. The configuration records each group in the source's `rules.include` as a selector, such as `techs/go/*`, so rules the library adds to a selected group later arrive with `code-rules project update`. To import single rules without the rest of their group, repeat `--rules` with library rule IDs such as `techs/go/shared`; supply at least one `--groups` or `--rules`. `--ref` imports the library exactly as it was at one tag, such as a library release tag `release/5`, or a full commit SHA. Branch names and abbreviated commits aren't supported.
 
 #### Keep a rule at its current version
 
-To keep an imported rule at its version, read the version from `.code-rules/vendor/<source>/_source.json` and add a pin under that source in `.code-rules/config.yaml`, with the reason you were given:
+To keep an imported rule at its version, read the version from `.code-rules/vendor/<source>/_source.json` and add a pin to that source's `rules.pins` list in `.code-rules/config.yaml`, with the reason you were given:
 
 ```yaml
-pins:
-  techs/go/shared:
-    version: "1.0.0"
-    reason: Waiting on the author's response to our question.
+rules:
+  include: [techs/go/*]
+  pins:
+    - id: techs/go/shared
+      version: "1.0.0"
+      reason: Waiting on the author's response to our question.
 ```
 
 Then run `code-rules project sync`. A pin can also move a rule to another published version, up or down. During an update, `--keep` writes the same pin for you.

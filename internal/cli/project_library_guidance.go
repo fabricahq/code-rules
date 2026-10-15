@@ -11,8 +11,8 @@ const librarySelectionGuidance = `Choose groups from that library:
   techs/*                     All technology groups.
 
 Find group paths in the library's documentation or its practices/ and techs/
-directories. Use paths from that library, not this project.
-Choose explicit paths or one wildcard; do not combine them.
+directories. Use paths from that library, not this project. You can combine
+a wildcard with paths, such as techs/*, practices/testing.
 
 To import single rules without the rest of their group, use --rules. To import
 the library as it was at one tag or commit, use --ref. See
@@ -61,9 +61,11 @@ Choosing groups:
   All technologies: --groups 'techs/*'
 
 Find group paths in the library's docs or its practices/ and techs/ directories.
-Use paths that exist in the library. Do not mix a wildcard with specific paths.
-At the interactive prompt, enter paths separated by commas, or one wildcard.
-On the command line, repeat --groups for each path, as shown above.
+Use paths that exist in the library. A wildcard can be combined with paths.
+At the interactive prompt, enter paths and wildcards separated by commas.
+On the command line, repeat --groups for each path, as shown above. The
+configuration records each group as a selector in rules.include, such as
+techs/go/*, so rules the library adds to the group later join on update.
 
 Choosing individual rules:
   To import single rules without the rest of their group, repeat --rules:

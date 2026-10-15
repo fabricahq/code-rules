@@ -324,14 +324,14 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		}
 		report.Verified = append(report.Verified, "Sync restores the recorded versions after a new library release")
 		configure := func(label, fields string) error {
-			config := "schemaVersion: 1\nsources:\n  team:\n    repository: " + fixture.Repository + "\n    groups:\n      - techs/go\n" + fields
+			config := "schemaVersion: 2\nsources:\n  team:\n    repository: " + fixture.Repository + "\n    rules:\n      include:\n        - techs/go/*\n" + fields
 			if err := os.WriteFile(filepath.Join(consumer, ".code-rules/config.yaml"), []byte(config), 0600); err != nil {
 				return err
 			}
 			report.Steps = append(report.Steps, Step{Label: "Configuration edit: " + label})
 			return nil
 		}
-		if err := configure("pin techs/go/errors to 1.1.0", "    pins:\n      techs/go/errors:\n        version: \"1.1.0\"\n        reason: Adopt the updated wording.\n"); err != nil {
+		if err := configure("pin techs/go/errors to 1.1.0", "      pins:\n        - id: techs/go/errors\n          version: \"1.1.0\"\n          reason: Adopt the updated wording.\n"); err != nil {
 			return report, err
 		}
 		if scenario == "failed-sync" {
@@ -369,7 +369,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, err
 		}
 		report.Verified = append(report.Verified, "A pin moves one rule up while the other keeps its recorded version, and checks offline")
-		if err := configure("pin techs/go/errors back to 1.0.0", "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Keep the original wording.\n"); err != nil {
+		if err := configure("pin techs/go/errors back to 1.0.0", "      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n          reason: Keep the original wording.\n"); err != nil {
 			return report, err
 		}
 		if err := invoke("Sync moves the pinned rule down", consumer, online, 0, "project", "sync"); err != nil {

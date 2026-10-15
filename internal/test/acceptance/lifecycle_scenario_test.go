@@ -148,8 +148,8 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	if err != nil {
 		return err
 	}
-	pin := "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: " + reason + "\n"
-	if err := contains("configuration", string(files[".code-rules/config.yaml"]), pin, "    exclude:\n      techs/go/panics:\n        reason: "+reason+"\n"); err != nil {
+	pin := "      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n          reason: " + reason + "\n"
+	if err := contains("configuration", string(files[".code-rules/config.yaml"]), pin, "      exclude:\n        - id: techs/go/panics\n          reason: "+reason+"\n"); err != nil {
 		return err
 	}
 	if !bytes.Equal(files[".code-rules/vendor/team/techs/go/errors.md"], errorsV1) || !strings.Contains(string(files[".code-rules/generated/rules/team/techs/go/errors.md"]), "Version: 1.0.0") {
@@ -245,7 +245,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	if !bytes.Equal(files[".code-rules/local/techs/go/assets/errors/diagram.bin"], files[".code-rules/vendor/team/techs/go/assets/errors/diagram.bin"]) {
 		return fmt.Errorf("the fork didn't copy the rule's asset")
 	}
-	if err := contains("configuration", string(files[".code-rules/config.yaml"]), "      techs/go/errors:\n        reason: "+forkReason+"\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"2.0.0\"\n"); err != nil {
+	if err := contains("configuration", string(files[".code-rules/config.yaml"]), "        - id: techs/go/errors\n          reason: "+forkReason+"\n          replacedBy: techs/go/errors\n          basedOn: \"2.0.0\"\n"); err != nil {
 		return err
 	}
 	if files[".code-rules/generated/rules/local/techs/go/errors.md"] == nil || files[".code-rules/generated/rules/team/techs/go/errors.md"] != nil {
@@ -338,7 +338,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	// The project pins wrapping; library release 4 retires it and changes the forked rule.
 	pinReason := "Our reviews still cite it."
 	if err := configure("pin techs/go/wrapping", func(config string) string {
-		return config + "    pins:\n      techs/go/wrapping:\n        version: \"1.1.0\"\n        reason: " + pinReason + "\n"
+		return config + "      pins:\n        - id: techs/go/wrapping\n          version: \"1.1.0\"\n          reason: " + pinReason + "\n"
 	}); err != nil {
 		return err
 	}

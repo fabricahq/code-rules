@@ -118,7 +118,7 @@ func libraryReadme(source resolvedSource) string {
 // marked excluded, or replaced by its local rule, and a retired rule the source still imports is marked retired,
 // with the ref or pin that keeps it.
 func ruleVersionTable(source resolvedSource) string {
-	versions, exclude := source.Versions, source.Exclude
+	versions := source.Versions
 	if len(versions) == 0 {
 		return "This source imports no rules."
 	}
@@ -127,9 +127,9 @@ func ruleVersionTable(source resolvedSource) string {
 		rule := versions[id]
 		status := "Active"
 		pin, pinned := source.Pins[id]
-		switch exclusion, excluded := exclude[id]; {
+		switch exclusion, excluded := source.Configured.Exclusion(id); {
 		case excluded && exclusion.ReplacedBy != "":
-			status = "Replaced by `" + exclusion.ReplacedBy + "`"
+			status = "Replaced by `" + exclusion.ReplacementFile() + "`"
 		case excluded:
 			status = "Excluded"
 		case slices.Contains(source.Retired, id) && source.Ref != "":

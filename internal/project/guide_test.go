@@ -19,7 +19,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	old := stampProjectGuide([]byte("# Earlier release guide\n"))
-	config := []byte("{\n  \"schemaVersion\": 1, \"sources\": {}\n}\n")
+	config := []byte("{\n  \"schemaVersion\": 2, \"sources\": {}\n}\n")
 	local := []byte("My local authoring notes.\n")
 	for name, data := range map[string][]byte{"README.md": old, "config.yaml": config, "local/README.md": local} {
 		if err := os.WriteFile(filepath.Join(directory, name), data, 0600); err != nil {
