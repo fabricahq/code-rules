@@ -9,7 +9,9 @@ Skill support isn't in a released version of Code Rules yet. This page describes
 
 A **skill** is the AI skill you already know, officially a folder that follows the open [Agent Skills](https://agentskills.io) standard. It holds a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
 
-Skills are coarse-grained. A skill that builds a feature combines many practices, from where the code lives to how it's tested and verified, and not all of them apply every time. That makes skills good for playbooks, techniques, and coordinating a whole task, but clumsy as the only way to deliver guidance: you can't adopt, update, or version one practice inside a skill on its own. [Rules](/concepts/rule/) are the granular layer: one best practice per file, with its own version. A skill cites the rules it applies, so each practice is written once, and every skill that applies it stays current.
+Skills are coarse-grained. A skill that builds a feature combines many practices, from where the code lives to how it's tested and verified, and not all of them apply every time. That makes skills good for playbooks, techniques, and coordinating a whole task, but clumsy as the only way to deliver guidance: you can't adopt, update, or version one practice inside a skill on its own.
+
+[Rules](/concepts/rule/) are the granular layer: one best practice per file, with its own version. A skill cites the rules it applies, so each practice is written once, and every skill that applies it stays current.
 
 Code Rules installs skills into your repository, records where each one came from and which version it is, and checks them. It doesn't run skills, decide when an agent uses one, or check that the agent followed it.
 
