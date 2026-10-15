@@ -1,0 +1,19 @@
+# Runs every block of the walkthrough in document order, as Runbooks' test runner does:
+#   bun cli/index.ts test <path to code-rules>/_walkthrough/skills
+# from a checkout of gruntwork-io/runbooks. It clones and builds the branch, so it needs network access.
+version: 1
+
+settings:
+  use_temp_working_dir: true
+  # The build step downloads Go modules and possibly a Go toolchain.
+  timeout: 20m
+  parallelizable: false
+
+tests:
+  - name: every-block
+    description: Runs the whole walkthrough in its own work folder and deletes it at the end.
+    inputs:
+      walkthrough.WorkDir: /tmp/code-rules-skills-walkthrough-test
+    assertions:
+      - type: dir_not_exists
+        path: /tmp/code-rules-skills-walkthrough-test

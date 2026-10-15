@@ -1,0 +1,451 @@
+# Code Rules skills: a hands-on walkthrough
+
+This runbook builds the latest Code Rules CLI from source and walks through each new feature, one section at a time, against demo repositories it creates on your machine.
+
+<Admonition type="warning" title="Unreleased preview build" description="This builds `claude/skills-preview`, a branch that combines the draft pull requests #117 to #125 of fabricahq/code-rules. None of it is released, and commands, messages, and file formats may still change." />
+
+**How to open it.** Install the Runbooks app as the [installation page](https://runbooks.gruntwork.io/intro/installation/) describes, and install its `runbooks` command from the app's welcome screen. Then open this folder:
+
+```bash
+runbooks open <path to code-rules>/_walkthrough/skills
+```
+
+You can also open it straight from GitHub, without a checkout:
+
+```bash
+runbooks open https://github.com/fabricahq/code-rules/tree/claude/skills-preview/_walkthrough/skills
+```
+
+Run the blocks from top to bottom. Each step uses what the steps before it created.
+
+**What it touches.** Everything goes in one work folder, `/tmp/code-rules-skills-walkthrough` unless you choose another. Git runs with its own configuration file in that folder, so your `~/.gitconfig`, signing keys, and credential helpers are never used. Go keeps its module cache and build cache there too. The demo repositories live in the work folder and are reached through a small stand-in for `ssh`, so nothing goes over the network except the clone of code-rules and Go's module downloads. The last section points `HOME` at a folder inside the work folder, for two commands only. The final block deletes the work folder.
+
+## Before you start
+
+You need Git and Go. Nothing else.
+
+<Check
+    id="check-git"
+    path="checks/git.sh"
+    title="Git 2.30 or later is installed"
+    successMessage="Git is ready."
+    failMessage="Install Git 2.30 or later, for example with `xcode-select --install`."
+/>
+
+<Check
+    id="check-go"
+    path="checks/go.sh"
+    title="Go is installed"
+    successMessage="Go is ready."
+    failMessage="Install Go from https://go.dev/dl/ or with `brew install go`."
+/>
+
+## Build the CLI
+
+Choose where the walkthrough works. Every later block reads these values, so submit the form before you run anything below it.
+
+<Inputs id="walkthrough">
+```yaml
+variables:
+  - name: WorkDir
+    type: string
+    description: Absolute path of the folder for everything the walkthrough creates. It must not exist yet, or must be one this walkthrough created.
+    default: /tmp/code-rules-skills-walkthrough
+    validations:
+      - required
+  - name: Branch
+    type: string
+    description: The fabricahq/code-rules branch to clone and build.
+    default: claude/skills-preview
+    validations:
+      - required
+  - name: CodeRulesCheckout
+    type: string
+    description: Optional. The path of a code-rules checkout to build as it is, instead of cloning the branch. Leave it empty to clone.
+    default: ""
+```
+</Inputs>
+
+First, create the work folder. This writes `env.sh`, which every later block sources: it points Git at the walkthrough's own configuration, keeps Go's caches in the work folder, and defines `code-rules` as the CLI built here.
+
+<Command
+    id="setup-workdir"
+    path="scripts/setup-workdir.sh"
+    inputsId="walkthrough"
+    title="Create the work folder"
+    successMessage="The work folder is ready."
+/>
+
+Now clone the branch and build the CLI. The first build downloads Go modules, and the Go 1.27.2 toolchain if your Go is older, so it can take a few minutes.
+
+<Command
+    id="build-cli"
+    path="scripts/build-cli.sh"
+    inputsId="walkthrough"
+    title="Clone and build code-rules"
+    successMessage="The CLI is built."
+    timeoutMs={1200000}
+/>
+
+<Command
+    id="show-cli"
+    path="scripts/show-cli.sh"
+    inputsId="walkthrough"
+    title="Show the version and help"
+/>
+
+A build from source reports version `0.0.0-development`. Look for `project add` mentioning skills, and the new `project check` description: it now checks installed skills too.
+
+<Check
+    id="check-cli"
+    path="checks/cli-built.sh"
+    inputsId="walkthrough"
+    title="The CLI runs and has the skills commands"
+/>
+
+## Create the demo repositories
+
+The walkthrough needs three repositories, all inside the work folder:
+
+- **acme-library**, a Code Rules library with five rules in three rule groups and five skills. One skill bundles an executable script, two cite rules, and two use another skill. The library publishes library release 1, which tags it `release/1`.
+- **team-skills**, a plain Git repository of skills that isn't a library, tagged `v1.0.0`.
+- **demo-app**, the project that uses them.
+
+Code Rules fetches sources only over HTTPS or SSH, so it doesn't accept a local path or a `file://` address as a source's `repository`. The demo repositories are reached as `git@demo.invalid:<name>.git`: `GIT_SSH_COMMAND` points at a small script that serves them from the work folder, the way the CLI's own tests do.
+
+<Command
+    id="create-library"
+    path="scripts/create-library.sh"
+    inputsId="walkthrough"
+    title="Create acme-library and publish library release 1"
+/>
+
+`library release --no-github-release` tags `release/1` and pushes it. It skips the GitHub Release page, since the library isn't on GitHub.
+
+<Command
+    id="create-skills-repo"
+    path="scripts/create-skills-repo.sh"
+    inputsId="walkthrough"
+    title="Create team-skills and tag v1.0.0"
+/>
+
+<Command
+    id="create-project"
+    path="scripts/create-project.sh"
+    inputsId="walkthrough"
+    title="Create demo-app and run project init"
+/>
+
+`project init` now writes `skillTargets: [claude, agents]`, so skills install into both `.claude/skills/` and `.agents/skills/`.
+
+<Check
+    id="check-fixtures"
+    path="checks/fixtures.sh"
+    inputsId="walkthrough"
+    title="The three repositories are ready"
+/>
+
+## Version 2 configuration and rule selectors
+
+Configuration is now `schemaVersion: 2`. Each source lists its rules under `rules`: `include` takes selectors, and `exclude` and `pins` are lists of entries with an `id`. A selector is a rule ID, or a prefix that ends in `/*`: `"*"`, `practices/*`, `techs/*`, or one rule group such as `techs/go/*`.
+
+This block first shows two selectors the CLI rejects, then adds the library with every practice rule group plus one Go rule, and syncs.
+
+<Command
+    id="rules-selectors"
+    path="scripts/rules-selectors.sh"
+    inputsId="walkthrough"
+    title="Add the library with rule selectors"
+/>
+
+Look for the two errors at the top, the `rules.include` list in `config.yaml`, and the imported rules: both practice rule groups, and `techs/go/wrap-errors` without the rest of its rule group.
+
+<Check
+    id="check-rules-selected"
+    path="checks/rules-selected.sh"
+    inputsId="walkthrough"
+    title="The selectors took the right rules"
+/>
+
+Exclusions use the same list form, each with an `id` and a `reason`. Excluding a rule needs no fetch: `project check` reports the generated files out of date, and `project build` fixes them offline.
+
+<Command
+    id="rules-exclude"
+    path="scripts/rules-exclude.sh"
+    inputsId="walkthrough"
+    title="Exclude a rule with a reason"
+/>
+
+A version 1 configuration no longer loads. Code Rules doesn't convert it; it fails and shows the version 2 shape to rewrite it in. This block tries one in a scratch folder, so demo-app is untouched.
+
+<Command
+    id="v1-config"
+    path="scripts/v1-config.sh"
+    inputsId="walkthrough"
+    title="Try a version 1 configuration"
+/>
+
+## Project rules in .code-rules/rules/
+
+A project's own rule groups and rules now live in `.code-rules/rules/<type>/<rule-group>/`, laid out like a library's, and shared assets in `.code-rules/assets/`. They're found automatically; `config.yaml` doesn't list them.
+
+<Command
+    id="project-rules"
+    path="scripts/project-rules.sh"
+    inputsId="walkthrough"
+    title="Add a project rule group and rule"
+/>
+
+Look for the files under `.code-rules/rules/practices/security/`, and the generated copy under `generated/rules/local/`.
+
+The old `.code-rules/local/` folder isn't read anymore. Every project command fails while it exists, and explains where its files belong. This block tries it on a scratch copy of demo-app.
+
+<Command
+    id="local-folder"
+    path="scripts/local-folder.sh"
+    inputsId="walkthrough"
+    title="Try a project that still has .code-rules/local/"
+/>
+
+The move list in the message is a fixed example of the mapping, not a list of your files.
+
+## The library manifest
+
+A library's manifest is now the `library` section of its `.code-rules/config.yaml`, and its rules, assets, change notes, and skills live in `.code-rules/` too. The same file can also hold `sources`, so one repository can be both a project and a library.
+
+<Command
+    id="library-manifest"
+    path="scripts/library-manifest.sh"
+    inputsId="walkthrough"
+    title="Show acme-library's manifest and check it"
+/>
+
+A library that still has `rule-library.yaml`, or rule folders at its repository root, fails with the moves to make. This block tries it on a scratch copy of the library.
+
+<Command
+    id="legacy-library"
+    path="scripts/legacy-library.sh"
+    inputsId="walkthrough"
+    title="Try a library with rule-library.yaml"
+/>
+
+## Install skills from a source
+
+`project add source` replaces `project add library`. It takes `--repository`, `--ref`, `--rules`, and `--skills`. A source can be a library or any Git repository with skill folders. A repository that isn't a library has no library releases, so its source needs a `ref`, a tag or full commit SHA.
+
+This block adds team-skills with `--ref v1.0.0`, adds one of the library's skills to its existing source in `config.yaml`, and syncs.
+
+<Command
+    id="add-skills"
+    path="scripts/add-skills.sh"
+    inputsId="walkthrough"
+    title="Install a skill from each source"
+/>
+
+Look for each skill in both `.claude/skills/` and `.agents/skills/`, the script that kept its executable bit, and `generated/installed-skills.json`, which records the folders Code Rules owns. A skill from a repository that isn't a library records its commit there.
+
+<Check
+    id="check-skills-installed"
+    path="checks/skills-installed.sh"
+    inputsId="walkthrough"
+    title="Both skills are installed in both skill targets"
+/>
+
+## SKILLS.md and the RULES.md pointer
+
+`generated/SKILLS.md` lists every installed skill: what it does, where it came from, why it's installed, and where. `RULES.md` points to it, so an agent without native skill support can still find the skills. Each installed `SKILL.md` carries a marker line that says not to edit it.
+
+<Command
+    id="skills-index"
+    path="scripts/skills-index.sh"
+    inputsId="walkthrough"
+    title="Read SKILLS.md and the pointer in RULES.md"
+/>
+
+## Check catches edited installed skills
+
+`project check` compares each installed copy with what build would write. An edited copy is `modified-skill` and a deleted one `missing-skill`. `project build` reinstalls them from their sources.
+
+<Command
+    id="edit-installed-skill"
+    path="scripts/edit-installed-skill.sh"
+    inputsId="walkthrough"
+    title="Edit and delete installed copies, then repair them"
+/>
+
+Look for the two problems in the check output, then `Status: up to date.` after build, and a clean `git status`.
+
+## Skill metadata and cited rules
+
+A skill you author in `.code-rules/skills/<name>/` is checked before it's installed. Its `metadata` can hold three `syllabus-` keys: `syllabus-skill-type` (`playbook` or `review`), `syllabus-rules-used`, and `syllabus-skills-used`. Any other `syllabus-` key is an error, and a bare rule ID must name a rule the project authors.
+
+When a skill cites rules, its installed copy ends with **Rules this skill applies**, which links to the project's version of each one, or says why there's none.
+
+<Command
+    id="skill-metadata"
+    path="scripts/skill-metadata.sh"
+    inputsId="walkthrough"
+    title="Try invalid metadata, then install a valid skill"
+/>
+
+Look for the three build errors, each naming the skill's `SKILL.md`, then the section at the end of the installed copy: a link with the rule's version, a note for the rule the project excludes, and a link to the project's own rule.
+
+<Check
+    id="check-cited-rules"
+    path="checks/cited-rules.sh"
+    inputsId="walkthrough"
+    title="The installed skill links to the rules it cites"
+/>
+
+## library check rejects an invalid skill
+
+`library check` checks every skill a library publishes, lists every problem it finds, and fails with the code `invalid-skill`.
+
+<Command
+    id="library-invalid-skill"
+    path="scripts/library-invalid-skill.sh"
+    inputsId="walkthrough"
+    title="Add a broken skill to the library, then remove it"
+/>
+
+Look for three problems in one error: the name that doesn't match the folder, the unknown skill type, and the cited rule the library doesn't have. The JSON output shows `"code": "invalid-skill"`.
+
+## Skill dependencies
+
+Sync also installs the skills an installed skill uses, from the same source and revision. A skill declares them in `syllabus-skills-used`. When a skill calls another without declaring it, as many third-party skills do, the project declares it in the source's `skills.uses`.
+
+Here `acme-build-feature` declares that it uses `acme-tdd`, and the project declares that `team-pr-review` uses `team-security-review`.
+
+<Command
+    id="skill-dependencies"
+    path="scripts/skill-dependencies.sh"
+    inputsId="walkthrough"
+    title="Install skills and the skills they use"
+/>
+
+Look for `build` asking for a sync, because the selection changed and build works offline, then the **Uses** and **Installed because** lines in `SKILLS.md`.
+
+<Check
+    id="check-dependencies"
+    path="checks/dependencies.sh"
+    inputsId="walkthrough"
+    title="The used skills are installed"
+/>
+
+## Exclude a skill
+
+`skills.exclude` leaves a skill out, with a reason. The project now takes every library skill with `"*"`, except one.
+
+<Command
+    id="exclude-skill"
+    path="scripts/exclude-skill.sh"
+    inputsId="walkthrough"
+    title="Exclude acme-release-notes"
+/>
+
+Look for the missing `acme-release-notes` folder and the **Excluded skills** section of `SKILLS.md`. The skill's files stay in `vendor/`, so updates can still compare them.
+
+<Check
+    id="check-excluded"
+    path="checks/excluded.sh"
+    inputsId="walkthrough"
+    title="The excluded skill isn't installed"
+/>
+
+## Fork a skill
+
+`project add skill --from SOURCE:SKILL` copies a source's skill into `.code-rules/skills/`, and adds an exclusion that names the copy as its `replacedBy`, with your reason and the commit it copied as `basedOn`. The copy installs under the same name, in place of the source's skill.
+
+<Command
+    id="fork-skill"
+    path="scripts/fork-skill.sh"
+    inputsId="walkthrough"
+    title="Fork acme-fix-bug and change it"
+/>
+
+Look for the exclusion with `replacedBy` and `basedOn`, the copy's `syllabus-skills-used`, which now names `acme:skills/acme-tdd` so it still means the library's skill, and the **Replaces** and **Reason** lines in `SKILLS.md`.
+
+<Check
+    id="check-fork"
+    path="checks/fork.sh"
+    inputsId="walkthrough"
+    title="The fork is installed in place of the library's skill"
+/>
+
+## Update to a new library release
+
+Now the library changes and publishes library release 2: a rule gets a minor change, the skill demo-app forked gets a new step, and `acme-review` gets a changed script and a new one.
+
+<Command
+    id="library-release-2"
+    path="scripts/library-release-2.sh"
+    inputsId="walkthrough"
+    title="Change acme-library and publish library release 2"
+/>
+
+`project update` previews the move to release 2. Runbooks has no terminal, so the command only shows the preview.
+
+<Command
+    id="update-preview"
+    path="scripts/update-preview.sh"
+    inputsId="walkthrough"
+    title="Preview the update"
+/>
+
+Look for three kinds of rows under `acme`: the rule's `minor` change, `changed skills/acme-review` with a `script changed` and a `script added` line, and `replaced skills/acme-fix-bug`, which lists what changed since the commit your fork is based on. The warning at the end asks you to read the scripts before you confirm.
+
+<Check
+    id="check-update-preview"
+    path="checks/update-preview.sh"
+    inputsId="walkthrough"
+    title="The preview lists the replaced skill and the scripts"
+/>
+
+<Command
+    id="update-apply"
+    path="scripts/update-apply.sh"
+    inputsId="walkthrough"
+    title="Apply the update"
+/>
+
+The update installs the new script and leaves your fork alone. To take the library's change into your fork, edit it, then set its `basedOn` to the commit you merged.
+
+<Check
+    id="check-updated"
+    path="checks/updated.sh"
+    inputsId="walkthrough"
+    title="The project is on library release 2"
+/>
+
+## A personal skill with the same name
+
+A skill in your own `~/.claude/skills/`, `~/.agents/skills/`, or `~/.codex/skills/` that has the name of a skill the project installs can win over the project's in some agents. `project sync`, `project update`, and `project check` warn about each one. They only read your home folder, and the warning never fails a command.
+
+This block creates a personal `acme-tdd` in a stand-in home folder inside the work folder, and sets `HOME` to it for two commands only.
+
+<Command
+    id="personal-skill"
+    path="scripts/personal-skill.sh"
+    inputsId="walkthrough"
+    title="Create a personal skill and run check and sync"
+/>
+
+Look for the warning that names both paths and says what Claude Code, Codex, and VS Code do with the pair, and for `Status: up to date.` above it.
+
+<Check
+    id="check-personal-skill"
+    path="checks/personal-skill.sh"
+    inputsId="walkthrough"
+    title="Check warns and still passes"
+/>
+
+## Clean up
+
+Delete the work folder when you're done, or before you run the walkthrough again. The block refuses a folder this walkthrough didn't create.
+
+<Command
+    id="clean-up"
+    path="scripts/clean-up.sh"
+    inputsId="walkthrough"
+    title="Delete the work folder"
+/>
