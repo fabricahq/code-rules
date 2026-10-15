@@ -50,6 +50,9 @@ type Source struct {
 	// such as skills/build-feature, or only skills.Wildcard. It is empty, never nil, when the source includes no
 	// skills. Whether each ID names a skill the source has is checked when sync reads the source.
 	Skills []string `json:"skills"`
+	// SkillExclude maps the ID of each skill that skills.exclude leaves out to its exclusion; it is empty, never nil,
+	// when there are none. An excluded skill is still imported, so updates can compare it with its replacement.
+	SkillExclude map[string]SkillExclusion `json:"skillExclude,omitempty"`
 }
 
 // HasRules reports whether the source includes rules.
@@ -274,27 +277,34 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
-	if result.Skills, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
+	if result.Skills, result.SkillExclude, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
 		return Source{}, err
 	}
 	return result, nil
 }
 
-// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*". A missing object
-// includes no skills.
-func parseSkillFields(input json.RawMessage, location string) ([]string, error) {
-	selected := []string{}
+// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*", and exclude, as
+// parseSkillExclusions reads it. A missing object includes no skills and excludes none.
+func parseSkillFields(input json.RawMessage, location string) ([]string, map[string]SkillExclusion, error) {
 	if input == nil {
-		return selected, nil
+		return []string{}, map[string]SkillExclusion{}, nil
 	}
 	fields, err := decode.Object(input, location)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if err := decode.KnownFields(fields, []string{"include"}, location); err != nil {
-		return nil, err
+	if err := decode.KnownFields(fields, []string{"include", "exclude"}, location); err != nil {
+		return nil, nil, err
 	}
-	return ParseSkillSelection(fields["include"], location+".include")
+	selected, err := ParseSkillSelection(fields["include"], location+".include")
+	if err != nil {
+		return nil, nil, err
+	}
+	exclude, err := parseSkillExclusions(fields["exclude"], location+".exclude")
+	if err != nil {
+		return nil, nil, err
+	}
+	return selected, exclude, nil
 }
 
 // ParseSkillSelection validates a source's skill selectors, a JSON list at location of distinct skill IDs, such as

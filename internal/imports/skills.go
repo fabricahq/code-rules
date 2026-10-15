@@ -145,11 +145,15 @@ type importedSkills struct {
 }
 
 // readSkills reads the files of the skills the source selects at the plan's commit, a library's when isLibrary is
-// set. It fails for a skill file that is a symbolic link or submodule, and over the import byte limits.
+// set. It fails for a skill file that is a symbolic link or submodule, over the import byte limits, and as
+// requireSkillBasedOn does for a replacement's basedOn.
 func (r *repository) readSkills(ctx context.Context, source rules.Source, plan sourcePlan, isLibrary bool) (importedSkills, error) {
 	result := importedSkills{files: map[string][]byte{}, executable: []string{}, skills: map[string]library.ImportedSkill{}}
 	if len(source.Skills) == 0 {
 		return result, nil
+	}
+	if err := r.requireSkillBasedOn(ctx, source); err != nil {
+		return importedSkills{}, err
 	}
 	tree, err := r.repositoryTree(ctx, plan.commit)
 	if err != nil {

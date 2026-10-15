@@ -49,6 +49,10 @@ type SourceUpdate struct {
 	Rules []RuleUpdate `json:"rules"`
 	// SharedFiles is how the update moves the source's library-wide files, or nil when they stay.
 	SharedFiles *SharedFilesUpdate `json:"sharedFiles,omitempty"`
+	// ReplacedSkills lists, sorted by ID, the skills the project replaces with authored skills whose copy at the
+	// revision the update takes the source's skills from differs from the copy the replacement is based on. It is
+	// empty, never nil, when there are none.
+	ReplacedSkills []ReplacedSkillUpdate `json:"replacedSkills"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -369,7 +373,9 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 
 // planSourceUpdate plans one source within the same deadline as an import, and returns its preview and the
 // warnings that installing it without decisions would give. A nil scope moves every rule and adds new ones;
-// otherwise it moves only the rules scope names. A source that uses ref stays as sync would import it.
+// otherwise it moves only the rules scope names. A source that uses ref stays as sync would import it. Either way,
+// the preview lists the replaced skills whose copy at the revision the update takes skills from, before the
+// project's decisions, differs from the copy their replacement is based on.
 func planSourceUpdate(ctx context.Context, source rules.Source, recorded *library.Snapshot, scope []string, options Options) (_ plannedSource, _ SourceUpdate, _ []string, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
@@ -393,6 +399,9 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	}
 	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}}
 	if !source.Ref.IsZero() {
+		if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, before.commit); err != nil {
+			return plannedSource{}, SourceUpdate{}, nil, err
+		}
 		return plannedSource{before: before}, preview, before.warnings, nil
 	}
 	for _, id := range scope {
@@ -413,6 +422,9 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	if err := p.requireUnmoved(before); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
+	if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, after.commit); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	preview.Rules = rows

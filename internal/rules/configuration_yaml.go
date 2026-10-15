@@ -137,8 +137,8 @@ func AppendConfigurationLibrary(input []byte, value any) ([]byte, error) {
 	return encodeConfiguration(document)
 }
 
-// SourceEdit lists pins and exclusions to add to one source, pins to remove from it, and basedOn versions to set;
-// each may be empty or nil.
+// SourceEdit lists pins and exclusions to add to one source, pins to remove from it, basedOn versions to set, and
+// skill exclusions to add; each may be empty or nil.
 type SourceEdit struct {
 	Pins    map[string]Pin
 	Exclude map[string]Exclusion
@@ -146,16 +146,19 @@ type SourceEdit struct {
 	Unpin []string
 	// BasedOn sets the basedOn version of each existing replacement it names, adding or replacing the field.
 	BasedOn map[string]coderules.RuleVersion
+	// SkillExclude holds the entries to add to skills.exclude, by skill ID.
+	SkillExclude map[string]SkillExclusion
 }
 
-// EditConfigurationSource adds pins and exclusions to the existing source alias, removes the pins edit.Unpin
-// names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced value's
-// comment, without dropping other comments or reordering entries. Setting basedOn of a rule the source doesn't
-// replace fails. A rules.pins list left empty is removed; a pin to remove that the source lacks fails. New entries
-// follow the source's existing ones in rule ID order, in a rules.pins or rules.exclude list that is created when
-// absent. Versions are written quoted, such as version: "1.3.0", so YAML reads them as text. A rule the source
-// already pins or excludes by its ID fails rather than being replaced. Folded scalars use literal style, as in
-// AppendConfigurationSource. The complete resulting configuration is validated before any bytes are returned.
+// EditConfigurationSource adds pins, exclusions, and skill exclusions to the existing source alias, removes the pins
+// edit.Unpin names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced
+// value's comment, without dropping other comments or reordering entries. Setting basedOn of a rule the source
+// doesn't replace fails. A rules.pins list left empty is removed; a pin to remove that the source lacks fails. New
+// entries follow the source's existing ones in rule or skill ID order, in a rules.pins, rules.exclude, or
+// skills.exclude list that is created when absent. Versions and commits are written quoted, such as
+// version: "1.3.0", so YAML reads them as text. A rule or skill the source already pins or excludes by its ID fails
+// rather than being replaced. Folded scalars use literal style, as in AppendConfigurationSource. The complete
+// resulting configuration is validated before any bytes are returned.
 func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byte, error) {
 	document, data, err := decode.YAML(input, "configuration")
 	if err != nil {
@@ -169,6 +172,9 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
+	if err := addSkillExclusions(source, edit.SkillExclude, "sources."+alias+".skills"); err != nil {
+		return nil, err
+	}
 	where := "sources." + alias + ".rules"
 	ruleFields := mappingValue(source, "rules")
 	if ruleFields == nil {
@@ -201,6 +207,32 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		exclusion.Content = append(exclusion.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "basedOn"}, versionNode(version))
 	}
 	return encodeConfiguration(document)
+}
+
+// addSkillExclusions appends exclude, in skill ID order, to the skills.exclude list of source, creating the list
+// when it's absent. It fails, at a location under where, when the source includes no skills or already excludes
+// one of them.
+func addSkillExclusions(source *yaml.Node, exclude map[string]SkillExclusion, where string) error {
+	if len(exclude) == 0 {
+		return nil
+	}
+	skillFields := mappingValue(source, "skills")
+	if skillFields == nil {
+		return invalid(where, "the source includes no skills, so it has no skills to exclude")
+	}
+	skillFields.Style = 0
+	nodes := map[string]*yaml.Node{}
+	for id, exclusion := range exclude {
+		node := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{{Kind: yaml.ScalarNode, Tag: "!!str", Value: "reason"}, textNode(exclusion.Reason)}}
+		if exclusion.ReplacedBy != "" {
+			node.Content = append(node.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "replacedBy"}, textNode(exclusion.ReplacedBy))
+		}
+		if !exclusion.BasedOn.IsZero() {
+			node.Content = append(node.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "basedOn"}, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: exclusion.BasedOn.Canonical(), Style: yaml.DoubleQuotedStyle})
+		}
+		nodes[id] = node
+	}
+	return addEntries(skillFields, "exclude", nodes, where)
 }
 
 // mappingValue returns the value of key in mapping, or nil when mapping is nil or lacks the key.

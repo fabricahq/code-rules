@@ -53,8 +53,8 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		command.AddCommand(cmd)
 	}
 	command.AddCommand(projectInitCommand(options, output), projectUpdateCommand(options, output))
-	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or source"}
-	add.AddCommand(projectSourceCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output))
+	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or source, or fork a skill"}
+	add.AddCommand(projectSourceCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output), projectSkillCommand(options, output))
 	command.AddCommand(add)
 	for _, child := range command.Commands() {
 		child.GroupID = "main"
