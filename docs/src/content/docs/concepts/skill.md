@@ -58,7 +58,9 @@ All three keys are optional. The standard sets `metadata` aside for properties i
 
 ## Skill types
 
-A skill can declare one type:
+A skill type classifies what a skill is for, so skills are easier to search and browse. You can already filter by type, such as `code-rules project list skills --type review`. The full payoff comes from interfaces that show types, such as a catalog like [Rulemart](https://github.com/fabricahq/rulemart) that lets you browse every review skill across libraries.
+
+There are probably many useful kinds of skills, but we're conservative about which types we name, because removing or redefining a type later would break the skills that use it. For now there are two, and a skill can declare one:
 
 | Type | What the skill does | Examples |
 | --- | --- | --- |
@@ -67,7 +69,7 @@ A skill can declare one type:
 
 The test is the skill's main job: a playbook changes the work, and a review judges work that already exists. A review may offer to fix what it found, and a playbook may include a review step.
 
-A skill that fits neither type leaves the field out. The type is a plain label for people and catalogs, such as `code-rules project list skills --type review`. Code Rules installs, checks, and updates typed and untyped skills the same way.
+If a skill doesn't clearly fit either type, leave the type out. The type is only a label: Code Rules installs, checks, and updates typed and untyped skills the same way.
 
 ## Where cited rules live
 
