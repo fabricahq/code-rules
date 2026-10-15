@@ -4,7 +4,7 @@ description: "Install skills from a library, another repository, or your own pro
 ---
 
 :::note[Preview]
-Skills come in the next Code Rules release. Code Rules checks the form of `fg-skills-used` but doesn't yet install the skills it names.
+Skills come in the next Code Rules release. Sync installs the skills a source's skill uses; a skill you author in `.code-rules/skills/` can use a source's skill only when the source already installs it.
 :::
 
 Code Rules installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, write your own, and change what's installed.
@@ -52,6 +52,32 @@ code-rules project sync
 ```
 
 Without `--ref`, sync fails with `ref-required`. `*` installs every skill in the repository except those in folders whose names start with a dot, such as another tool's installed copies. To take a newer revision, change `ref` and sync. Review a third party's skills, including any scripts they bundle, before installing them: agents follow their instructions.
+
+## Install the skills a skill uses
+
+A skill can call other skills. When its `SKILL.md` lists them in `fg-skills-used`, sync installs them with it, and the skills they use in turn, from the same source and revision, so you include only the skill you want:
+
+```yaml
+sources:
+  pstack:
+    repository: https://github.com/example/pstack.git
+    ref: v1.4.0
+    skills:
+      include: [skills/poteto-mode]
+```
+
+`generated/SKILLS.md` lists each skill a skill uses, and says when one was installed only because another skill uses it, such as `**Installed because:** used by poteto-mode`.
+
+When a skill calls another without listing it in `fg-skills-used`, as many third-party skills do, declare the call in the source's `skills.uses`, so sync installs both:
+
+```yaml
+    skills:
+      include: [skills/poteto-mode]
+      uses:
+        skills/architect: [skills/how]
+```
+
+Code Rules doesn't read skill text to find calls it wasn't told about. See [Declare the skills a skill uses](/reference/configuration/#declare-the-skills-a-skill-uses).
 
 ## Write your own skill
 
@@ -102,6 +128,8 @@ Remove the skill's ID from `skills.include`, or delete an authored skill's folde
 | `skill-name-clash` | Two skills you include have the same install name. Stop including one of them. |
 | `skill-not-in-revision` | The revision the source record locks doesn't have a skill you named. Run the update the message names, set `ref` to a revision that has it, or check the ID. |
 | `ref-required` | The source's repository has no library releases. Set its `ref`. |
+| A skill uses a skill that can't be found | A skill's `fg-skills-used`, or your `skills.uses`, names a skill the source's revision doesn't have. The message names both skills. Correct `skills.uses`, ask the source's maintainer to correct `fg-skills-used`, or stop including the skill. When `skills.uses` names a skill a newer revision has, sync fails with `skill-not-in-revision` instead. |
+| Skills use each other in a cycle | The message lists the cycle, such as `skills/a -> skills/b -> skills/a`. Remove one of the uses. |
 | An invalid authored skill | Its `name` doesn't match its folder, a `metadata` key is invalid, or `fg-rules-used` names a rule the project doesn't have. Correct the `SKILL.md` the message names. |
 
 ## When check fails for a skill

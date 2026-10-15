@@ -4,7 +4,7 @@ description: "A reusable procedure that tells an agent what to do, step by step,
 ---
 
 :::note[Preview]
-Skills come in the next Code Rules release. Skill levels, versions, borrowed skills, renames, exclusions, and installing the skills a skill uses aren't supported yet. A skill links only to the cited rules the project already includes: Code Rules doesn't yet take a cited rule the project's rule `include` leaves out.
+Skills come in the next Code Rules release. Skill levels, versions, borrowed skills, renames, and exclusions aren't supported yet, and a skill you author can use a source's skill only when the source already installs it. A skill links only to the cited rules the project already includes: Code Rules doesn't yet take a cited rule the project's rule `include` leaves out.
 :::
 
 A **skill** is an [Agent Skills](https://agentskills.io) folder: a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
@@ -47,7 +47,7 @@ metadata:
 - `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it. The `name` is also the skill's **install name**, the name of its installed folders. It uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen. In a skill your project or library authors, `name` is required and must equal the folder's name; a skill from another repository that has none installs under its folder's name.
 - `metadata.fg-skill-type` optionally labels the skill: `playbook`, for ordered steps that carry out a task, or `review`, for examining existing work against stated criteria. Code Rules shows the label in `SKILLS.md` and treats every skill the same way.
 - `metadata.fg-rules-used` lists the rules the skill applies, one rule ID per line.
-- `metadata.fg-skills-used` lists the other skills it calls, one skill ID per line.
+- `metadata.fg-skills-used` lists the other skills it calls, one skill ID per line. Installing a source's skill also installs every skill it uses, and the skills those use, from the same source; see [Install the skills a skill uses](/guides/install-skills/#install-the-skills-a-skill-uses).
 
 All three `fg-` keys are optional, and each value is a string, as the Agent Skills format requires, so write the two lists as YAML block strings that start with `|`. Other `fg-` keys are reserved for Code Rules and rejected. Other frontmatter fields and `metadata` keys are kept as they are.
 
@@ -79,7 +79,7 @@ Build and sync write a copy of each skill into the folders your agents read, the
 
 When a skill cites rules, its installed `SKILL.md` ends with a generated section, **Rules this skill applies**, that links to your project's version of every rule the skill cites, including an authored rule that replaces one, and says when the project excluded a cited rule, doesn't include it, or its library retired it. Agents read those rules in full before the step that applies them.
 
-Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, where it's installed, and how many rules it applies. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
+Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, where it's installed, how many rules it applies, which skills it uses, and why it's installed. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
 
 `code-rules project check` fails when an installed copy differs from what build would write, such as after an edit to it, and when a skill you author cites a rule its library retired.
 

@@ -140,7 +140,7 @@ See [Plan, write, and review](/for-agents/) for instructions you can add to `AGE
 | `rules/` | Individual resolved rules, available even when a group also includes them inline. |
 | `libraries/` | Source summaries and retained license and notice files. |
 | `provenance.json` | Machine-readable source versions, origins, replacement decisions, and installed skills. |
-| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, and how many rules it applies, or, with no skill targets, links to those rules. `RULES.md` links to it when the project installs a skill. |
+| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, and how many rules it applies, or, with no skill targets, links to those rules. It also lists the skills each one uses, by install name, and says why a source's skill is installed: `included`, `used by <name>` when only other skills use it, or both. `RULES.md` links to it when the project installs a skill. |
 | `installed-skills.json` | The skill folders Code Rules installed, with each skill's ID, install name, and folder digest, so later commands replace or remove only those folders. |
 
 Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.
