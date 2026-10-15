@@ -102,7 +102,7 @@ func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, e
 	if err != nil {
 		return nil, err
 	}
-	if err := requireLibraryLayout(root); err != nil {
+	if err := requireLibraryLayout(ctx, root); err != nil {
 		root.Close()
 		return nil, err
 	}
