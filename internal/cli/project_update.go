@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -73,10 +74,13 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				if updatesForks(decisions[flagged:]) {
 					f.status("Reading forked rule versions...")
 				}
+				shown := preview
 				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
 				f.introduction += "\n" + answersSummary(preview.Sources)
+				// Keeping a rule can move the skills to another revision, whose scripts people read before consenting.
+				f.introduction += answeredSkills(shown, preview)
 			}
 			f.introduction += "\n"
 			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
@@ -389,16 +393,50 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
-		for _, row := range source.Skills {
-			fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
-			for _, line := range skillUpdateDetails(row) {
-				fmt.Fprintf(out, "%s%s\n", indent, line)
-			}
-		}
+		formatSkillRows(out, source.Skills)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
+}
+
+// formatSkillRows lists a source's skill rows with the change and skill ID, each row's details indented beneath them.
+func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
+		for _, line := range skillUpdateDetails(row) {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
+	}
+}
+
+// answeredSkills lists the skill rows of each source whose rows in after, the preview with the answers, differ from
+// those in before, the preview shown before the questions, then after's scripts warning, or returns empty when no
+// source's skill rows differ.
+func answeredSkills(before, after project.UpdateResult) string {
+	shown := map[string][]imports.SkillUpdate{}
+	for _, source := range before.Sources {
+		shown[source.Name] = source.Skills
+	}
+	var out strings.Builder
+	for _, source := range after.Sources {
+		if reflect.DeepEqual(shown[source.Name], source.Skills) {
+			continue
+		}
+		if out.Len() == 0 {
+			out.WriteString("\nYour answers change the update's skills:\n")
+		}
+		out.WriteString(source.Name + "\n")
+		if len(source.Skills) == 0 {
+			out.WriteString("  No skill changes.\n")
+		}
+		formatSkillRows(&out, source.Skills)
+	}
+	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
+		fmt.Fprintf(&out, "\nWarning: %s\n", warning)
+	}
+	return out.String()
 }
 
 // skillUpdateDetails returns the lines shown under a skill's row: the files a changed skill's update changes, then
