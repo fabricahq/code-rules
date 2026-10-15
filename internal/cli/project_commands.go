@@ -4,6 +4,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/project"
@@ -19,7 +20,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		&cobra.Group{ID: "utility", Title: "Utility commands:"},
 	)
 	for _, name := range []string{"sync", "build", "check"} {
-		descriptions := map[string]string{"sync": "Fetch configured libraries and build guidance", "build": "Rebuild guidance using local library snapshots", "check": "Check configuration and generated guidance"}
+		descriptions := map[string]string{"sync": "Fetch configured sources, build guidance, and install skills", "build": "Rebuild guidance and installed skills using local snapshots", "check": "Check configuration and generated guidance"}
 		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
 		if name == "check" {
 			cmd.Long = "Check project configuration, generated guidance, and the Code Rules guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
@@ -52,8 +53,8 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		command.AddCommand(cmd)
 	}
 	command.AddCommand(projectInitCommand(options, output), projectUpdateCommand(options, output))
-	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
-	add.AddCommand(projectLibraryCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output))
+	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or source"}
+	add.AddCommand(projectSourceCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output))
 	command.AddCommand(add)
 	for _, child := range command.Commands() {
 		child.GroupID = "main"
@@ -67,13 +68,19 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 
 func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
-	initialize.Long = initialize.Short + "\n\nCreates the .code-rules/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules and how to connect your coding agent to them. Run it from the repository\nroot; outside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide.\n\nLearn more: https://code-rules.fabricahq.com/start-here/set-up-project/"
+	initialize.Long = initialize.Short + "\n\nCreates the .code-rules/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules and how to connect your coding agent to them. Run it from the repository\nroot; outside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide.\n\nA new configuration installs skills into .claude/skills/ and .agents/skills/.\nChoose others with --skill-targets: repeat it for claude and agents, or pass\nnone to install no copies. On an existing configuration, init changes the skill\ntargets only when you pass --skill-targets.\n\nLearn more: https://code-rules.fabricahq.com/start-here/set-up-project/"
+	var skillTargets []string
+	initialize.Flags().StringArrayVar(&skillTargets, "skill-targets", nil, "Where to install skills (repeat): claude for .claude/skills/, agents for .agents/skills/, or none")
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
+		targets, err := parseSkillTargetFlags(skillTargets, cmd.Flags().Changed("skill-targets"))
+		if err != nil {
+			return err
+		}
 		target, err := f.options(cmd.Context(), true)
 		if err != nil {
 			return err
 		}
-		result, err := project.Initialize(cmd.Context(), target)
+		result, err := project.InitializeWithSkillTargets(cmd.Context(), target, targets)
 		if err != nil {
 			return err
 		}
@@ -83,16 +90,39 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 	return initialize
 }
 
-func projectLibraryCommand(options Options, output *commandOutput) *cobra.Command {
-	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Optional and advanced: import the library as it was at one tag or full commit SHA"} {
+// parseSkillTargetFlags returns the skill targets --skill-targets names, an empty list for none, or nil when the
+// flag wasn't passed, so init keeps or defaults them.
+func parseSkillTargetFlags(values []string, passed bool) ([]string, error) {
+	if !passed {
+		return nil, nil
+	}
+	targets := []string{}
+	for _, value := range values {
+		switch {
+		case value == "none" && len(values) > 1:
+			return nil, usage(fmt.Errorf("--skill-targets none can't be combined with a skill target"))
+		case value == "none":
+		case value != "claude" && value != "agents":
+			return nil, usage(fmt.Errorf("--skill-targets must be claude, for .claude/skills/, agents, for .agents/skills/, or none, got %q", value))
+		case slices.Contains(targets, value):
+			return nil, usage(fmt.Errorf("--skill-targets %s is given more than once; give each skill target once", value))
+		default:
+			targets = append(targets, value)
+		}
+	}
+	return targets, nil
+}
+
+func projectSourceCommand(options Options, output *commandOutput) *cobra.Command {
+	source, sf := newAuthoringCommand("source NAME", "Configure a source of rules and skills (without fetching)", requiredArgument("source name", "team", "The name identifies this source in your project configuration."), options.Directory)
+	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Tag or full commit SHA to take the source from; required for a repository without library releases"} {
 		sf.add(source, name, description)
 	}
-	source.Long = librarySelectionHelp + documentationHelp
+	source.Long = sourceSelectionHelp + documentationHelp
 	sf.prompts = map[string]string{"repository": "Git repository URL"}
-	var groups, ruleIDs []string
-	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
-	source.Flags().StringArrayVar(&ruleIDs, "rules", nil, "Library rule `ID` to import without the rest of its group (repeat)")
+	var ruleSelectors, skillSelectors []string
+	source.Flags().StringArrayVar(&ruleSelectors, "rules", nil, "Rule `selector` for rules.include (repeat): a rule ID, a group prefix such as techs/go/*, or *")
+	source.Flags().StringArrayVar(&skillSelectors, "skills", nil, "Skill `selector` for skills.include (repeat): a skill ID such as skills/build-feature, or *")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		target, err := sf.options(cmd.Context(), false)
 		if err != nil {
@@ -102,11 +132,11 @@ func projectLibraryCommand(options Options, output *commandOutput) *cobra.Comman
 		if err != nil {
 			return err
 		}
-		sf.introduction = librarySelectionIntroduction(args[0])
-		if err := sf.collectSource(&groups, ruleIDs); err != nil {
+		sf.introduction = sourceSelectionIntroduction(args[0])
+		if err := sf.collectSource(&ruleSelectors, &skillSelectors); err != nil {
 			return err
 		}
-		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Groups: groups, Rules: ruleIDs})
+		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Rules: ruleSelectors, Skills: skillSelectors})
 		if err != nil {
 			return err
 		}

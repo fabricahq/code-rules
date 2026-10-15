@@ -59,7 +59,7 @@ func TestProjectCommands_RejectALocalFolder(t *testing.T) {
 		{[]string{"project", "add", "group", "practices/testing", "--name", "Testing", "--description", "Testing guidance.", "--when-to-read", "When writing tests."}, ""},
 		{[]string{"project", "add", "rule", "techs/go/wrap-errors", "--title", "Wrap errors", "--impact", "HIGH", "--impact-description", "Keep context.", "--when-to-read", "When returning errors."}, ""},
 		{[]string{"project", "add", "rule", "techs/go/shared", "--from", "team@1.0.0", "--non-interactive"}, ""},
-		{[]string{"project", "add", "library", "team", "--repository", "https://example.invalid/team.git", "--groups", "techs/go", "--non-interactive"}, ""},
+		{[]string{"project", "add", "source", "team", "--repository", "https://example.invalid/team.git", "--rules", "techs/go/*", "--non-interactive"}, ""},
 	} {
 		t.Run(strings.Join(test.args[1:min(len(test.args), 4)], " "), func(t *testing.T) {
 			want := "Error: " + localFolderProblem + test.outcome + "\n\nLocation: .code-rules/local/\n"

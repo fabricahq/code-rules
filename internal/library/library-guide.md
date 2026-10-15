@@ -74,7 +74,7 @@ The result previews the next library release: each rule's change, and its curren
 
 Review the diff, commit the library, and push it to the remote's default branch. Then publish a library release with `code-rules library release`, which tags that commit, pushes the tag, and gives each changed rule its new version. On GitHub.com it also creates a GitHub Release page with the signed-in GitHub CLI, `gh`, unless you pass `--no-github-release`. The first library release gives every rule version `1.0.0`.
 Give consumers the repository address and group IDs.
-Consumers run `code-rules project add library` in their project, then `code-rules project sync` to import the selected guidance.
+Consumers run `code-rules project add source` in their project, then `code-rules project sync` to import the selected guidance.
 
 #### Record changes after the first library release
 

@@ -54,7 +54,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	declaration := SourceInput{Repository: "https://example.invalid/rules.git", Ref: "v1.0.0", Groups: []string{"*"}}
+	declaration := SourceInput{Repository: "https://example.invalid/rules.git", Ref: "v1.0.0", Rules: []string{"*"}}
 	if _, err := AddSource(ctx, "team", declaration, options); err != nil {
 		t.Fatal(err)
 	}

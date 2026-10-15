@@ -19,7 +19,7 @@ func TestSyncJSON_ReportsGitFailureCode(t *testing.T) {
 	directory := t.TempDir()
 	for _, args := range [][]string{
 		{"project", "init"},
-		{"project", "add", "library", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--groups", "*", "--non-interactive"},
+		{"project", "add", "source", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--rules", "*", "--non-interactive"},
 	} {
 		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
 			t.Fatal(args, code, out, diagnostic)

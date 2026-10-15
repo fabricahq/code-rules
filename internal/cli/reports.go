@@ -103,7 +103,7 @@ func projectInitializedReport(result project.AuthoringResult, workdir string) co
 	if len(result.Written()) > 0 {
 		steps = []nextStep{
 			{Instruction: "Start with a project-only rule (example):", Commands: []string{"code-rules project add group practices/testing", "code-rules project add rule practices/testing/my-rule"}},
-			{Instruction: "Or use a shared library (example):", Commands: []string{"code-rules project add library team", "code-rules project sync"}},
+			{Instruction: "Or use a shared library or skills repository (example):", Commands: []string{"code-rules project add source team", "code-rules project sync"}},
 			{Instruction: "Then connect your coding agent to the rules; see .code-rules/README.md."},
 		}
 	}
@@ -113,7 +113,7 @@ func projectInitializedReport(result project.AuthoringResult, workdir string) co
 func sourceAddedReport(result project.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
 	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
-	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the source, build guidance, and install its skills:", Commands: []string{"code-rules project sync"}}})
 }
 
 func libraryInitializedReport(result library.AuthoringResult, scope authoringScope) commandReport {

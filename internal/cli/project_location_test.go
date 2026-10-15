@@ -21,7 +21,7 @@ func TestProjectCommandsRejectCustomConfiguration(t *testing.T) {
 	before := projectFileContents(t, directory)
 	for _, command := range [][]string{
 		{"project", "init"}, {"project", "build"}, {"project", "sync"}, {"project", "check"},
-		{"project", "add", "library", "team"},
+		{"project", "add", "source", "team"},
 		{"project", "add", "group", "techs/go"},
 		{"project", "add", "rule", "techs/go/errors"},
 	} {
@@ -92,7 +92,7 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 
 func TestProjectRootFailuresAreConsistent(t *testing.T) {
 	binary := buildCLI(t)
-	commands := [][]string{{"build"}, {"sync"}, {"check"}, {"add", "group", "techs/go"}, {"add", "rule", "techs/go/errors"}, {"add", "library", "team"}}
+	commands := [][]string{{"build"}, {"sync"}, {"check"}, {"add", "group", "techs/go"}, {"add", "rule", "techs/go/errors"}, {"add", "source", "team"}}
 	for _, state := range []string{"missing-directory", "missing-config", "symlink"} {
 		t.Run(state, func(t *testing.T) {
 			directory, target := t.TempDir(), t.TempDir()

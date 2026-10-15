@@ -30,7 +30,7 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"Add a group", "Add a rule", "Add a third-party library", "code-rules project check"} {
+	for _, text := range []string{"Add a group", "Add a rule", "Add a source", "Install skills", "code-rules project check"} {
 		if !strings.Contains(string(guide), text) {
 			t.Fatalf("guide missing %q", text)
 		}
@@ -67,9 +67,10 @@ func TestProjectGuideExamples(t *testing.T) {
 		t.Run(projectName, func(t *testing.T) {
 			ctx := context.Background()
 			fixture, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-				"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-				"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
-				"techs/go/shared.md":   []byte(rule),
+				"config.yaml":                               []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+				"techs/go/_group.yaml":                      []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
+				"techs/go/shared.md":                        []byte(rule),
+				".code-rules/skills/build-feature/SKILL.md": []byte("---\nname: build-feature\ndescription: Build a feature.\n---\n# Build a feature\n"),
 			}))
 			if err != nil {
 				t.Fatal(err)
@@ -133,7 +134,7 @@ func TestProjectGuideExamples(t *testing.T) {
 					t.Fatalf("%s does not link to the managed guide: %v", file, err)
 				}
 			}
-			for _, path := range []string{"rules/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
+			for _, path := range []string{"rules/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md", "generated/SKILLS.md", "../.claude/skills/build-feature/SKILL.md", "../.agents/skills/build-feature/SKILL.md"} {
 				if _, err := os.Stat(filepath.Join(directory, ".code-rules", path)); err != nil {
 					t.Fatalf("README did not produce %s: %v", path, err)
 				}

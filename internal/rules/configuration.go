@@ -294,12 +294,19 @@ func parseSkillFields(input json.RawMessage, location string) ([]string, error) 
 	if err := decode.KnownFields(fields, []string{"include"}, location); err != nil {
 		return nil, err
 	}
+	return ParseSkillSelection(fields["include"], location+".include")
+}
+
+// ParseSkillSelection validates a source's skill selectors, a JSON list at location of distinct skill IDs, such as
+// skills/build-feature, or only "*", and returns them sorted. An empty or missing list fails.
+func ParseSkillSelection(input json.RawMessage, location string) ([]string, error) {
+	selected := []string{}
 	var items []json.RawMessage
-	if json.Unmarshal(fields["include"], &items) != nil || len(items) == 0 {
-		return nil, invalid(location+".include", `select skills in include, a list of skill IDs such as skills/build-feature, or "*" for every skill the source offers`)
+	if json.Unmarshal(input, &items) != nil || len(items) == 0 {
+		return nil, invalid(location, `select skills in include, a list of skill IDs such as skills/build-feature, or "*" for every skill the source offers`)
 	}
 	for i, item := range items {
-		where := fmt.Sprintf("%s.include[%d]", location, i)
+		where := fmt.Sprintf("%s[%d]", location, i)
 		id, err := decode.Text(item, where)
 		if err != nil {
 			return nil, err
@@ -320,7 +327,7 @@ func parseSkillFields(input json.RawMessage, location string) ([]string, error) 
 		selected = append(selected, id)
 	}
 	if len(selected) > 1 && slices.Contains(selected, skills.Wildcard) {
-		return nil, invalid(location+".include", `"*" already includes every skill the source offers; remove the other entries`)
+		return nil, invalid(location, `"*" already includes every skill the source offers; remove the other entries`)
 	}
 	slices.Sort(selected)
 	return selected, nil

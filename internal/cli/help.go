@@ -84,7 +84,7 @@ func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
 		"code-rules": {"project", "library"},
 		"project":    {"init", "add", "sync", "update", "build", "check"},
 		"library":    {"init", "add", "check"},
-		"add":        {"rule", "group", "library"},
+		"add":        {"rule", "group", "source"},
 	}[cmd.Name()]
 	commands := cmd.Commands()
 	ordered := make([]*cobra.Command, 0, len(commands))
@@ -127,8 +127,8 @@ func commandOptionsTitle(cmd *cobra.Command) string {
 		return "Group options"
 	case "rule":
 		return "Rule options"
-	case "library":
-		return "Library options"
+	case "source":
+		return "Source options"
 	case "init":
 		if cmd.HasParent() && cmd.Parent().Name() == "library" {
 			return "Library options"
