@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // ReleaseRequest selects what syllabus library release does.
@@ -216,7 +216,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 
 // plannedRelease is the library release a commit publishes after the latest library release in its history.
 type plannedRelease struct {
-	record  coderules.ReleaseRecord
+	record  syllabus.ReleaseRecord
 	notes   string
 	message []byte
 	// empty reports that the commit changes no rules and no library-wide files, so there's nothing to publish.
@@ -252,7 +252,7 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 	}
 	release, err := releasetag.ParseObject(name, body)
 	// A newer Syllabus may have created the tag and stopped before pushing it; this version can't compare it.
-	var unsupported *coderules.UnsupportedReleaseRecordError
+	var unsupported *syllabus.UnsupportedReleaseRecordError
 	if errors.As(err, &unsupported) {
 		return unsupportedRecord(name, unsupported.FormatVersion)
 	}
@@ -263,7 +263,7 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 }
 
 // describe fills in what a library release publishes.
-func describe(result *ReleaseResult, record coderules.ReleaseRecord, notes string) {
+func describe(result *ReleaseResult, record syllabus.ReleaseRecord, notes string) {
 	result.Release = record.Release
 	result.Tag = "release/" + strconv.Itoa(record.Release)
 	result.Rules = releaseRules(record)

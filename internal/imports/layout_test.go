@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // legacyRule is a valid rule whose body links to the shared asset guide.md as link spells it.
@@ -105,16 +105,16 @@ func TestReadPublishedRule_ReadsAVersionPublishedBeforeTheLibraryMoved(t *testin
 	h := movedHistory(t)
 	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
 	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
-	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", coderules.RuleVersion{Major: 1}, options)
+	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !published.LegacyLayout || published.Commit != h.commits[1] || published.GroupMetadata == nil || published.Files["assets/guide.md"] == nil {
 		t.Fatalf("published %+v", published)
 	}
-	_, err = ReadPublishedRule(context.Background(), source, "techs/go/b", coderules.RuleVersion{Major: 1}, options)
+	_, err = ReadPublishedRule(context.Background(), source, "techs/go/b", syllabus.RuleVersion{Major: 1}, options)
 	requireCode(t, err, "unsupported-library-layout")
-	moved, err := ReadPublishedRule(context.Background(), source, "techs/go/b", coderules.RuleVersion{Major: 1, Patch: 1}, options)
+	moved, err := ReadPublishedRule(context.Background(), source, "techs/go/b", syllabus.RuleVersion{Major: 1, Patch: 1}, options)
 	if err != nil || moved.LegacyLayout || moved.Commit != h.commits[2] {
 		t.Fatalf("published %+v, %v", moved, err)
 	}

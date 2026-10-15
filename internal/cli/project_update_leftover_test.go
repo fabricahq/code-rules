@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // forkUpdateArguments replace the fixture's hand-written loaders rule, which has no assets, with a fork of loaders

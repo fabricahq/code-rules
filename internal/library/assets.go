@@ -12,8 +12,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/unicode/norm"
 )

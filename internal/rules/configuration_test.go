@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // projectedSource is a source as the fixtures describe it: its fields and, when it has a ref, the ref's canonical

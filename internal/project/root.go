@@ -12,9 +12,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 const configurationFile = "config.yaml"

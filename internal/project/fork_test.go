@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // forkedRule is a rule document whose body is text.
@@ -295,8 +295,8 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
 		t.Fatal(err)
 	}
-	rule, err := coderules.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	rule, err := syllabus.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
+	want := []syllabus.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -306,7 +306,7 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 // layout keeps them, cites other hosts' HTTPS addresses, and gives other addresses no entry.
 func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
-	version, _ := coderules.ParseRuleVersion("1.3.0", "version")
+	version, _ := syllabus.ParseRuleVersion("1.3.0", "version")
 	for _, test := range []struct {
 		repository, url string
 		legacy          bool

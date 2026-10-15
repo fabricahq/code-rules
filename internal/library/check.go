@@ -17,10 +17,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 	"golang.org/x/text/unicode/norm"
 )
 

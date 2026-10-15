@@ -12,11 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Sync imports the rule versions each source's snapshot records, choosing versions only where configuration asks

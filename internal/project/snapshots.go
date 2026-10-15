@@ -14,13 +14,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // snapshot is the library-owned value persisted by project snapshot encoding.
@@ -88,9 +88,9 @@ func nullableLevel(level string) *string {
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
 type recordRule struct {
-	Version *coderules.RuleVersion `json:"version"`
-	Release *int                   `json:"release"`
-	Commit  string                 `json:"commit"`
+	Version *syllabus.RuleVersion `json:"version"`
+	Release *int                  `json:"release"`
+	Commit  string                `json:"commit"`
 	// LegacyLayout is library.ImportedRule's.
 	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
@@ -677,7 +677,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 			return invalidSnapshot(where, "resolved commit differs from requested commit")
 		}
 	}
-	number, err := coderules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
+	number, err := syllabus.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
 	if ref.Kind() != rules.GitRefTag || err != nil {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")

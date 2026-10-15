@@ -14,9 +14,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // GuideReadme and GuideStandalone are managed files, not permission to replace a general project README.

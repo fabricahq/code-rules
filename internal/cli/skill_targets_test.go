@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 func TestInitSetsSkillTargets(t *testing.T) {

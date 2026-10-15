@@ -12,9 +12,9 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // Library is a configuration's library section, the manifest, which makes the repository a library.

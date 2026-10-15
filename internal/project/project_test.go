@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 const projectRule = "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn errors to the caller.\n"

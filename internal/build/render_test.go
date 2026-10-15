@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
@@ -110,7 +110,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			if state == "unselected" {
 				target = "techs/rust/other.md"
 			} else {
-				other, err := coderules.ParseRule(document, target, "team")
+				other, err := syllabus.ParseRule(document, target, "team")
 				if err != nil {
 					t.Fatal(err)
 				}

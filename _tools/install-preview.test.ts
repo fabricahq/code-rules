@@ -51,7 +51,7 @@ for (const shell of ['sh', 'bash']) {
             'api',
             '--hostname',
             'github.com',
-            `/repos/fabricahq/code-rules/actions/artifacts/${artifact}/zip`,
+            `/repos/fabricahq/syllabus/actions/artifacts/${artifact}/zip`,
           ];
           // The installer remains real; gh returns the selected download outcome without network access.
           const ghCalls = fakeGitHubCLI(bin, [
@@ -82,7 +82,7 @@ for (const shell of ['sh', 'bash']) {
             [
               fileURLToPath(new URL('./install-preview.sh', import.meta.url)),
               'github.com',
-              'fabricahq/code-rules',
+              'fabricahq/syllabus',
               '70',
               '71',
               '72',

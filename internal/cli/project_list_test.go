@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 func TestFormatSkillListing_AlignsLevelsAndWhoSetThem(t *testing.T) {

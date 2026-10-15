@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // forkedSkill is the SKILL.md of the fixture library's build-feature skill at release/1.

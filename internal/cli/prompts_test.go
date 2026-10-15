@@ -14,7 +14,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // TestInteractiveAuthoring uses a real PTY and verifies prompt results, refusal, EOF, and cancellation without partial writes.

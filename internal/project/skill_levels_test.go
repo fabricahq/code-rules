@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // leveledLibrary returns a library whose release/1 publishes techs/go/errors and four skills: ship, required;

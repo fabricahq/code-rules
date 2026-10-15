@@ -18,7 +18,7 @@ Library groups supply shared guidance. A consuming project's local groups belong
 
 1. Run the commands below from the folder containing this README. From elsewhere, pass `--directory` with this library's path.
 2. Replace example metadata and guidance with the publisher's intended engineering practices.
-3. Before adding or revising a rule, read the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
+3. Before adding or revising a rule, read the [rule authoring rubric](https://github.com/fabricahq/syllabus/blob/main/docs/src/content/docs/reference/rule-authoring.md).
 4. After the library's first library release, record every rule change in a change note with `syllabus library change`, in the same commit as the change.
 5. After editing, run `syllabus library check`. Fix every error and review licensing warnings before reporting the library ready.
 

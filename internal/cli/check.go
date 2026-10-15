@@ -5,7 +5,7 @@ package cli
 import (
 	"context"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 // projectCheckResult describes the current project; checking never applies the suggested repairs.

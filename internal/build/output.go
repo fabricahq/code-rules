@@ -11,10 +11,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
@@ -304,15 +304,15 @@ type provenanceGroup struct {
 
 // provenanceRule records effective origin, replacement history, and declared attribution.
 type provenanceRule struct {
-	ID           string                  `json:"id"`
-	Group        string                  `json:"group"`
-	Origin       provenanceOrigin        `json:"origin"`
-	Upstream     *provenanceOrigin       `json:"upstream"`
-	Reason       *string                 `json:"replacementReason"`
-	BasedOn      *coderules.RuleVersion  `json:"basedOn"`
-	LicenseBasis string                  `json:"licenseBasis"`
-	License      *provenanceLicense      `json:"license"`
-	Attribution  []coderules.Attribution `json:"attribution"`
+	ID           string                 `json:"id"`
+	Group        string                 `json:"group"`
+	Origin       provenanceOrigin       `json:"origin"`
+	Upstream     *provenanceOrigin      `json:"upstream"`
+	Reason       *string                `json:"replacementReason"`
+	BasedOn      *syllabus.RuleVersion  `json:"basedOn"`
+	LicenseBasis string                 `json:"licenseBasis"`
+	License      *provenanceLicense     `json:"license"`
+	Attribution  []syllabus.Attribution `json:"attribution"`
 }
 
 // termProvenance maps declared source terms to retained workspace and generated paths.
@@ -408,13 +408,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 // the commit that supplied the rule's files; Version and Release are null for local rules and for imported
 // files that aren't a published version.
 type provenanceOrigin struct {
-	Source     string                 `json:"source"`
-	File       string                 `json:"file"`
-	Repository *string                `json:"repository"`
-	Ref        *string                `json:"ref"`
-	Commit     *string                `json:"resolvedCommit"`
-	Version    *coderules.RuleVersion `json:"version"`
-	Release    *int                   `json:"release"`
+	Source     string                `json:"source"`
+	File       string                `json:"file"`
+	Repository *string               `json:"repository"`
+	Ref        *string               `json:"ref"`
+	Commit     *string               `json:"resolvedCommit"`
+	Version    *syllabus.RuleVersion `json:"version"`
+	Release    *int                  `json:"release"`
 }
 
 // nonNilList returns list, or an empty list for nil, so JSON shows an empty list rather than null.

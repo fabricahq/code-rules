@@ -48,7 +48,7 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 
 // TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds, which no release published.
 func TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds(t *testing.T) {
-	latest := `version=$(gh release view --repo fabricahq/code-rules --json tagName --jq '.tagName | ltrimstr("v")')`
+	latest := `version=$(gh release view --repo fabricahq/syllabus --json tagName --jq '.tagName | ltrimstr("v")')`
 	for version, installed := range map[string]string{
 		"0.2.0":                   "version=0.2.0",
 		"0.3.0-rc.1":              "version=0.3.0-rc.1",

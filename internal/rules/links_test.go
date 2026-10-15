@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestMarkdownTargets covers CommonMark dependencies without treating code or metadata as links.

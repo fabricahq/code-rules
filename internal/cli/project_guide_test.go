@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // TestInitCreatesAgentGuide verifies init exposes the main agent entry point and a read-only freshness check.

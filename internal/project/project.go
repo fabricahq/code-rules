@@ -12,11 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // Options identifies the project root and controls rendering.

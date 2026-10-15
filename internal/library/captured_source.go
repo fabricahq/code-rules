@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/filetxn"
 )
 
 // capturedLibrary lends immutable captured files and directories to the catalog reader.

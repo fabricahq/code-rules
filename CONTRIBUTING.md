@@ -91,7 +91,7 @@ Use a new output directory for each attempt. Verify archive checksums against a 
 
 ## Implementation map
 
-- `coderules`: the public Go package for reading libraries; the root package of the same name only embeds the license for the CLI. It parses library release tags, release records, rule files, group metadata, and the canonical group list, for Syllabus and for other tools such as catalogs, without Git, filesystem, or network access. Its exports are a public API that follows Syllabus's version, so keep them deliberate.
+- `syllabus`: the public Go package for reading libraries; the root package of the same name only embeds the license for the CLI. It parses library release tags, release records, rule files, group metadata, and the canonical group list, for Syllabus and for other tools such as catalogs, without Git, filesystem, or network access. Its exports are a public API that follows Syllabus's version, so keep them deliberate.
 - `internal/errs`: error contracts several packages share, such as the `ValidationError` interface that each package's own validation error satisfies.
 - `internal/decode`: the strict rules every format shares for decoding YAML and JSON text into generic values, before the format's own parser reads them.
 - `internal/librarytree`: the structure of files and directories in a library, and the group and rule IDs derived from positions in that tree.

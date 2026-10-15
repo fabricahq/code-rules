@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Options selects trusted build inputs and an exclusively created output directory.

@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/syllabus/internal/decode"
 )
 
 // File is the file whose presence makes a folder a skill folder.

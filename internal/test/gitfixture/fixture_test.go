@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/releasetag"
 )
 
 // TestClone_PushesCommitsAndTagsToTheFixture lets library release tests publish through the fixture's transport.

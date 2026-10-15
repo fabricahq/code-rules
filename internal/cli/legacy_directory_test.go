@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // legacyLibrary returns a fixture whose release/1, made before the rename, published rules a and b from

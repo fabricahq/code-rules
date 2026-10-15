@@ -10,13 +10,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // rulePath maps one source-qualified identity to its standalone generated path.
-func rulePath(rule coderules.Rule) string {
+func rulePath(rule syllabus.Rule) string {
 	return "rules/" + strings.Replace(rule.ID, ":", "/", 1) + ".md"
 }
 
@@ -58,7 +58,7 @@ func renderRule(active resolvedRule, paths []string, outputPath string) (string,
 	if !utf8.ValidString(active.Rule.Document) {
 		return "", invalid(active.Rule.ID, "expected UTF-8 text")
 	}
-	split, err := coderules.SplitDocument(active.Rule.Document, active.Rule.ID)
+	split, err := syllabus.SplitDocument(active.Rule.Document, active.Rule.ID)
 	if err != nil {
 		return "", err
 	}

@@ -181,7 +181,7 @@ while [ "$#" -gt 0 ]; do
  esac
 done
 [ "$proto" = '=https' ] && [ "$redir" = '=https' ] && [ "$tls" = yes ]
-base=https://github.com/fabricahq/code-rules/releases
+base=https://github.com/fabricahq/syllabus/releases
 case "$url" in
  "$base/latest") printf '%s' "$base/tag/v1.2.3" ;;
  "$base/download/"*)

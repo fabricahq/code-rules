@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // maxGitHubCLIOutput bounds what one gh invocation may print on both streams together.

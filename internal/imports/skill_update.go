@@ -9,9 +9,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // SkillChange is how an update affects one skill, or one script in a skill, as the update preview lists it.
@@ -51,36 +51,42 @@ type ScriptUpdate struct {
 
 // skillPreview is what the update preview shows of a source's skills at one revision: rows, as skillChanges gives
 // them, or err, the failure reading them there, such as a skill skills.include names that the revision lacks, which
-// installing that revision would fail with too.
+// installing that revision would fail with too; and replaced, the replaced skill rows that revision gives, as
+// replacedSkills lists them.
 type skillPreview struct {
-	rows []SkillUpdate
-	err  error
+	rows     []SkillUpdate
+	err      error
+	replaced []ReplacedSkillUpdate
 }
 
 // previewSkills reads the skills source installs at each of plans' revisions and compares them with recorded, the
 // source's snapshot with its skills' files, or nil when the project has none, returning each revision's preview by
-// commit. It leaves out the skills the source excludes, which the project doesn't install; the preview lists a
-// replaced one as a replaced skill row instead. A revision it can't read keeps its failure, so only choosing that revision fails; a cancellation fails
-// at once.
+// commit. It leaves out the skills the source excludes, which the project doesn't install, and lists a replaced one
+// as a replaced skill row of that revision instead. A revision whose skills it can't read keeps its failure, so only
+// choosing that revision fails; a cancellation, or a failure to compare a replaced skill, fails at once.
 func (r *repository) previewSkills(ctx context.Context, source rules.Source, recorded *library.Snapshot, plans []sourcePlan) (map[string]skillPreview, error) {
 	previews := map[string]skillPreview{}
 	for _, plan := range plans {
 		if _, read := previews[plan.commit]; read {
 			continue
 		}
+		replaced, err := r.replacedSkills(ctx, source, recorded, plan.commit)
+		if err != nil {
+			return nil, err
+		}
 		installed, err := r.readSkills(ctx, source, plan, !plan.nonLibrary)
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, gitexec.ContextFailure(ctxErr)
 		}
 		if err != nil {
-			previews[plan.commit] = skillPreview{err: err}
+			previews[plan.commit] = skillPreview{err: err, replaced: replaced}
 			continue
 		}
 		rows := slices.DeleteFunc(skillChanges(recorded, installed), func(row SkillUpdate) bool {
 			_, excluded := source.SkillExclude[row.ID]
 			return excluded
 		})
-		previews[plan.commit] = skillPreview{rows: rows}
+		previews[plan.commit] = skillPreview{rows: rows, replaced: replaced}
 	}
 	return previews, nil
 }

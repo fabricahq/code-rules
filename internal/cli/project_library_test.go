@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // TestRepository_IsBothAProjectAndALibrary syncs, builds, checks, and updates the project a repository keeps in

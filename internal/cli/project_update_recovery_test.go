@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/filetxn"
 )
 
 // updateArguments are the arguments of the update the tests interrupt and then run again.

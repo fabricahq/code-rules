@@ -5,7 +5,7 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 func TestYAMLMetadata(t *testing.T) {

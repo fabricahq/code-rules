@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // SkillFiles is one skill folder's files, by path in the folder, and the paths of its executable files, sorted.

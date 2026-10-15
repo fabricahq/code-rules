@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/project"
 	"github.com/spf13/cobra"
 )
 
 // projectSkillCommand registers project add skill. It only forks: an authored skill is written by hand.
 func projectSkillCommand(options Options, output *commandOutput) *cobra.Command {
 	skill, sf := newAuthoringCommand("skill --from SOURCE:SKILL", "Fork a skill a source installs, to replace it with your own", skillForkArguments, options.Directory)
-	skill.Long = skill.Short + "\n\nCopies the skill from vendor/, as the source's last sync recorded it, with every\nfile's executable bit, into .syllabus/skills/<name>/, where <name> is the name\nagents already know the skill by. The skills and rules its SKILL.md cites get\nthe source's name, such as fabrica:skills/tdd, so they still name the source's.\nconfig.yaml gets an entry in the source's skills.exclude that names the fork as\nthe skill's replacement, records the commit it copied as basedOn, and records\nyour reason, so the fork installs in place of the source's skill and syllabus\nproject update lists the source's later changes to it.\n\nTo write a new skill instead, create .syllabus/skills/<name>/SKILL.md." + documentationHelp
+	skill.Long = skill.Short + "\n\nCopies the skill from vendor/, as the source's last sync recorded it, with every\nfile's executable bit, into .syllabus/skills/<name>/, where <name> is the name\nagents already know the skill by. The skills and rules its SKILL.md cites get\nthe source's name, such as fabrica:skills/tdd, so they still name the source's,\nand the skills the source's skills.uses adds for it join syllabus-skills-used.\nconfig.yaml gets an entry in the source's skills.exclude that names the fork as\nthe skill's replacement, records the commit it copied as basedOn, and records\nyour reason, so the fork installs in place of the source's skill and syllabus\nproject update lists the source's later changes to it.\n\nTo write a new skill instead, create .syllabus/skills/<name>/SKILL.md." + documentationHelp
 	sf.add(skill, "from", "The skill to fork, as `SOURCE:SKILL`: a configured source and the skill's ID in it, such as fabrica:skills/fix-bug")
 	sf.add(skill, "reason", "Why the project uses the fork instead of the source's skill")
 	skill.RunE = func(cmd *cobra.Command, _ []string) error {

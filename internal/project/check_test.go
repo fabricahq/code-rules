@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 func TestCheckOwnsGuideAndGeneratedFreshness(t *testing.T) {
