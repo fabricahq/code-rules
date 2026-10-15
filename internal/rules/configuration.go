@@ -13,11 +13,15 @@ import (
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/code-rules/internal/skills"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
 type Configuration struct {
 	Sources []Source `json:"sources"`
+	// SkillTargets lists, as configured, where installed copies of skills go, each a key of SkillTargetFolders; it
+	// is empty, never nil, when the configuration has none, which records skills without installing them.
+	SkillTargets []string `json:"skillTargets"`
 	// Library is the library section, the manifest, or nil when the repository isn't a library.
 	Library *Library `json:"library,omitempty"`
 }
@@ -42,6 +46,27 @@ type Source struct {
 	// nil, when the source has no exceptions. Only an exclusion of a rule ID can have a replacement. Look a rule up
 	// with Exclusion, which also finds the selectors that match it.
 	Exclude map[string]Exclusion `json:"exclude"`
+	// Skills lists the skills.include selectors, sorted: skill IDs, each a folder path in the source's repository,
+	// such as skills/build-feature, or only skills.Wildcard. It is empty, never nil, when the source includes no
+	// skills. Whether each ID names a skill the source has is checked when sync reads the source.
+	Skills []string `json:"skills"`
+}
+
+// HasRules reports whether the source includes rules.
+func (s Source) HasRules() bool { return !s.Groups.IsEmpty() || len(s.Rules) > 0 }
+
+// SkillTargetFolders maps each skillTargets value to its folder, relative to the repository root, which holds one
+// folder per installed skill.
+var SkillTargetFolders = map[string]string{"claude": ".claude/skills", "agents": ".agents/skills"}
+
+// SkillFolders returns the folder of each of the configuration's skill targets, sorted.
+func (c Configuration) SkillFolders() []string {
+	folders := []string{}
+	for _, target := range c.SkillTargets {
+		folders = append(folders, SkillTargetFolders[target])
+	}
+	slices.Sort(folders)
+	return folders
 }
 
 // Pin keeps one rule at an exact published version, with the project's reason.
@@ -128,7 +153,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if versioned && schema == 1 {
 		return Configuration{}, invalid("schemaVersion", versionOneProblem)
 	}
-	if err := decode.KnownFields(fields, []string{"schemaVersion", "sources", "library"}, "configuration"); err != nil {
+	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "sources", "library"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
 	if !versioned || schema != 2 {
@@ -138,7 +163,11 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if err != nil {
 		return Configuration{}, err
 	}
-	result := Configuration{Sources: make([]Source, 0, len(sources))}
+	targets, err := parseSkillTargets(fields["skillTargets"])
+	if err != nil {
+		return Configuration{}, err
+	}
+	result := Configuration{Sources: make([]Source, 0, len(sources)), SkillTargets: targets}
 	// repositories maps each repository identity to the first source, in name order, that imports it.
 	repositories := make(map[string]string)
 	for _, name := range slices.Sorted(maps.Keys(sources)) {
@@ -154,6 +183,34 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		}
 	}
 	return result, nil
+}
+
+// parseSkillTargets validates skillTargets, a list of SkillTargetFolders keys, each at most once. A missing field is
+// no targets.
+func parseSkillTargets(input json.RawMessage) ([]string, error) {
+	targets := []string{}
+	if input == nil {
+		return targets, nil
+	}
+	var items []json.RawMessage
+	if json.Unmarshal(input, &items) != nil || items == nil {
+		return nil, invalid("skillTargets", "expected a list of skill targets, such as [claude, agents], or [] to install no copies")
+	}
+	for i, item := range items {
+		where := fmt.Sprintf("skillTargets[%d]", i)
+		var target string
+		if json.Unmarshal(item, &target) != nil {
+			return nil, invalid(where, "expected claude or agents")
+		}
+		if _, known := SkillTargetFolders[target]; !known {
+			return nil, invalid(where, "expected claude, for .claude/skills/, or agents, for .agents/skills/, got "+decode.Quote(target))
+		}
+		if slices.Contains(targets, target) {
+			return nil, invalid(where, target+" is listed more than once; list each skill target once")
+		}
+		targets = append(targets, target)
+	}
+	return targets, nil
 }
 
 // movedSourceFields maps each version 1 source field to where version 2 keeps it.
@@ -178,7 +235,7 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, invalid(where+"."+field, field+" isn't a version 2 source field; "+movedSourceFields[field])
 		}
 	}
-	if err := decode.KnownFields(fields, []string{"repository", "ref", "rules"}, where); err != nil {
+	if err := decode.KnownFields(fields, []string{"repository", "ref", "rules", "skills"}, where); err != nil {
 		return Source{}, err
 	}
 	repository, err := decode.Text(fields["repository"], where+".repository")
@@ -206,18 +263,72 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
-	if err := parseRuleFields(fields["rules"], where, &result); err != nil {
+	_, hasRules := fields["rules"]
+	_, hasSkills := fields["skills"]
+	if !hasRules && !hasSkills {
+		return Source{}, invalid(where, "include rules or skills from the source, such as rules: {include: [techs/go/*]} or skills: {include: [skills/build-feature]}")
+	}
+	result.Groups, result.Rules, result.Pins, result.Exclude = GroupSelection{}, []string{}, map[string]Pin{}, map[string]Exclusion{}
+	if hasRules {
+		if err := parseRuleFields(fields["rules"], where, &result); err != nil {
+			return Source{}, err
+		}
+	}
+	if result.Skills, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
 		return Source{}, err
 	}
 	return result, nil
 }
 
+// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*". A missing object
+// includes no skills.
+func parseSkillFields(input json.RawMessage, location string) ([]string, error) {
+	selected := []string{}
+	if input == nil {
+		return selected, nil
+	}
+	fields, err := decode.Object(input, location)
+	if err != nil {
+		return nil, err
+	}
+	if err := decode.KnownFields(fields, []string{"include"}, location); err != nil {
+		return nil, err
+	}
+	var items []json.RawMessage
+	if json.Unmarshal(fields["include"], &items) != nil || len(items) == 0 {
+		return nil, invalid(location+".include", `select skills in include, a list of skill IDs such as skills/build-feature, or "*" for every skill the source offers`)
+	}
+	for i, item := range items {
+		where := fmt.Sprintf("%s.include[%d]", location, i)
+		id, err := decode.Text(item, where)
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case id == "recommended":
+			return nil, invalid(where, `skill levels aren't supported yet in this version of Code Rules; name skills by ID, such as skills/build-feature, or include "*"`)
+		case id != skills.Wildcard && strings.HasSuffix(id, "/*"):
+			return nil, invalid(where, `skill selectors have no prefixes; name each skill by ID, such as skills/build-feature, or include "*" for every skill the source offers`)
+		case id != skills.Wildcard:
+			if err := skills.ValidateID(id, where); err != nil {
+				return nil, err
+			}
+		}
+		if slices.Contains(selected, id) {
+			return nil, invalid(where, id+" is listed more than once; list each skill once")
+		}
+		selected = append(selected, id)
+	}
+	if len(selected) > 1 && slices.Contains(selected, skills.Wildcard) {
+		return nil, invalid(location+".include", `"*" already includes every skill the source offers; remove the other entries`)
+	}
+	slices.Sort(selected)
+	return selected, nil
+}
+
 // parseRuleFields reads a source's rules object into source: include, which must select something, then pins,
 // which can't be combined with a ref, then exclude.
 func parseRuleFields(input json.RawMessage, where string, source *Source) error {
-	if input == nil {
-		return invalid(where, "select rules in rules.include, such as rules: {include: [techs/go/*]}")
-	}
 	location := where + ".rules"
 	fields, err := decode.Object(input, location)
 	if err != nil {

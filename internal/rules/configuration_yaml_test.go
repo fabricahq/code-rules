@@ -212,6 +212,9 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			if want.Exclude == nil {
 				want.Exclude = map[string]rules.Exclusion{}
 			}
+			if want.Skills == nil {
+				want.Skills = []string{}
+			}
 			if len(got.Sources) != 1 || !reflect.DeepEqual(got.Sources[0], want) {
 				t.Fatalf("got %+v; want %+v\n%s", got.Sources, want, out)
 			}

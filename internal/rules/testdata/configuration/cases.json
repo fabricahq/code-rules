@@ -28,7 +28,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -56,7 +57,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -84,7 +86,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -112,7 +115,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -140,7 +144,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -161,7 +166,8 @@
             "groups": "*",
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -182,7 +188,8 @@
             "groups": "practices/*",
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -203,7 +210,8 @@
             "groups": "techs/*",
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -228,7 +236,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -252,7 +261,8 @@
               "techs/go/wrap-errors"
             ],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -275,7 +285,8 @@
               "techs/go/wrap-errors"
             ],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -298,7 +309,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -323,7 +335,8 @@
               "techs/go/wrap-errors"
             ],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -346,7 +359,8 @@
               "techs/go/example.md"
             ],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -378,7 +392,8 @@
                 "reason": " Waiting on acme/.code-rules#45. "
               }
             },
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -415,7 +430,8 @@
                 "replacedBy": "techs/go/b",
                 "basedOn": "2.0.0"
               }
-            }
+            },
+            "skills": []
           }
         ]
       }
@@ -447,7 +463,8 @@
               "techs/go/a": {
                 "reason": "Unused"
               }
-            }
+            },
+            "skills": []
           }
         ]
       }
@@ -470,7 +487,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           },
           {
             "name": "team",
@@ -485,7 +503,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -752,7 +771,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team: select rules in rules.include, such as rules: {include: [techs/go/*]}",
+        "message": "sources.team: include rules or skills from the source, such as rules: {include: [techs/go/*]} or skills: {include: [skills/build-feature]}",
         "location": "sources.team"
       }
     }
@@ -1446,7 +1465,8 @@
             ],
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -1473,7 +1493,8 @@
               "techs/rust/borrow-check"
             ],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -1494,7 +1515,8 @@
             "groups": "*",
             "rules": [],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -1517,7 +1539,8 @@
               "techs/go/nested/rule"
             ],
             "pins": {},
-            "exclude": {}
+            "exclude": {},
+            "skills": []
           }
         ]
       }
@@ -1674,7 +1697,8 @@
               "techs/*": {
                 "reason": "No tech rules."
               }
-            }
+            },
+            "skills": []
           }
         ]
       }
