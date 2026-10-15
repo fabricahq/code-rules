@@ -372,3 +372,40 @@ func TestQualifyCitations_NamesTheSourceInAForkedSkillsCitations(t *testing.T) {
 		t.Errorf("a list that isn't a block string changed:\n%s", got)
 	}
 }
+
+// TestUpdate_ListsAReplacedSkillOnlyAtTheRevisionTheDecisionsChoose keeps the only rule a scoped update moves, so
+// the skills stay at release/1, and the preview no longer lists release/2's changes to the forked skill.
+func TestUpdate_ListsAReplacedSkillOnlyAtTheRevisionTheDecisionsChoose(t *testing.T) {
+	ctx := context.Background()
+	f := scriptLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"rules":{"include":["techs/go/*"]},"skills":{"include":["skills/build-feature"]}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	forkSkill(t, options, "team:skills/build-feature", "We build with make.")
+	publishScriptRelease(t, f)
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := moved.Sources[0].ReplacedSkills; len(got) != 1 || got[0].ID != "skills/build-feature" {
+		t.Fatalf("replaced skills when errors moves = %+v; want build-feature", got)
+	}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
+	for _, step := range []struct {
+		name string
+		run  func(context.Context, []UpdateDecision) (UpdateResult, error)
+	}{{"preview", plan.Preview}, {"apply", plan.Apply}} {
+		kept, err := step.run(ctx, keep)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := kept.Sources[0].ReplacedSkills; got == nil || len(got) != 0 {
+			t.Errorf("%s with errors kept lists replaced skills %+v; want none, since the skills stay at release/1", step.name, got)
+		}
+	}
+}
