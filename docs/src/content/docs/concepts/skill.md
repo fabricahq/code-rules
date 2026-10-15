@@ -51,10 +51,20 @@ metadata:
 ```
 
 - `syllabus-skill-type` labels what kind of skill it is, `playbook` or `review`. See [Skill types](#skill-types).
-- `syllabus-rules-used` lists the rules the skill applies. Code Rules takes those rules with the skill, and the installed copy links to your project's version of each one.
+- `syllabus-rules-used` lists the rules the skill applies. Code Rules takes those rules with the skill, and the installed copy links to your project's version of each one. See [Where cited rules live](#where-cited-rules-live).
 - `syllabus-skills-used` lists other skills the skill calls. Code Rules installs them alongside it.
 
 All three keys are optional. The standard sets `metadata` aside for properties it doesn't define, so a skill with these keys is still a standard skill, and agents that don't read them use it as usual. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
+
+### Where cited rules live
+
+A skill cites rules from its own repository, so the rules it depends on always travel with it:
+
+- **A library's skill** cites only rules in the same library, by their ID there, such as `practices/testing/test-behavior-not-implementation`. Any project that installs the skill from that library gets those rules too, at the same release.
+- **A skill you author in your project** can cite your project's own rules, and also rules from the project's sources by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation`.
+- **A skill from a repository that isn't a library** has no rules to cite, so Code Rules ignores its `syllabus-rules-used`.
+
+In a library, `code-rules library check` fails when a skill cites a rule that doesn't exist or was retired, so a typo never reaches an agent. See [Rules a skill applies](/reference/skill-format/#rules-a-skill-applies).
 
 ## Skill types
 
