@@ -115,14 +115,14 @@ func InitializeWithSkillTargets(ctx context.Context, options Options, skillTarge
 }
 
 // initializeAgents adds or refreshes the AGENTS.md section of the initialized project at root, adding its path to
-// result. The section mentions SKILLS.md when the project has already generated one.
+// result, unless its configuration turns off manageAgentsFile.
 func initializeAgents(ctx context.Context, root *os.Root, options Options, result AuthoringResult) (AuthoringResult, error) {
 	err := filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		skills, err := filetxn.ReadOptional(ctx, root, path.Join("generated", skillsIndexFile))
+		_, config, err := configuration(ctx, root)
 		if err != nil {
 			return err
 		}
-		agents, err := planAgentsSection(ctx, root, options, skills != nil)
+		agents, err := planAgentsSection(ctx, root, config, options)
 		if err != nil {
 			return err
 		}

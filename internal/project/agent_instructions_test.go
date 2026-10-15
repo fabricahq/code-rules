@@ -12,10 +12,9 @@ import (
 // agentInstructions matches the fenced "Engineering rules" section that pages quote from AGENTS.md.
 var agentInstructions = regexp.MustCompile("(?ms)^```markdown\\n(## Engineering rules\\n.*?)^```$")
 
-// TestAgentInstructions_MatchTheSection fails when the docs drift from the section Syllabus writes for a project
-// without skills.
+// TestAgentInstructions_MatchTheSection fails when the docs drift from the section Syllabus writes.
 func TestAgentInstructions_MatchTheSection(t *testing.T) {
-	section := renderAgentsSection(".syllabus", "1.2.3", false)
+	section := renderAgentsSection(".syllabus", "1.2.3")
 	lines := strings.SplitAfter(section, "\n")
 	want := strings.Join(lines[1:len(lines)-2], "")
 	for _, name := range []string{

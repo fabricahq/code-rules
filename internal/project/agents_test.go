@@ -11,24 +11,24 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestRenderAgentsSection records the version and a digest of the lines between the markers, names the project's
-// directory, and mentions SKILLS.md only for a project with skills.
+// TestRenderAgentsSection records the version and a digest of the lines between the markers, and names the
+// project's directory.
 func TestRenderAgentsSection(t *testing.T) {
-	section := renderAgentsSection(".syllabus", "1.2.3", false)
+	section := renderAgentsSection(".syllabus", "1.2.3")
 	lines := strings.SplitAfter(section, "\n")
 	marker := agentsBeginMarker.FindStringSubmatch(strings.TrimSuffix(lines[0], "\n"))
 	if marker == nil || marker[1] != "1.2.3" || marker[2] != agentsDigest(strings.Join(lines[1:len(lines)-2], "")) || lines[len(lines)-2] != "<!-- syllabus:end -->\n" {
 		t.Fatalf("markers:\n%s", section)
 	}
-	if !strings.Contains(section, "Read `.syllabus/generated/RULES.md`") || !strings.Contains(section, "follow `.syllabus/README.md`") || strings.Contains(section, "SKILLS.md") {
-		t.Fatalf("section without skills:\n%s", section)
+	for _, want := range []string{"Read `.syllabus/generated/RULES.md`", "If `.syllabus/generated/SKILLS.md` lists a skill", "follow `.syllabus/README.md`"} {
+		if !strings.Contains(section, want) {
+			t.Fatalf("missing %q:\n%s", want, section)
+		}
 	}
-	if skills := renderAgentsSection(".syllabus", "1.2.3", true); !strings.Contains(skills, "`.syllabus/generated/SKILLS.md` lists the skills") {
-		t.Fatalf("section with skills:\n%s", skills)
-	}
-	if legacy := renderAgentsSection(".code-rules", "1.2.3", false); strings.Contains(legacy, ".syllabus/") || !strings.Contains(legacy, "Read `.code-rules/generated/RULES.md`") {
+	if legacy := renderAgentsSection(".code-rules", "1.2.3"); strings.Contains(legacy, ".syllabus/") || !strings.Contains(legacy, "Read `.code-rules/generated/RULES.md`") {
 		t.Fatalf("section for .code-rules/:\n%s", legacy)
 	}
 }
@@ -36,8 +36,8 @@ func TestRenderAgentsSection(t *testing.T) {
 // TestPlanAgentsSection covers creating, appending, refreshing, and leaving alone, and keeps every line outside the
 // markers byte for byte.
 func TestPlanAgentsSection(t *testing.T) {
-	current := renderAgentsSection(".syllabus", "1.2.3", false)
-	older := renderAgentsSection(".syllabus", "1.0.0", false)
+	current := renderAgentsSection(".syllabus", "1.2.3")
+	older := renderAgentsSection(".syllabus", "1.0.0")
 	for name, test := range map[string]struct {
 		existing *string
 		want     string
@@ -48,7 +48,7 @@ func TestPlanAgentsSection(t *testing.T) {
 		"own text":         {ptr("# Guide\n\nRun make test."), "# Guide\n\nRun make test.\n\n" + current, "added"},
 		"blank line":       {ptr("# Guide\n\n"), "# Guide\n\n" + current, "added"},
 		"older version":    {ptr("# Guide\n\n" + older + "\n## Releases\n"), "# Guide\n\n" + current + "\n## Releases\n", "updated"},
-		"other directory":  {ptr(renderAgentsSection(".code-rules", "1.2.3", false)), current, "updated"},
+		"other directory":  {ptr(renderAgentsSection(".code-rules", "1.2.3")), current, "updated"},
 		"current":          {ptr("# Guide\n\n" + current + "Footer\n"), "", ""},
 		"pasted":           {ptr("## Engineering rules\n\n1. Read `.syllabus/generated/RULES.md`.\n"), "", ""},
 		"crlf current":     {ptr(strings.ReplaceAll(current, "\n", "\r\n")), "", ""},
@@ -56,7 +56,7 @@ func TestPlanAgentsSection(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := agentsProject(t, test.existing)
-			plan, err := planAgentsSection(context.Background(), root, Options{ToolVersion: "1.2.3"}, false)
+			plan, err := planAgentsSection(context.Background(), root, rules.Configuration{}, Options{ToolVersion: "1.2.3"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -76,7 +76,7 @@ func TestPlanAgentsSection(t *testing.T) {
 
 // TestPlanAgentsSectionRefuses an edited section and broken markers, so no command overwrites what someone wrote.
 func TestPlanAgentsSectionRefuses(t *testing.T) {
-	current := renderAgentsSection(".syllabus", "1.2.3", false)
+	current := renderAgentsSection(".syllabus", "1.2.3")
 	for name, test := range map[string]struct{ existing, code string }{
 		"edited":     {strings.Replace(current, "Briefly report", "Always report", 1), "agents-section-edited"},
 		"begin only": {"# Guide\n<!-- syllabus:begin 1.2.3 sha256:0123456789abcdef -->\n", "agents-section-invalid"},
@@ -96,7 +96,7 @@ func TestPlanAgentsSectionRefuses(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			_, err := planAgentsSection(context.Background(), root, Options{ToolVersion: "1.2.3"}, false)
+			_, err := planAgentsSection(context.Background(), root, rules.Configuration{}, Options{ToolVersion: "1.2.3"})
 			var failure *filetxn.Error
 			if !errors.As(err, &failure) || failure.Code != test.code {
 				t.Fatalf("got %v, want %s", err, test.code)
@@ -105,8 +105,8 @@ func TestPlanAgentsSectionRefuses(t *testing.T) {
 	}
 }
 
-// TestBuildAgentsSection writes the section through build, mentions an authored skill, keeps the project's own text,
-// and makes check fail, writing nothing, for an edited section.
+// TestBuildAgentsSection writes the section through build, keeps the project's own text, and makes check and build
+// fail, writing nothing, for an edited section.
 func TestBuildAgentsSection(t *testing.T) {
 	ctx := context.Background()
 	root, options := localProject(t)
@@ -119,18 +119,17 @@ func TestBuildAgentsSection(t *testing.T) {
 	if err := os.WriteFile(agents, append([]byte(own), data...), 0644); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, "skills/check-release/SKILL.md", "---\nname: check-release\ndescription: Check a release.\n---\n# Check\n")
 	changes, err := Build(ctx, options)
 	if err != nil || changes.Agents == nil || changes.Agents.Action != "updated" {
 		t.Fatalf("%+v %v", changes, err)
 	}
-	if got, err := os.ReadFile(agents); err != nil || string(got) != own+renderAgentsSection(".syllabus", "1.2.3", true) {
+	if got, err := os.ReadFile(agents); err != nil || string(got) != own+renderAgentsSection(".syllabus", "1.2.3") {
 		t.Fatalf("%s %v", got, err)
 	}
 	if result, err := Check(ctx, options); err != nil || !result.Current() {
 		t.Fatalf("%+v %v", result, err)
 	}
-	edited := own + strings.Replace(renderAgentsSection(".syllabus", "1.2.3", true), "use that skill", "use it", 1)
+	edited := own + strings.Replace(renderAgentsSection(".syllabus", "1.2.3"), "Briefly report", "Always report", 1)
 	if err := os.WriteFile(agents, []byte(edited), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -138,17 +137,38 @@ func TestBuildAgentsSection(t *testing.T) {
 	if _, err := Check(ctx, options); !errors.As(err, &failure) || failure.Code != "agents-section-edited" {
 		t.Fatalf("check: %v", err)
 	}
-	if err := root.RemoveAll("skills/check-release"); err != nil {
-		t.Fatal(err)
-	}
+	writeFixture(t, root, "generated/RULES.md", "stale")
 	if _, err := Build(ctx, options); !errors.As(err, &failure) || failure.Code != "agents-section-edited" {
 		t.Fatalf("build: %v", err)
 	}
 	if got, err := os.ReadFile(agents); err != nil || string(got) != edited {
 		t.Fatalf("build changed the edited section: %s %v", got, err)
 	}
-	if generated, err := filetxn.ReadOptional(ctx, root, "generated/SKILLS.md"); err != nil || generated == nil {
-		t.Fatalf("a refused build removed the skill's output: %v", err)
+	if generated, err := filetxn.ReadOptional(ctx, root, "generated/RULES.md"); err != nil || string(generated) != "stale" {
+		t.Fatalf("a refused build wrote generated output: %v", err)
+	}
+}
+
+// TestAgentsFileTurnedOff leaves AGENTS.md alone, and unchecked, when the configuration turns off manageAgentsFile.
+func TestAgentsFileTurnedOff(t *testing.T) {
+	ctx := context.Background()
+	root, options := localProject(t)
+	writeFixture(t, root, "config.yaml", "schemaVersion: 2\nmanageAgentsFile: false\nsources: {}\n")
+	agents := filepath.Join(options.Directory, "AGENTS.md")
+	if err := os.Remove(agents); err != nil {
+		t.Fatal(err)
+	}
+	if changes, err := Build(ctx, options); err != nil || changes.Agents != nil {
+		t.Fatalf("%+v %v", changes, err)
+	}
+	if result, err := Check(ctx, options); err != nil || !result.Current() {
+		t.Fatalf("%+v %v", result, err)
+	}
+	if result, err := Initialize(ctx, options); err != nil || len(result.Written()) != 0 {
+		t.Fatalf("%+v %v", result, err)
+	}
+	if _, err := os.Lstat(agents); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("wrote AGENTS.md: %v", err)
 	}
 }
 

@@ -19,8 +19,10 @@ Before planning, implementing, reviewing, testing, or debugging a change:
 1. Read `.syllabus/generated/RULES.md` and follow its instructions to
    select relevant groups and read their rules in full, including linked
    files and additional index pages.
-2. Follow the applicable rules and their exceptions while doing the work.
-3. Before finishing, check your work against those rules and run the
+2. If `.syllabus/generated/SKILLS.md` lists a skill that fits the task,
+   use it, and read the rules it cites before the steps that apply them.
+3. Follow the applicable rules and their exceptions while doing the work.
+4. Before finishing, check your work against those rules and run the
    relevant validation. Briefly report what you verified and any gaps.
 
 If required rule files are unavailable or give conflicting instructions,
@@ -29,7 +31,6 @@ report the issue rather than silently skipping them or choosing a policy.
 To add, change, or update rules or skills, follow `.syllabus/README.md`.
 ```
 
-When the project installs skills, the section also points to `.syllabus/generated/SKILLS.md`, which lists each skill and what it's for.
 `.syllabus/generated/RULES.md` then tells the agent how to select groups, read rules, and report findings, so these instructions stay short.
 The generated index is an explicit entry point.
 Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules.

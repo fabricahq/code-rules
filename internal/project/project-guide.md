@@ -10,11 +10,13 @@ This guide explains how to manage this project's [Fabrica Syllabus](https://code
 
 ## Connect your coding agent
 
-Syllabus generates the rules, but your coding agent reads them only when its instructions say to. So `syllabus project init`, `build`, `sync`, and `update` keep a section in the repository's `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers, that tells agents to read `.syllabus/generated/RULES.md`, and `.syllabus/generated/SKILLS.md` when the project has skills. They create `AGENTS.md` when it's missing and never change your text outside the markers. Don't edit the section: those commands refuse to replace an edited one, and `syllabus project check` fails when it's missing or outdated.
+Syllabus generates the rules, but your coding agent reads them only when its instructions say to. So `syllabus project init`, `build`, `sync`, and `update` keep a section in the repository's `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers, that tells agents to read `.syllabus/generated/RULES.md` and use the skills `.syllabus/generated/SKILLS.md` lists. They create `AGENTS.md` when it's missing and never change your text outside the markers. Don't edit the section: those commands refuse to replace an edited one, and `syllabus project check` fails when it's missing or outdated.
 
 If your agent reads another instruction file, such as Claude Code's `CLAUDE.md`, have that file import or link `AGENTS.md`. A `CLAUDE.md` containing the line `@AGENTS.md` imports it.
 
 If `AGENTS.md` already points to `.syllabus/generated/RULES.md` outside the markers, as the section earlier versions asked you to paste does, Syllabus leaves the file alone. To have Syllabus maintain it instead, delete that section and run `syllabus project build`.
+
+To manage `AGENTS.md` yourself, set `manageAgentsFile: false` in `.syllabus/config.yaml`; commands then neither write nor check it.
 
 Commit `AGENTS.md` with `.syllabus/`, so everyone who checks out the project gets the same instructions.
 

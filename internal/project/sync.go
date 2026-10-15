@@ -127,7 +127,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if err != nil {
 		return FileChanges{}, err
 	}
-	agents, err := planAgentsSection(ctx, root, in.options, listsSkills(output))
+	agents, err := planAgentsSection(ctx, root, in.config, in.options)
 	if err != nil {
 		return FileChanges{}, err
 	}

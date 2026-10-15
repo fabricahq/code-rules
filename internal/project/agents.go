@@ -14,25 +14,19 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // agentsFile is the instruction file Syllabus maintains a section in, at the repository root, the parent of the
 // Syllabus directory. Agents that read another file, such as Claude Code's CLAUDE.md, import or link it.
 const agentsFile = "AGENTS.md"
 
-// agentsSectionTemplate is the section's fixed instructions, written for a project in .syllabus/; documentation
-// pages quote it.
+// agentsSectionTemplate is the text between the section's markers, written for a project in .syllabus/;
+// documentation pages quote it.
 //
 //go:embed agents-section.md
 var agentsSectionTemplate string
-
-// agentsSectionSkills follows the instructions when the project has skills, which generated/SKILLS.md lists.
-const agentsSectionSkills = "\n`.syllabus/generated/SKILLS.md` lists the skills this project installs, what\neach one does, and where it's installed. When a task matches a skill's\ndescription, use that skill.\n"
-
-// agentsSectionGuide ends every section, pointing agents that manage rules or skills to the project guide.
-const agentsSectionGuide = "\nTo add, change, or update rules or skills, follow `.syllabus/README.md`.\n"
 
 // The section is fenced by these markers. The begin marker records the version that wrote the section and the first
 // 16 hexadecimal digits of the SHA-256 of the lines between the markers, so a refresh can tell an unedited section
@@ -60,13 +54,9 @@ func toolVersion(options Options) string {
 }
 
 // renderAgentsSection returns the section, markers included, for a project whose Syllabus directory is named
-// directory, such as .syllabus, mentioning SKILLS.md when skills is true.
-func renderAgentsSection(directory, version string, skills bool) string {
-	inner := agentsSectionTemplate
-	if skills {
-		inner += agentsSectionSkills
-	}
-	inner = strings.ReplaceAll(inner+agentsSectionGuide, ".syllabus/", directory+"/")
+// directory, such as .syllabus.
+func renderAgentsSection(directory, version string) string {
+	inner := strings.ReplaceAll(agentsSectionTemplate, ".syllabus/", directory+"/")
 	return fmt.Sprintf("<!-- syllabus:begin %s sha256:%s -->\n%s<!-- syllabus:end -->\n", version, agentsDigest(inner), inner)
 }
 
@@ -154,12 +144,16 @@ type agentsPlan struct {
 }
 
 // planAgentsSection plans the AGENTS.md beside the Syllabus directory at root so it holds the current section for
-// options' version, mentioning SKILLS.md when skills is true. It plans no change when the section is current, or when
+// options' version. It plans no change, without reading the file, when config turns off manageAgentsFile, and when
+// the section is current, or when
 // the file has no section but already points to the project's generated/RULES.md, as the block Syllabus once asked
 // users to paste does: that file stays the project's until its pointer is removed. It fails with
 // agents-section-edited when the section's lines changed since Syllabus wrote them, and with agents-section-invalid
 // when its markers are broken.
-func planAgentsSection(ctx context.Context, root *os.Root, options Options, skills bool) (plan agentsPlan, err error) {
+func planAgentsSection(ctx context.Context, root *os.Root, config rules.Configuration, options Options) (plan agentsPlan, err error) {
+	if config.SkipAgentsFile {
+		return agentsPlan{}, nil
+	}
 	plan.repository, err = os.OpenRoot(filepath.Dir(root.Name()))
 	if err != nil {
 		return agentsPlan{}, fmt.Errorf("open the repository root for %s: %w", agentsFile, err)
@@ -179,7 +173,7 @@ func planAgentsSection(ctx context.Context, root *os.Root, options Options, skil
 		return plan, err
 	}
 	directory := filepath.Base(root.Name())
-	want := renderAgentsSection(directory, toolVersion(options), skills)
+	want := renderAgentsSection(directory, toolVersion(options))
 	existing := string(data)
 	s, err := inspectAgentsSection(existing)
 	if err != nil {
@@ -237,12 +231,3 @@ func includeAgents(w *filetxn.Writer, plan agentsPlan, changes *FileChanges) err
 	changes.Warnings = append(nonNil(changes.Warnings), warnings...)
 	return nil
 }
-
-// listsSkills reports whether output lists skills in generated/SKILLS.md, which the AGENTS.md section then mentions.
-func listsSkills(output build.Output) bool {
-	_, ok := output.Files[skillsIndexFile]
-	return ok
-}
-
-// skillsIndexFile is the generated file, by path in generated/, that lists a project's skills.
-const skillsIndexFile = "SKILLS.md"

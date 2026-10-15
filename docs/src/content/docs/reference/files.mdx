@@ -121,7 +121,7 @@ The Syllabus section of `AGENTS.md` points your agent to `.syllabus/generated/RU
 Agents then open relevant groups and read the applicable rules in full.
 See [Plan, write, and review](/for-agents/) for the section's text and a workflow built on it.
 
-The commands that write the section create `AGENTS.md` when it's missing, and add the section after your text. Each refresh replaces only the lines between the markers. The begin marker records the Syllabus version that wrote the section and a digest of its lines, so build, sync, update, and init refuse to replace a section edited by hand: move your text outside the markers and delete the section, then rerun the command. `syllabus project check` reports a missing or outdated section.
+The commands that write the section create `AGENTS.md` when it's missing, and add the section after your text. Each refresh replaces only the lines between the markers. The begin marker records the Syllabus version that wrote the section and a digest of its lines, so build, sync, update, and init refuse to replace a section edited by hand: move your text outside the markers and delete the section, then rerun the command. `syllabus project check` reports a missing or outdated section. To manage `AGENTS.md` yourself, set [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section).
 
 When `AGENTS.md` already points to `.syllabus/generated/RULES.md` outside the markers, as the section that earlier versions asked you to paste does, Syllabus leaves the file alone and `syllabus project check` accepts it. To switch to the maintained section, delete your pasted section and run `syllabus project build`.
 

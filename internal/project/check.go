@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/fabricahq/code-rules/internal/build"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // ProblemKind distinguishes the observed mismatch without relying on presentation text.
@@ -51,8 +51,8 @@ func (r CheckResult) Current() bool { return len(r.Problems) == 0 }
 func Check(ctx context.Context, options Options) (CheckResult, error) {
 	guideName, guideBytes := projectGuide()
 	agentsStale := false
-	changes, guideChanges, err := checkProjectFiles(ctx, options, map[string][]byte{guideName: guideBytes}, func(root *os.Root, output build.Output) error {
-		plan, err := planAgentsSection(ctx, root, options, listsSkills(output))
+	changes, guideChanges, err := checkProjectFiles(ctx, options, map[string][]byte{guideName: guideBytes}, func(root *os.Root, config rules.Configuration) error {
+		plan, err := planAgentsSection(ctx, root, config, options)
 		if err != nil {
 			return err
 		}

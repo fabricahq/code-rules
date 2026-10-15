@@ -88,7 +88,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
-		agents, err := planAgentsSection(ctx, root, options, listsSkills(output))
+		agents, err := planAgentsSection(ctx, root, before.config, options)
 		if err != nil {
 			return err
 		}
@@ -127,8 +127,8 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 }
 
 // checkProjectFiles is checkWithFiles, also calling inspect, when not nil, with the Syllabus directory and the
-// expected output before it rechecks the snapshot, for checks of files outside the Syllabus directory.
-func checkProjectFiles(ctx context.Context, options Options, expected map[string][]byte, inspect func(*os.Root, build.Output) error) (FileChanges, FileChanges, error) {
+// project's configuration before it rechecks the snapshot, for checks of files outside the Syllabus directory.
+func checkProjectFiles(ctx context.Context, options Options, expected map[string][]byte, inspect func(*os.Root, rules.Configuration) error) (FileChanges, FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -156,7 +156,7 @@ func checkProjectFiles(ctx context.Context, options Options, expected map[string
 		return FileChanges{}, FileChanges{}, err
 	}
 	if inspect != nil {
-		if err := inspect(root, output); err != nil {
+		if err := inspect(root, before.config); err != nil {
 			return FileChanges{}, FileChanges{}, err
 		}
 	}

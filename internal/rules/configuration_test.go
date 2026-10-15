@@ -113,3 +113,20 @@ func TestParseConfigurationYAML_VersionOneShowsAValidVersionTwoExample(t *testin
 		t.Fatalf("example parsed as %+v", team)
 	}
 }
+
+// TestParseConfiguration_ManageAgentsFile defaults to managing AGENTS.md and accepts only a boolean.
+func TestParseConfiguration_ManageAgentsFile(t *testing.T) {
+	for input, skip := range map[string]bool{
+		`{"schemaVersion":2,"sources":{}}`:                          false,
+		`{"schemaVersion":2,"manageAgentsFile":true,"sources":{}}`:  false,
+		`{"schemaVersion":2,"manageAgentsFile":false,"sources":{}}`: true,
+	} {
+		config, err := rules.ParseConfiguration([]byte(input))
+		if err != nil || config.SkipAgentsFile != skip {
+			t.Errorf("%s: %+v %v", input, config, err)
+		}
+	}
+	if _, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"manageAgentsFile":"no","sources":{}}`)); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+		t.Fatal(err)
+	}
+}
