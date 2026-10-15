@@ -26,6 +26,9 @@
 
 Code Rules is a **package manager** for your agent skills and engineering rules.
 
+> [!NOTE]
+> Skill support isn't in a released version of Code Rules yet. The released CLI manages rules; this README describes how skills will work.
+
 That means you can:
 
 - Install skills from libraries and other Git repositories, with a record of where each came from and which version you have
