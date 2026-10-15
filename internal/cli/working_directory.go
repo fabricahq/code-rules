@@ -112,7 +112,7 @@ const legacyDirectoryWarning = `this project keeps its files in .code-rules/, th
 
   git mv .code-rules .syllabus
 
-Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .syllabus/generated/RULES.md, and run syllabus project build.`
+In a project that isn't in a Git repository, use mv instead of git mv. Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .syllabus/generated/RULES.md, and run syllabus project build.`
 
 // warnLegacyDirectory warns, for a project command, when root, the project root, has no Syllabus directory but has
 // one under the name Code Rules used, which the project package then opens.

@@ -169,13 +169,14 @@ func parseLicense(input json.RawMessage, location string) (*LicenseDeclaration, 
 // termsPath reads a declared license or notice path, relative to the repository root, and returns its library path.
 // The file must be library-wide: outside .syllabus/, or in its assets/ or a group in its rules/. A rule's Markdown
 // file or a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a
-// library release replace a rule version's content.
+// library release replace a rule version's content. A path in .code-rules/, which a library declared before Code
+// Rules was renamed Syllabus, reads as the same path in .syllabus/, where tree upgrades and git mv put its file.
 func termsPath(input json.RawMessage, location string) (string, error) {
 	declared, err := decode.Path(input, location)
 	if err != nil {
 		return "", err
 	}
-	path, ok := librarytree.LibraryPath(declared)
+	path, ok := librarytree.LibraryPath(librarytree.Upgrade(declared))
 	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") {
 		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files")
 	}
