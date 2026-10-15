@@ -55,16 +55,16 @@ type resolvedSkill struct {
 	Level string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
-	// RulesUsed lists the lines of the skill's fg-rules-used, and Cited how the project resolves each of them, in
+	// RulesUsed lists the lines of the skill's syllabus-rules-used, and Cited how the project resolves each of them, in
 	// the same order; both are empty for a skill that cites no rules.
 	RulesUsed []string
 	Cited     []citedRule
-	// SkillsUsed lists the lines of the skill's fg-skills-used, as written; nil when it has none.
+	// SkillsUsed lists the lines of the skill's syllabus-skills-used, as written; nil when it has none.
 	SkillsUsed []string
 	// Included reports that the configuration includes the skill, as it includes every authored skill; a source's
 	// skill that isn't included is installed because other skills use it.
 	Included bool
-	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its fg-skills-used
+	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its syllabus-skills-used
 	// and its source's skills.uses, and of those that use it; each is empty, never nil, when there are none.
 	Uses, UsedBy []string
 }

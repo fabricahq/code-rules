@@ -130,7 +130,7 @@ func requireConfiguredUses(source rules.Source, plan sourcePlan, available []str
 
 // installedSkills returns every skill the source installs, by ID, with why: chosen, the skills skills.include
 // selects, and every skill they use, transitively. uses maps each skill chosen reaches that the plan's revision has
-// to the skills it uses, by its fg-skills-used and the source's skills.uses. A skill that uses one the revision lacks,
+// to the skills it uses, by its syllabus-skills-used and the source's skills.uses. A skill that uses one the revision lacks,
 // skills that use each other in a cycle, and a skills.uses key the source doesn't install fail as invalid
 // configuration of the source's skills, naming the skills involved.
 func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses map[string][]string) (map[string]skills.Installed, error) {
@@ -144,9 +144,9 @@ func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses
 		if missing.Via != missing.Skill {
 			installing = fmt.Sprintf("%s, which %s uses", missing.Skill, missing.Via)
 		}
-		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("%s uses %s, which isn't a skill in %s: %s names it in fg-skills-used. Code Rules installs every skill an installed skill uses, so it can't install %s. Ask the source's maintainer to correct fg-skills-used, or stop including %s", missing.Skill, missing.Missing, revisionName(plan.release, plan.commit), missing.Skill, installing, missing.Via)}
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("%s uses %s, which isn't a skill in %s: %s names it in syllabus-skills-used. Code Rules installs every skill an installed skill uses, so it can't install %s. Ask the source's maintainer to correct syllabus-skills-used, or stop including %s", missing.Skill, missing.Missing, revisionName(plan.release, plan.commit), missing.Skill, installing, missing.Via)}
 	case errors.As(err, &cycle):
-		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("the skills the source installs use each other in a cycle: %s. Code Rules installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct fg-skills-used, or remove the use from %s.uses", strings.Join(cycle.Cycle, " -> "), location)}
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("the skills the source installs use each other in a cycle: %s. Code Rules installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct syllabus-skills-used, or remove the use from %s.uses", strings.Join(cycle.Cycle, " -> "), location)}
 	case err != nil:
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses
 }
 
 // skillUses reads the SKILL.md of every skill chosen reaches in folders, the skills of the plan's commit, and returns
-// what each uses: its fg-skills-used lines, then the skills the source's skills.uses adds. A used skill folders
+// what each uses: its syllabus-skills-used lines, then the skills the source's skills.uses adds. A used skill folders
 // lacks is absent from the result, for installedSkills to report. It fails when a SKILL.md it reads has unreadable
 // frontmatter.
 func (r *repository) skillUses(ctx context.Context, source rules.Source, folders map[string]map[string]treeEntry, chosen []string) (map[string][]string, error) {

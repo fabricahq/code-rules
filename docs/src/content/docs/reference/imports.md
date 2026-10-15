@@ -39,7 +39,7 @@ The copy includes:
 - Group metadata, which describes each group and when to read it.
 - The library's manifest, as `config.yaml`, holding only the `library` section of the library's `.code-rules/config.yaml`, and its declared license and notice files. The library's own `sources`, change notes, and `vendor/` and `generated/` directories are never copied; see [What a library publishes](/reference/library-format/#what-a-library-publishes).
 
-- The files of each skill the source's `skills.include` selects, and of every skill those use, transitively, by their `fg-skills-used` and the source's [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-uses), with their executable bits, all from the one commit the source record locks. A library's skills are the folders in its `.code-rules/skills/`; another repository's are its folders that hold a `SKILL.md`. See [Select skills](/reference/configuration/#select-skills).
+- The files of each skill the source's `skills.include` selects, and of every skill those use, transitively, by their `syllabus-skills-used` and the source's [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-uses), with their executable bits, all from the one commit the source record locks. A library's skills are the folders in its `.code-rules/skills/`; another repository's are its folders that hold a `SKILL.md`. See [Select skills](/reference/configuration/#select-skills).
 
 A source whose repository has no library manifest, a `.code-rules/config.yaml` with a `library` section, at that commit isn't a library: its snapshot holds only its selected skills, and it needs a `ref`.
 

@@ -185,7 +185,7 @@ func TestBuildReportsAnInvalidSkillTypeAtTheSkill(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(skill), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(skill, []byte("---\nname: fix-bug\nmetadata:\n  fg-skill-type: workflow\n---\n# Fix\n"), 0o600); err != nil {
+	if err := os.WriteFile(skill, []byte("---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: workflow\n---\n# Fix\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	for _, command := range []string{"build", "check"} {
@@ -194,7 +194,7 @@ func TestBuildReportsAnInvalidSkillTypeAtTheSkill(t *testing.T) {
 			OK    bool
 			Error responseError
 		}
-		if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "validation" || result.Error.Location != "skills/fix-bug/SKILL.md" || !strings.Contains(result.Error.Message, `fg-skill-type is "workflow"; use playbook or review, or leave it out`) {
+		if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "validation" || result.Error.Location != "skills/fix-bug/SKILL.md" || !strings.Contains(result.Error.Message, `syllabus-skill-type is "workflow"; use playbook or review, or leave it out`) {
 			t.Fatal(command, code, out, diagnostic)
 		}
 	}
@@ -205,7 +205,7 @@ func TestBuildReportsAnInvalidSkillTypeAtTheSkill(t *testing.T) {
 
 func TestSync_NamesTheSkillAndTheUsedSkillItCannotFind(t *testing.T) {
 	binary := buildCLI(t)
-	f, err := gitfixture.New(context.Background(), map[string][]byte{"skills/architect/SKILL.md": []byte("---\nname: architect\nmetadata:\n  fg-skills-used: |\n    skills/how\n---\n# Architect\n")})
+	f, err := gitfixture.New(context.Background(), map[string][]byte{"skills/architect/SKILL.md": []byte("---\nname: architect\nmetadata:\n  syllabus-skills-used: |\n    skills/how\n---\n# Architect\n")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func TestSync_NamesTheSkillAndTheUsedSkillItCannotFind(t *testing.T) {
 			t.Fatal(args, code, out, diagnostic)
 		}
 	}
-	problem := "skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in fg-skills-used."
+	problem := "skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in syllabus-skills-used."
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, f.Environment, "project", "sync", "--json")
 	var result struct {
 		OK    bool

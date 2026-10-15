@@ -89,7 +89,7 @@ func TestBuild_LinksAnAuthoredSkillToTheAuthoredRuleItCites(t *testing.T) {
 	ctx := context.Background()
 	root, options := localProject(t)
 	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"skillTargets":["claude"],"sources":{}}`)
-	writeFixture(t, root, "skills/tidy/SKILL.md", "---\nname: tidy\nmetadata:\n  fg-rules-used: techs/go/errors\n---\n# Tidy\n")
+	writeFixture(t, root, "skills/tidy/SKILL.md", "---\nname: tidy\nmetadata:\n  syllabus-rules-used: techs/go/errors\n---\n# Tidy\n")
 	if _, err := Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestCheck_FailsWhenAnAuthoredSkillCitesARuleItsLibraryRetired(t *testing.T)
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, "skills/fix/SKILL.md", "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  fg-rules-used: |\n    team:techs/go/errors\n---\n# Fix\n")
+	writeFixture(t, root, "skills/fix/SKILL.md", "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  syllabus-rules-used: |\n    team:techs/go/errors\n---\n# Fix\n")
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestCheck_FailsWhenAnAuthoredSkillCitesARuleItsLibraryRetired(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	const problem = "fg-rules-used names team:techs/go/errors, which its library retired; remove it from fg-rules-used, or cite the rule that replaces it"
+	const problem = "syllabus-rules-used names team:techs/go/errors, which its library retired; remove it from syllabus-rules-used, or cite the rule that replaces it"
 	applied, err := plan.Apply(ctx, nil)
 	if err != nil || !slices.Contains(applied.Warnings, "skills/fix/SKILL.md: "+problem) {
 		t.Fatalf("update = %+v, %v; want a warning that the skill cites a retired rule", applied, err)

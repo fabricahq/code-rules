@@ -574,7 +574,7 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 }
 
 // matchSkillUses checks, without fetching Git, that snapshot records exactly the skills its included skills bring in
-// and why: the skills they use, transitively, by the fg-skills-used of the vendored SKILL.md files and the source's
+// and why: the skills they use, transitively, by the syllabus-skills-used of the vendored SKILL.md files and the source's
 // skills.uses. A difference means configuration changed since sync, such as a new skills.uses entry, so it fails
 // asking for sync, which checks the change against the source.
 func matchSkillUses(source rules.Source, snapshot library.Snapshot) error {
@@ -599,14 +599,14 @@ func matchSkillUses(source rules.Source, snapshot library.Snapshot) error {
 	}
 	installed, err := skills.ResolveUses(included, uses)
 	if err != nil {
-		return invalidSnapshot(where, "the recorded skills don't install every skill they use, by fg-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
+		return invalidSnapshot(where, "the recorded skills don't install every skill they use, by syllabus-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
 	}
 	if len(installed) != len(snapshot.Skills) {
 		return invalidSnapshot(where, "the recorded skills differ from those sources."+source.Name+".skills.include selects and the skills they use; run code-rules project sync")
 	}
 	for id, why := range installed {
 		if !slices.Equal(why.UsedBy, snapshot.Skills[id].UsedBy) {
-			return invalidSnapshot(where+".skills."+id, "the skills recorded as using it differ from fg-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
+			return invalidSnapshot(where+".skills."+id, "the skills recorded as using it differ from syllabus-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
 		}
 	}
 	return nil

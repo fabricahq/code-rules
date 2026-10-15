@@ -31,11 +31,11 @@ build-feature/
 name: build-feature
 description: Build a feature from an agreed spec, one slice at a time. Use when starting a new feature.
 metadata:
-  fg-skill-type: playbook
-  fg-rules-used: |
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
     practices/testing/test-behavior-not-implementation
     practices/verification/verify-on-the-surface-users-touch
-  fg-skills-used: |
+  syllabus-skills-used: |
     skills/tdd
 ---
 
@@ -45,17 +45,17 @@ metadata:
 ```
 
 - `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it. The `name` is also the skill's **install name**, the name of its installed folders. It uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen. In a skill your project or library authors, `name` is required and must equal the folder's name; a skill from another repository that has none installs under its folder's name.
-- `metadata.fg-skill-type` optionally labels the skill: `playbook`, for ordered steps that carry out a task, or `review`, for examining existing work against stated criteria. Code Rules shows the label in `SKILLS.md` and treats every skill the same way.
-- `metadata.fg-rules-used` lists the rules the skill applies, one rule ID per line.
-- `metadata.fg-skills-used` lists the other skills it calls, one skill ID per line. Installing a source's skill also installs every skill it uses, and the skills those use, from the same source; see [Install the skills a skill uses](/guides/install-skills/#install-the-skills-a-skill-uses).
+- `metadata.syllabus-skill-type` optionally labels the skill: `playbook`, for ordered steps that carry out a task, or `review`, for examining existing work against stated criteria. Code Rules shows the label in `SKILLS.md` and treats every skill the same way.
+- `metadata.syllabus-rules-used` lists the rules the skill applies, one rule ID per line.
+- `metadata.syllabus-skills-used` lists the other skills it calls, one skill ID per line. Installing a source's skill also installs every skill it uses, and the skills those use, from the same source; see [Install the skills a skill uses](/guides/install-skills/#install-the-skills-a-skill-uses).
 
-All three `fg-` keys are optional, and each value is a string, as the Agent Skills format requires, so write the two lists as YAML block strings that start with `|`. Other `fg-` keys are reserved for Code Rules and rejected. Other frontmatter fields and `metadata` keys are kept as they are.
+All three `syllabus-` keys are optional, and each value is a string, as the Agent Skills format requires, so write the two lists as YAML block strings that start with `|`. Other `syllabus-` keys are reserved for Code Rules and rejected. Other frontmatter fields and `metadata` keys are kept as they are.
 
 ## Rules a skill cites
 
-Keep opinions in rules and order in skills. When a skill needs a practice followed, it cites the rule in `fg-rules-used` rather than restating it, so a project's exclusions and replacements, and a rule's new versions, reach every skill that cites it without a change to the skill.
+Keep opinions in rules and order in skills. When a skill needs a practice followed, it cites the rule in `syllabus-rules-used` rather than restating it, so a project's exclusions and replacements, and a rule's new versions, reach every skill that cites it without a change to the skill.
 
-A library's skill cites rules in its library by their library rule ID, such as `practices/testing/test-behavior-not-implementation`, without a source name, because each project chooses its own. A skill you author in a project cites your authored rules by their bare ID and a source's rules by their project ID, such as `fabrica:practices/testing/test-behavior-not-implementation`. `fg-skills-used` names skills the same way: `skills/tdd` in the same repository, or, in a project, `fabrica:skills/tdd` from a source.
+A library's skill cites rules in its library by their library rule ID, such as `practices/testing/test-behavior-not-implementation`, without a source name, because each project chooses its own. A skill you author in a project cites your authored rules by their bare ID and a source's rules by their project ID, such as `fabrica:practices/testing/test-behavior-not-implementation`. `syllabus-skills-used` names skills the same way: `skills/tdd` in the same repository, or, in a project, `fabrica:skills/tdd` from a source.
 
 Cited rules are for reference: the installed skill links to them, but they don't join `RULES.md`, so installing a skill never widens the rules that apply to all of your project's work. See [How agents use installed skills](#how-agents-use-installed-skills).
 

@@ -13,7 +13,7 @@ import (
 )
 
 // linkSkillUses sets the Uses and UsedBy of every skill in resolved, the project's installed skills. A source's skill
-// uses the skills its fg-skills-used names, which are skill IDs in the same source, and those its source's skills.uses
+// uses the skills its syllabus-skills-used names, which are skill IDs in the same source, and those its source's skills.uses
 // adds; sync installed them all. An authored skill uses another authored skill by its bare ID, such as skills/tdd,
 // and a source's skill by its project ID, such as fabrica:skills/tdd. It fails at an authored skill's SKILL.md when
 // it uses a skill the project doesn't install, or when authored skills use each other in a cycle; a source's skill
@@ -69,7 +69,7 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) error {
 	return nil
 }
 
-// authoredUseProblem explains why an authored skill can't use citation, a line of its fg-skills-used that names no
+// authoredUseProblem explains why an authored skill can't use citation, a line of its syllabus-skills-used that names no
 // skill the project installs. sources holds the configuration's sources by name.
 func authoredUseProblem(citation skills.Citation, sources map[string]rules.Source) string {
 	source, configured := sources[citation.Source]

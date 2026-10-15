@@ -28,7 +28,7 @@ type citedRule struct {
 	Retired bool
 }
 
-// citeRules resolves the rules each skill in resolved cites, in the order its fg-rules-used lists them, and returns
+// citeRules resolves the rules each skill in resolved cites, in the order its syllabus-rules-used lists them, and returns
 // a validation error at the skill's SKILL.md for each rule an authored skill cites that its library retired. A
 // library's skill cites rules by their ID in that library; a skill from a repository that isn't a library cites
 // none, since the repository has no rules; an authored skill cites the project's authored rules by bare ID and a

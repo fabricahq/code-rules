@@ -66,7 +66,7 @@ type ImportedSkill struct {
 	// Included reports that the source's skills.include selects the skill; a skill it doesn't select is installed
 	// because other installed skills of the source use it.
 	Included bool `json:"included"`
-	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their fg-skills-used
+	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their syllabus-skills-used
 	// or the source's skills.uses; it is empty, never nil, when none does, which happens only when Included is set.
 	UsedBy []string `json:"usedBy"`
 }

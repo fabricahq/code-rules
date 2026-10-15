@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	buildSkill  = "---\nname: build-feature\ndescription: Build a feature from a spec.\nmetadata:\n  fg-skill-type: playbook\n---\n# Build a feature\n\n1. Run scripts/run.sh.\n"
+	buildSkill  = "---\nname: build-feature\ndescription: Build a feature from a spec.\nmetadata:\n  syllabus-skill-type: playbook\n---\n# Build a feature\n\n1. Run scripts/run.sh.\n"
 	reviewSkill = "---\nname: review\ndescription: Review a change.\n---\n# Review\n"
 )
 
@@ -399,8 +399,8 @@ func TestBuild_RejectsInvalidAuthoredSkills(t *testing.T) {
 		"folder without SKILL.md":       {map[string]string{"skills/tidy/notes.md": "x"}, ".code-rules/skills/tidy/", ""},
 		"invalid folder name":           {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".code-rules/skills/Tidy/", ""},
 		"name that isn't the folder's":  {map[string]string{"skills/one/SKILL.md": "---\nname: shared\n---\n"}, "skills/one/SKILL.md", ""},
-		"unknown skill type":            {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  fg-skill-type: design\n---\n"}, "skills/one/SKILL.md", ""},
-		"cited rule that doesn't exist": {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  fg-rules-used: techs/go/missing\n---\n"}, "skills/one/SKILL.md", ""},
+		"unknown skill type":            {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  syllabus-skill-type: design\n---\n"}, "skills/one/SKILL.md", ""},
+		"cited rule that doesn't exist": {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  syllabus-rules-used: techs/go/missing\n---\n"}, "skills/one/SKILL.md", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

@@ -13,11 +13,11 @@ import (
 	"github.com/fabricahq/code-rules/internal/library"
 )
 
-// skillFile returns a SKILL.md for skill name whose fg-skills-used lists used.
+// skillFile returns a SKILL.md for skill name whose syllabus-skills-used lists used.
 func skillFile(name string, used ...string) []byte {
 	text := "---\nname: " + name + "\ndescription: " + name + ".\n"
 	if len(used) > 0 {
-		text += "metadata:\n  fg-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
+		text += "metadata:\n  syllabus-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
 	}
 	return []byte(text + "---\n# " + name + "\n")
 }
@@ -105,19 +105,19 @@ func TestGenerateRejectsAnAuthoredSkillThatUsesASkillTheProjectDoesNotInstall(t 
 	}{
 		"a missing authored skill": {
 			map[string]SkillFiles{"skills/release": authored("release", "skills/tag")}, "skills/release/SKILL.md",
-			"fg-skills-used names skills/tag, which isn't a skill in .code-rules/skills/; write the skill, or name a source's skill with its source name, such as fabrica:skills/tag",
+			"syllabus-skills-used names skills/tag, which isn't a skill in .code-rules/skills/; write the skill, or name a source's skill with its source name, such as fabrica:skills/tag",
 		},
 		"an unknown source": {
 			map[string]SkillFiles{"skills/release": authored("release", "other:skills/build")}, "skills/release/SKILL.md",
-			"fg-skills-used names other:skills/build, but the configuration has no source named other; add the source, or correct the source name",
+			"syllabus-skills-used names other:skills/build, but the configuration has no source named other; add the source, or correct the source name",
 		},
 		"a source's skill the project doesn't install": {
 			map[string]SkillFiles{"skills/release": authored("release", "team:skills/tdd")}, "skills/release/SKILL.md",
-			"fg-skills-used names team:skills/tdd, which the project doesn't install; add skills/tdd to sources.team.skills.include, then run code-rules project sync",
+			"syllabus-skills-used names team:skills/tdd, which the project doesn't install; add skills/tdd to sources.team.skills.include, then run code-rules project sync",
 		},
 		"authored skills in a cycle": {
 			map[string]SkillFiles{"skills/release": authored("release", "skills/tag"), "skills/tag": authored("tag", "skills/release")}, "skills/release/SKILL.md",
-			"fg-skills-used forms a cycle: skills/release -> skills/tag -> skills/release. A skill installs with every skill it uses, so uses can't form a cycle; remove one of them",
+			"syllabus-skills-used forms a cycle: skills/release -> skills/tag -> skills/release. A skill installs with every skill it uses, so uses can't form a cycle; remove one of them",
 		},
 	}
 	for name, test := range tests {

@@ -50,7 +50,7 @@ type Source struct {
 	// such as skills/build-feature, or only skills.Wildcard. It is empty, never nil, when the source includes no
 	// skills. Whether each ID names a skill the source has is checked when sync reads the source.
 	Skills []string `json:"skills"`
-	// SkillUses maps a skill ID to the IDs of the skills it uses that its own fg-skills-used doesn't declare, each a
+	// SkillUses maps a skill ID to the IDs of the skills it uses that its own syllabus-skills-used doesn't declare, each a
 	// folder path in the source's repository, sorted; it is empty, never nil, when skills.uses declares none. Whether
 	// each key is a skill the source installs, and each value a skill it has, is checked when sync reads the source.
 	SkillUses map[string][]string `json:"skillUses,omitempty"`

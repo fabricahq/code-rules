@@ -29,28 +29,28 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 		want        []string
 	}{
 		"valid skills": {map[string]string{
-			"fix/SKILL.md":    skill("  fg-skill-type: playbook\n  fg-rules-used: |\n    practices/testing/a\n    practices/testing/c\n  fg-skills-used: skills/review\n"),
-			"review/SKILL.md": "---\nname: review\nmetadata:\n  fg-skill-type: review\n---\n",
+			"fix/SKILL.md":    skill("  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/a\n    practices/testing/c\n  syllabus-skills-used: skills/review\n"),
+			"review/SKILL.md": "---\nname: review\nmetadata:\n  syllabus-skill-type: review\n---\n",
 		}, nil, []string{}},
 		"file directly in skills": {map[string]string{"README.md": "x"}, nil, []string{"skills/README.md: skills/ holds only skill folders"}},
 		"empty folder":            {nil, []string{"fix"}, []string{"skills/fix: expected SKILL.md in the skill folder"}},
 		"folder without SKILL.md": {map[string]string{"fix/notes.md": "x"}, nil, []string{"skills/fix: expected SKILL.md in the skill folder"}},
 		"invalid folder name":     {map[string]string{"Fix_Bug/SKILL.md": "x"}, nil, []string{"skills/Fix_Bug: a skill name uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen"}},
 		"unreadable frontmatter":  {map[string]string{"fix/SKILL.md": "---\nname: fix\n"}, nil, []string{"skills/fix/SKILL.md: the frontmatter that starts on the first line has no closing --- line"}},
-		"unknown type and name": {map[string]string{"fix/SKILL.md": "---\nname: fixer\nmetadata:\n  fg-skill-type: design\n---\n"}, nil, []string{
+		"unknown type and name": {map[string]string{"fix/SKILL.md": "---\nname: fixer\nmetadata:\n  syllabus-skill-type: design\n---\n"}, nil, []string{
 			`skills/fix/SKILL.md: name is "fixer", but the folder is fix; they must match`,
-			`skills/fix/SKILL.md: fg-skill-type is "design"; use playbook or review, or leave it out`,
+			`skills/fix/SKILL.md: syllabus-skill-type is "design"; use playbook or review, or leave it out`,
 		}},
-		"cited rules that aren't current": {map[string]string{"fix/SKILL.md": skill("  fg-rules-used: |\n    practices/testing/missing\n    practices/testing/b\n    practices/testing/old\n    practices/testing/d\n    fabrica:practices/testing/a\n")}, nil, []string{
-			`skills/fix/SKILL.md: fg-rules-used names "fabrica:practices/testing/a"; cite a rule by its ID in this library, without a source name, such as practices/testing/verify-retries`,
-			"skills/fix/SKILL.md: fg-rules-used names practices/testing/missing, which isn't a rule in this library",
-			"skills/fix/SKILL.md: fg-rules-used names practices/testing/b, which is retired and replaced by practices/testing/a; cite the replacement",
-			"skills/fix/SKILL.md: fg-rules-used names practices/testing/old, which is retired; remove it",
-			"skills/fix/SKILL.md: fg-rules-used names practices/testing/d, which is retired and replaced by practices/testing/c; cite the replacement",
+		"cited rules that aren't current": {map[string]string{"fix/SKILL.md": skill("  syllabus-rules-used: |\n    practices/testing/missing\n    practices/testing/b\n    practices/testing/old\n    practices/testing/d\n    fabrica:practices/testing/a\n")}, nil, []string{
+			`skills/fix/SKILL.md: syllabus-rules-used names "fabrica:practices/testing/a"; cite a rule by its ID in this library, without a source name, such as practices/testing/verify-retries`,
+			"skills/fix/SKILL.md: syllabus-rules-used names practices/testing/missing, which isn't a rule in this library",
+			"skills/fix/SKILL.md: syllabus-rules-used names practices/testing/b, which is retired and replaced by practices/testing/a; cite the replacement",
+			"skills/fix/SKILL.md: syllabus-rules-used names practices/testing/old, which is retired; remove it",
+			"skills/fix/SKILL.md: syllabus-rules-used names practices/testing/d, which is retired and replaced by practices/testing/c; cite the replacement",
 		}},
-		"skills it uses": {map[string]string{"fix/SKILL.md": skill("  fg-skills-used: |\n    skills/fix\n    mattpocock:skills/tdd\n")}, nil, []string{
-			"skills/fix/SKILL.md: fg-skills-used names the skill itself",
-			`skills/fix/SKILL.md: fg-skills-used names "mattpocock:skills/tdd"; name a skill in this library by its ID, without a source name, such as skills/tdd`,
+		"skills it uses": {map[string]string{"fix/SKILL.md": skill("  syllabus-skills-used: |\n    skills/fix\n    mattpocock:skills/tdd\n")}, nil, []string{
+			"skills/fix/SKILL.md: syllabus-skills-used names the skill itself",
+			`skills/fix/SKILL.md: syllabus-skills-used names "mattpocock:skills/tdd"; name a skill in this library by its ID, without a source name, such as skills/tdd`,
 		}},
 	}
 	for name, test := range tests {
@@ -72,7 +72,7 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 func TestCheck_RejectsASkillThatCitesARuleTheLibraryRetired(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	edit(t, options.Directory, map[string]string{".code-rules/skills/fix/SKILL.md": "---\nname: fix\nmetadata:\n  fg-skill-type: playbook\n  fg-rules-used: |\n    practices/testing/a\n    practices/testing/b\n---\n# Fix\n"})
+	edit(t, options.Directory, map[string]string{".code-rules/skills/fix/SKILL.md": "---\nname: fix\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/a\n    practices/testing/b\n---\n# Fix\n"})
 	if _, err := Check(ctx, options); err != nil {
 		t.Fatalf("check rejected a valid skill: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestCheck_RejectsASkillThatCitesARuleTheLibraryRetired(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := Check(ctx, options)
-	if errorCode(err) != "invalid-skill" || !strings.HasSuffix(err.Error(), "skills don't pass library check:\n  - skills/fix/SKILL.md: fg-rules-used names practices/testing/b, which is retired and replaced by practices/testing/a; cite the replacement") {
+	if errorCode(err) != "invalid-skill" || !strings.HasSuffix(err.Error(), "skills don't pass library check:\n  - skills/fix/SKILL.md: syllabus-rules-used names practices/testing/b, which is retired and replaced by practices/testing/a; cite the replacement") {
 		t.Fatalf("got %v; want invalid-skill naming the retired rule", err)
 	}
 }

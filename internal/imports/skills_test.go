@@ -159,15 +159,15 @@ func TestInstalledSkillsReportsTheSkillsAMissingUseOrCycleInvolves(t *testing.T)
 	}{
 		"an included skill's missing use": {
 			map[string][]string{"skills/architect": {"skills/how"}}, nil, "sources.team.skills",
-			"skills/architect uses skills/how, which isn't a skill in release/3: skills/architect names it in fg-skills-used. Code Rules installs every skill an installed skill uses, so it can't install skills/architect. Ask the source's maintainer to correct fg-skills-used, or stop including skills/architect",
+			"skills/architect uses skills/how, which isn't a skill in release/3: skills/architect names it in syllabus-skills-used. Code Rules installs every skill an installed skill uses, so it can't install skills/architect. Ask the source's maintainer to correct syllabus-skills-used, or stop including skills/architect",
 		},
 		"a used skill's missing use": {
 			map[string][]string{"skills/architect": {"skills/how"}, "skills/how": {"skills/gone"}}, nil, "sources.team.skills",
-			"skills/how uses skills/gone, which isn't a skill in release/3: skills/how names it in fg-skills-used. Code Rules installs every skill an installed skill uses, so it can't install skills/how, which skills/architect uses. Ask the source's maintainer to correct fg-skills-used, or stop including skills/architect",
+			"skills/how uses skills/gone, which isn't a skill in release/3: skills/how names it in syllabus-skills-used. Code Rules installs every skill an installed skill uses, so it can't install skills/how, which skills/architect uses. Ask the source's maintainer to correct syllabus-skills-used, or stop including skills/architect",
 		},
 		"a cycle": {
 			map[string][]string{"skills/architect": {"skills/how"}, "skills/how": {"skills/architect"}}, nil, "sources.team.skills",
-			"the skills the source installs use each other in a cycle: skills/architect -> skills/how -> skills/architect. Code Rules installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct fg-skills-used, or remove the use from sources.team.skills.uses",
+			"the skills the source installs use each other in a cycle: skills/architect -> skills/how -> skills/architect. Code Rules installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct syllabus-skills-used, or remove the use from sources.team.skills.uses",
 		},
 		"a uses key the source doesn't install": {
 			map[string][]string{"skills/architect": nil}, map[string][]string{"skills/other": {"skills/architect"}}, "sources.team.skills.uses.skills/other",

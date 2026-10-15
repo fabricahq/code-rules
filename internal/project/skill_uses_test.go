@@ -1,5 +1,5 @@
 // Test that sync installs the skills an included skill uses, from the same source, and that build and check keep the
-// recorded skills in step with fg-skills-used and skills.uses.
+// recorded skills in step with syllabus-skills-used and skills.uses.
 
 package project
 
@@ -14,11 +14,11 @@ import (
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
-// usingSkill returns a SKILL.md for skill name whose fg-skills-used lists used.
+// usingSkill returns a SKILL.md for skill name whose syllabus-skills-used lists used.
 func usingSkill(name string, used ...string) []byte {
 	text := "---\nname: " + name + "\ndescription: Use " + name + ".\n"
 	if len(used) > 0 {
-		text += "metadata:\n  fg-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
+		text += "metadata:\n  syllabus-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
 	}
 	return []byte(text + "---\n# " + name + "\n")
 }
@@ -166,7 +166,7 @@ func TestSync_FailsWithoutWritingWhenAUsedSkillCannotBeFound(t *testing.T) {
 	}{
 		"a use its metadata declares": {
 			`{"include":["skills/poteto-mode"]}`, "", "sources.pstack.skills",
-			"skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in fg-skills-used. Code Rules installs every skill an installed skill uses, so it can't install skills/architect, which skills/poteto-mode uses. Ask the source's maintainer to correct fg-skills-used, or stop including skills/poteto-mode",
+			"skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in syllabus-skills-used. Code Rules installs every skill an installed skill uses, so it can't install skills/architect, which skills/poteto-mode uses. Ask the source's maintainer to correct syllabus-skills-used, or stop including skills/poteto-mode",
 		},
 		"a use skills.uses declares": {
 			`{"include":["skills/loop"],"uses":{"skills/loop":["skills/gone"]}}`, "", "sources.pstack.skills.uses.skills/loop",

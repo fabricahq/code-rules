@@ -73,7 +73,7 @@ The directories serve different purposes:
 - **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill.
 - **Skill target folders: installed copies of every skill.** Build and sync copy each skill into each folder that `skillTargets` names, `.claude/skills/` and `.agents/skills/`, with a marker line saying not to edit it, and record the folders they installed in `generated/installed-skills.json`. They never replace or remove a folder there that they didn't install. Commit the copies; edit the skill's source instead. Check fails while a copy differs from what build would write.
 
-When a skill cites rules in `fg-rules-used`, the installed `SKILL.md` ends with a generated section that links to the project's version of each one, relative to the copy, so the same copy works in every skill target:
+When a skill cites rules in `syllabus-rules-used`, the installed `SKILL.md` ends with a generated section that links to the project's version of each one, relative to the copy, so the same copy works in every skill target:
 
 ```md
 ## Rules this skill applies
