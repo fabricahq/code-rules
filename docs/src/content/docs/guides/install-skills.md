@@ -126,13 +126,11 @@ Remove the skill's ID from `skills.include`, or delete an authored skill's folde
 The personal skill warning comes in the next Code Rules release, with skills.
 :::
 
-People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which one to use, and some use the personal one without saying so. `code-rules project sync`, `update`, and `check` look in your personal skill folders and warn about each pair, naming both paths and what each agent does:
+People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which one to use, and some use the personal one without saying so. `code-rules project sync`, `update`, and `check` look in your personal skill folders and warn about each pair, naming both paths and, when Claude Code reads both copies, which one it uses:
 
 ```text
 Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .claude/skills/build-feature).
   Claude Code uses your personal skill.
-  Codex shows both.
-  VS Code uses this project's skill.
 Rename or remove your personal skill to use the project's.
 ```
 

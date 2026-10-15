@@ -137,13 +137,11 @@ People also install **personal skills** for themselves, outside any repository, 
 | Codex | Shows both. |
 | VS Code | Uses the project's skill. |
 
-`code-rules project sync`, `code-rules project update`, and `code-rules project check` look in the personal skill folders of your home directory, `~/.claude/skills/`, `~/.agents/skills/`, and `~/.codex/skills/`, and warn about each personal skill with the same name as a skill the project installs, naming both paths and what each agent does:
+`code-rules project sync`, `code-rules project update`, and `code-rules project check` look in the personal skill folders of your home directory, `~/.claude/skills/`, `~/.agents/skills/`, and `~/.codex/skills/`, and warn about each personal skill with the same name as a skill the project installs, naming both paths and, when Claude Code reads both copies, which one it uses:
 
 ```text
 Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .agents/skills/build-feature and .claude/skills/build-feature).
   Claude Code uses your personal skill.
-  Codex shows both.
-  VS Code uses this project's skill.
 Rename or remove your personal skill to use the project's.
 ```
 
@@ -151,6 +149,7 @@ In JSON output, each warning is one string in `value.warnings`, with the same li
 
 - A personal skill is a folder in one of those folders that holds a `SKILL.md` file, including a folder linked from elsewhere. It matches when its folder name is the install name of a skill the project installs into at least one skill target, which is also its installed folder's name. Code Rules compares names only, never contents, and doesn't read the personal `SKILL.md`.
 - Sync and update compare against the skills they just installed. Check and an update's preview compare against the skills `generated/installed-skills.json` records, which are what agents find in the repository now.
+- The warning names Claude Code only when the personal skill is in `~/.claude/skills/` and the project installs the skill into `.claude/skills/`, Claude Code's personal and project skill folders. It names no other agent, so a warning for a personal skill in `~/.agents/skills/` or `~/.codex/skills/` names only the two paths.
 - A personal folder linked to another, such as `~/.agents/skills` linked to `~/.claude/skills`, is reported once. When the project's root is your home directory, its own installed folders aren't reported as personal skills.
 - A home directory or personal skill folder that is missing or can't be read is skipped without a message.
 
