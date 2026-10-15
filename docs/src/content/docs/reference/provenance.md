@@ -47,7 +47,7 @@ Each rule entry includes:
 | Field | What to look for |
 | --- | --- |
 | `id` and `group` | The active rule's identity and group. |
-| `citedBy` | The project IDs of the installed skills whose `fg-rules-used` list names this rule, sorted, and empty when none does. |
+| `citedBy` | The project IDs of the installed skills whose `syllabus-rules-used` list names this rule, sorted, and empty when none does. |
 | `referenceOnly` | `true` when the rule is taken only because installed skills cite it, so `RULES.md` and the group pages don't list it; otherwise `false`. |
 | `origin` | The source and file supplying the active rule. A source's origin also identifies the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the vendored file isn't a published version. |
 | `upstream` | The origin of the rule an authored rule replaces, including its `version`; otherwise `null`. |
@@ -121,14 +121,14 @@ Installed skills are in the top-level `skills` array, one entry per skill the pr
 | --- | --- |
 | `id` and `name` | The skill's project ID and its install name, which names its installed folders. |
 | `renamedFrom` | The skill's own `name` when your configuration [renames](/reference/configuration/#rename-a-skill) it; otherwise `null`. |
-| `type` | Its `fg-skill-type`, `playbook` or `review`, or `null`. |
+| `type` | Its `syllabus-skill-type`, `playbook` or `review`, or `null`. |
 | `origin` | The source and folder supplying the installed skill, with the repository and exact commit. `version` and `release` record the skill's version and the library release that published it; both are `null` for an authored skill, a skill from a non-library source, or one with unreleased changes. An authored skill's origin has `source: null` and `null` for `repository` and `resolvedCommit`. For a [borrowed skill](/reference/configuration/#borrowed-skills), `source` is the library that listed it, `borrowedFrom` the borrowed source's name in that library's manifest, and `repository` and `resolvedCommit` the original repository and the commit your project resolved; otherwise `borrowedFrom` is `null`. |
 | `level` | The skill's [level](/reference/configuration/#skill-levels), `required`, `recommended`, or `offered`, as the library that listed it sets it; `null` for an authored skill or one from a non-library source. |
 | `requiredBy`, `recommendedBy`, or `offeredBy` | The library that set that level and the library release whose manifest set it, as `library` and `release`. Present when a level brought the skill in, including a borrowed skill; omitted when your project named the skill by ID in the source that holds it, or the skill is authored or from a non-library source. |
 | `included` | `true` when your configuration or a level includes the skill; `false` when it's installed only because other skills use it. |
 | `usedBy` | The project IDs of the installed skills that use this one, sorted, and empty when none does. |
-| `uses` | The project IDs of the skills this one uses, from its `fg-skills-used` list and your configuration's `skills.uses`. When your project replaces one, the replacement's ID is listed. |
-| `rulesUsed` | The project IDs of the rules its `fg-rules-used` list names. Each of those rules' entries in `rules` lists this skill in `citedBy`. |
+| `uses` | The project IDs of the skills this one uses, from its `syllabus-skills-used` list and your configuration's `skills.uses`. When your project replaces one, the replacement's ID is listed. |
+| `rulesUsed` | The project IDs of the rules its `syllabus-rules-used` list names. Each of those rules' entries in `rules` lists this skill in `citedBy`. |
 | `targets` | The folders it's installed in, relative to the project root, as in `generated/installed-skills.json`. Empty when the project has no skill targets. |
 | `upstream`, `replacementReason`, and `basedOn` | For an authored skill that replaces one from a source, the replaced skill's origin, your configured reason, and the version or, for a non-library source, the commit your skill is based on; otherwise `null`. |
 | `license` and `licenseBasis` | Declared terms, explained [below](#find-declared-licenses-and-source-credits). |

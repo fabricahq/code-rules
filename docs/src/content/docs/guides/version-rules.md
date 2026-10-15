@@ -79,7 +79,7 @@ A rule's version describes its obligation. A skill's version describes what the 
 | **Minor**, such as `1.3.0` to `1.4.0` | The skill adds steps or guidance, and everything that relied on the previous version still works. | Add an optional accessibility check, or a reference with more examples. |
 | **Patch**, such as `1.3.0` to `1.3.1` | The skill only clarifies its wording. | Fix a typo, or reword a step without changing what it asks for. |
 
-A skill's version doesn't change when a rule it cites gets a new version. The skill names the rule, not a version of it, so a project applies the rule at whatever version it takes. Adding a rule to `fg-rules-used`, or a skill to `fg-skills-used`, is major, because a project that installs the new version takes that rule or skill too.
+A skill's version doesn't change when a rule it cites gets a new version. The skill names the rule, not a version of it, so a project applies the rule at whatever version it takes. Adding a rule to `syllabus-rules-used`, or a skill to `syllabus-skills-used`, is major, because a project that installs the new version takes that rule or skill too.
 
 Projects see skill changes in their update preview, beside rule changes. Unlike rules, skills can't be pinned: a project installs all of a library's skills from one library release, and they move together when the project updates. See [Rule and skill versions](/reference/rule-versions/#choose-a-skills-version-change) for the exact definitions.
 
@@ -255,7 +255,7 @@ code-rules library change skills/triage-bug \
   --summary 'Covered by the fix-bug playbook, which also writes the regression test.'
 ```
 
-A skill can only be replaced by a skill, and a rule only by a rule. Remove the retired skill from the manifest's levels, and update every skill whose `fg-skills-used` names the retired skill in the same pull request; `code-rules library check` fails until you do. To rename a skill, retire the old ID, replaced by the new one, and add the new ID as `new` in the same note, as you would [rename a rule](#rename-a-rule).
+A skill can only be replaced by a skill, and a rule only by a rule. Remove the retired skill from the manifest's levels, and update every skill whose `syllabus-skills-used` names the retired skill in the same pull request; `code-rules library check` fails until you do. To rename a skill, retire the old ID, replaced by the new one, and add the new ID as `new` in the same note, as you would [rename a rule](#rename-a-rule).
 
 ### Change a shared file, group description, or skill level
 

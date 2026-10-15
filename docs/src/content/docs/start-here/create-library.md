@@ -215,7 +215,7 @@ code-rules library add skill fix-bug \
   --type playbook
 ```
 
-Complete `.code-rules/skills/fix-bug/SKILL.md`, list the rules its steps apply, such as `practices/error-handling/make-errors-actionable`, in its `fg-rules-used` metadata, and run `code-rules library check`. The skill is offered: projects install it only when they name it. To recommend it to every project, or require it, add it to the manifest's `library.skills` levels; see [Skill levels](/reference/library-format/#skill-levels). Your library has published its first library release, so record the new skill with `code-rules library change skills/fix-bug --summary '...'` before you publish the next one. [Write a skill](/guides/write-skills/) walks through each step.
+Complete `.code-rules/skills/fix-bug/SKILL.md`, list the rules its steps apply, such as `practices/error-handling/make-errors-actionable`, in its `syllabus-rules-used` metadata, and run `code-rules library check`. The skill is offered: projects install it only when they name it. To recommend it to every project, or require it, add it to the manifest's `library.skills` levels; see [Skill levels](/reference/library-format/#skill-levels). Your library has published its first library release, so record the new skill with `code-rules library change skills/fix-bug --summary '...'` before you publish the next one. [Write a skill](/guides/write-skills/) walks through each step.
 
 ## Next steps
 

@@ -96,7 +96,7 @@ The `mattpocock:` skills are **borrowed**: Fabrica's library lists them at a lev
 Narrow the list:
 
 - `--type review` lists only review skills, and `--type playbook` only playbooks.
-- `--applies-rules-from practices/testing` lists only skills whose `fg-rules-used` names a rule in that group.
+- `--applies-rules-from practices/testing` lists only skills whose `syllabus-rules-used` names a rule in that group.
 - `--json` returns the list for scripts.
 
 See [project list skills](/reference/cli/#project-list-skills) for every option.
@@ -127,12 +127,12 @@ Code Rules writes only the skill folders it installs. Other folders in `.claude/
 
 A skill can call other skills and cite rules. When you install it, Code Rules installs those too:
 
-- **Skills it calls.** Every skill in its `fg-skills-used` list, and the skills those call, from the same repository and revision. `SKILLS.md` says each was installed because another skill uses it.
-- **Rules it cites.** Every rule in its `fg-rules-used` list, from the same library, even ones your rule `include` doesn't name. These cited rules are reference-only: each gets its generated rule file, and the installed skill links to it, but `RULES.md` doesn't list it. Installing a skill never widens the rules your agents apply to all work.
+- **Skills it calls.** Every skill in its `syllabus-skills-used` list, and the skills those call, from the same repository and revision. `SKILLS.md` says each was installed because another skill uses it.
+- **Rules it cites.** Every rule in its `syllabus-rules-used` list, from the same library, even ones your rule `include` doesn't name. These cited rules are reference-only: each gets its generated rule file, and the installed skill links to it, but `RULES.md` doesn't list it. Installing a skill never widens the rules your agents apply to all work.
 
 If you exclude or replace a cited rule, the installed skill follows your choice: it links to your replacement, or says the rule is excluded by this project, with your reason. A cited rule your project also includes is an ordinary rule.
 
-When a skill calls another without saying so in `fg-skills-used`, as many third-party skills do, declare the call under `skills.uses`, so Code Rules installs both:
+When a skill calls another without saying so in `syllabus-skills-used`, as many third-party skills do, declare the call under `skills.uses`, so Code Rules installs both:
 
 ```yaml
 skills:
@@ -273,7 +273,7 @@ code-rules project add skill review-migration \
   --non-interactive
 ```
 
-The command writes a draft `.code-rules/skills/review-migration/SKILL.md`. Authored skills have no versions; they change when you edit them. In `fg-rules-used`, an authored skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `practices/testing/test-project-contracts` for one of your own, because it can cite rules from any source. Run `code-rules project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
+The command writes a draft `.code-rules/skills/review-migration/SKILL.md`. Authored skills have no versions; they change when you edit them. In `syllabus-rules-used`, an authored skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `practices/testing/test-project-contracts` for one of your own, because it can cite rules from any source. Run `code-rules project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
 
 ## Personal skills with the same name
 

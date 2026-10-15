@@ -211,7 +211,7 @@ When two installed skills still have the same install name, from any sources or 
 
 ## Declare the skills a skill calls
 
-A skill can call other skills without listing them in `fg-skills-used`, especially one from a [non-library source](#refs), whose skills rarely have that metadata. Declare those calls in the source's `skills.uses`:
+A skill can call other skills without listing them in `syllabus-skills-used`, especially one from a [non-library source](#refs), whose skills rarely have that metadata. Declare those calls in the source's `skills.uses`:
 
 ```yaml
 skills:
@@ -219,7 +219,7 @@ skills:
     skills/architect: [skills/how]
 ```
 
-Each key is a skill ID the source installs, and each value lists skill IDs in the same repository. Every ID must exist there. `uses` adds to what the skill declares itself; it can't remove a call the skill declares. Code Rules installs the listed skills alongside the skill that calls them, and the installed copy's "Skills this skill uses" line includes them. Calls can't form a cycle. Code Rules doesn't look for calls a skill doesn't declare: `fg-skills-used` and `uses` are the only ways it learns of them.
+Each key is a skill ID the source installs, and each value lists skill IDs in the same repository. Every ID must exist there. `uses` adds to what the skill declares itself; it can't remove a call the skill declares. Code Rules installs the listed skills alongside the skill that calls them, and the installed copy's "Skills this skill uses" line includes them. Calls can't form a cycle. Code Rules doesn't look for calls a skill doesn't declare: `syllabus-skills-used` and `uses` are the only ways it learns of them.
 
 ## Refs
 

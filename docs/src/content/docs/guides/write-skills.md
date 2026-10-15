@@ -35,7 +35,7 @@ If a step in your draft explains how to do something well, and the explanation w
 
 ## Choose a type
 
-A skill can declare one [type](/concepts/skill/#skill-types) in `fg-skill-type`:
+A skill can declare one [type](/concepts/skill/#skill-types) in `syllabus-skill-type`:
 
 - **`playbook`**: ordered steps for carrying out one kind of engineering task, citing the rules each step applies, such as building a feature or fixing a bug.
 - **`review`**: examines existing work, such as a diff, a plan, or a test suite, against stated criteria and reports findings.
@@ -88,25 +88,25 @@ The fork copies the version the project installs into `.code-rules/skills/fix-bu
 Replace the draft's body with the skill's instructions:
 
 - **Number the steps, in the order the agent takes them.** Give each step one outcome the agent can check before moving on, such as "a test that fails because of the bug."
-- **Name the rules each step applies.** Mention the rule by its ID in the step, such as `practices/testing/test-behavior-not-implementation`, and list it in `fg-rules-used`. The installed copy ends with a section that maps each ID to the project's version of the rule, including an authored rule that replaces it.
+- **Name the rules each step applies.** Mention the rule by its ID in the step, such as `practices/testing/test-behavior-not-implementation`, and list it in `syllabus-rules-used`. The installed copy ends with a section that maps each ID to the project's version of the rule, including an authored rule that replaces it.
 - **Say when to stop.** Tell the agent what to do when a step can't be completed, such as a bug it can't reproduce, instead of leaving it to improvise.
 - **Say what to report.** End with what the agent hands back: what it changed, what it verified, and what it couldn't.
 - **Keep `SKILL.md` short.** Agents load the whole file when they use the skill. Move long background, examples, and checklists into `references/`, and link to them from the step that needs them. The Agent Skills format recommends keeping `SKILL.md` under 500 lines.
 - **Put repeatable commands in scripts.** A script in `scripts/` runs the same way every time. Make it executable and commit it with its mode; Code Rules keeps the mode when it installs the skill.
 
-Links must stay inside the skill's folder or be absolute URLs, because each installed copy stands alone. Cite rules in `fg-rules-used` instead of linking to them.
+Links must stay inside the skill's folder or be absolute URLs, because each installed copy stands alone. Cite rules in `syllabus-rules-used` instead of linking to them.
 
 ## Cite rules and skills
 
-List the rules the skill applies in `fg-rules-used`, and the other skills it uses in `fg-skills-used`, one ID per line in a YAML block string:
+List the rules the skill applies in `syllabus-rules-used`, and the other skills it uses in `syllabus-skills-used`, one ID per line in a YAML block string:
 
 ```yaml
 metadata:
-  fg-skill-type: playbook
-  fg-rules-used: |
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
     practices/testing/reproduce-bugs-with-a-failing-test
     practices/testing/test-behavior-not-implementation
-  fg-skills-used: |
+  syllabus-skills-used: |
     skills/review-tests
 ```
 
@@ -126,12 +126,12 @@ name: fix-bug
 description: Fix a reported bug and prove it with a regression test. Use when a task starts from a bug report, a failing behavior, or an error someone saw.
 license: MIT
 metadata:
-  fg-skill-type: playbook
-  fg-rules-used: |
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
     practices/testing/reproduce-bugs-with-a-failing-test
     practices/testing/test-behavior-not-implementation
     practices/error-handling/make-errors-actionable
-  fg-skills-used: |
+  syllabus-skills-used: |
     skills/review-tests
 ---
 
@@ -178,8 +178,8 @@ name: review-tests
 description: Review added or changed tests for whether they would catch the behavior they claim to cover. Use when reviewing a pull request or diff that adds or changes tests.
 license: MIT
 metadata:
-  fg-skill-type: review
-  fg-rules-used: |
+  syllabus-skill-type: review
+  syllabus-rules-used: |
     practices/testing/test-behavior-not-implementation
     practices/testing/verify-retry-limits
 ---
@@ -200,12 +200,12 @@ In a library, check every skill, along with the rest of the library:
 code-rules library check
 ```
 
-Check validates the folder, the frontmatter, the `fg-` keys, the rules and skills they name, and every link, and lists each problem it finds:
+Check validates the folder, the frontmatter, the `syllabus-` keys, the rules and skills they name, and every link, and lists each problem it finds:
 
 ```text
 Error: skills don't pass library check:
-  - skills/fix-bug/SKILL.md: fg-rules-used names practices/testing/reproduce-bug-with-a-failing-test, which isn't a rule in this library
-  - skills/fix-bug/SKILL.md: fg-skill-type is workflow; use playbook or review, or leave it out
+  - skills/fix-bug/SKILL.md: syllabus-rules-used names practices/testing/reproduce-bug-with-a-failing-test, which isn't a rule in this library
+  - skills/fix-bug/SKILL.md: syllabus-skill-type is workflow; use playbook or review, or leave it out
 ```
 
 [Validation](/reference/skill-format/#validation) lists every check and its message.
@@ -269,7 +269,7 @@ code-rules library change skills/triage-bug \
   --summary 'Covered by the fix-bug playbook, which also writes the regression test.'
 ```
 
-Only a skill can replace a skill. A retired skill's ID can't be reused, and projects see the retirement, with its replacement, in their update preview. Update any skill that names the retired one in `fg-skills-used` in the same pull request; `code-rules library check` fails until you do.
+Only a skill can replace a skill. A retired skill's ID can't be reused, and projects see the retirement, with its replacement, in their update preview. Update any skill that names the retired one in `syllabus-skills-used` in the same pull request; `code-rules library check` fails until you do.
 
 To rename a skill, rename its folder and its `name` field, then record one note that retires the old ID, replaced by the new one, and adds the new ID:
 

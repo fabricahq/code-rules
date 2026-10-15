@@ -137,7 +137,7 @@ Create an authored skill in `.code-rules/skills/NAME/`. `NAME` follows the [skil
 | Option | Meaning |
 | --- | --- |
 | `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
-| `--type TYPE` | Optional. `playbook` or `review`, recorded as `fg-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `syllabus-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 The command writes `SKILL.md` with the name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. Complete it and remove the marker before building; an authored skill that still has the marker fails sync and build. An authored skill cites your own rules by their IDs and rules from sources by project ID, such as `fabrica:practices/testing/verify-retry-limits`; see [Skills in a project](/reference/skill-format/#skills-in-a-project). In a library, use [library add skill](#library-add-skill) instead, whose skills cite only the library's own rules. Existing skills are not overwritten. When a skill the repository installs from a source already has the name, the command warns that sync will fail with `skill-name-clash` until you rename or exclude one of them.
@@ -159,7 +159,7 @@ Copy a skill the project installs into `.code-rules/skills/` so the project cont
 `--description` and `--type` don't apply to a fork. The command:
 
 1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `.code-rules/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a non-library source, the recorded commit. A renamed skill's fork takes its install name, so the folder and `name` match what agents already see.
-2. Rewrites the fork's `fg-rules-used` and `fg-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `fg-skills-used`.
+2. Rewrites the fork's `syllabus-rules-used` and `syllabus-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `syllabus-skills-used`.
 3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
 
 Links in a skill stay inside its folder, so the fork needs no link changes. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
@@ -303,7 +303,7 @@ List the skills the repository's sources offer, with their levels, so you can ch
 | Option | Meaning |
 | --- | --- |
 | `--type TYPE` | Only skills of this type: `playbook` or `review`. |
-| `--applies-rules-from GROUP` | Only skills whose `fg-rules-used` names a rule in this group, such as `practices/architecture`. |
+| `--applies-rules-from GROUP` | Only skills whose `syllabus-rules-used` names a rule in this group, such as `practices/architecture`. |
 
 ```text
 $ code-rules project list skills --applies-rules-from practices/architecture
@@ -404,7 +404,7 @@ Create a skill in `.code-rules/skills/NAME/`. `NAME` follows the [skill name gra
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
-| `--type TYPE` | Optional. `playbook` or `review`, recorded as `fg-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `syllabus-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 The command writes `.code-rules/skills/NAME/SKILL.md` with the name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. Complete the draft and remove the marker before validation; see [Write a skill](/guides/write-skills/). An invalid name, or a description that's blank or too long, fails before prompts with exit code `2`. Existing skills are not overwritten, and the ID of a skill a library release retired can't be reused. After the first library release, the next steps include adding the new skill's change note with `code-rules library change`. Like `code-rules library add rule`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags.
@@ -446,7 +446,7 @@ Validate the manifest, all groups and rules, all skills and their levels, change
 
 Reports group, rule, and skill counts, `value.groupCount`, `value.ruleCount`, and `value.skillCount` in JSON, such as `Library is valid: 3 group(s), 6 rule(s), 3 skill(s).`, and file-specific errors. The human output leaves out the skill count when the library has no skills. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `fg-skill-type`, `fg-rules-used`, and `fg-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message.
+Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `syllabus-skill-type`, `syllabus-rules-used`, and `syllabus-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message.
 
 Check also validates the manifest's skill levels. It fails when a level lists a skill the library doesn't have, a skill appears in two levels, or two listed skills, authored or borrowed, have the same name. To check borrowed skills, it reads each borrowed source at the `ref` the library's configuration names, so it needs access to those repositories; see [Name clashes](/reference/library-format/#name-clashes). Levels are library-wide settings, so changing one needs no change note.
 

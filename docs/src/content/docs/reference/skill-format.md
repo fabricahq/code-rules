@@ -72,11 +72,11 @@ name: build-feature
 description: Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
 license: MIT
 metadata:
-  fg-skill-type: playbook
-  fg-rules-used: |
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
     practices/architecture/decide-module-boundaries-first
     practices/testing/test-behavior-not-implementation
-  fg-skills-used: |
+  syllabus-skills-used: |
     skills/tdd
 ---
 
@@ -105,25 +105,25 @@ Code Rules adds three optional keys under `metadata`. Each value is a string, as
 
 | Key | Value | Checks |
 | --- | --- | --- |
-| `fg-skill-type` | `playbook` or `review` | Must be a type on the canonical list. Unknown values fail `code-rules library check`. |
-| `fg-rules-used` | The IDs of the rules the skill applies, one per line | Each must be a current rule in this repository, or, outside a library, in a source the project names. |
-| `fg-skills-used` | The IDs of the skills this skill calls, one per line | Each must be a current skill in the same repository, other than this one, and the skills called can't form a cycle. |
+| `syllabus-skill-type` | `playbook` or `review` | Must be a type on the canonical list. Unknown values fail `code-rules library check`. |
+| `syllabus-rules-used` | The IDs of the rules the skill applies, one per line | Each must be a current rule in this repository, or, outside a library, in a source the project names. |
+| `syllabus-skills-used` | The IDs of the skills this skill calls, one per line | Each must be a current skill in the same repository, other than this one, and the skills called can't form a cycle. |
 
-Other `metadata` keys, such as `author`, are preserved and ignored. Keys that start with `fg-` are reserved for Code Rules, so any other `fg-` key fails `code-rules library check`.
+Other `metadata` keys, such as `author`, are preserved and ignored. Keys that start with `syllabus-` are reserved for Code Rules, so any other `syllabus-` key fails `code-rules library check`.
 
 ### Skill type
 
-`fg-skill-type` labels the skill as a `playbook` or a `review`; see [Skill types](/concepts/skill/#skill-types). Leave it out when neither fits. The type is a plain label: Code Rules shows it, and `code-rules project list skills --type` filters by it, but it installs, checks, and updates every skill the same way, whatever its type.
+`syllabus-skill-type` labels the skill as a `playbook` or a `review`; see [Skill types](/concepts/skill/#skill-types). Leave it out when neither fits. The type is a plain label: Code Rules shows it, and `code-rules project list skills --type` filters by it, but it installs, checks, and updates every skill the same way, whatever its type.
 
 The canonical type list is `canonical-skill-types.yaml` in the Code Rules repository. Each Code Rules release builds the list in, so a new type needs a Code Rules release, and your library's CI must use that release before a skill can declare the type. Only `code-rules library check` checks the type: a project installs a skill whose type its Code Rules doesn't know without complaint, and shows the type as written.
 
 ### Rules a skill applies
 
-`fg-rules-used` lists the rules the skill applies, one library rule ID per line, in a YAML block string:
+`syllabus-rules-used` lists the rules the skill applies, one library rule ID per line, in a YAML block string:
 
 ```yaml
 metadata:
-  fg-rules-used: |
+  syllabus-rules-used: |
     practices/architecture/decide-module-boundaries-first
     practices/testing/test-behavior-not-implementation
     practices/verification/verify-on-the-surface-users-touch
@@ -135,11 +135,11 @@ When a project installs the skill, Code Rules takes every cited rule, even ones 
 
 ### Skills a skill uses
 
-`fg-skills-used` lists the other skills this skill calls, one skill ID per line, in the same form:
+`syllabus-skills-used` lists the other skills this skill calls, one skill ID per line, in the same form:
 
 ```yaml
 metadata:
-  fg-skills-used: |
+  syllabus-skills-used: |
     skills/architect
     skills/tdd
 ```
@@ -148,7 +148,7 @@ Each line is a skill ID in the same repository, `skills/<name>`. A skill can't c
 
 ## Links
 
-Links in a skill's Markdown files must be absolute URLs, such as `https://agentskills.io`, or relative paths that stay inside the skill's own folder, such as `references/slicing.md` or `scripts/verify.sh`. Installed copies are self-contained, so a skill can't link to a rule file, another skill, the shared `assets/` directory, or any other file in the repository. Cite rules with `fg-rules-used` instead, and the installed copy links to the project's version of each one.
+Links in a skill's Markdown files must be absolute URLs, such as `https://agentskills.io`, or relative paths that stay inside the skill's own folder, such as `references/slicing.md` or `scripts/verify.sh`. Installed copies are self-contained, so a skill can't link to a rule file, another skill, the shared `assets/` directory, or any other file in the repository. Cite rules with `syllabus-rules-used` instead, and the installed copy links to the project's version of each one.
 
 Code Rules checks Markdown links, images, reference definitions, and the `href` and `src` attributes of HTML. Relative links must point to a file that exists in the skill's folder. Links to a heading in the same file, such as `#verify`, are allowed. Code Rules keeps external URLs as links and never downloads them. Files other than Markdown, such as scripts, aren't checked for links.
 
@@ -163,9 +163,9 @@ A library's license, declared in its [manifest](/reference/library-format/#licen
 ```text
 $ code-rules library check
 Error: skills don't pass library check:
-  - skills/build-feature/SKILL.md: fg-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library
-  - skills/build-feature/SKILL.md: fg-skills-used names skills/tdd-loop, which isn't a skill in this library
-  - skills/build-feature/SKILL.md: fg-skill-type is design; use playbook or review, or leave it out
+  - skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library
+  - skills/build-feature/SKILL.md: syllabus-skills-used names skills/tdd-loop, which isn't a skill in this library
+  - skills/build-feature/SKILL.md: syllabus-skill-type is design; use playbook or review, or leave it out
 ```
 
 Check fails with these problems:
@@ -192,18 +192,18 @@ Check fails with these problems:
 | A `name` that differs from the folder name | `skills/build-feature/SKILL.md: name is build-features, but the folder is build-feature; they must match` |
 | A `description` over 1,024 characters | `skills/build-feature/SKILL.md: description is 1,310 characters; use at most 1,024` |
 | A `compatibility` over 500 characters, or blank | `skills/build-feature/SKILL.md: compatibility is 612 characters; use at most 500` |
-| A field or `metadata` value that isn't a string | `skills/build-feature/SKILL.md: metadata.fg-skill-type must be a string` |
-| A reserved `fg-` key Code Rules doesn't define | `skills/build-feature/SKILL.md: metadata.fg-groups isn't a Code Rules key; use fg-skill-type, fg-rules-used, or fg-skills-used` |
-| A type that isn't on the canonical list | `skills/build-feature/SKILL.md: fg-skill-type is design; use playbook or review, or leave it out` |
-| A cited rule that doesn't exist | `skills/build-feature/SKILL.md: fg-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library` |
-| A cited rule with a source name or `.md` | `skills/build-feature/SKILL.md: fg-rules-used names fabrica:practices/testing/test-behavior-not-implementation; cite a rule by its ID in this library, such as practices/testing/test-behavior-not-implementation` |
-| A cited rule that a library release or a pending change note retired, with a replacement | `skills/build-feature/SKILL.md: fg-rules-used names practices/testing/check-retry-backoff, which is retired and replaced by practices/testing/verify-retries; cite the replacement` |
-| A cited rule that was retired without a replacement | `skills/build-feature/SKILL.md: fg-rules-used names practices/code-design/comment-intent, which is retired; remove it` |
-| An ID listed twice | `skills/build-feature/SKILL.md: fg-rules-used names practices/testing/verify-retries twice` |
-| A used skill that doesn't exist | `skills/build-feature/SKILL.md: fg-skills-used names skills/tdd-loop, which isn't a skill in this library` |
-| A used skill that is retired | `skills/build-feature/SKILL.md: fg-skills-used names skills/triage-bug, which is retired and replaced by skills/fix-bug; use the replacement`, or `which is retired; remove it` when nothing replaces it |
-| A skill that uses itself | `skills/build-feature/SKILL.md: fg-skills-used names the skill itself` |
-| Skills that use each other in a cycle | `skills/build-feature/SKILL.md: fg-skills-used forms a cycle: skills/build-feature -> skills/tdd -> skills/build-feature` |
+| A field or `metadata` value that isn't a string | `skills/build-feature/SKILL.md: metadata.syllabus-skill-type must be a string` |
+| A reserved `syllabus-` key Code Rules doesn't define | `skills/build-feature/SKILL.md: metadata.syllabus-groups isn't a Code Rules key; use syllabus-skill-type, syllabus-rules-used, or syllabus-skills-used` |
+| A type that isn't on the canonical list | `skills/build-feature/SKILL.md: syllabus-skill-type is design; use playbook or review, or leave it out` |
+| A cited rule that doesn't exist | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library` |
+| A cited rule with a source name or `.md` | `skills/build-feature/SKILL.md: syllabus-rules-used names fabrica:practices/testing/test-behavior-not-implementation; cite a rule by its ID in this library, such as practices/testing/test-behavior-not-implementation` |
+| A cited rule that a library release or a pending change note retired, with a replacement | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/check-retry-backoff, which is retired and replaced by practices/testing/verify-retries; cite the replacement` |
+| A cited rule that was retired without a replacement | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/code-design/comment-intent, which is retired; remove it` |
+| An ID listed twice | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/verify-retries twice` |
+| A used skill that doesn't exist | `skills/build-feature/SKILL.md: syllabus-skills-used names skills/tdd-loop, which isn't a skill in this library` |
+| A used skill that is retired | `skills/build-feature/SKILL.md: syllabus-skills-used names skills/triage-bug, which is retired and replaced by skills/fix-bug; use the replacement`, or `which is retired; remove it` when nothing replaces it |
+| A skill that uses itself | `skills/build-feature/SKILL.md: syllabus-skills-used names the skill itself` |
+| Skills that use each other in a cycle | `skills/build-feature/SKILL.md: syllabus-skills-used forms a cycle: skills/build-feature -> skills/tdd -> skills/build-feature` |
 | A link that leaves the skill folder | `skills/build-feature/SKILL.md: link leaves the skill folder: ../../practices/testing/verify-retries.md; link inside skills/build-feature/ or use an absolute URL` |
 | A relative link to a missing file | `skills/build-feature/SKILL.md: link target doesn't exist: references/slices.md` |
 | A skill that reuses the ID of a retired skill | `skills/triage-bug reuses the ID of a skill that release/5 retired. Retired IDs can't be reused; give the skill a new ID.` |
@@ -245,7 +245,7 @@ A repository that isn't a library authors skills in the same `.code-rules/skills
 
 ## Skills from non-library sources
 
-A repository without a library manifest, such as a third party's skill collection, can supply skills too. Each folder in it that has a `SKILL.md` file is a skill, and its ID is the folder's path from the repository root, such as `skills/engineering/to-spec`. Code Rules checks these skills leniently: where a skill breaks this format, such as a `name` that doesn't match its folder, a missing `description`, or a link outside its folder, sync warns and installs the skill as it is. The checks that protect your project still fail: unsafe paths, symbolic links, submodules, Git LFS pointers, and the [source limits](/reference/imports/#source-limits-and-version-errors). A non-library source's `fg-rules-used` lists are ignored, because it has no rules. Its `fg-skills-used` lists name skills in the same repository; the project declares calls they leave out with `skills.uses`. See [Non-library sources](/reference/imports/#non-library-sources).
+A repository without a library manifest, such as a third party's skill collection, can supply skills too. Each folder in it that has a `SKILL.md` file is a skill, and its ID is the folder's path from the repository root, such as `skills/engineering/to-spec`. Code Rules checks these skills leniently: where a skill breaks this format, such as a `name` that doesn't match its folder, a missing `description`, or a link outside its folder, sync warns and installs the skill as it is. The checks that protect your project still fail: unsafe paths, symbolic links, submodules, Git LFS pointers, and the [source limits](/reference/imports/#source-limits-and-version-errors). A non-library source's `syllabus-rules-used` lists are ignored, because it has no rules. Its `syllabus-skills-used` lists name skills in the same repository; the project declares calls they leave out with `skills.uses`. See [Non-library sources](/reference/imports/#non-library-sources).
 
 ## Related pages
 
