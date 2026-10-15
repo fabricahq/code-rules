@@ -98,6 +98,9 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 	if problems := changes.review(); len(problems) > 0 {
 		return checkedLibrary{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
 	}
+	if problems := skillProblems(input.skills, current, changes); len(problems) > 0 {
+		return checkedLibrary{}, failure("invalid-skill", "skills don't pass library check:\n  - "+strings.Join(problems, "\n  - "), nil)
+	}
 	plan, err := changes.plan()
 	if err != nil {
 		return checkedLibrary{}, err
@@ -293,7 +296,9 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 
 // checkInput is a bounded snapshot of every library-owned file and change note a complete check considers.
 type checkInput struct {
-	tree    *filetxn.Tree
+	tree *filetxn.Tree
+	// skills is the library's skills/ folder, by path in it, or nil when the library has none.
+	skills  *filetxn.Tree
 	license *rules.LicenseDeclaration
 	// notes maps each change note, by its library path under changes/, to its bytes; notes stay out of catalogs and snapshots.
 	notes map[string][]byte
@@ -309,7 +314,11 @@ func libraryCheckInput(ctx context.Context, root *os.Root) (checkInput, error) {
 	if err != nil {
 		return checkInput{}, err
 	}
-	return checkInput{tree: &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, license: inventory.License, notes: notes}, nil
+	authoredSkills, err := filetxn.ReadTree(ctx, root, skillsDirectory)
+	if err != nil {
+		return checkInput{}, err
+	}
+	return checkInput{tree: &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, skills: authoredSkills, license: inventory.License, notes: notes}, nil
 }
 
 // requireLibraryUnchanged rejects differences observed after validating the captured snapshot.
@@ -318,7 +327,7 @@ func requireLibraryUnchanged(ctx context.Context, root *os.Root, before checkInp
 	if err != nil {
 		return failure("changed-input", "library changed during validation; retry library check", err)
 	}
-	if !maps.EqualFunc(before.tree.Files, after.tree.Files, bytes.Equal) || !slices.Equal(before.tree.Directories, after.tree.Directories) || !maps.EqualFunc(before.notes, after.notes, bytes.Equal) {
+	if !maps.EqualFunc(before.tree.Files, after.tree.Files, bytes.Equal) || !slices.Equal(before.tree.Directories, after.tree.Directories) || before.skills.Digest() != after.skills.Digest() || !maps.EqualFunc(before.notes, after.notes, bytes.Equal) {
 		return failure("changed-input", "library changed during validation; retry library check", nil)
 	}
 	return nil

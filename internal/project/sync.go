@@ -165,6 +165,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if warning := noSkillTargetsWarning(output, in.config.SkillTargets); warning != "" {
 		warnings = append(warnings, warning)
 	}
+	warnings = append(warnings, retiredCitationWarnings(output)...)
 	warnings = append(warnings, personalSkillWarnings(in.options.Home, filepath.Dir(root.Name()), output.Files[build.InstalledSkillsFile])...)
 	changes.Warnings = warnings
 	if in.edited != nil {

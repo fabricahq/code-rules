@@ -20,10 +20,10 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		&cobra.Group{ID: "utility", Title: "Utility commands:"},
 	)
 	for _, name := range []string{"sync", "build", "check"} {
-		descriptions := map[string]string{"sync": "Fetch configured sources, build guidance, and install skills", "build": "Rebuild guidance and installed skills using local snapshots", "check": "Check configuration and generated guidance"}
+		descriptions := map[string]string{"sync": "Fetch configured sources, build guidance, and install skills", "build": "Rebuild guidance and installed skills using local snapshots", "check": "Check configuration, generated guidance, and installed skills"}
 		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
 		if name == "check" {
-			cmd.Long = "Check project configuration, generated guidance, and the Code Rules guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
+			cmd.Long = "Check project configuration, generated guidance, installed skills, and the Code Rules guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
 		}
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 			directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)

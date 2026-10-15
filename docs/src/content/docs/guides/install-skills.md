@@ -4,7 +4,7 @@ description: "Install skills from a library, another repository, or your own pro
 ---
 
 :::note[Preview]
-Skills come in the next Code Rules release.
+Skills come in the next Code Rules release. Sync installs the skills a source's skill uses; a skill you author in `.code-rules/skills/` can use a source's skill only when the source already installs it.
 :::
 
 Code Rules installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, write your own, and change what's installed.
@@ -53,6 +53,32 @@ code-rules project sync
 
 Without `--ref`, sync fails with `ref-required`. `*` installs every skill in the repository except those in folders whose names start with a dot, such as another tool's installed copies. To take a newer revision, change `ref` and sync. Review a third party's skills, including any scripts they bundle, before installing them: agents follow their instructions.
 
+## Install the skills a skill uses
+
+A skill can call other skills. When its `SKILL.md` lists them in `syllabus-skills-used`, sync installs them with it, and the skills they use in turn, from the same source and revision, so you include only the skill you want:
+
+```yaml
+sources:
+  pstack:
+    repository: https://github.com/example/pstack.git
+    ref: v1.4.0
+    skills:
+      include: [skills/poteto-mode]
+```
+
+`generated/SKILLS.md` lists each skill a skill uses, and says when one was installed only because another skill uses it, such as `**Installed because:** used by poteto-mode`.
+
+When a skill calls another without listing it in `syllabus-skills-used`, as many third-party skills do, declare the call in the source's `skills.uses`, so sync installs both:
+
+```yaml
+    skills:
+      include: [skills/poteto-mode]
+      uses:
+        skills/architect: [skills/how]
+```
+
+Code Rules doesn't read skill text to find calls it wasn't told about. See [Declare the skills a skill uses](/reference/configuration/#declare-the-skills-a-skill-uses).
+
 ## Write your own skill
 
 Create a folder in `.code-rules/skills/` named after the skill, with its `SKILL.md`:
@@ -65,19 +91,30 @@ Create a folder in `.code-rules/skills/` named after the skill, with its `SKILL.
 ---
 name: release-checklist
 description: Prepare a release. Use when asked to cut a release.
+metadata:
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
+    practices/releases/write-release-notes
+    fabrica:practices/testing/test-behavior-not-implementation
 ---
 
 1. Check that the main branch is green.
 2. ...
 ```
 
-Then install it:
+`name` must equal the folder's name. The `metadata` keys are optional:
+
+- `syllabus-skill-type` labels the skill `playbook` or `review`.
+- `syllabus-rules-used` lists the rules the skill applies, one per line, in a block string that starts with `|`. A bare ID, such as `practices/releases/write-release-notes`, names a rule you author in `.code-rules/rules/`; a source's rule takes its source name, such as `fabrica:practices/testing/test-behavior-not-implementation`.
+- `syllabus-skills-used` lists the skills it calls, in the same form, such as `skills/tag-release` or `fabrica:skills/tdd`.
+
+See [What a skill contains](/concepts/skill/#what-a-skill-contains). Then install it:
 
 ```sh
 code-rules project build
 ```
 
-Build works offline and installs authored skills alongside your sources' skills. Edit the skill in `.code-rules/skills/`, never in an installed copy, and run build again after each change.
+Build works offline and installs authored skills alongside your sources' skills. It fails, naming the skill's `SKILL.md`, when the frontmatter breaks one of these requirements or cites a rule the project doesn't have. Each installed copy ends with a list of links to the project's version of every rule the skill cites; those rules don't join `RULES.md`. Edit the skill in `.code-rules/skills/`, never in an installed copy, and run build again after each change: `code-rules project check` fails while an installed copy differs from what build would write.
 
 ## Stop installing a skill
 
@@ -109,5 +146,14 @@ Code Rules never writes to your home directory, and the warning doesn't fail the
 | `skill-name-clash` | Two skills you include have the same install name. Stop including one of them. |
 | `skill-not-in-revision` | The revision the source record locks doesn't have a skill you named. Run the update the message names, set `ref` to a revision that has it, or check the ID. |
 | `ref-required` | The source's repository has no library releases. Set its `ref`. |
+| A skill uses a skill that can't be found | A skill's `syllabus-skills-used`, or your `skills.uses`, names a skill the source's revision doesn't have. The message names both skills. Correct `skills.uses`, ask the source's maintainer to correct `syllabus-skills-used`, or stop including the skill. When `skills.uses` names a skill a newer revision has, sync fails with `skill-not-in-revision` instead. |
+| Skills use each other in a cycle | The message lists the cycle, such as `skills/a -> skills/b -> skills/a`. Remove one of the uses. |
+| An invalid authored skill | Its `name` doesn't match its folder, a `metadata` key is invalid, or `syllabus-rules-used` names a rule the project doesn't have. Correct the `SKILL.md` the message names. |
+
+## When check fails for a skill
+
+`code-rules project check` reports an installed copy that's missing, edited, or left behind by a skill the project no longer installs, as `missing-skill`, `modified-skill`, or `unexpected-skill`, naming the skill and its folder. Run `code-rules project build` to reinstall every skill from its source; it replaces edits to the installed copies, so move any you want to keep into a skill you author first.
+
+When a skill you author cites a rule its library retired, update, sync, and build warn, and check fails, naming the skill and the rule. Remove the rule from `syllabus-rules-used`, or cite the rule that replaces it.
 
 For every file sync, update, and build change, see [Sync and recovery](/reference/sync/#skills).
