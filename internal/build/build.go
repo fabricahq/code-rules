@@ -25,6 +25,13 @@ type Output struct {
 	// SkillIDs lists, sorted, the project ID of every skill the project installs, including when it has no skill
 	// targets to install copies in.
 	SkillIDs []string `json:"skillIds"`
+	// RetiredCitations reports, as a validation error at the skill's SKILL.md, each rule an authored skill cites that
+	// its library retired, in skill order. The output is still complete: build and sync warn about them, and check
+	// fails. It is nil when there are none.
+	RetiredCitations []*ValidationError `json:"retiredCitations"`
+	// ExcludedUses warns, in skill order, about each use of a source's skill that the project excludes without a
+	// replacement, which isn't installed. It is empty, never nil, when there are none.
+	ExcludedUses []string `json:"excludedUses"`
 }
 
 // Options provides the declared tool version and Markdown line limit and inline byte limit.
@@ -42,18 +49,30 @@ type Options struct {
 // Configuration and catalogs must be validated; callers verify each library's source identity. localFiles holds the
 // project's authored files keyed as a library keys its own: rules, group metadata, and rule assets by their path in
 // rules/, and shared assets by their path in the Syllabus directory, assets/<path>. It installs every skill the
-// sources' snapshots record and every authored skill into each skill target. It leaves inputs unchanged, preserves
-// retained bytes, and returns no partial output on failure; two skills with one install name fail with *ClashError.
+// sources' snapshots record and every authored skill into each skill target, each installed SKILL.md ending with
+// links to the project's version of every rule the skill cites. It leaves inputs unchanged, preserves retained
+// bytes, and returns no partial output on failure; two skills with one install name fail with *ClashError, and an
+// authored skill whose frontmatter or citations are invalid fails with a *ValidationError at its SKILL.md.
 func Generate(config rules.Configuration, libraries map[string]Library, localFiles map[string][]byte, options Options) (Output, error) {
 	resolved, err := resolve(config, libraries, localFiles)
 	if err != nil {
 		return Output{}, err
 	}
-	if resolved.Skills, err = resolveSkills(config, libraries, options.LocalSkills); err != nil {
+	var excludedUses []string
+	if resolved.Skills, excludedUses, err = resolveSkills(config, libraries, options.LocalSkills); err != nil {
+		return Output{}, err
+	}
+	retired, err := citeRules(&resolved, config, libraries)
+	if err != nil {
 		return Output{}, err
 	}
 	if options.IndexMaxLines == 0 {
 		options.IndexMaxLines = defaultIndexMaxLines
 	}
-	return prepare(resolved, options)
+	output, err := prepare(resolved, options)
+	if err != nil {
+		return Output{}, err
+	}
+	output.RetiredCitations, output.ExcludedUses = retired, excludedUses
+	return output, nil
 }
