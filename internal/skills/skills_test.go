@@ -44,7 +44,7 @@ func TestReadMetadataReadsTheFieldsGuidanceShows(t *testing.T) {
 		input string
 		want  skills.Metadata
 	}{
-		"full":                   {"---\nname: build-feature\ndescription: Build a feature.\nmetadata:\n  fg-skill-type: playbook\n  author: someone\n---\nSteps.\n", skills.Metadata{Name: "build-feature", Description: "Build a feature.", Type: "playbook", Frontmatter: true}},
+		"full":                   {"---\nname: build-feature\ndescription: Build a feature.\nmetadata:\n  syllabus-skill-type: playbook\n  author: someone\n---\nSteps.\n", skills.Metadata{Name: "build-feature", Description: "Build a feature.", Type: "playbook", Frontmatter: true}},
 		"crlf":                   {"---\r\nname: tdd\r\n---\r\nBody\r\n", skills.Metadata{Name: "tdd", Frontmatter: true}},
 		"no frontmatter":         {"# A skill\n\nSteps.\n", skills.Metadata{}},
 		"unknown fields kept":    {"---\nname: x\nallowed-tools: Bash\nlicense: MIT\n---\n", skills.Metadata{Name: "x", Frontmatter: true}},
@@ -67,7 +67,7 @@ func TestReadMetadataRejectsUnreadableFrontmatter(t *testing.T) {
 		"numeric name":     "---\nname: 12\n---\n",
 		"list description": "---\nname: x\ndescription: [a]\n---\n",
 		"scalar metadata":  "---\nname: x\nmetadata: text\n---\n",
-		"boolean type":     "---\nname: x\nmetadata:\n  fg-skill-type: true\n---\n",
+		"boolean type":     "---\nname: x\nmetadata:\n  syllabus-skill-type: true\n---\n",
 		"duplicate key":    "---\nname: x\nname: y\n---\n",
 	} {
 		t.Run(name, func(t *testing.T) {
