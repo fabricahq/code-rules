@@ -5,6 +5,7 @@ package imports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -90,21 +91,112 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string) ([]s
 		}
 		return chosen, nil
 	}
-	revision := revisionName(plan.release, plan.commit)
 	for _, id := range source.Skills {
-		if slices.Contains(available, id) {
-			continue
+		if !slices.Contains(available, id) {
+			return nil, skillNotInRevision(source, plan, "sources."+source.Name+".skills.include", id)
 		}
-		if plan.locked != "" && plan.locked == plan.commit {
-			next := fmt.Sprintf("Run code-rules project update %s, which moves the source to its newest library release, and takes the skill from it if it has it, or check the skill ID.", source.Name)
-			if !source.Ref.IsZero() {
-				next = fmt.Sprintf("To take the skill, set sources.%s.ref to a tag or commit that has it, then run code-rules project sync, or check the skill ID.", source.Name)
-			}
-			return nil, fail("skill-not-in-revision", fmt.Sprintf("sources.%s.skills.include names %s, which isn't in %s, the revision vendor/%s/_source.json records for the source. Sync never moves a source, so it takes every skill from that revision. %s", source.Name, id, revision, source.Name, next), nil)
-		}
-		return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("the source has no skill %s at %s; check the skill ID. A library's skills are the folders in its .code-rules/skills/, such as skills/build-feature; another repository's are the folders that hold a SKILL.md, named by their path from the repository root", id, revision)}
 	}
 	return slices.Clone(source.Skills), nil
+}
+
+// skillNotInRevision reports that field, a configuration field of source, names skill id, which the plan's revision
+// lacks: with skill-not-in-revision when the revision is the one the source record locks, since sync never moves a
+// source, and otherwise as invalid configuration at field.
+func skillNotInRevision(source rules.Source, plan sourcePlan, field, id string) error {
+	revision := revisionName(plan.release, plan.commit)
+	if plan.locked != "" && plan.locked == plan.commit {
+		next := fmt.Sprintf("Run code-rules project update %s, which moves the source to its newest library release, and takes the skill from it if it has it, or check the skill ID.", source.Name)
+		if !source.Ref.IsZero() {
+			next = fmt.Sprintf("To take the skill, set sources.%s.ref to a tag or commit that has it, then run code-rules project sync, or check the skill ID.", source.Name)
+		}
+		return fail("skill-not-in-revision", fmt.Sprintf("%s names %s, which isn't in %s, the revision vendor/%s/_source.json records for the source. Sync never moves a source, so it takes every skill from that revision. %s", field, id, revision, source.Name, next), nil)
+	}
+	return &ValidationError{Location: field, Problem: fmt.Sprintf("the source has no skill %s at %s; check the skill ID. A library's skills are the folders in its .code-rules/skills/, such as skills/build-feature; another repository's are the folders that hold a SKILL.md, named by their path from the repository root", id, revision)}
+}
+
+// requireConfiguredUses checks that every skill the source's skills.uses lists is one of available, the IDs of the
+// skills in the plan's revision, failing as skillNotInRevision does. Whether each key is installed is
+// installedSkills' to check, once it knows what the source installs.
+func requireConfiguredUses(source rules.Source, plan sourcePlan, available []string) error {
+	for _, id := range slices.Sorted(maps.Keys(source.SkillUses)) {
+		for _, used := range source.SkillUses[id] {
+			if !slices.Contains(available, used) {
+				return skillNotInRevision(source, plan, "sources."+source.Name+".skills.uses."+id, used)
+			}
+		}
+	}
+	return nil
+}
+
+// installedSkills returns every skill the source installs, by ID, with why: chosen, the skills skills.include
+// selects, and every skill they use, transitively. uses maps each skill chosen reaches that the plan's revision has
+// to the skills it uses, by its syllabus-skills-used and the source's skills.uses. A skill that uses one the revision lacks,
+// skills that use each other in a cycle, and a skills.uses key the source doesn't install fail as invalid
+// configuration of the source's skills, naming the skills involved.
+func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses map[string][]string) (map[string]skills.Installed, error) {
+	location := "sources." + source.Name + ".skills"
+	installed, err := skills.ResolveUses(chosen, uses)
+	var missing *skills.MissingUseError
+	var cycle *skills.UseCycleError
+	switch {
+	case errors.As(err, &missing):
+		installing := missing.Skill
+		if missing.Via != missing.Skill {
+			installing = fmt.Sprintf("%s, which %s uses", missing.Skill, missing.Via)
+		}
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("%s uses %s, which isn't a skill in %s: %s names it in syllabus-skills-used. Code Rules installs every skill an installed skill uses, so it can't install %s. Ask the source's maintainer to correct syllabus-skills-used, or stop including %s", missing.Skill, missing.Missing, revisionName(plan.release, plan.commit), missing.Skill, installing, missing.Via)}
+	case errors.As(err, &cycle):
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("the skills the source installs use each other in a cycle: %s. Code Rules installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct syllabus-skills-used, or remove the use from %s.uses", strings.Join(cycle.Cycle, " -> "), location)}
+	case err != nil:
+		return nil, err
+	}
+	for _, id := range slices.Sorted(maps.Keys(source.SkillUses)) {
+		if _, ok := installed[id]; !ok {
+			return nil, &ValidationError{Location: location + ".uses." + id, Problem: id + " isn't a skill the source installs, so it has no uses to declare; a key of skills.uses names a skill that skills.include selects, or one those skills use. Include the skill, or remove the entry"}
+		}
+	}
+	return installed, nil
+}
+
+// skillUses reads the SKILL.md of every skill chosen reaches in folders, the skills of the plan's commit, and returns
+// what each uses: its syllabus-skills-used lines, then the skills the source's skills.uses adds. A used skill folders
+// lacks is absent from the result, for installedSkills to report. It fails when a SKILL.md it reads has unreadable
+// frontmatter.
+func (r *repository) skillUses(ctx context.Context, source rules.Source, folders map[string]map[string]treeEntry, chosen []string) (map[string][]string, error) {
+	entries := map[string]treeEntry{}
+	prefetch := []treeEntry{}
+	for id, files := range folders {
+		if entry, ok := files[id+"/"+skills.File]; ok {
+			entries[entry.name] = entry
+			prefetch = append(prefetch, entry)
+		}
+	}
+	if err := r.prefetch(ctx, prefetch); err != nil {
+		return nil, err
+	}
+	input := newGitFiles(ctx, r, entries)
+	uses := map[string][]string{}
+	for pending := slices.Clone(chosen); len(pending) > 0; pending = pending[1:] {
+		id := pending[0]
+		if _, seen := uses[id]; seen {
+			continue
+		}
+		if _, ok := folders[id]; !ok {
+			continue
+		}
+		file := id + "/" + skills.File
+		data, err := input.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		metadata, err := skills.ReadMetadata(data, "vendor/"+source.Name+"/"+file)
+		if err != nil {
+			return nil, err
+		}
+		uses[id] = slices.Concat(metadata.SkillsUsed, source.SkillUses[id])
+		pending = append(pending, uses[id]...)
+	}
+	return uses, nil
 }
 
 // isLibrary reports whether a fetched commit holds a library: a .code-rules/config.yaml with a library section, or a
@@ -145,7 +237,8 @@ type importedSkills struct {
 }
 
 // readSkills reads the files of the skills the source selects at the plan's commit, a library's when isLibrary is
-// set. It fails for a skill file that is a symbolic link or submodule, over the import byte limits, and as
+// set, and of every skill they use, transitively, recording why each is installed. It fails for a skill file that is
+// a symbolic link or submodule, over the import byte limits, as installedSkills does for the skills' uses, and as
 // requireSkillBasedOn does for a replacement's basedOn.
 func (r *repository) readSkills(ctx context.Context, source rules.Source, plan sourcePlan, isLibrary bool) (importedSkills, error) {
 	result := importedSkills{files: map[string][]byte{}, executable: []string{}, skills: map[string]library.ImportedSkill{}}
@@ -160,18 +253,30 @@ func (r *repository) readSkills(ctx context.Context, source rules.Source, plan s
 		return importedSkills{}, err
 	}
 	folders := skillFolders(tree, isLibrary)
-	chosen, err := chooseSkills(source, plan, slices.Sorted(maps.Keys(folders)))
+	available := slices.Sorted(maps.Keys(folders))
+	chosen, err := chooseSkills(source, plan, available)
+	if err != nil {
+		return importedSkills{}, err
+	}
+	if err := requireConfiguredUses(source, plan, available); err != nil {
+		return importedSkills{}, err
+	}
+	uses, err := r.skillUses(ctx, source, folders, chosen)
+	if err != nil {
+		return importedSkills{}, err
+	}
+	installed, err := installedSkills(source, plan, chosen, uses)
 	if err != nil {
 		return importedSkills{}, err
 	}
 	entries := map[string]treeEntry{}
 	prefetch := []treeEntry{}
-	for _, id := range chosen {
+	for _, id := range slices.Sorted(maps.Keys(installed)) {
 		level := ""
 		if isLibrary {
 			level = offered
 		}
-		result.skills[id] = library.ImportedSkill{Level: level}
+		result.skills[id] = library.ImportedSkill{Level: level, Included: installed[id].Included, UsedBy: installed[id].UsedBy}
 		for name, entry := range folders[id] {
 			if !entry.mode.IsRegular() {
 				return importedSkills{}, fail("unsupported-content", fmt.Sprintf("sources.%s: skill %s has a symbolic link or submodule at %s, which Code Rules doesn't install. Ask the source's maintainer to replace it with a file.", source.Name, id, name), nil)

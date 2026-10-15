@@ -106,6 +106,8 @@ Each entry in the `skills` array of `generated/provenance.json` records one skil
 | `name` and `type` | The install name, which names its installed folders, and the `metadata.syllabus-skill-type` its `SKILL.md` declares, or `null`. |
 | `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.code-rules/`. `version` and `release` are `null`: skills don't have versions yet. |
 | `level` | `offered` for a library's skill, or `null` for an authored skill or one from a repository that isn't a library. |
+| `included` | `true` when configuration includes the skill, as it includes every authored skill; `false` for a source's skill installed only because other skills use it. |
+| `usedBy` and `uses` | The project IDs of the installed skills that use this one, and of those it uses, by its `syllabus-skills-used` and its source's `skills.uses`, sorted; empty when there are none. |
 | `targets` | The folders the skill is installed in, such as `.claude/skills/build-feature`, empty when the project has no skill targets. |
 | `upstream`, `replacementReason`, and `basedOn` | For an authored skill that [replaces a source's skill](/reference/configuration/#exclude-or-replace-a-skill): the replaced skill's origin, as in `origin`, the exclusion's reason, and its `basedOn` commit, or `null` when it records none. All three are `null` for any other skill. |
 
@@ -157,7 +159,14 @@ Each source has a separate `vendor/<source-name>/_source.json` file. It describe
   ],
   "skills": {
     "skills/build-feature": {
-      "level": "offered"
+      "level": "offered",
+      "included": true,
+      "usedBy": []
+    },
+    "skills/tdd": {
+      "level": "offered",
+      "included": false,
+      "usedBy": ["skills/build-feature"]
     }
   },
   "files": {
@@ -187,7 +196,7 @@ Each source has a separate `vendor/<source-name>/_source.json` file. It describe
 | `ruleSelection` | The rule IDs your `rules.include` lists individually. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
 | `skillInclude` | The source's `skills.include`, sorted, and empty when it includes no skills. |
-| `skills` | Each skill `skills.include` selects, including skills the project excludes, by ID, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library. Every skill comes from `resolvedCommit`; `code-rules project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` names a skill this commit doesn't have. |
+| `skills` | Each installed skill's ID, including skills the project excludes, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library; `included`, `true` when `skills.include` selects it; and `usedBy`, the source's installed skills that use it, sorted. A skill that isn't included is installed because the skills in its `usedBy` use it. Every skill comes from `resolvedCommit`; `code-rules project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` or `skills.uses` names a skill this commit doesn't have. Offline checks read each vendored skill's `syllabus-skills-used` and your `skills.uses`, and ask for `code-rules project sync` when the record doesn't install exactly the skills they reach. |
 | `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. A library's skill files are stored under `skills/<name>/`, as its `.code-rules/skills/` holds them, and another repository's at their path in the repository. |
 | `executable` | The skill files whose executable bit the repository records, sorted. The vendored copies, and the installed copies, carry the same bit, and offline checks compare it. |
 

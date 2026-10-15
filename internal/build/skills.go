@@ -55,18 +55,32 @@ type resolvedSkill struct {
 	Level string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
+	// RulesUsed lists the lines of the skill's syllabus-rules-used, and Cited how the project resolves each of them, in
+	// the same order; both are empty for a skill that cites no rules.
+	RulesUsed []string
+	Cited     []citedRule
+	// SkillsUsed lists the lines of the skill's syllabus-skills-used, as written; nil when it has none.
+	SkillsUsed []string
+	// Included reports that the configuration includes the skill, as it includes every authored skill; a source's
+	// skill that isn't included is installed because other skills use it.
+	Included bool
+	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its syllabus-skills-used
+	// and its source's skills.uses, and of those that use it; each is empty, never nil, when there are none.
+	Uses, UsedBy []string
 	// Replaces is the source's skill an authored skill is installed in place of, or nil when it replaces none.
 	Replaces *skillReplacement
 }
 
 // resolveSkills returns, sorted by project ID, the skills of every configured source's snapshot that the source
-// doesn't exclude, and the authored skills in local, keyed by ID, skills/<name>, each with the skill it replaces. It
-// fails when a SKILL.md is missing or its frontmatter unreadable, when an install name isn't valid, when an exclusion
-// is invalid, as skillReplacements checks it, and with *ClashError when two skills share an install name.
-func resolveSkills(config rules.Configuration, libraries map[string]Library, local map[string]SkillFiles) ([]resolvedSkill, error) {
+// doesn't exclude, and the authored skills in local, keyed by ID, skills/<name>, each with the skill it replaces and
+// the skills it uses and those that use it. It fails when a SKILL.md is missing or its frontmatter unreadable, when
+// an install name isn't valid, when an exclusion is invalid, as skillReplacements checks it, with *ClashError when
+// two skills share an install name, and as linkSkillUses does for an authored skill's uses. It also returns
+// linkSkillUses' warnings about uses of skills the project excludes without a replacement.
+func resolveSkills(config rules.Configuration, libraries map[string]Library, local map[string]SkillFiles) ([]resolvedSkill, []string, error) {
 	replacements, err := skillReplacements(config, libraries, local)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	result := []resolvedSkill{}
 	for _, source := range config.Sources {
@@ -75,20 +89,20 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			if _, excluded := source.SkillExclude[id]; excluded {
 				continue
 			}
-			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level}
+			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
 			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			result = append(result, skill)
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(local)) {
-		skill := resolvedSkill{ID: id, Folder: id, Files: local[id]}
+		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
 		if replacement, replaces := replacements[id]; replaces {
 			skill.Replaces = &replacement
 		}
 		if err := describeSkill(&skill, id+"/"+skills.File); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		result = append(result, skill)
 	}
@@ -100,14 +114,20 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			result[i].Targets = append(result[i].Targets, folder+"/"+skill.Name)
 		}
 		if other, taken := names[skill.Name]; taken {
-			return nil, &ClashError{Name: skill.Name, IDs: [2]string{other, skill.ID}}
+			return nil, nil, &ClashError{Name: skill.Name, IDs: [2]string{other, skill.ID}}
 		}
 		names[skill.Name] = skill.ID
 	}
-	return result, nil
+	warnings, err := linkSkillUses(result, config)
+	if err != nil {
+		return nil, nil, err
+	}
+	return result, warnings, nil
 }
 
-// describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, and type.
+// describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, type, and
+// cited rules. An authored skill's frontmatter must also pass skills.Check, which reports its first problem; a
+// source's skills were checked by their library, or, from a repository that isn't a library, install as they are.
 func describeSkill(skill *resolvedSkill, location string) error {
 	data, ok := skill.Files.Files[skills.File]
 	if !ok {
@@ -117,10 +137,15 @@ func describeSkill(skill *resolvedSkill, location string) error {
 	if err != nil {
 		return err
 	}
+	if skill.Source == "" {
+		if problems := skills.Check(path.Base(skill.Folder), metadata, true); len(problems) > 0 {
+			return invalid(location, problems[0])
+		}
+	}
 	if skill.Name, err = skills.InstallName(skill.Folder, metadata, location); err != nil {
 		return err
 	}
-	skill.Description, skill.Type = metadata.Description, metadata.Type
+	skill.Description, skill.Type, skill.RulesUsed, skill.SkillsUsed = metadata.Description, metadata.Type, metadata.RulesUsed, metadata.SkillsUsed
 	return nil
 }
 
@@ -133,10 +158,16 @@ func (skill resolvedSkill) marker() string {
 	return fmt.Sprintf("<!-- code-rules:installed %s %s. Do not edit; code-rules project sync replaces this copy. -->", skill.ID, skill.Commit)
 }
 
-// installed returns the files of skill's installed copy: its files with the marker line in SKILL.md.
+// installed returns the files of skill's installed copy: its files with the marker line in SKILL.md, and, when the
+// skill cites rules, the section that links to the project's version of each one at its end. Every skill target
+// folder is two levels below the repository root, so one copy's links work in every target.
 func (skill resolvedSkill) installed() SkillFiles {
 	files := maps.Clone(skill.Files.Files)
-	files[skills.File] = skills.Mark(files[skills.File], skill.marker())
+	from := skills.File
+	if len(skill.Targets) > 0 {
+		from = skill.Targets[0] + "/" + skills.File
+	}
+	files[skills.File] = appendSection(skills.Mark(files[skills.File], skill.marker()), citedSection(skill, from))
 	return SkillFiles{Files: files, Executable: slices.Clone(skill.Files.Executable)}
 }
 
@@ -192,25 +223,58 @@ const InstalledSkillsFile = "installed-skills.json"
 // InstalledFolders reads the folders an installed-skills.json record lists, by path from the repository root,
 // sorted. A record it can't read lists none, so no folder counts as installed by Code Rules.
 func InstalledFolders(data []byte) []string {
+	return slices.Sorted(maps.Keys(InstalledSkillIDs(data)))
+}
+
+// InstalledSkillIDs reads the folders an installed-skills.json record lists, by path from the repository root, each
+// with the project ID of the skill installed there. It keeps only folders in a skill target folder whose name
+// follows the skill name grammar. A record it can't read lists none, so no folder counts as installed by Code Rules.
+func InstalledSkillIDs(data []byte) map[string]string {
+	folders := map[string]string{}
+	for _, skill := range InstalledSkills(data) {
+		for _, target := range skill.Targets {
+			if _, listed := folders[target]; !listed {
+				folders[target] = skill.ID
+			}
+		}
+	}
+	return folders
+}
+
+// InstalledSkill is one skill an installed-skills.json record lists.
+type InstalledSkill struct {
+	// Name is the install name, and ID the project ID: source:folder, or skills/<name> for an authored skill.
+	Name, ID string
+	// Targets lists the folders the skill is installed in, by path from the repository root; it is empty when the
+	// project has no skill targets.
+	Targets []string
+}
+
+// InstalledSkills reads the skills an installed-skills.json record lists, in its order. It keeps only targets that
+// are a skill target's folder holding a validly named skill folder. A record it can't read lists none.
+func InstalledSkills(data []byte) []InstalledSkill {
 	var record struct {
 		FormatVersion int `json:"formatVersion"`
 		Skills        []struct {
+			Name    string   `json:"name"`
+			ID      string   `json:"id"`
 			Targets []string `json:"targets"`
 		} `json:"skills"`
 	}
 	if json.Unmarshal(data, &record) != nil || record.FormatVersion != 1 {
-		return []string{}
+		return []InstalledSkill{}
 	}
-	folders := []string{}
+	result := []InstalledSkill{}
 	for _, skill := range record.Skills {
+		installed := InstalledSkill{Name: skill.Name, ID: skill.ID, Targets: []string{}}
 		for _, target := range skill.Targets {
-			if parent := path.Dir(target); slices.Contains(slices.Collect(maps.Values(rules.SkillTargetFolders)), parent) && skills.ValidName(path.Base(target)) && !slices.Contains(folders, target) {
-				folders = append(folders, target)
+			if parent := path.Dir(target); slices.Contains(slices.Collect(maps.Values(rules.SkillTargetFolders)), parent) && skills.ValidName(path.Base(target)) {
+				installed.Targets = append(installed.Targets, target)
 			}
 		}
+		result = append(result, installed)
 	}
-	slices.Sort(folders)
-	return folders
+	return result
 }
 
 // folderDigest returns the SHA-256 of an installed folder: each file's path, executable bit, and contents.
@@ -258,6 +322,16 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		if skill.Type != "" {
 			facts = append(facts, "- **Type:** "+escapeText(skill.Type))
 		}
+		if len(skill.Cited) > 0 && len(skill.Targets) > 0 {
+			facts = append(facts, fmt.Sprintf("- **Applies:** %d rule(s), listed at the end of its installed SKILL.md", len(skill.Cited)))
+		} else if len(skill.Cited) > 0 {
+			lines := []string{}
+			for _, cited := range skill.Cited {
+				lines = append(lines, "  - "+citedLine(cited, ".code-rules/generated/SKILLS.md"))
+			}
+			facts = append(facts, "- **Applies:**\n"+strings.Join(lines, "\n"))
+		}
+		facts = append(facts, useFacts(skill, resolved)...)
 		if len(skill.Targets) == 0 {
 			source := ".code-rules/" + skill.Folder + "/" + skills.File
 			if skill.Source != "" {

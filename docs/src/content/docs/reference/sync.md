@@ -6,7 +6,7 @@ description: "When to run sync, build, or check, which files they change, and ho
 The `code-rules project sync` command imports your project's library files, regenerates the guidance your agents read, and installs your skills. Run it after adding a source, changing its selected rules or skills, pins, or `ref`, or to restore imported files.
 
 :::note[Preview]
-Skills come in the next Code Rules release.
+Skills come in the next Code Rules release. A skill links only to the cited rules the project already includes: sync doesn't yet take a cited rule the project's rule `include` leaves out.
 :::
 
 Sync imports the rule versions recorded for each source, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which previews every change and applies it only after you confirm, offering to pin each major change or retirement instead. See [Update rules](/guides/update/).
@@ -18,7 +18,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 - **`code-rules project sync`**: Import the recorded rule versions, or choose versions for new and changed sources. Sync validates the library files and regenerates agent guidance.
 - **`code-rules project update`**: Preview newer versions, new rules, and retirements, and apply them after you confirm. Pinned rules and sources that use `ref` don't move. Update then does everything sync does.
 - **`code-rules project build`**: Apply local rule changes, exceptions, or authored skills using the library files you already have. Build regenerates guidance and reinstalls skills without contacting a repository.
-- **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
+- **`code-rules project check`**: Find out whether generated guidance, installed skills, and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
 You do not need to run build after a successful sync or update; both already generate the guidance. Run check when you want to verify consistency without making changes.
 
@@ -43,7 +43,7 @@ In a Git repository, project commands find the nearest repository root and use i
 | `skills/` | Skills you author for this project, one folder per skill. | Sync, build, and check read them without changing them. |
 | `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |
 | `generated/` | Rules, reading indexes, and the skills index for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
-| `../.claude/skills/<name>/`, `../.agents/skills/<name>/` | Installed copies of your skills, in each [skill target](/reference/configuration/#skill-targets). | Sync, update, and build replace the folders Code Rules installed and remove those of skills no longer included. They never touch other folders there. |
+| `../.claude/skills/<name>/`, `../.agents/skills/<name>/` | Installed copies of your skills, in each [skill target](/reference/configuration/#skill-targets). | Sync, update, and build replace the folders Code Rules installed and remove those of skills no longer included. They never touch other folders there. Check compares the folders with what build would write. |
 
 Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, and unused library folders. Files you add or edit inside `vendor/` or `generated/` can be replaced or removed. Keep your changes in configuration, `rules/`, and `assets/`. Every project command fails while a `local/` directory exists, where earlier versions kept authored rules; its message shows where to move each file.
 
@@ -65,7 +65,7 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 
 `code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
+Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, installed skills, and the managed Code Rules guide without writing any of them. It also reports `warnings`, such as for a [personal skill with the same name](#personal-skills-with-the-same-name) as an installed skill, which never change the status or exit code.
 
 | Check exit code | Meaning |
 | --- | --- |
@@ -82,6 +82,7 @@ Use the problem reported by `code-rules project check` to choose a repair:
 | Generated guidance is missing or outdated, but imported files are valid. | Run `code-rules project build`. |
 | Imported files are missing, modified, or no longer match your configured sources or groups. | Run `code-rules project sync`. Preserve any edits you intended to keep as local rules first. |
 | The managed Code Rules guide is missing or outdated. | Run `code-rules project build` or `code-rules project sync` to refresh it and regenerate guidance. Run `code-rules project init` to refresh only setup files. |
+| An installed skill is missing, edited, or no longer installed. | Run `code-rules project build`. It replaces edits to installed copies; see [Check installed skills](#check-installed-skills). |
 | Configuration or rule metadata is invalid. | Correct the reported input, then retry the appropriate command. |
 
 Run `code-rules project check` again after repairing the problem.
@@ -102,9 +103,60 @@ Sync, update, and build then install each included skill that `skills.exclude` d
 
 `generated/installed-skills.json` records the folders Code Rules installed. A later command replaces or removes only those, and removes a skill target's `skills/` folder once it's empty. When a folder it would install already exists and Code Rules didn't install it, such as a personal skill with the same name, the command fails with `skill-folder-not-managed` and changes nothing: move or delete that folder, or stop including the skill. Two skills with the same install name fail with `skill-name-clash`. A skill target folder that is a symbolic link fails with `unsafe-path`.
 
-`generated/SKILLS.md` lists every skill the project installs: what it does, where it came from, and where it's installed. For an authored skill that replaces a source's skill, it names the skill it replaces, the commit it's based on, and your reason, and it lists the skills the project excludes without a replacement, with their reasons. `generated/RULES.md` points to it.
+Before installing a skill you author in `.code-rules/skills/`, sync, update, and build check its frontmatter, and fail on the first problem, naming its `SKILL.md`: `name` must equal the folder's name, `syllabus-skill-type` must be `playbook` or `review`, no other `syllabus-` key may appear, and each line of `syllabus-rules-used` and `syllabus-skills-used` must be an ID, once, in the form [Skill](/concepts/skill/#rules-a-skill-cites) describes. A bare rule ID must name a rule you author, and a source-qualified one a source in the configuration that's a library and, when that source includes the rule's whole group, a rule the group has or retired, so a misspelled rule ID fails. Sync keeps only the rules a source includes, so a cited rule in a group the source doesn't include in full can't be checked; the skill lists it as not included. A bare skill ID in `syllabus-skills-used` must name another skill you author, and a source-qualified one, such as `pstack:skills/how`, a skill that source installs; authored skills can't use each other in a cycle. A source's skills aren't checked again: their library checked them, and a skill from a repository that isn't a library installs as it is.
 
-An excluded skill stays in `vendor/`. Sync, build, and check fail when an exclusion names a skill the source record doesn't hold, when a `replacedBy` names an authored skill that doesn't exist, and when one authored skill replaces two skills. Sync also checks each `basedOn` against the source's repository: a commit the repository doesn't have fails with `version-not-found`, and a commit without the skill fails validation. Build and check work offline, so they check only that `basedOn` is a full commit SHA. See [Exclude or replace a skill](/reference/configuration/#exclude-or-replace-a-skill). With no skill targets, sync records and lists the skills, installs no copies, and warns that it installed none.
+Sync and update install every skill a source's included skill uses, by its `syllabus-skills-used` and the source's [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-uses), and the skills those use, from the same revision. They fail, writing nothing, when a used skill isn't in the revision, naming the skill and the skill it uses, and when skills use each other in a cycle. The source record lists why each skill is installed, and build and check ask for sync when `skills.uses` or a vendored `syllabus-skills-used` no longer matches it.
+
+When a skill cites rules in `syllabus-rules-used`, its installed `SKILL.md` ends with a generated **Rules this skill applies** section. It lists each cited rule with its version and a link to its file in `generated/rules/`, or, when the project replaces it, the authored rule that does. It says instead when the project excluded the rule, with the exclusion's reason, when the project doesn't include it, and when its library retired it. Cited rules never join `generated/RULES.md` or the group pages. A library's skill cites rules in its own library, so they resolve to the source that supplies the skill. When a skill you author cites a rule its library retired, sync, update, and build warn and install it anyway, so the update that retires the rule can apply; check fails until you remove the citation.
+
+`generated/SKILLS.md` lists every skill the project installs: what it does, where it came from, where it's installed, how many rules it applies, the skills it uses, and, for a source's skill, whether `skills.include` selects it or other skills use it. For an authored skill that replaces a source's skill, it names the skill it replaces, the commit it's based on, and your reason, and it lists the skills the project excludes without a replacement, with their reasons. `generated/RULES.md` points to it. With no skill targets, sync records and lists the skills, with the rules each one applies, installs no copies, and warns that it installed none.
+
+An excluded skill stays in `vendor/`. Sync, build, and check fail when an exclusion names a skill the source record doesn't hold, when a `replacedBy` names an authored skill that doesn't exist, and when one authored skill replaces two skills. Sync also checks each `basedOn` against the source's repository: a commit the repository doesn't have fails with `version-not-found`, and a commit without the skill fails validation. Build and check work offline, so they check only that `basedOn` is a full commit SHA. See [Exclude or replace a skill](/reference/configuration/#exclude-or-replace-a-skill).
+
+### Check installed skills
+
+`code-rules project check` compares every skill target folder that `generated/installed-skills.json` lists, or that the project would install, with what build would write, and reports a problem for each folder that differs, by its path relative to the Code Rules directory, such as `../.claude/skills/build-feature`, with the skill's ID:
+
+| Problem kind | Meaning |
+| --- | --- |
+| `missing-skill` | The project installs the skill, and the folder is missing. |
+| `modified-skill` | The folder's files, or a file's executable bit, differ from the skill's source. |
+| `unexpected-skill` | The record lists the folder, but the project no longer installs the skill. |
+
+Run `code-rules project build` to repair them. It replaces the installed copies, including any edits to them, so move edits you want to keep into the skill's source first.
+
+## Personal skills with the same name
+
+:::note[Preview]
+The personal skill warning comes in the next Code Rules release, with skills.
+:::
+
+People also install **personal skills** for themselves, outside any repository, which their agents load in every repository they work in. When a personal skill has the same name as a skill the project installs, each agent decides which one to use, and some use the personal skill without saying so:
+
+| Agent | What it does with the pair |
+| --- | --- |
+| Claude Code | Uses the personal skill. |
+| Codex | Shows both. |
+| VS Code | Uses the project's skill. |
+
+`code-rules project sync`, `code-rules project update`, and `code-rules project check` look in the personal skill folders of your home directory, `~/.claude/skills/`, `~/.agents/skills/`, and `~/.codex/skills/`, and warn about each personal skill with the same name as a skill the project installs, naming both paths and what each agent does:
+
+```text
+Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .agents/skills/build-feature and .claude/skills/build-feature).
+  Claude Code uses your personal skill.
+  Codex shows both.
+  VS Code uses this project's skill.
+Rename or remove your personal skill to use the project's.
+```
+
+In JSON output, each warning is one string in `value.warnings`, with the same line breaks.
+
+- A personal skill is a folder in one of those folders that holds a `SKILL.md` file, including a folder linked from elsewhere. It matches when its folder name is the install name of a skill the project installs into at least one skill target, which is also its installed folder's name. Code Rules compares names only, never contents, and doesn't read the personal `SKILL.md`.
+- Sync and update compare against the skills they just installed. Check and an update's preview compare against the skills `generated/installed-skills.json` records, which are what agents find in the repository now.
+- A personal folder linked to another, such as `~/.agents/skills` linked to `~/.claude/skills`, is reported once. When the project's root is your home directory, its own installed folders aren't reported as personal skills.
+- A home directory or personal skill folder that is missing or can't be read is skipped without a message.
+
+The warning applies to every skill the project installs: in the agents that prefer personal skills, a personal skill wins over the project's, and Code Rules only warns. It only reads your home directory and never writes to it, and the warning never fails a command, so `code-rules project check` in CI, which has no personal skills, passes as before. With no personal skill of the same name, nothing is printed.
 
 ## Keep an authored rule's group
 
