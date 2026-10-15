@@ -28,12 +28,13 @@ Code Rules records each skill's and rule's source and version, updates them only
 
 ## Use cases
 
-With your skills and rules in one place, you can:
+With Code Rules, you can:
 
-- Give every project in your organization the same skills and rules.
-- Add skills and rules that only one project needs.
-- Publish your skills and rules for others to use.
-- Adopt new versions of a skill or rule when you're ready, not when someone else changes it.
+- Start every new repo with your team's pull request review skill and Go rules already in place, without copying folders around.
+- Fix a skill once in your organization's library, and have every repo pick up the fix on its next update.
+- Install a skill once and have it work in Claude Code, Codex, and Cursor.
+- Use a skill from someone else's GitHub repo, know exactly which commit you have, and see what changed before you take an update.
+- Turn off one shared rule that doesn't fit a repo, such as a web logging rule in a CLI, without forking the whole library.
 
 ### Turn retros into rules
 
