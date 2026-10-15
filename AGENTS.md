@@ -7,38 +7,43 @@ Use this file to understand the product we are building and the decisions it sho
 
 ### Motivation
 
-Agents generate code quickly, but that code often conflicts with the team's engineering best practices. Finding those mismatches in review is expensive and frustrating: reviewers must explain expectations, request changes, and check the revised implementation.
-Repeated corrections consume the time and attention that agents were supposed to save.
+Most people already guide their coding agents with skills, the AI skills everyone knows, officially folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from many places, and it's hard to know where each skill came from, keep it updated, share it across an organization, or use it with more than one agent.
+Skills need a package manager. Code Rules records each skill's source and revision, updates it only when a project asks, shares it through libraries and an organization's `.code-rules` repository, and installs it into the folders each of the project's agents reads.
+Publishers need a formal format that tools can read in a structured way: a library manifest, a version for each skill, change notes, and skill metadata.
 
-Giving agents the right guidance before they write code helps teams avoid that rework. Code that aligns with the team's practices earlier in the process makes software development easier, less expensive, and more enjoyable.
+Skills alone aren't enough. They're coarse-grained: suited to playbooks, techniques, and coordinating a whole task. Teams also need granular engineering rules that a project can adopt, exclude, or replace one at a time.
+Code Rules adds rules, organizes them in rule groups, lets skills cite the rules they apply, and manages both together, for libraries that publish them, organizations that standardize on them, and projects that use them.
+
+Without that guidance, agents generate code that conflicts with the team's practices, and review turns into rework: reviewers explain expectations, request changes, and check the revision. Giving agents the right skills and rules before they write code avoids that rework.
 
 ### Mission
 
-Help human organizations generate code with AI that aligns with their best practices.
+Help people and organizations curate, share, and apply the skills and rules their agents follow, so the code they generate with AI aligns with their best practices.
 
 ### Vision
 
-When an individual or team starts a software project, they select the technologies and engineering practices they want to apply.
+When an individual or team starts a software project, they select the skills, technologies, and engineering practices they want to apply, from their own work, their organization, and the libraries they trust.
 
 From then on:
-During implementation, all agents follow the organization's best practices, as declared in the project's rules.
+Every skill and rule in the project has a known source and version, and changes only when the project updates it.
+During implementation, all agents follow the organization's best practices, as declared in the project's skills and rules.
 During validation, code is checked explicitly for compliance with those rules.
 
 Organizations quickly gain confidence that agents will apply their best practices throughout implementation and review.
 
-When code does fall short, teams capture the lesson in a new rule for that project or share it across projects. Insights and best practices spread across projects and teams, so a lesson learned in one place improves future work elsewhere.
+When code does fall short, teams capture the lesson in a new rule or skill for that project or share it across projects. Insights and best practices spread across projects and teams, so a lesson learned in one place improves future work elsewhere.
 
 ### Ideal customer profiles
 
 ## Humans
 
-Our ideal customer is an individual or software team that wants to produce correct, maintainable, and secure code using AI. They are dissatisfied with the code their agents produce or find that enforcing their best practices is painful, ineffective, or both.
+Our ideal customer is an individual or software team that wants to produce correct, maintainable, and secure code using AI. They already guide agents with skills or instruction files and find them hard to track, update, and share, or find that enforcing their best practices is painful, ineffective, or both.
 
-The strongest fit is an individual or team with several repositories that share technologies and engineering practices but also have project-specific requirements. At the same time, a single-project user should still benefit from authoring and applying local rules before adopting a shared library.
+The strongest fit is an individual or team with several repositories, or several agents, that share technologies and engineering practices but also have project-specific requirements. At the same time, a single-project user should still benefit from installing skills and authoring local rules before adopting a shared library.
 
-Their best practices may be scattered across documents, prompts, code reviews, and individual experience. They repeatedly correct agents for the same mistakes and want consistent implementation and review without restating every expectation in every task.
+Their best practices may be scattered across skills copied between repositories, documents, prompts, code reviews, and individual experience. They repeatedly correct agents for the same mistakes and want consistent implementation and review without restating every expectation in every task.
 
-Humans will decide which policies to adopt, and when to create an exception. They benefit from readable files and explicit conventions.
+Humans will decide which skills and policies to adopt, and when to create an exception. They benefit from readable files and explicit conventions.
 
 ## Agents
 
@@ -52,20 +57,26 @@ A rule expresses one independently adoptable engineering expectation in a Markdo
 
 A rule retains its identity and provenance when imported or rendered as a resolved definition. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
 
-#### Group
+#### Rule group
 
-A group collects related rules and explains when an agent should read them. There are two types of groups:
+A rule group collects related rules and explains when an agent should read them. There are two kinds of rule groups:
 
 1. Technology groups live under `techs/` and cover named languages, frameworks, tools, platforms, or protocols.
 2. Practice groups live under `practices/` and cover concerns such as testing, observability, error handling, and architecture.
 
-Groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Group](docs/src/content/docs/concepts/groups.md).
+Rule groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Rule group](docs/src/content/docs/concepts/groups.md).
+
+#### Skill
+
+A skill is the AI skill people already know, officially a folder that follows the open Agent Skills standard, whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Skills are coarse-grained: suited to playbooks, techniques, and coordinating a whole task. Rules are the granular layer: one best practice each, adopted and versioned on its own. A skill cites the rules it applies instead of restating them. Skills don't belong to rule groups. A skill may declare a type, `playbook` or `review`, as a label only.
+
+Code Rules installs included skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. It installs skills into repositories, never into a person's home directory; it only warns when a personal skill has the same name as one a project installs. See [Skill](docs/src/content/docs/concepts/skill.md).
 
 #### Library
 
-A library is a collection of groups published in a Git repository. Each library rule has its own version, and a library release publishes new versions of the rules that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, and rules to import.
+A library is a Git repository whose manifest publishes its rule groups and skills. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. A library sets a level for each skill it offers: required, recommended, or offered. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`, whose required skills install in every project that uses it and whose recommended skills install in projects that include them; a project explicitly chooses which sources, rules, and skills to include.
 
-Projects may import multiple sources, adopt each rule's published versions on their own schedule, and add or override rules locally.
+Projects may take from multiple sources, move to each rule's published versions, and each source's skills, on their own schedule, and add or replace rules and skills of their own. A source can also be a Git repository of skills that isn't a library. One configuration file and one `.code-rules/` layout serve projects and libraries alike.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
 See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](docs/src/content/docs/reference/configuration.md).
 
@@ -89,7 +100,7 @@ See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](d
 
 5. **Keep rule management independent of enforcement.**
    Projects choose their agent prompts, validation tools, and enforcement mechanisms.
-   Deliver clear rule files that those workflows can consume.
+   Deliver clear rule files and installed skills that those workflows can consume.
 
 ### Ownership and boundaries
 
@@ -98,14 +109,15 @@ Independently owned libraries supply the engineering policies.
 Keep Fabrica's private rule corpus separate; public examples must be original or authorized for redistribution.
 
 Projects retain their product vision, domain knowledge, and architecture context.
-Code Rules manages which versioned rules a codebase adopts and delivers their resolved definitions.
-Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
-Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
+Code Rules manages which versioned rules and skills a codebase adopts, delivers the rules' resolved definitions, and installs the skills.
+Code Rules supplies a Skills and Rules section that projects add to `AGENTS.md`; it tells agents to read `RULES.md`, which links to `SKILLS.md`. Code Rules never edits `AGENTS.md`, and it can't guarantee that agents follow the rules or use the skills.
+Projects can add their own guidance on how agents apply rules and skills, in other procedures, skills, or elsewhere in `AGENTS.md`, and choose their own validation and enforcement.
+Rule and skill input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
 
 ## Working in this repository
 
 This repository uses Code Rules to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules) and to keep its own conventions as local rules; [its guide](.code-rules/README.md) explains how to manage them.
-Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant groups and read their rules in full.
+Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant rule groups and read their rules in full.
 Follow the applicable rules and their exceptions, and check your work against them before finishing.
 If required rule files are unavailable or give conflicting instructions, report the issue rather than silently skipping a rule or choosing a policy.
 
