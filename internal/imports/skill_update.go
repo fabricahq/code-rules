@@ -67,7 +67,7 @@ func (r *repository) previewSkills(ctx context.Context, source rules.Source, rec
 		if _, read := previews[plan.commit]; read {
 			continue
 		}
-		installed, err := r.readSkills(ctx, source, plan, !plan.nonLibrary)
+		installed, err := r.readSkills(ctx, source, plan, !plan.nonLibrary, 0)
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, gitexec.ContextFailure(ctxErr)
 		}
