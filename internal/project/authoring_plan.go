@@ -107,7 +107,7 @@ func checkLocalGroup(ctx context.Context, root *os.Root, id string) error {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
-	return filetxn.RequireAbsent(ctx, root, path.Join("local", id, "_group.yaml"), path.Join("local", id, "README.md"))
+	return filetxn.RequireAbsent(ctx, root, path.Join("rules", id, "_group.yaml"), path.Join("rules", id, "README.md"))
 }
 
 func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configuration, id string) error {
@@ -125,7 +125,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 	if !available {
 		return failure("missing-group", "group "+group+" does not exist; create it first with code-rules project add group "+group+", then retry adding the rule", nil)
 	}
-	return filetxn.RequireAbsent(ctx, root, path.Join("local", id+".md"))
+	return filetxn.RequireAbsent(ctx, root, path.Join("rules", id+".md"))
 }
 
 func checkSourceAlias(config rules.Configuration, alias string) error {

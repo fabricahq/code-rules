@@ -276,7 +276,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 				edit.BasedOn = map[string]coderules.RuleVersion{}
 			}
 			edit.BasedOn[decision.Rule] = version
-			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "local/")})
+			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "rules/")})
 		case DecisionExclude:
 			if row == nil || row.Change != imports.UpdateNew {
 				return nil, nil, nil, refuse("the update doesn't add this rule, so there's nothing to exclude; name a rule the preview lists as new")
@@ -299,11 +299,11 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 	return sources, edits, forks, nil
 }
 
-// ReplacedFiles returns the local files that replacing the fork at localRule, a replaced row's local rule,
+// ReplacedFiles returns the authored files that replacing the fork at localRule, a replaced row's local rule,
 // overwrites or removes, as the project was when planned: the rule and every file in its asset directory, relative
 // to the Code Rules directory and sorted. It is empty when none of them exist.
 func (p *UpdatePlan) ReplacedFiles(localRule string) []string {
-	overwritten := slices.Sorted(maps.Keys(localPaths(forkPaths(treeFiles(p.planned.local), strings.TrimPrefix(localRule, "local/")))))
+	overwritten := slices.Sorted(maps.Keys(rulesPaths(forkPaths(treeFiles(p.planned.local), strings.TrimPrefix(localRule, "rules/")))))
 	if overwritten == nil {
 		return []string{}
 	}
@@ -327,9 +327,9 @@ func (p *UpdatePlan) readForks(ctx context.Context, sources []imports.SourceUpda
 		row := previewRow(sources, forks[i].source, forks[i].id)
 		for name := range forkPaths(treeFiles(p.planned.local), forks[i].file) {
 			if _, kept := forks[i].files[name]; kept {
-				row.Overwrites = append(row.Overwrites, path.Join("local", name))
+				row.Overwrites = append(row.Overwrites, path.Join("rules", name))
 			} else {
-				row.Removes = append(row.Removes, path.Join("local", name))
+				row.Removes = append(row.Removes, path.Join("rules", name))
 			}
 		}
 		slices.Sort(row.Overwrites)
@@ -363,12 +363,12 @@ var decisionFlags = map[UpdateDecisionKind]string{DecisionKeep: "--keep", Decisi
 // invalidArguments is a refusal of the command's arguments, which the CLI reports as a usage error.
 func invalidArguments(problem string) error { return failure("invalid-arguments", problem, nil) }
 
-// forkUpdate is a fork the update replaces: the local rule at file, relative to local/, which replaces rule id of
+// forkUpdate is a fork the update replaces: the authored rule at file, relative to rules/, which replaces rule id of
 // source, becomes a fork of version. read fills files.
 type forkUpdate struct {
 	source, id, file string
 	version          coderules.RuleVersion
-	// files holds the new fork's files by path relative to local/: the rule at file and its asset directory.
+	// files holds the new fork's files by path relative to rules/: the rule at file and its asset directory.
 	files map[string][]byte
 }
 

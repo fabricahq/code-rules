@@ -49,7 +49,7 @@ func projectCode(t *testing.T, err error, want string) {
 // TestWriterReplacesOnlyManagedTrees verifies initial and repeated apply, stale cleanup, and authored preservation.
 func TestWriterReplacesOnlyManagedTrees(t *testing.T) {
 	root := openProject(t)
-	writeFixture(t, root, "local/rule.md", "authored")
+	writeFixture(t, root, "rules/rule.md", "authored")
 	output := map[Target]map[string][]byte{Vendor: {"team/file": {0, 255, 10}}, Generated: {"RULES.md": []byte("first")}}
 	for i := 0; i < 2; i++ {
 		if err := WithWriter(context.Background(), root, func(w *Writer) error { return w.Apply(output, nil) }); err != nil {
@@ -65,7 +65,7 @@ func TestWriterReplacesOnlyManagedTrees(t *testing.T) {
 	if err != nil || len(got.Files) != 1 || string(got.Files["RULES.md"]) != "second" {
 		t.Fatalf("generated: %v %v", got, err)
 	}
-	if data, err := root.ReadFile("local/rule.md"); err != nil || string(data) != "authored" {
+	if data, err := root.ReadFile("rules/rule.md"); err != nil || string(data) != "authored" {
 		t.Fatal("authored file changed")
 	}
 	if err := RequireIdle(root); err != nil {

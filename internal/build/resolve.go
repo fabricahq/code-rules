@@ -218,7 +218,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		parsed := localRules[file]
 		group, ok := groups[parsed.Group]
 		if !ok || len(group.Guidance) == 0 {
-			return resolution{}, invalid(file, "local rule group has no metadata; add local group metadata or import this group")
+			return resolution{}, invalid(authoredLocation(file), "the rule's group has no metadata; add rules/"+parsed.Group+"/_group.yaml or include the group from a source")
 		}
 		group.Rules = append(group.Rules, resolvedRule{Rule: parsed, Origin: ruleOrigin{Source: "local", File: file}, License: nil})
 	}
@@ -253,7 +253,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 	result := map[string]coderules.Rule{}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !fs.ValidPath(file) || file == "." || strings.ContainsAny(file, "\\:") || strings.ContainsFunc(file, func(r rune) bool { return r < 32 || r == 127 }) {
-			return nil, invalid(file, "expected a contained portable local path")
+			return nil, invalid(authoredLocation(file), "expected a contained portable path")
 		}
 		if file == "README.md" || librarytree.IsGroupReadme(file) {
 			continue
@@ -263,10 +263,10 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		}
 		if path.Base(file) == "_group.yaml" {
 			id := path.Dir(file)
-			if err := librarytree.ValidateGroupID(id, "local/"+file); err != nil {
+			if err := librarytree.ValidateGroupID(id, authoredLocation(file)); err != nil {
 				return nil, err
 			}
-			metadata, err := coderules.ParseGroupMetadata(json.RawMessage(files[file]), "local/"+file)
+			metadata, err := coderules.ParseGroupMetadata(json.RawMessage(files[file]), authoredLocation(file))
 			if err != nil {
 				return nil, err
 			}
@@ -277,7 +277,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 			continue
 		}
 		if rules.HasDraftMarker(files[file]) {
-			return nil, invalid("local/"+file, "complete the draft and remove its code-rules:draft marker")
+			return nil, invalid(authoredLocation(file), "complete the draft and remove its code-rules:draft marker")
 		}
 		parsed, err := coderules.ParseRule(string(files[file]), file, "local")
 		if err != nil {
@@ -288,21 +288,27 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 	return result, nil
 }
 
-// validateLocalLinks checks local rules and Markdown attachments against the shared destination policy.
-// It checks retained attachments even if no active rule links to them; target existence belongs to rendering.
+// validateLocalLinks checks local rules and Markdown attachments against the shared destination policy, resolving
+// each link from where its file sits in the Code Rules directory. It checks retained attachments even if no active
+// rule links to them; target existence belongs to rendering.
 func validateLocalLinks(files map[string][]byte, localRules map[string]coderules.Rule) error {
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		_, rule := localRules[file]
 		if !rule && (rules.AssetDirectory(file) == "" || !strings.HasSuffix(file, ".md")) {
 			continue
 		}
-		targets, err := rules.MarkdownTargets(string(files[file]), file)
+		location := authoredLocation(file)
+		targets, err := rules.MarkdownTargets(string(files[file]), location)
 		if err != nil {
-			return fmt.Errorf("local/%s: %w", file, err)
+			return fmt.Errorf("%s: %w", location, err)
 		}
 		for _, target := range targets {
-			if err := rules.RequireAllowedTarget(file, target, nil); err != nil {
-				return fmt.Errorf("local/%s: %w", file, err)
+			key, err := authoredKey(target, location)
+			if err != nil {
+				return err
+			}
+			if err := rules.RequireAllowedTarget(file, key, nil); err != nil {
+				return fmt.Errorf("%s: %w", location, err)
 			}
 		}
 	}

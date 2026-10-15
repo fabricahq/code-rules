@@ -29,8 +29,8 @@ type Options struct {
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
-// names, list local/<group>/_group.yaml when they add a local group's metadata, and update also lists config.yaml
-// when it writes pins or exclusions.
+// names, list rules/<group>/_group.yaml when they add an authored group's metadata, and update also lists
+// config.yaml when it writes pins or exclusions.
 // Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
 	Added   []string     `json:"added"`
@@ -38,7 +38,7 @@ type FileChanges struct {
 	Removed []string     `json:"removed"`
 	Guide   *GuideChange `json:"guide,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
-	// sources importing a ref that isn't a library release. Then, in group order, each local group metadata file
+	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
 	// they wrote. Build reports none.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
@@ -162,15 +162,21 @@ func requireCheckUnchanged(ctx context.Context, root *os.Root, before projectSta
 	return filetxn.RequireIdle(root)
 }
 
-// projectState holds original bytes and inventories for optimistic change detection before writing.
+// projectState holds original bytes and inventories for optimistic change detection before writing. local is the
+// rules/ folder, with files keyed by their path in it, and assets the assets/ folder, with files keyed by their path
+// in it; authoredFiles combines them.
 type projectState struct {
-	config                   rules.Configuration
-	configBytes              []byte
-	local, vendor, generated *filetxn.Tree
+	config                           rules.Configuration
+	configBytes                      []byte
+	local, assets, vendor, generated *filetxn.Tree
 }
 
-// readProject validates configuration and retains every authored and managed byte used for change detection.
+// readProject validates configuration and retains every authored and managed byte used for change detection. It
+// fails when local/ has appeared since the project opened, so the input recheck refuses it too.
 func readProject(ctx context.Context, root *os.Root) (projectState, error) {
+	if err := requireNoLocalFolder(ctx, root); err != nil {
+		return projectState{}, err
+	}
 	data, config, err := configuration(ctx, root)
 	if err != nil {
 		return projectState{}, err
@@ -179,7 +185,7 @@ func readProject(ctx context.Context, root *os.Root) (projectState, error) {
 	for _, item := range []struct {
 		name  string
 		value **filetxn.Tree
-	}{{"local", &state.local}, {"vendor", &state.vendor}, {"generated", &state.generated}} {
+	}{{"rules", &state.local}, {"assets", &state.assets}, {"vendor", &state.vendor}, {"generated", &state.generated}} {
 		tree, err := filetxn.ReadTree(ctx, root, item.name)
 		if err != nil {
 			return projectState{}, err
@@ -237,7 +243,11 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 	if version == "" {
 		version = "0.0.0-development"
 	}
-	output, err := build.Generate(state.config, libraries, treeFiles(state.local), build.Options{ToolVersion: version, IndexMaxLines: options.IndexMaxLines, GroupInlineMaxBytes: options.GroupInlineMaxBytes})
+	authored, err := authoredFiles(state)
+	if err != nil {
+		return build.Output{}, err
+	}
+	output, err := build.Generate(state.config, libraries, authored, build.Options{ToolVersion: version, IndexMaxLines: options.IndexMaxLines, GroupInlineMaxBytes: options.GroupInlineMaxBytes})
 	if err != nil {
 		return build.Output{}, err
 	}
@@ -259,9 +269,27 @@ func requireUnchanged(ctx context.Context, root *os.Root, before projectState) e
 	return nil
 }
 
-// sameProject reports whether two reads hold the same configuration bytes and local, vendor, and generated trees.
+// sameProject reports whether two reads hold the same configuration bytes and rules, assets, vendor, and generated
+// trees.
 func sameProject(a, b projectState) bool {
-	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
+	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.assets.Digest() == b.assets.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
+}
+
+// authoredFiles returns the project's authored files keyed as build.Generate takes them: each file in rules/ by its
+// path there, and each file in assets/ as assets/<path>. It fails for a file in rules/assets/, which would take a
+// shared asset's key: shared assets belong in assets/.
+func authoredFiles(state projectState) (map[string][]byte, error) {
+	files := map[string][]byte{}
+	for name, data := range treeFiles(state.local) {
+		if strings.HasPrefix(name, "assets/") {
+			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .code-rules/assets/; move this file there"}
+		}
+		files[name] = data
+	}
+	for name, data := range treeFiles(state.assets) {
+		files["assets/"+name] = data
+	}
+	return files, nil
 }
 
 // treeFiles projects original bytes while treating an absent directory as an empty inventory.

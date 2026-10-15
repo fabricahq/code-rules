@@ -38,7 +38,8 @@ type RuleOptions struct {
 	Body *string
 }
 
-// Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and local files are preserved.
+// Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and authored
+// files are preserved. It fails, writing nothing, when the project still has a local/ folder.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 	root, err := openProject(ctx, options, true)
 	if err != nil {
@@ -56,10 +57,10 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 				return nil, err
 			}
 		}
-		if _, err = filetxn.ReadTree(ctx, root, "local"); err != nil {
+		if _, err = filetxn.ReadTree(ctx, root, "rules"); err != nil {
 			return nil, err
 		}
-		readme, err := filetxn.ReadOptional(ctx, root, "local/README.md")
+		readme, err := filetxn.ReadOptional(ctx, root, "rules/README.md")
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +73,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {
-			files = append(files, filetxn.File{Path: "local/README.md", Content: renderLocalReadme()})
+			files = append(files, filetxn.File{Path: "rules/README.md", Content: renderLocalReadme()})
 		}
 		if guide != nil {
 			files = append(files, *guide)
@@ -82,7 +83,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 	return authoringResult(changes, err)
 }
 
-// editProject revalidates configuration and local paths under exclusive ownership before publishing authored files.
+// editProject revalidates configuration and rules/ under exclusive ownership before publishing authored files.
 func editProject(ctx context.Context, options Options, prepare func(*os.Root, []byte, rules.Configuration) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openProject(ctx, options, false)
 	if err != nil {
@@ -95,7 +96,7 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 		if err != nil {
 			return nil, err
 		}
-		if _, err = filetxn.ReadTree(ctx, root, "local"); err != nil {
+		if _, err = filetxn.ReadTree(ctx, root, "rules"); err != nil {
 			return nil, err
 		}
 		files, err = prepare(root, original, config)
@@ -107,7 +108,7 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 	return authoringResult(changes, err)
 }
 
-// AddLocalGroup creates one complete local group definition without overwriting existing metadata.
+// AddLocalGroup creates one complete authored group definition in rules/ without overwriting existing metadata.
 func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
@@ -121,13 +122,13 @@ func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetad
 			return nil, err
 		}
 		guideName, _ := projectGuide()
-		return groupFiles(path.Join("local", id), id, data, guideName), nil
+		return groupFiles(path.Join("rules", id), id, data, guideName), nil
 	})
 }
 
-// groupAvailable accepts local metadata or a selected group from a verified persisted source snapshot.
+// groupAvailable accepts authored metadata or a selected group from a verified persisted source snapshot.
 func groupAvailable(ctx context.Context, root *os.Root, config rules.Configuration, id string) (bool, error) {
-	local, err := filetxn.ReadTree(ctx, root, "local")
+	local, err := filetxn.ReadTree(ctx, root, "rules")
 	if err != nil {
 		return false, err
 	}
@@ -162,7 +163,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	return false, nil
 }
 
-// AddLocalRule creates a validated rule or canonical unfinished draft, in an existing group.
+// AddLocalRule creates a validated rule or canonical unfinished draft in rules/, in an existing group.
 func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
 	data, err := rules.RenderRule(id, metadata, options.Body)
 	if err != nil {
@@ -173,7 +174,7 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 		if err := checkLocalRule(ctx, root, config, id); err != nil {
 			return nil, err
 		}
-		return []filetxn.File{{Path: path.Join("local", id+".md"), Content: data}}, nil
+		return []filetxn.File{{Path: path.Join("rules", id+".md"), Content: data}}, nil
 	})
 }
 

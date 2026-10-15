@@ -45,7 +45,7 @@ func TestInteractiveImpactRetry(t *testing.T) {
 			}
 			root := dir
 			if scope == "project" {
-				root = filepath.Join(dir, ".code-rules", "local")
+				root = filepath.Join(dir, ".code-rules", "rules")
 			}
 			data, err := os.ReadFile(filepath.Join(root, "practices/testing/my-rule.md"))
 			if err != nil {
@@ -129,7 +129,7 @@ func TestInvalidExplicitImpact(t *testing.T) {
 			t.Fatal(result)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".code-rules/local/practices/testing/my-rule.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".code-rules/rules/practices/testing/my-rule.md")); !os.IsNotExist(err) {
 		t.Fatal("invalid flag wrote a rule", err)
 	}
 }

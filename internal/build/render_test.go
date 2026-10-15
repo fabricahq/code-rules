@@ -34,13 +34,43 @@ func TestRenderRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := output["rules/local/techs/go/local.md"]
-	for _, want := range []string{"A  sentence.\r\n", "../../../../../local/techs/go/assets/local/a%20b.png#part", "[self](../../../../../local/techs/go/local.md)", "`[code](missing)`", "Keep trailing spaces.  \nNext line.", "### Source metadata", "**Rule source:**"} {
+	for _, want := range []string{"A  sentence.\r\n", "../../../../../rules/techs/go/assets/local/a%20b.png#part", "[self](../../../../../rules/techs/go/local.md)", "`[code](missing)`", "Keep trailing spaces.  \nNext line.", "### Source metadata", "**Rule source:**"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in %s", want, got)
 		}
 	}
 	if strings.Count(got, "# Return errors") != 1 {
 		t.Fatal("retained redundant heading")
+	}
+}
+
+// TestRenderLinksSharedAuthoredAssets links a rule in rules/ to a shared asset in assets/ through its place in the
+// Code Rules directory, three levels up.
+func TestRenderLinksSharedAuthoredAssets(t *testing.T) {
+	output, err := renderFixture(t, "[diagram](../../../assets/diagram.svg)", map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := output["rules/local/techs/go/local.md"]; !strings.Contains(got, "[diagram](../../../../../assets/diagram.svg)") {
+		t.Fatal(got)
+	}
+}
+
+// TestRenderRejectsLinksOutsideAuthoredFolders refuses a link from an authored rule to anything outside rules/ and
+// assets/, including a shared asset linked from the rule's place in the library layout, one level short.
+func TestRenderRejectsLinksOutsideAuthoredFolders(t *testing.T) {
+	for _, test := range []struct{ body, target string }{
+		{"[diagram](../../assets/diagram.svg)", "rules/assets/diagram.svg"},
+		{"[config](../../../config.yaml)", "config.yaml"},
+		{"[vendored](../../../vendor/team/techs/go/errors.md)", "vendor/team/techs/go/errors.md"},
+	} {
+		t.Run(test.target, func(t *testing.T) {
+			output, err := renderFixture(t, test.body, map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .code-rules/rules/ and .code-rules/assets/; link to this rule's own assets directory, or to a shared asset in .code-rules/assets/" || output != nil {
+				t.Fatalf("got %v, %v", output, err)
+			}
+		})
 	}
 }
 

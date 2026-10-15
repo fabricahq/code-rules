@@ -1,5 +1,5 @@
-// Adapt managed directories, the two project-guide filenames, the configuration, and the local files sync and update
-// write to the same recoverable transaction.
+// Adapt managed directories, the two project-guide filenames, the configuration, and the authored files under rules/
+// that sync and update write to the same recoverable transaction.
 
 package filetxn
 
@@ -27,26 +27,26 @@ const (
 // so its pins and exclusions and the output they select are installed or recovered together.
 const Config Target = "config.yaml"
 
-// LocalGroupMetadata is the metadata file of the local group with ID group, local/<group>/_group.yaml; group must be
-// a valid group ID. Sync and update create it together with vendor and generated output when the project's local
-// rules in the group lose the only imported copy of its metadata, so recovery keeps the two consistent. Its
+// LocalGroupMetadata is the metadata file of the authored group with ID group, rules/<group>/_group.yaml; group must
+// be a valid group ID. Sync and update create it together with vendor and generated output when the project's
+// authored rules in the group lose the only imported copy of its metadata, so recovery keeps the two consistent. Its
 // directory must already exist.
-func LocalGroupMetadata(group string) Target { return Target("local/" + group + "/_group.yaml") }
+func LocalGroupMetadata(group string) Target { return Target("rules/" + group + "/_group.yaml") }
 
 // maxLocalGroupMetadata bounds the local group metadata files one transaction can create, so its journal stays
 // small enough to read during recovery.
 const maxLocalGroupMetadata = 1000
 
-// LocalRule is the Markdown file of the local rule at file, a rule path relative to local/, such as
-// techs/go/errors.md, and LocalRuleAssets is that rule's asset directory, local/techs/go/assets/errors. Only
+// LocalRule is the Markdown file of the authored rule at file, a rule path relative to rules/, such as
+// techs/go/errors.md, and LocalRuleAssets is that rule's asset directory, rules/techs/go/assets/errors. Only
 // project update replaces them, when it replaces a fork with a newer one, so recovery restores or finishes the rule,
 // its assets, the configuration that records the fork's version, and the output generated from them together. A
 // nil file map for LocalRuleAssets removes the directory. Apply creates their missing parent directories.
-func LocalRule(file string) Target { return Target("local/" + file) }
+func LocalRule(file string) Target { return Target("rules/" + file) }
 
 // LocalRuleAssets is the asset directory of the local rule at file; see LocalRule.
 func LocalRuleAssets(file string) Target {
-	return Target("local/" + strings.TrimSuffix(rules.RuleAssetDirectory(file), "/"))
+	return Target("rules/" + strings.TrimSuffix(rules.RuleAssetDirectory(file), "/"))
 }
 
 // maxLocalRules bounds the local rules one transaction can replace, each with its asset directory, so its journal
@@ -57,31 +57,31 @@ func guideTarget(target Target) bool { return target == GuideReadme || target ==
 
 // localGroupMetadataTarget reports whether target is a LocalGroupMetadata target of a valid group ID.
 func localGroupMetadataTarget(target Target) bool {
-	group, local := strings.CutPrefix(string(target), "local/")
+	group, authored := strings.CutPrefix(string(target), "rules/")
 	group, metadata := strings.CutSuffix(group, "/_group.yaml")
-	return local && metadata && librarytree.ValidateGroupID(group, "group") == nil
+	return authored && metadata && librarytree.ValidateGroupID(group, "group") == nil
 }
 
-// localRuleTarget reports whether target is a LocalRule target: the Markdown file of a rule path under local/.
+// localRuleTarget reports whether target is a LocalRule target: the Markdown file of a rule path under rules/.
 func localRuleTarget(target Target) bool {
-	file, local := strings.CutPrefix(string(target), "local/")
+	file, authored := strings.CutPrefix(string(target), "rules/")
 	id, versioned := librarytree.VersionedRule(file)
-	return local && versioned && file == id+".md"
+	return authored && versioned && file == id+".md"
 }
 
 // localRuleAssetsTarget reports whether target is a LocalRuleAssets target: the asset directory of a rule path
-// under local/.
+// under rules/.
 func localRuleAssetsTarget(target Target) bool {
-	directory, local := strings.CutPrefix(string(target), "local/")
+	directory, authored := strings.CutPrefix(string(target), "rules/")
 	parent := path.Dir(directory)
-	if !local || path.Base(parent) != "assets" {
+	if !authored || path.Base(parent) != "assets" {
 		return false
 	}
 	file := path.Dir(parent) + "/" + path.Base(directory) + ".md"
 	return localRuleTarget(LocalRule(file)) && LocalRuleAssets(file) == target
 }
 
-// localTarget reports whether target is an authored file or directory under local/, which follows the fixed targets
+// localTarget reports whether target is an authored file or directory under rules/, which follows the fixed targets
 // in a transaction.
 func localTarget(target Target) bool {
 	return localGroupMetadataTarget(target) || localRuleTarget(target) || localRuleAssetsTarget(target)
@@ -96,7 +96,7 @@ func validTarget(target Target) bool {
 	return target == Vendor || target == Generated || fileTarget(target) || localRuleAssetsTarget(target)
 }
 
-// requireRealParents fails with unsafe-path when a parent directory of target, such as local/techs for local group
+// requireRealParents fails with unsafe-path when a parent directory of target, such as rules/techs for authored group
 // metadata, is a symbolic link or not a directory, so publication and recovery never reach another file through
 // it. A missing parent passes: the target is absent.
 func requireRealParents(root *os.Root, target Target) error {
@@ -118,7 +118,7 @@ func requireRealParents(root *os.Root, target Target) error {
 }
 
 // entryName names target's staged output, backup, and displaced copy inside the transaction directory, which holds
-// no subdirectories for them: the slashes of a path under local/ become +, which no target contains.
+// no subdirectories for them: the slashes of a path under rules/ become +, which no target contains.
 func entryName(target Target) string { return strings.ReplaceAll(string(target), "/", "+") }
 
 // renameCheck is where Apply probes that this filesystem can publish a file target without replacing another file.

@@ -89,7 +89,7 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 					t.Fatal(err)
 				}
 			case "local-edited":
-				writeFixture(t, root, "local/techs/go/errors.md", projectRule+"New guidance\n")
+				writeFixture(t, root, "rules/techs/go/errors.md", projectRule+"New guidance\n")
 			case "config-edited":
 				writeFixture(t, root, "config.yaml", "{\n\"schemaVersion\":2,\"sources\":{}}\n")
 			case "writer-started":

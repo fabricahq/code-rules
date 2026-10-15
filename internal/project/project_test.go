@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -28,8 +29,8 @@ func localProject(t *testing.T) (*os.Root, Options) {
 		t.Fatal(err)
 	}
 	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"sources":{}}`)
-	writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
-	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
+	writeFixture(t, root, "rules/techs/go/_group.yaml", projectMetadata)
+	writeFixture(t, root, "rules/techs/go/errors.md", projectRule)
 	return root, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
 }
 
@@ -37,7 +38,7 @@ func localProject(t *testing.T) (*os.Root, Options) {
 func importedProject(t *testing.T) (*os.Root, Options) {
 	t.Helper()
 	root, options := localProject(t)
-	if err := root.RemoveAll("local"); err != nil {
+	if err := root.RemoveAll("rules"); err != nil {
 		t.Fatal(err)
 	}
 	configJSON := []byte(`{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","rules":{"include":["techs/go/*"]}}}}`)
@@ -136,7 +137,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 	}
 }
 
-// TestOfflineFailuresPreserveOutput checks invalid local/vendor content, pending recovery, and cancellation.
+// TestOfflineFailuresPreserveOutput checks invalid rules/vendor content, pending recovery, and cancellation.
 func TestOfflineFailuresPreserveOutput(t *testing.T) {
 	for _, kind := range []string{"local", "vendor", "recovery", "cancel"} {
 		t.Run(kind, func(t *testing.T) {
@@ -146,7 +147,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 			defer cancel()
 			switch kind {
 			case "local":
-				writeFixture(t, root, "local/techs/go/bad.md", "invalid rule")
+				writeFixture(t, root, "rules/techs/go/bad.md", "invalid rule")
 			case "vendor":
 				writeFixture(t, root, "vendor/team/techs/go/errors.md", "modified imported rule")
 			case "recovery":
@@ -258,6 +259,69 @@ func TestOfflineRejectsAnExclusionSyncDidntCheck(t *testing.T) {
 	}
 }
 
+// sharedAssetProject supplies a project whose authored rule in rules/ links to a shared asset in assets/.
+func sharedAssetProject(t *testing.T) (*os.Root, Options) {
+	t.Helper()
+	root, options := localProject(t)
+	writeFixture(t, root, "rules/techs/go/errors.md", projectRule+"\nSee [the retry lifecycle](../../../assets/retry.svg).\n")
+	writeFixture(t, root, "assets/retry.svg", "<svg/>")
+	return root, options
+}
+
+// TestBuild_LinksAuthoredRulesInRulesToSharedAssetsInAssets links the generated copy of an authored rule in rules/
+// to its source file and to the shared asset in assets/ that it links to.
+func TestBuild_LinksAuthoredRulesInRulesToSharedAssetsInAssets(t *testing.T) {
+	root, options := sharedAssetProject(t)
+	if _, err := Build(context.Background(), options); err != nil {
+		t.Fatal(err)
+	}
+	generated, err := root.ReadFile("generated/rules/local/techs/go/errors.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"[the retry lifecycle](../../../../../assets/retry.svg)", "**Rule source:** [Original rule](../../../../../rules/techs/go/errors.md)"} {
+		if !strings.Contains(string(generated), want) {
+			t.Errorf("missing %q in %s", want, generated)
+		}
+	}
+}
+
+// TestBuild_RefusesMisplacedSharedAssets fails, keeping the generated output, when the shared asset an authored rule
+// links to is missing from assets/, or when a file sits in rules/assets/, where shared assets don't belong.
+func TestBuild_RefusesMisplacedSharedAssets(t *testing.T) {
+	for _, test := range []struct{ name, location, problem string }{
+		{"missing asset", "local:techs/go/errors", "missing asset link destination: ../../../assets/retry.svg"},
+		{"asset in rules", "rules/assets/retry.svg", "rules/ holds groups under techs/ and practices/, so shared assets belong in .code-rules/assets/; move this file there"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			root, options := sharedAssetProject(t)
+			if _, err := Build(context.Background(), options); err != nil {
+				t.Fatal(err)
+			}
+			if test.name == "missing asset" {
+				if err := root.Remove("assets/retry.svg"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				writeFixture(t, root, "rules/assets/retry.svg", "<svg/>")
+			}
+			before, err := filetxn.ReadTree(context.Background(), root, "generated")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = Build(context.Background(), options)
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || validation.ValidationLocation() != test.location || validation.ValidationProblem() != test.problem {
+				t.Fatal(err)
+			}
+			after, err := filetxn.ReadTree(context.Background(), root, "generated")
+			if err != nil || after.Digest() != before.Digest() {
+				t.Fatal("changed generated output", err)
+			}
+		})
+	}
+}
+
 // TestProjectInputRecheckRejectsLaterEdits verifies the same guard Build supplies to Apply.
 func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	root, _ := localProject(t)
@@ -265,8 +329,23 @@ func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, "local/techs/go/errors.md", projectRule+"Later edit.\n")
+	writeFixture(t, root, "rules/techs/go/errors.md", projectRule+"Later edit.\n")
 	projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
+}
+
+// TestProjectInputRecheckRejectsALaterLocalFolder refuses a local/ folder that appears after the project opened,
+// which the rechecked trees don't cover.
+func TestProjectInputRecheckRejectsALaterLocalFolder(t *testing.T) {
+	root, _ := localProject(t)
+	state, err := readProject(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
+	var validation *ValidationError
+	if err := requireUnchanged(context.Background(), root, state); !errors.As(err, &validation) || validation.Location != ".code-rules/local/" {
+		t.Fatalf("recheck error = %v, want the local/ refusal", err)
+	}
 }
 
 // TestOfflineRendersOnlyVerifiedSnapshotBytes loads the bytes whose digests were verified, so an edit made after

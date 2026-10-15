@@ -49,7 +49,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 				t.Fatal("unattended mode showed interactive introduction", result)
 			}
 			if tc.name == "group" {
-				for _, text := range []string{"Adding a project-only group at: techs/go", "This group belongs to this project.", "Its files are stored in .code-rules/local/techs/go/.", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
+				for _, text := range []string{"Adding a project-only group at: techs/go", "This group belongs to this project.", "Its files are stored in .code-rules/rules/techs/go/.", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
 					if !strings.Contains(result.Transcript, text) {
 						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
 					}
@@ -61,7 +61,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 			if result.ExitCode != tc.code {
 				t.Fatal(result)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.yaml"))
+			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/rules/techs/go/_group.yaml"))
 			if tc.created {
 				if !strings.HasSuffix(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "\n\n") {
 					t.Fatal("missing blank line after prompts", result.Transcript)
@@ -127,7 +127,7 @@ func TestLongTerminalPaste(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
-	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.yaml"))
+	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/rules/techs/go/_group.yaml"))
 	if err != nil || !strings.Contains(string(data), description) {
 		t.Fatal("long paste was lost", err)
 	}
@@ -177,7 +177,7 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 			}
 			ruleRoot := root
 			if kind == "project" {
-				ruleRoot = filepath.Join(root, "local")
+				ruleRoot = filepath.Join(root, "rules")
 			}
 			if _, err := os.Stat(filepath.Join(ruleRoot, "techs/go/errors.md")); err != nil {
 				t.Fatal(err)

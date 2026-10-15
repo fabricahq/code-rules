@@ -68,7 +68,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	u.write(t, "local/techs/go/use-data-loaders.md", string(updateRule("Our loaders rule.")))
+	u.write(t, "rules/techs/go/use-data-loaders.md", string(updateRule("Our loaders rule.")))
 	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 2\nsources:\n  team:\n    repository: "+f.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/backoff\n          version: \"1.0.0\"\n          reason: 'Waiting on #45.'\n      exclude:\n        - id: techs/go/loaders\n          reason: Ours covers our data layer.\n          replacedBy: techs/go/use-data-loaders\n")
 	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
 		t.Fatal(code, out, diagnostic)
@@ -145,7 +145,7 @@ const updatePreview = `team
             Covered by verify.
   replaced  techs/go/loaders  1.0.0 -> 1.1.0
             Add pagination.
-            Your rule: local/techs/go/use-data-loaders.md.
+            Your rule: rules/techs/go/use-data-loaders.md.
             Changes since the imported version 1.0.0; your rule may already have some.
             To replace your rule and its assets with a fork of 1.1.0,
             pass --update-fork team:techs/go/loaders.
@@ -197,7 +197,7 @@ func TestUpdate_JSONPreviewReportsEveryRowAndWritesNothing(t *testing.T) {
 		`{"id":"techs/go/format","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Fix a typo."],"summaryVersions":["1.0.1"],"overwrites":[],"removes":[]}`,
 		`{"id":"techs/go/verify","change":"new","to":"1.0.0","summaries":["Add the rule."],"summaryVersions":["1.0.0"],"overwrites":[],"removes":[]}`,
 		`{"id":"techs/go/retry","change":"retired","from":"1.0.0","lastVersion":"1.0.0","summaries":["Covered by verify."],"summaryVersions":["1.0.0"],"replacedBy":"techs/go/verify","overwrites":[],"removes":[]}`,
-		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"rules/techs/go/use-data-loaders.md","overwrites":[],"removes":[]}`,
 		`{"id":"techs/go/backoff","change":"pinned","from":"1.0.0","newest":"2.0.0","summaries":[],"summaryVersions":[],"pin":{"version":"1.0.0","reason":"Waiting on #45."},"overwrites":[],"removes":[]}`,
 	}
 	got := []string{}
@@ -255,7 +255,7 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 		t.Fatalf("offline check after the update: exit %d\n%s%s", code, out, diagnostic)
 	}
 	// Without --update-fork, the replaced rule's local rule and exclusion stay as they were.
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("Our loaders rule.")) || strings.Contains(string(config), "basedOn") {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("Our loaders rule.")) || strings.Contains(string(config), "basedOn") {
 		t.Fatalf("the update changed the replacement, %v:\n%s\n%s", err, fork, config)
 	}
 	// The next preview lists the kept retirement and both pins, and nothing else.
@@ -278,18 +278,18 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 	u := newUpdateFixture(t)
 	u.write(t, "config.yaml", u.basedOnConfig("1.0.0"))
 	out, diagnostic, code := u.run(t, "project", "update")
-	row := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Changes since 1.0.0, the version your rule is based on.\n            To replace your rule and its assets with a fork of 1.1.0,\n            pass --update-fork team:techs/go/loaders.\n"
+	row := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: rules/techs/go/use-data-loaders.md, based on 1.0.0.\n            Changes since 1.0.0, the version your rule is based on.\n            To replace your rule and its assets with a fork of 1.1.0,\n            pass --update-fork team:techs/go/loaders.\n"
 	if code != 0 || diagnostic != "" || !strings.Contains(out, row) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant the row:\n%s", code, diagnostic, out, row)
 	}
 	out, _, code = u.run(t, "project", "update", "--json")
-	want := `{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","basedOn":"1.0.0","overwrites":[],"removes":[]}`
+	want := `{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"rules/techs/go/use-data-loaders.md","basedOn":"1.0.0","overwrites":[],"removes":[]}`
 	if code != 0 || !strings.Contains(compactJSON(t, json.RawMessage(out)), want) {
 		t.Fatalf("exit %d, want the row %s in:\n%s", code, want, out)
 	}
 	// The preview of a fork update names the file it overwrites, in human and JSON output.
 	out, _, code = u.run(t, "project", "update", "--update-fork", "team:techs/go/loaders")
-	forked := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Your rule becomes a fork of 1.1.0.\n            Replaces local/techs/go/use-data-loaders.md\n"
+	forked := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: rules/techs/go/use-data-loaders.md, based on 1.0.0.\n            Your rule becomes a fork of 1.1.0.\n            Replaces rules/techs/go/use-data-loaders.md\n"
 	if code != 0 || !strings.Contains(out, forked) {
 		t.Fatalf("exit %d, want the row:\n%s\nin:\n%s", code, forked, out)
 	}
@@ -305,11 +305,11 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 			Sources []struct{ Rules []decidedRow }
 		}
 	}
-	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || !result.OK || !slices.Contains(result.Value.Changed, "config.yaml") || !slices.Contains(result.Value.Changed, "local/techs/go/use-data-loaders.md") {
+	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || !result.OK || !slices.Contains(result.Value.Changed, "config.yaml") || !slices.Contains(result.Value.Changed, "rules/techs/go/use-data-loaders.md") {
 		t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
 	}
 	if !slices.ContainsFunc(result.Value.Sources[0].Rules, func(row decidedRow) bool {
-		return row.ID == "techs/go/loaders" && row.Decision == "update-fork" && reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/use-data-loaders.md"}) && len(row.Removes) == 0 && row.Removes != nil
+		return row.ID == "techs/go/loaders" && row.Decision == "update-fork" && reflect.DeepEqual(row.Overwrites, []string{"rules/techs/go/use-data-loaders.md"}) && len(row.Removes) == 0 && row.Removes != nil
 	}) {
 		t.Fatalf("rows %+v", result.Value.Sources[0].Rules)
 	}
@@ -317,7 +317,7 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 	if err != nil || !strings.Contains(string(config), "          replacedBy: techs/go/use-data-loaders\n          basedOn: \"1.1.0\" # forked\n") {
 		t.Fatalf("configuration, %v:\n%s", err, config)
 	}
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
 		t.Fatalf("local rule, %v:\n%s", err, fork)
 	}
 	if out, _, code := u.run(t, "project", "update"); code != 0 || strings.Contains(out, "techs/go/loaders") {
@@ -414,7 +414,7 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 // TestUpdate_RefusesToUpdateTheForkOfARetiredRule as a usage error, without writing.
 func TestUpdate_RefusesToUpdateTheForkOfARetiredRule(t *testing.T) {
 	u := newUpdateFixture(t)
-	u.write(t, "local/techs/go/our-retry.md", string(updateRule("Our retry rule.")))
+	u.write(t, "rules/techs/go/our-retry.md", string(updateRule("Our retry rule.")))
 	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 2\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      exclude:\n        - id: techs/go/retry\n          reason: Ours.\n          replacedBy: techs/go/our-retry\n")
 	before := projectFileContents(t, u.directory)
 	out, diagnostic, code := u.run(t, "project", "update", "--yes", "--json", "--update-fork", "team:techs/go/retry")
@@ -449,7 +449,7 @@ func TestUpdate_LaterLeavesTheForkInATerminal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md"))
+	fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "rules", "techs", "go", "use-data-loaders.md"))
 	if err != nil || string(fork) != string(updateRule("Our loaders rule.")) || strings.Contains(string(config), "basedOn") || u.versions(t)["loaders"] != "1.1.0" {
 		t.Fatalf("the update changed the replacement, %v:\n%s\n%s", err, fork, config)
 	}
@@ -465,7 +465,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 		{Prompt: "team:techs/go/verify: new rule, 1.0.0.\r\nAdd it, or exclude it? [add/exclude]:", Answer: "e"},
 		{Prompt: "Reason for excluding it:", Answer: "Covered locally."},
 		{Prompt: "team:techs/go/retry: retired.\r\nDrop it, or keep 1.0.0? [drop/keep]:", Answer: "drop"},
-		{Prompt: "team:techs/go/loaders: replaced by local/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReplacing your rule with a fork of 1.1.0 replaces or removes:\r\n  local/techs/go/use-data-loaders.md\r\nReview later, or replace your local rule with 1.1.0? [later/replace]:", Answer: "r"},
+		{Prompt: "team:techs/go/loaders: replaced by rules/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReplacing your rule with a fork of 1.1.0 replaces or removes:\r\n  rules/techs/go/use-data-loaders.md\r\nReview later, or replace your local rule with 1.1.0? [later/replace]:", Answer: "r"},
 		{Prompt: "Apply the update? [yes/no]:", Answer: "yes"},
 	}
 	result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, steps)
@@ -481,7 +481,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
 	afterQuestions := transcript[strings.LastIndex(transcript, "Review later, or replace your local rule"):]
 	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
-	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Replace your rule for team:techs/go/loaders with a fork of 1.1.0:\n    Replaces local/techs/go/use-data-loaders.md\n") || strings.Contains(revised, "  major ") {
+	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Replace your rule for team:techs/go/loaders with a fork of 1.1.0:\n    Replaces rules/techs/go/use-data-loaders.md\n") || strings.Contains(revised, "  major ") {
 		t.Fatalf("the answers, without the preview again, didn't come before the confirmation:\n%s", result.Transcript)
 	}
 	// Reading the forked version after the answers, and fetching the update after the confirmation, each say so.
@@ -509,7 +509,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." || team.Exclude["techs/go/loaders"].BasedOn == nil || team.Exclude["techs/go/loaders"].BasedOn.String() != "1.1.0" {
 		t.Fatalf("configuration:\n%s\nstdout:\n%s", data, result.Stdout)
 	}
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
 		t.Fatalf("local rule, %v:\n%s", err, fork)
 	}
 	// With nothing left to move, a terminal update applies without questions and says, as a preview would, that
@@ -619,8 +619,8 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 // version or the files it overwrites.
 func TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin(t *testing.T) {
 	old, newest := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 2}
-	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "local/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"local/techs/go/loaders.md"}, Removes: []string{"local/techs/go/assets/loaders/notes.md"}, Summaries: []string{}}
-	want := []string{"Your rule: local/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0.", "Replaces local/techs/go/loaders.md", "Removes local/techs/go/assets/loaders/notes.md"}
+	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "rules/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"rules/techs/go/loaders.md"}, Removes: []string{"rules/techs/go/assets/loaders/notes.md"}, Summaries: []string{}}
+	want := []string{"Your rule: rules/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0.", "Replaces rules/techs/go/loaders.md", "Removes rules/techs/go/assets/loaders/notes.md"}
 	if got := updateDetails("team", row); !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -642,7 +642,7 @@ func TestUpdate_AsksAboutAPinnedForkInATerminal(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) || u.versions(t)["loaders"] != "1.0.0" {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) || u.versions(t)["loaders"] != "1.0.0" {
 		t.Fatalf("local rule, %v:\n%s\nversions %v", err, fork, u.versions(t))
 	}
 }
@@ -650,8 +650,8 @@ func TestUpdate_AsksAboutAPinnedForkInATerminal(t *testing.T) {
 // TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement instead of recommending it.
 func TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement(t *testing.T) {
 	last := coderules.RuleVersion{Major: 1}
-	row := imports.RuleUpdate{Change: imports.UpdateRetired, From: &last, LastVersion: &last, ReplacedBy: "techs/go/d", ReplacementLocalRule: "local/techs/go/d.md"}
-	if got := updateDetails("team", row); len(got) == 0 || got[0] != "Replaced by techs/go/d, which your project already replaces with local/techs/go/d.md." {
+	row := imports.RuleUpdate{Change: imports.UpdateRetired, From: &last, LastVersion: &last, ReplacedBy: "techs/go/d", ReplacementLocalRule: "rules/techs/go/d.md"}
+	if got := updateDetails("team", row); len(got) == 0 || got[0] != "Replaced by techs/go/d, which your project already replaces with rules/techs/go/d.md." {
 		t.Fatalf("got %q", got)
 	}
 }

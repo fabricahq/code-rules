@@ -131,7 +131,7 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 				raw = bytes.Replace(raw, []byte(`"include"`), []byte(`"pins":[{"id":"techs/go/errors","version":"9.0.0","reason":"Typo."}],"include"`), 1)
 				writeFixture(t, root, configurationFile, string(raw))
 			} else if scenario == "invalid-local" {
-				writeFixture(t, root, "local/techs/go/bad.md", "invalid")
+				writeFixture(t, root, "rules/techs/go/bad.md", "invalid")
 			}
 			before, err := filetxn.ReadTree(ctx, root, ".")
 			if err != nil {

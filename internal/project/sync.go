@@ -77,11 +77,11 @@ type installation struct {
 }
 
 // install renders the project from the installation's imported sources and replaces vendor and generated output,
-// an older managed guide, config.yaml when edited, and the local rule and asset directory of each fork it replaces,
-// in one transaction of w. When local rules would lose the only imported copy of their group's metadata, the
-// transaction also writes that copy to local/<group>/_group.yaml, with a warning. before is the project as read
+// an older managed guide, config.yaml when edited, and the authored rule and asset directory of each fork it
+// replaces, in one transaction of w. When authored rules would lose the only imported copy of their group's metadata,
+// the transaction also writes that copy to rules/<group>/_group.yaml, with a warning. before is the project as read
 // under w; any change to it before replacement fails with concurrent-change. The report lists vendor and generated
-// paths, config.yaml when edited, local group metadata it adds, and the local files of each replaced fork.
+// paths, config.yaml when edited, authored group metadata it adds, and the authored files of each replaced fork.
 func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before projectState, in installation) (FileChanges, error) {
 	snapshots := map[string]snapshot{}
 	libraries := map[string]build.Library{}
@@ -125,13 +125,13 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	changes := compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
 	targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
 	for _, group := range slices.Sorted(maps.Keys(kept)) {
-		file := path.Join("local", group, "_group.yaml")
+		file := path.Join("rules", group, "_group.yaml")
 		targets[filetxn.LocalGroupMetadata(group)] = map[string][]byte{file: kept[group]}
 		changes.Added = append(changes.Added, file)
-		warnings = append(warnings, fmt.Sprintf("Wrote %s, the metadata of group %s from the library that last supplied it, because your local rules in the group need it and no imported rule supplies it anymore. It's now yours to edit.", file, group))
+		warnings = append(warnings, fmt.Sprintf("Wrote %s, the metadata of group %s from the library that last supplied it, because your authored rules in the group need it and no imported rule supplies it anymore. It's now yours to edit.", file, group))
 	}
 	for _, fork := range in.forks {
-		forkChanges := compareFiles(localPaths(forkPaths(treeFiles(before.local), fork.file)), localPaths(fork.files))
+		forkChanges := compareFiles(rulesPaths(forkPaths(treeFiles(before.local), fork.file)), rulesPaths(fork.files))
 		changes.Added = append(changes.Added, forkChanges.Added...)
 		changes.Changed = append(changes.Changed, forkChanges.Changed...)
 		changes.Removed = append(changes.Removed, forkChanges.Removed...)
@@ -145,7 +145,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 				assetFiles[relative] = data
 			}
 		}
-		targets[filetxn.LocalRule(fork.file)] = map[string][]byte{path.Join("local", fork.file): fork.files[fork.file]}
+		targets[filetxn.LocalRule(fork.file)] = map[string][]byte{path.Join("rules", fork.file): fork.files[fork.file]}
 		// A nil map removes the old asset directory when the new fork has no assets.
 		targets[filetxn.LocalRuleAssets(fork.file)] = assetFiles
 	}
@@ -171,8 +171,8 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	return changes, nil
 }
 
-// forkPaths returns the files of local, by path relative to local/, that belong to the local rule at file: the rule
-// and every file in its asset directory.
+// forkPaths returns the files of local, by path relative to rules/, that belong to the authored rule at file: the
+// rule and every file in its asset directory.
 func forkPaths(local map[string][]byte, file string) map[string][]byte {
 	assets := rules.RuleAssetDirectory(file)
 	paths := map[string][]byte{}
@@ -184,17 +184,18 @@ func forkPaths(local map[string][]byte, file string) map[string][]byte {
 	return paths
 }
 
-// localPaths returns files, which are keyed by path relative to local/, keyed instead by path relative to the Code
+// rulesPaths returns files, which are keyed by path relative to rules/, keyed instead by path relative to the Code
 // Rules directory.
-func localPaths(files map[string][]byte) map[string][]byte {
+func rulesPaths(files map[string][]byte) map[string][]byte {
 	result := map[string][]byte{}
 	for name, data := range files {
-		result[path.Join("local", name)] = data
+		result[path.Join("rules", name)] = data
 	}
 	return result
 }
 
-// groupsWithoutLocalMetadata returns, sorted, the groups of the project's local rules that have no local metadata.
+// groupsWithoutLocalMetadata returns, sorted, the groups of the project's authored rules that have no authored
+// metadata.
 func groupsWithoutLocalMetadata(state projectState) []string {
 	local := treeFiles(state.local)
 	groups := []string{}
@@ -212,15 +213,15 @@ func groupsWithoutLocalMetadata(state projectState) []string {
 	return groups
 }
 
-// keptGroupMetadata returns, by group ID, the metadata to write to local/ for each group whose local rules would
-// otherwise have none: the project has no local metadata for it, no source now imports it, and a stored source
+// keptGroupMetadata returns, by group ID, the metadata to write to rules/ for each group whose authored rules would
+// otherwise have none: the project has no authored metadata for it, no source now imports it, and a stored source
 // record in vendor/ lists the group's metadata, including the record of a source the configuration no longer has.
 // Each copy comes from the first such record: configured sources in configuration order, then removed sources in
 // name order. A configured source's copy is the metadata in the library release that now supplies its shared
 // files, from imported, when that release still has the group; otherwise, and for a removed source, it is the
 // vendored copy. Records it can't read are skipped. It is empty, never nil, when no group needs one. It fails when
 // a record was changed outside sync, or the vendored copy it would use differs from its record's checksum, so
-// modified metadata never becomes local guidance.
+// modified metadata never becomes authored guidance.
 func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) (map[string][]byte, error) {
 	supplied := map[string]bool{}
 	for _, source := range config.Sources {
@@ -256,7 +257,7 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 			file := record.name + "/" + group + "/_group.yaml"
 			data, ok := vendored[file]
 			if !ok || digest(data) != recorded {
-				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become local/%s/_group.yaml, the metadata your local rules in the group need. Restore it: run code-rules project sync with the previous configuration, then change the configuration and sync again; or write local/%s/_group.yaml yourself", group, group))
+				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become rules/%s/_group.yaml, the metadata your authored rules in the group need. Restore it: run code-rules project sync with the previous configuration, then change the configuration and sync again; or write rules/%s/_group.yaml yourself", group, group))
 			}
 			kept[group] = data
 			break

@@ -181,7 +181,7 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 				return
 			}
 			var validation errs.ValidationError
-			if !errors.As(err, &validation) || validation.ValidationLocation() != "local/techs/go/custom.md" || validation.ValidationProblem() != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/custom.md" || validation.ValidationProblem() != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
 				t.Fatalf("got %+v, %v; want reuse refusal and no result", got, err)
 			}
 		})
@@ -294,7 +294,7 @@ func TestResolveRejectsLocalRuleLinks(t *testing.T) {
 		t.Run(from, func(t *testing.T) {
 			config, libraries := fixture(t, `[]`)
 			local := map[string][]byte{"techs/go/one.md": []byte(document), "techs/go/two.md": []byte(document)}
-			local[from] = append(local[from], []byte("\n[other](/techs/go/two.md)\n")...)
+			local[from] = append(local[from], []byte("\n[other](/rules/techs/go/two.md)\n")...)
 			got, err := resolve(config, libraries, local)
 			if err == nil || !strings.Contains(err.Error(), "links to other rule documents are not allowed") || got.Groups != nil {
 				t.Fatalf("expected rule-link error with no partial result: %+v, %v", got, err)

@@ -194,7 +194,7 @@ func TestPlanUpdate_ReplacedAndExcludedRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := rows(update), []string{"replaced techs/go/d from 1.0.0 to 1.0.1 local local/techs/go/d.md: Fix a typo."}; !reflect.DeepEqual(got, want) {
+	if got, want := rows(update), []string{"replaced techs/go/d from 1.0.0 to 1.0.1 local rules/techs/go/d.md: Fix a typo."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("rows %q, want %q", got, want)
 	}
 	if want := map[string]string{"techs/go/a": "2.0.0@3", "techs/go/d": "1.0.1@4", "practices/testing/c": "1.1.0@4"}; !reflect.DeepEqual(versions(h.install(t, update, config).Snapshot), want) {
@@ -214,8 +214,8 @@ func TestPlanUpdate_ComparesAReplacementWithTheVersionItIsBasedOn(t *testing.T) 
 		versions                      []string
 	}{
 		{"based on the newest version, importing an older one", "techs/go/a", "2.0.0", "1.0.0@1", []string{}, nil},
-		{"based on an older version than it imports", "techs/go/a", "1.0.0", "2.0.0@3", []string{"replaced techs/go/a from 2.0.0 to 2.0.0 basedOn 1.0.0 local local/techs/go/a.md: Add an example. | Require more."}, []string{"1.1.0", "2.0.0"}},
-		{"based on a newer version than it imports", "techs/go/a", "1.1.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 to 2.0.0 basedOn 1.1.0 local local/techs/go/a.md: Require more."}, []string{"2.0.0"}},
+		{"based on an older version than it imports", "techs/go/a", "1.0.0", "2.0.0@3", []string{"replaced techs/go/a from 2.0.0 to 2.0.0 basedOn 1.0.0 local rules/techs/go/a.md: Add an example. | Require more."}, []string{"1.1.0", "2.0.0"}},
+		{"based on a newer version than it imports", "techs/go/a", "1.1.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 to 2.0.0 basedOn 1.1.0 local rules/techs/go/a.md: Require more."}, []string{"2.0.0"}},
 		{"retired upstream", "techs/go/b", "1.0.0", "1.0.0@1", []string{"retired techs/go/b from 1.0.0 last 1.0.0 replacedBy techs/go/d: Covered by d."}, []string{"1.0.0"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -546,8 +546,8 @@ func TestPlanUpdate_RecordsAnImportedRetiredRuleAsRetired(t *testing.T) {
 func TestPlanUpdate_ListsAPinnedReplacementsChangesAfterItsBasedOnVersion(t *testing.T) {
 	h := newHistory(t)
 	for _, test := range []struct{ name, pin, imported, row string }{
-		{"pinned at the newest version", "2.0.0", "2.0.0@3", "replaced techs/go/a from 2.0.0 newest 2.0.0 basedOn 1.0.0 local local/techs/go/a.md pin 2.0.0 (Keep.): Add an example. | Require more."},
-		{"pinned at an older version", "1.0.0", "1.0.0@1", "replaced techs/go/a from 1.0.0 newest 2.0.0 basedOn 1.0.0 local local/techs/go/a.md pin 1.0.0 (Keep.): Add an example. | Require more."},
+		{"pinned at the newest version", "2.0.0", "2.0.0@3", "replaced techs/go/a from 2.0.0 newest 2.0.0 basedOn 1.0.0 local rules/techs/go/a.md pin 2.0.0 (Keep.): Add an example. | Require more."},
+		{"pinned at an older version", "1.0.0", "1.0.0@1", "replaced techs/go/a from 1.0.0 newest 2.0.0 basedOn 1.0.0 local rules/techs/go/a.md pin 1.0.0 (Keep.): Add an example. | Require more."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			config := h.source(t, `"rules":{"include":["techs/go/a"],"exclude":[{"id":"techs/go/a","reason":"Ours.","replacedBy":"techs/go/a","basedOn":"1.0.0"}],"pins":[{"id":"techs/go/a","version":"`+test.pin+`","reason":"Keep."}]}`)
@@ -574,7 +574,7 @@ func TestPlanUpdate_ListsAPinnedReplacementWithoutBasedOnAsReplaced(t *testing.T
 		name, pin, imported string
 		want                []string
 	}{
-		{"pinned at an older version", "1.0.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 newest 2.0.0 local local/techs/go/a.md pin 1.0.0 (Keep.): Add an example. | Require more."}},
+		{"pinned at an older version", "1.0.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 newest 2.0.0 local rules/techs/go/a.md pin 1.0.0 (Keep.): Add an example. | Require more."}},
 		{"pinned at the newest version", "2.0.0", "2.0.0@3", []string{}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -606,7 +606,7 @@ func TestPlanUpdate_SaysWhenTheProjectAlreadyReplacedARetiredRulesReplacement(t 
 	}
 	for _, row := range update.Sources[0].Rules {
 		if row.ID == "techs/go/b" {
-			if row.ReplacedBy != "techs/go/d" || row.ReplacementLocalRule != "local/techs/go/d.md" {
+			if row.ReplacedBy != "techs/go/d" || row.ReplacementLocalRule != "rules/techs/go/d.md" {
 				t.Fatalf("retired row %+v", row)
 			}
 			return

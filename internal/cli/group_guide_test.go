@@ -20,7 +20,7 @@ func TestGroupGuides(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
 			prefix := "project"
-			groupDir := filepath.Join(directory, ".code-rules/local/techs/go")
+			groupDir := filepath.Join(directory, ".code-rules/rules/techs/go")
 			init := []string{"project", "init"}
 			if library {
 				prefix = "library"

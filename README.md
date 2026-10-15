@@ -118,7 +118,7 @@ code-rules project add rule practices/testing/test-changed-behavior \
   --body-file test-changed-behavior.md
 ```
 
-Leave out `--body-file` to start from a template instead. Either way, the rule lives in `.code-rules/local/`, where you keep editing it.
+Leave out `--body-file` to start from a template instead. Either way, the rule lives in `.code-rules/rules/`, where you keep editing it.
 
 ### Tell your agents to follow your rule
 

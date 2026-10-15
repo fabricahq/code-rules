@@ -66,7 +66,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				heading := "Adding a rule at: techs/go/return-errors"
 				if scope == "project" {
 					heading = "Adding a project-only rule at: techs/go/return-errors"
-					for _, text := range []string{"This rule belongs to this project.", "Its file is stored in:", ".code-rules/local/techs/go/return-errors.md"} {
+					for _, text := range []string{"This rule belongs to this project.", "Its file is stored in:", ".code-rules/rules/techs/go/return-errors.md"} {
 						if !strings.Contains(result.Transcript, text) {
 							t.Fatal("missing project ownership", result.Transcript)
 						}
@@ -86,7 +86,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if strings.Count(result.Transcript, "Example rule:") != 1 || strings.Index(result.Transcript, "Example rule:") > strings.Index(result.Transcript, "Rule title:") {
 					t.Fatal("example must precede prompts once", result.Transcript)
 				}
-				root := filepath.Join(directory, ".code-rules", "local")
+				root := filepath.Join(directory, ".code-rules", "rules")
 				if scope == "library" {
 					root = directory
 				}
