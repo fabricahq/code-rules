@@ -57,13 +57,21 @@ export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$WORK/gitconfig"
 export GIT_AUTHOR_NAME="Walkthrough" GIT_AUTHOR_EMAIL="walkthrough@example.invalid"
 export GIT_COMMITTER_NAME="Walkthrough" GIT_COMMITTER_EMAIL="walkthrough@example.invalid"
 export GIT_SSH_COMMAND="$WORK/bin/demo-ssh" GIT_SSH_VARIANT=ssh
+# Runbooks runs blocks in a terminal, so keep Git from opening a pager that waits for a key.
+export GIT_PAGER=cat PAGER=cat
 
 # Go: use your own module and build caches, so a build reuses what you've already downloaded, and fetch the Go
 # version syllabus needs when yours is older.
 export GOTOOLCHAIN=auto
 
 # syllabus runs the CLI this walkthrough built, so the commands below read like the ones you'd type.
-syllabus() { "$CR" "$@"; }
+syllabus() {
+  if [ ! -x "$CR" ]; then
+    echo "The CLI isn't built yet. Run \"Clone and build syllabus\" and wait for \"The CLI is built\" first." >&2
+    return 1
+  fi
+  "$CR" "$@"
+}
 
 # quote_command prints its arguments as a command you could paste into a shell.
 quote_command() {

@@ -11,7 +11,7 @@ if [ -d "$SRC/.git" ]; then
 else
   show git clone -q --branch "$BRANCH" --single-branch https://github.com/fabricahq/code-rules.git "$SRC"
 fi
-git -C "$SRC" log -1 --format='Building %h %s (%cr)'
+git --no-pager -C "$SRC" log -1 --format='Building %h %s (%cr)'
 
 cd "$SRC"
 # go version downloads Go 1.27.2 first when your Go is older, and says so. Building with -v then prints each package
