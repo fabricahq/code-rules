@@ -6,7 +6,7 @@ description: "Fields in .syllabus/config.yaml."
 The **project configuration**, `.syllabus/config.yaml`, records the project's sources, the rules and skills it includes from each, its exceptions, and where it installs skills. The **Syllabus directory**, `.syllabus/`, also holds `rules/`, `assets/`, `skills/`, `vendor/`, and `generated/`.
 
 :::note[Preview]
-`skillTargets`, `skills.include`, `skills.exclude`, and sources that aren't libraries come in the next Syllabus release.
+`skillTargets`, `skills.include`, `skills.exclude`, `skills.rename`, and sources that aren't libraries come in the next Syllabus release.
 :::
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.syllabus/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
@@ -67,6 +67,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, or `"*"` alone for every skill the source offers. See [Select skills](#select-skills). |
 | `sources.<name>.skills.exclude` | Optional list of skills to leave out, each with a skill ID as its `id` and a `reason`, and optionally an authored skill that `replacedBy` names to install instead, with the commit it's `basedOn`. See [Exclude or replace a skill](#exclude-or-replace-a-skill). |
+| `sources.<name>.skills.rename` | Optional map from a skill ID to the name to install that skill under instead of its own, such as `skills/review: team-review`. See [Rename a skill](#rename-a-skill). |
 | `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
@@ -158,7 +159,7 @@ sources:
       include: [tools/review]
 ```
 
-Skill levels, such as `recommended`, and the `rename` and `uses` fields aren't supported yet.
+Skill levels, such as `recommended`, and the `uses` field aren't supported yet.
 
 ## Exclude or replace a skill
 
@@ -195,6 +196,30 @@ The `syllabus project update` preview lists a replaced skill as `replaced` when 
 - Without `basedOn`, such as for a replacement you wrote yourself, it compares with the skill at the commit the source record locks, so the files it lists may already be in your skill.
 
 The update never changes your skill.
+
+## Rename a skill
+
+Agents find skills by name, so two skills with the same install name can't both be installed: build, check, and sync fail with `skill-name-clash` and name both skills. To keep both, give one of them another name in its source's `skills.rename`:
+
+```yaml
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.syllabus.git
+    skills:
+      include: [skills/review, skills/build-feature]
+      rename:
+        skills/review: fabrica-review
+```
+
+Each key is the ID of a skill that `skills.include` selects, and each value is the name to install it under, which follows the same grammar as a skill's `name`. A skill can't be both excluded and renamed, and a rename that names a skill the source doesn't install fails with its location. A rename to the skill's own name changes nothing. Skills you author in `.syllabus/skills/` aren't renamed this way: rename the folder and its `name` instead.
+
+The skill keeps its ID, so `skills.exclude`, `SKILLS.md`, and updates still refer to it as `fabrica:skills/review`. Build and sync install it into folders named by the new name, such as `.claude/skills/fabrica-review/`, and rewrite the `name` in each installed copy's `SKILL.md`, so agents know it by the new name. The copy in `vendor/` keeps the source's text. `provenance.json` records the name the skill was renamed from, and `SKILLS.md` tells agents that the skill's own text and other skills from its source may still use that name for it.
+
+### Mentions of the old name aren't rewritten
+
+Syllabus changes only the `name` in the installed copy's `SKILL.md`. It doesn't rewrite mentions of the old name anywhere else: not in the renamed skill's own text, and not in other skills that call it, such as a playbook step that says "use the `review` skill" or runs `/review`. An agent following that text looks for a skill by the old name. After a clash, the old name usually belongs to the other skill, so the agent can quietly run the wrong one. Syllabus doesn't rewrite mentions because finding them takes guesswork: a bare word, `/review`, and ordinary prose look alike, and a wrong match would corrupt the skill.
+
+So every sync and build that applies a rename prints a warning that names the skill, both names, and the configuration entry. To act on it, search your installed skills for the old name. To change a mention in a source's skill, [fork](/guides/install-skills/#fork-a-skill) that skill and edit the fork. If nothing calls one of the clashing skills by name, renaming that one is the safer choice.
 
 ## Repository addresses
 
@@ -258,7 +283,7 @@ Renaming a source changes its generated project rule IDs and any external refere
 The `id` of each of its `rules.exclude` and `rules.pins` entries remains library-relative.
 Replacing a repository under an existing source name also requires reviewing those entries.
 
-A skill's project ID works the same way: `<source-name>:<skill-id>`, such as `fabrica:skills/build-feature`, while a skill authored in `.syllabus/skills/` keeps its bare ID, such as `skills/release-checklist`. Installed copies are named by install name, not ID, so two skills with the same install name can't both be installed: build and sync fail with `skill-name-clash` until you stop including or exclude one of them.
+A skill's project ID works the same way: `<source-name>:<skill-id>`, such as `fabrica:skills/build-feature`, while a skill authored in `.syllabus/skills/` keeps its bare ID, such as `skills/release-checklist`. Installed copies are named by install name, not ID, so two skills with the same install name can't both be installed: build and sync fail with `skill-name-clash` until you [rename](#rename-a-skill), stop including, or exclude one of them.
 
 ## Choose versions
 

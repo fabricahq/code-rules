@@ -53,6 +53,10 @@ type Source struct {
 	// SkillExclude maps the ID of each skill that skills.exclude leaves out to its exclusion; it is empty, never nil,
 	// when there are none. An excluded skill is still imported, so updates can compare it with its replacement.
 	SkillExclude map[string]SkillExclusion `json:"skillExclude,omitempty"`
+	// SkillRename maps the ID of each skill that skills.rename installs under another name to that name; it is nil when
+	// there are none, and never names an excluded skill. Whether the source installs each skill is
+	// checked when skills resolve.
+	SkillRename map[string]string `json:"skillRename,omitempty"`
 }
 
 // HasRules reports whether the source includes rules.
@@ -277,34 +281,42 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
-	if result.Skills, result.SkillExclude, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
+	if err := parseSkillFields(fields["skills"], where+".skills", &result); err != nil {
 		return Source{}, err
 	}
 	return result, nil
 }
 
-// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*", and exclude, as
-// parseSkillExclusions reads it. A missing object includes no skills and excludes none.
-func parseSkillFields(input json.RawMessage, location string) ([]string, map[string]SkillExclusion, error) {
+// parseSkillFields reads a source's skills object into source: include, a list of skill IDs or only "*", exclude, as
+// parseSkillExclusions reads it, and rename, as parseSkillRenames reads it. A missing object includes no skills,
+// excludes none, and renames none. A skill can't be both excluded and renamed.
+func parseSkillFields(input json.RawMessage, location string, source *Source) error {
+	source.Skills, source.SkillExclude = []string{}, map[string]SkillExclusion{}
 	if input == nil {
-		return []string{}, map[string]SkillExclusion{}, nil
+		return nil
 	}
 	fields, err := decode.Object(input, location)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	if err := decode.KnownFields(fields, []string{"include", "exclude"}, location); err != nil {
-		return nil, nil, err
+	if err := decode.KnownFields(fields, []string{"include", "exclude", "rename"}, location); err != nil {
+		return err
 	}
-	selected, err := ParseSkillSelection(fields["include"], location+".include")
-	if err != nil {
-		return nil, nil, err
+	if source.Skills, err = ParseSkillSelection(fields["include"], location+".include"); err != nil {
+		return err
 	}
-	exclude, err := parseSkillExclusions(fields["exclude"], location+".exclude")
-	if err != nil {
-		return nil, nil, err
+	if source.SkillExclude, err = parseSkillExclusions(fields["exclude"], location+".exclude"); err != nil {
+		return err
 	}
-	return selected, exclude, nil
+	if source.SkillRename, err = parseSkillRenames(fields["rename"], location+".rename"); err != nil {
+		return err
+	}
+	for _, id := range slices.Sorted(maps.Keys(source.SkillRename)) {
+		if _, excluded := source.SkillExclude[id]; excluded {
+			return invalid(location+".rename."+id, "the source excludes this skill, so it isn't installed and has no name to change; remove the rename or the exclusion")
+		}
+	}
+	return nil
 }
 
 // ParseSkillSelection validates a source's skill selectors, a JSON list at location of distinct skill IDs, such as

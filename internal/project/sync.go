@@ -164,6 +164,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if warning := noSkillTargetsWarning(output, in.config.SkillTargets); warning != "" {
 		warnings = append(warnings, warning)
 	}
+	warnings = append(warnings, renameWarnings(output)...)
 	changes.Warnings = warnings
 	if in.edited != nil {
 		targets[filetxn.Config] = map[string][]byte{configurationFile: in.edited}

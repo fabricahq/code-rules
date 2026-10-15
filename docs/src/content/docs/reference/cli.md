@@ -147,7 +147,7 @@ The command:
 Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
 :::
 
-It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward to install it. The source's license still applies to the copied files.
+It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes or [renames](/reference/configuration/#rename-a-skill), and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward to install it. The source's license still applies to the copied files.
 
 ### project sync
 

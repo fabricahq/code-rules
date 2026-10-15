@@ -4,6 +4,8 @@ package build_test
 
 import (
 	"errors"
+	"maps"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -140,5 +142,46 @@ func TestGenerateRejectsInvalidReplacements(t *testing.T) {
 				t.Fatalf("got %v; want %q at %s", err, test.problem, test.location)
 			}
 		})
+	}
+}
+
+// renameConfig parses a configuration whose source team, from a non-library repository, includes every skill and
+// has the skills.rename mapping in rename, a JSON object.
+func renameConfig(t *testing.T, rename string) rules.Configuration {
+	t.Helper()
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":"https://example.invalid/team.git","ref":"main","skills":{"include":["*"],"rename":` + rename + `}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return config
+}
+
+func TestGenerateRenamesOnlyWhenTheNameDiffers(t *testing.T) {
+	tests := map[string]struct {
+		rename  string
+		renamed []build.RenamedSkill
+		folder  string
+	}{
+		"new name":  {`{"skills/review":"team-review"}`, []build.RenamedSkill{{ID: "team:skills/review", Source: "team", Folder: "skills/review", From: "review", To: "team-review"}}, ".claude/skills/team-review"},
+		"same name": {`{"skills/review":"review"}`, []build.RenamedSkill{}, ".claude/skills/review"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			output, err := build.Generate(renameConfig(t, test.rename), skillSnapshot(), nil, build.Options{ToolVersion: "test"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(output.RenamedSkills, test.renamed) || output.Skills[test.folder].Files == nil {
+				t.Fatalf("renamed %+v, installed %v", output.RenamedSkills, slices.Sorted(maps.Keys(output.Skills)))
+			}
+		})
+	}
+}
+
+func TestGenerateRejectsRenamesThatClash(t *testing.T) {
+	_, err := build.Generate(renameConfig(t, `{"skills/review":"fix"}`), skillSnapshot(), nil, build.Options{ToolVersion: "test"})
+	var clash *build.ClashError
+	if !errors.As(err, &clash) || clash.Name != "fix" || clash.IDs != [2]string{"team:skills/fix", "team:skills/review"} {
+		t.Fatalf("got %v; want a clash of team:skills/fix and team:skills/review", err)
 	}
 }

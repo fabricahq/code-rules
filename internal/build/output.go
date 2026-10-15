@@ -76,10 +76,14 @@ func prepare(resolved resolution, options Options) (Output, error) {
 		return Output{}, err
 	}
 	ids := []string{}
+	renamed := []RenamedSkill{}
 	for _, skill := range resolved.Skills {
 		ids = append(ids, skill.ID)
+		if skill.RenamedFrom != "" {
+			renamed = append(renamed, RenamedSkill{ID: skill.ID, Source: skill.Source, Folder: skill.Folder, From: skill.RenamedFrom, To: skill.Name})
+		}
 	}
-	return Output{Files: files, Skills: folders, SkillIDs: ids}, nil
+	return Output{Files: files, Skills: folders, SkillIDs: ids, RenamedSkills: renamed}, nil
 }
 
 // libraryReadme summarizes the imported library release, each imported rule's version, the source's pins, and
@@ -223,6 +227,8 @@ type provenanceSkill struct {
 	Type   *string               `json:"type"`
 	Origin provenanceSkillOrigin `json:"origin"`
 	Level  *string               `json:"level"`
+	// RenamedFrom is the name the skill's SKILL.md declares when the project installs it under Name instead, or null.
+	RenamedFrom *string `json:"renamedFrom"`
 	// Targets lists the folders the skill is installed in, by path from the repository root.
 	Targets []string `json:"targets"`
 	// Upstream is the origin of the skill an authored skill replaces, Reason the exclusion's reason, and BasedOn the
@@ -342,7 +348,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		}
 	}
 	for _, skill := range resolved.Skills {
-		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Level: nullableText(skill.Level), Targets: skill.Targets}
+		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Level: nullableText(skill.Level), RenamedFrom: nullableText(skill.RenamedFrom), Targets: skill.Targets}
 		if replaced := skill.Replaces; replaced != nil {
 			upstream := skillOrigin(replaced.Upstream)
 			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())

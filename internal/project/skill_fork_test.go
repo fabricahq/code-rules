@@ -202,6 +202,24 @@ func TestPlanSkillFork_RefusesWhatItCannotFork(t *testing.T) {
 	}
 }
 
+func TestPlanSkillFork_RefusesARenamedSkill(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, skillConfig("      rename:\n        skills/review: team-review\n"))
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	source, err := ParseSkillForkSource("team:skills/review")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = PlanSkillFork(ctx, source, options)
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.skills.rename.skills/review" || !strings.Contains(invalid.ValidationProblem(), "copy its folder from .syllabus/vendor/team/skills/review/ to .syllabus/skills/team-review/") {
+		t.Fatalf("got %v; want the renamed skill refused", err)
+	}
+}
+
 // TestPlanSkillFork_CommitRefusesABlankReasonAndAConcurrentChange writes nothing in either case.
 func TestPlanSkillFork_CommitRefusesABlankReasonAndAConcurrentChange(t *testing.T) {
 	ctx := context.Background()

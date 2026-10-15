@@ -114,3 +114,28 @@ func TestMarkPlacesTheMarkerAfterTheFrontmatter(t *testing.T) {
 		})
 	}
 }
+
+func TestRenameChangesOnlyTheNameField(t *testing.T) {
+	tests := map[string]struct{ input, want string }{
+		"plain":             {"---\nname: review\ndescription: Review.\n---\nUse review.\n", "---\nname: team-review\ndescription: Review.\n---\nUse review.\n"},
+		"quoted":            {"---\ndescription: Review.\n\"name\": 'review' # upstream\nmetadata:\n  x: y\n---\nBody\n", "---\ndescription: Review.\nname: team-review\nmetadata:\n  x: y\n---\nBody\n"},
+		"block scalar":      {"---\nname: >-\n  review\ndescription: Review.\n---\n", "---\nname: team-review\ndescription: Review.\n---\n"},
+		"block scalar last": {"---\ndescription: Review.\nname: |-\n  review\n---\n", "---\ndescription: Review.\nname: team-review\n---\n"},
+		"crlf":              {"---\r\nname: review\r\ndescription: Review.\r\n---\r\nBody\r\n", "---\r\nname: team-review\r\ndescription: Review.\r\n---\r\nBody\r\n"},
+		"no name field":     {"---\ndescription: Review.\n---\nBody\n", "---\nname: team-review\ndescription: Review.\n---\nBody\n"},
+		"no frontmatter":    {"# Review\n", "---\nname: team-review\n---\n# Review\n"},
+		"no body":           {"---\nname: review\n---", "---\nname: team-review\n---"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := skills.Rename([]byte(test.input), "team-review")
+			if string(got) != test.want {
+				t.Fatalf("Rename = %q, want %q", got, test.want)
+			}
+			metadata, err := skills.ReadMetadata(got, "SKILL.md")
+			if err != nil || metadata.Name != "team-review" {
+				t.Fatalf("renamed file reads as %#v, %v", metadata, err)
+			}
+		})
+	}
+}

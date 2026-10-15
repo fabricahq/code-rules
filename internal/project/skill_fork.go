@@ -56,9 +56,9 @@ type SkillForkPlan struct {
 // PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ exactly as the
 // source's last sync recorded it, into skills/<name>/, where name is the skill's install name, without writing. It
 // fails when the source isn't configured, when its record doesn't match its configuration, when its last sync didn't
-// install the skill, when the source already excludes the skill, or when the project already has an authored skill
-// with that name or another exclusion names it as a replacement, since existing authored skills and exclusions are
-// never replaced.
+// install the skill, when the source already excludes or renames the skill, or when the project already has an
+// authored skill with that name or another exclusion names it as a replacement, since existing authored skills and
+// exclusions are never replaced.
 func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (*SkillForkPlan, error) {
 	plan := &SkillForkPlan{from: from}
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
@@ -74,6 +74,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		source := config.Sources[index]
 		if _, excluded := source.SkillExclude[from.Skill]; excluded {
 			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + from.Skill, Problem: "the source already excludes this skill, and a fork never replaces an existing exclusion; delete the entry to fork the skill"}
+		}
+		if name, renamed := source.SkillRename[from.Skill]; renamed {
+			return &ValidationError{Location: "sources." + source.Name + ".skills.rename." + from.Skill, Problem: fmt.Sprintf("the project installs this skill as %s, and fork can't fork a renamed skill yet; to replace it, copy its folder from .syllabus/vendor/%s/%s/ to .syllabus/skills/%s/, set name: %s in the copy's SKILL.md, then replace this entry with a skills.exclude entry for the skill, with a reason and replacedBy: skills/%s", name, source.Name, from.Skill, name, name, name)}
 		}
 		vendor, err := filetxn.ReadTree(ctx, root, "vendor")
 		if err != nil {

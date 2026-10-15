@@ -66,6 +66,6 @@ Build and sync write a copy of each skill into the folders your agents read, the
 
 Syllabus also writes `.syllabus/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, and where it's installed. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
 
-Agents find skills by name, so two skills with the same install name can't both be installed. Syllabus writes only into the skill targets in your repository, never into your home directory, and never replaces a folder there that it didn't install.
+Agents find skills by name, so two skills with the same install name can't both be installed; a project [renames](/guides/install-skills/#rename-a-skill) one of them to keep both. A rename changes only the installed name: text that mentions the skill's old name still uses it. Syllabus writes only into the skill targets in your repository, never into your home directory, and never replaces a folder there that it didn't install.
 
 When a skill and a rule disagree, agents should follow the rule and report the conflict, so someone can fix the skill.

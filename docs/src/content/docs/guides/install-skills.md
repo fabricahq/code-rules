@@ -7,7 +7,7 @@ description: "Install skills from a library, another repository, or your own pro
 Skills come in the next Syllabus release.
 :::
 
-Syllabus installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, write your own, exclude or fork a source's skill, and change what's installed.
+Syllabus installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, write your own, exclude, fork, or rename a source's skill, and change what's installed.
 
 ## Choose where skills are installed
 
@@ -127,6 +127,27 @@ Edit the fork, then run `syllabus project build`. Agents get your fork, under th
 
 To replace a skill with one you wrote yourself, name your skill's ID, such as `skills/our-bug-workflow`, as the exclusion's `replacedBy`, without `basedOn`.
 
+## Rename a skill
+
+Two skills with the same name can't both be installed, because agents find skills by name. When two of your skills clash, such as a library's `review` and one you wrote, build and sync fail with `skill-name-clash` and name both. To keep both, give one another name in its source's configuration:
+
+```yaml
+skills:
+  include: [skills/review]
+  rename:
+    skills/review: fabrica-review
+```
+
+This is a partial snippet of a source definition. Run `syllabus project sync`. The skill is installed as `.claude/skills/fabrica-review/`, with `name: fabrica-review` in its installed `SKILL.md`, and keeps its ID, `fabrica:skills/review`. See [Rename a skill](/reference/configuration/#rename-a-skill).
+
+:::caution[Mentions keep the old name]
+Syllabus changes only the `name` in the installed copy's `SKILL.md`. It doesn't rewrite mentions of the old name anywhere else: not in the renamed skill's own text, and not in other skills that call it, such as a playbook step that says "use the `review` skill" or runs `/review`. An agent following that text looks for a skill by the old name. After a clash, the old name usually belongs to the other skill, so the agent can quietly run the wrong one. Syllabus doesn't rewrite mentions because finding them takes guesswork: a bare word, `/review`, and ordinary prose look alike, and a wrong match would corrupt the skill.
+
+Sync and build warn about this every time they apply a rename. Check the skills that mention the old name, and fork any you need to change.
+:::
+
+You can't fork a renamed skill with `syllabus project add skill`. To replace one, copy its folder from `.syllabus/vendor/<source>/` into `.syllabus/skills/<new-name>/`, set the new `name` in its `SKILL.md`, and swap the `rename` entry for an [exclusion](#exclude-a-skill) whose `replacedBy` names your copy.
+
 ## Stop installing a skill
 
 Remove the skill's ID from `skills.include`, or delete an authored skill's folder, and run `syllabus project sync` or `syllabus project build`. Syllabus removes the installed copies, and a skill target's folder once nothing is left in it.
@@ -136,7 +157,7 @@ Remove the skill's ID from `skills.include`, or delete an authored skill's folde
 | Failure | What to do |
 | --- | --- |
 | `skill-folder-not-managed` | A folder in a skill target already has the skill's install name, and Syllabus didn't install it, such as a skill you put there by hand. Move or delete that folder, perhaps into `.syllabus/skills/` to make it an authored skill, or stop including the skill. |
-| `skill-name-clash` | Two skills you include have the same install name. Stop including or exclude one of them. |
+| `skill-name-clash` | Two skills you include have the same install name. [Rename](#rename-a-skill) one of them, or stop including or exclude one. |
 | `skill-not-in-revision` | The revision the source record locks doesn't have a skill you named. Run the update the message names, set `ref` to a revision that has it, or check the ID. |
 | `ref-required` | The source's repository has no library releases. Set its `ref`. |
 

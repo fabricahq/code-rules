@@ -25,6 +25,17 @@ type Output struct {
 	// SkillIDs lists, sorted, the project ID of every skill the project installs, including when it has no skill
 	// targets to install copies in.
 	SkillIDs []string `json:"skillIds"`
+	// RenamedSkills lists, sorted by project ID, the skills the project installs under a name skills.rename gives
+	// them instead of their own; it is empty, never nil, when it renames none.
+	RenamedSkills []RenamedSkill `json:"renamedSkills"`
+}
+
+// RenamedSkill is a source's skill that the project installs under another name.
+type RenamedSkill struct {
+	// ID is the skill's project ID, source:folder; Source and Folder are its parts.
+	ID, Source, Folder string
+	// From is the name the skill's SKILL.md declares, and To the name it's installed under.
+	From, To string
 }
 
 // Options provides the declared tool version and Markdown line limit and inline byte limit.

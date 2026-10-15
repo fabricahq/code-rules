@@ -31,9 +31,9 @@ type ClashError struct {
 	IDs [2]string
 }
 
-// Error names the skills and the next step.
+// Error names the skills and the next steps.
 func (e *ClashError) Error() string {
-	return fmt.Sprintf("skills %s and %s both have the install name %s, and installed folders are named by install name, so both can't be installed; stop including one of them", e.IDs[0], e.IDs[1], e.Name)
+	return fmt.Sprintf("skills %s and %s both have the install name %s, and installed folders are named by install name, so both can't be installed; give one of them another name with skills.rename in its source's configuration, such as rename: {skills/review: team-review}, or stop including one of them", e.IDs[0], e.IDs[1], e.Name)
 }
 
 // resolvedSkill is one skill the project installs.
@@ -45,7 +45,10 @@ type resolvedSkill struct {
 	Source, Folder string
 	// Name is the install name; Description and Type are as SKILL.md declares them.
 	Name, Description, Type string
-	Files                   SkillFiles
+	// RenamedFrom is the name SKILL.md declares when the project's skills.rename installs the skill under Name
+	// instead, or empty.
+	RenamedFrom string
+	Files       SkillFiles
 	// Repository, Ref, Commit, and Release identify the revision that supplied a source's skill; Release is 0 for a
 	// revision other than a library release, and NonLibrary marks a source whose repository isn't a library.
 	Repository, Ref, Commit string
@@ -62,7 +65,8 @@ type resolvedSkill struct {
 // resolveSkills returns, sorted by project ID, the skills of every configured source's snapshot that the source
 // doesn't exclude, and the authored skills in local, keyed by ID, skills/<name>, each with the skill it replaces. It
 // fails when a SKILL.md is missing or its frontmatter unreadable, when an install name isn't valid, when an exclusion
-// is invalid, as skillReplacements checks it, and with *ClashError when two skills share an install name.
+// is invalid, as skillReplacements checks it, when a rename names a skill the source doesn't install, and with
+// *ClashError when two skills share an install name, after renames.
 func resolveSkills(config rules.Configuration, libraries map[string]Library, local map[string]SkillFiles) ([]resolvedSkill, error) {
 	replacements, err := skillReplacements(config, libraries, local)
 	if err != nil {
@@ -79,7 +83,15 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
 				return nil, err
 			}
+			if name, renamed := source.SkillRename[id]; renamed && name != skill.Name {
+				skill.RenamedFrom, skill.Name = skill.Name, name
+			}
 			result = append(result, skill)
+		}
+		for _, id := range slices.Sorted(maps.Keys(source.SkillRename)) {
+			if _, installs := snapshot.Skills[id]; !installs {
+				return nil, invalid("sources."+source.Name+".skills.rename."+id, fmt.Sprintf("the source doesn't install skill %s, so there's nothing to rename; name a skill its skills.include selects, or remove the entry", id))
+			}
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(local)) {
@@ -133,9 +145,13 @@ func (skill resolvedSkill) marker() string {
 	return fmt.Sprintf("<!-- syllabus:installed %s %s. Do not edit; syllabus project sync replaces this copy. -->", skill.ID, skill.Commit)
 }
 
-// installed returns the files of skill's installed copy: its files with the marker line in SKILL.md.
+// installed returns the files of skill's installed copy: its files with the marker line in SKILL.md, whose name is
+// the install name when the project renames the skill.
 func (skill resolvedSkill) installed() SkillFiles {
 	files := maps.Clone(skill.Files.Files)
+	if skill.RenamedFrom != "" {
+		files[skills.File] = skills.Rename(files[skills.File], skill.Name)
+	}
 	files[skills.File] = skills.Mark(files[skills.File], skill.marker())
 	return SkillFiles{Files: files, Executable: slices.Clone(skill.Files.Executable)}
 }
@@ -246,6 +262,9 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, from release/%d, commit `%s`", skill.ID, skill.Release, skill.Commit))
 		default:
 			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, commit `%s`", skill.ID, skill.Commit))
+		}
+		if skill.RenamedFrom != "" {
+			facts = append(facts, "- **Renamed from:** `"+skill.RenamedFrom+"`, by the project's configuration. Its own text and other skills from `"+skill.Source+"` may still call it `"+skill.RenamedFrom+"`; they mean this skill.")
 		}
 		facts = append(facts, replacementFacts(skill.Replaces)...)
 		if skill.Level != "" {

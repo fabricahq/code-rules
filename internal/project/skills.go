@@ -219,6 +219,16 @@ func noSkillTargetsWarning(output build.Output, targets []string) string {
 	return fmt.Sprintf("The project has no skill targets, so no copy of its %d skill(s) was installed. Agents can find them through .syllabus/generated/SKILLS.md. To install copies, set skillTargets in .syllabus/config.yaml, such as [claude, agents], then run syllabus project build.", len(output.SkillIDs))
 }
 
+// renameWarnings returns one warning for each skill output installs under the name skills.rename gives it, saying
+// that only the installed SKILL.md's name changed, so text that mentions the old name still does.
+func renameWarnings(output build.Output) []string {
+	warnings := []string{}
+	for _, skill := range output.RenamedSkills {
+		warnings = append(warnings, fmt.Sprintf("Installed skill %s as %s instead of %s, as sources.%s.skills.rename.%s asks. Syllabus changed only the name in the installed SKILL.md: mentions of %s in this skill or other skills weren't rewritten, so an agent following one may look for a skill named %s. Check the skills that mention it.", skill.ID, skill.To, skill.From, skill.Source, skill.Folder, skill.From, skill.From))
+	}
+	return warnings
+}
+
 // clashFailure converts a *build.ClashError to its CLI failure, returning other errors unchanged.
 func clashFailure(err error) error {
 	var clash *build.ClashError
