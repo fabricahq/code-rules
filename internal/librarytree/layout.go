@@ -34,6 +34,14 @@ func RepositoryPath(file string) string {
 	return file
 }
 
+// SnapshotPath returns where the library file at library path file is stored in a project's snapshot of the
+// library, vendor/<source>/: its path relative to the library's Code Rules directory, as RepositoryPath places it,
+// so a rule at rules/techs/go/x.md keeps its relative links to shared assets at assets/. A license or notice file
+// outside the Code Rules directory keeps its path relative to the repository root.
+func SnapshotPath(file string) string {
+	return strings.TrimPrefix(RepositoryPath(file), Directory+"/")
+}
+
 // LibraryPath returns the library path of the file or directory at repository path file, the inverse of
 // RepositoryPath. It reports false for a path that holds no library file: anything else in .code-rules/, such as
 // vendor/, generated/, or rules/README.md, and a path outside .code-rules/ whose library path would be one of a

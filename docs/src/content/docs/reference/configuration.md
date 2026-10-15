@@ -1,19 +1,18 @@
 ---
 title: "Configuration"
-description: "Fields in .code-rules/config.yaml."
+description: "Fields in .code-rules/config.yaml, the one configuration file of every project and library."
 ---
 
-The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules and skills it includes from each, its exceptions, and where it installs skills. The **Code Rules directory**, `.code-rules/`, also holds `rules/`, `assets/`, `skills/`, `vendor/`, and `generated/`.
-
-:::note[Preview]
-`skillTargets`, `skills.include`, and sources that aren't libraries come in the next Code Rules release.
+:::caution[Preview]
+This page describes version 2 configuration, which isn't in a released version of Code Rules yet. The released CLI reads version 1 configuration.
 :::
 
-Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
-A project can import rules directly from multiple canonical libraries, choosing versions for each one independently.
+Every repository that uses Code Rules has one configuration file, `.code-rules/config.yaml`. It records the repository's sources, the rules and skills it includes from each, its exceptions, and where to install skills. A repository whose configuration also has a [`library` section](#library-manifest) is a **library**, and publishes its authored rules and skills for other repositories. A repository can be a project, a library, or both, with the same file and the same [layout](/reference/files/).
+
+Initialize from the repository root. In Git repositories, other commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the repository root. See [Working directories](/reference/cli/#working-directories).
 Sync, build, and check validate the fields below.
 
-Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote selectors that start with `*`, such as `"*"`, because YAML reads a bare `*` as an alias.
+Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote selectors that start with `*`, such as `"*"`.
 
 ## Complete example
 
@@ -22,139 +21,326 @@ schemaVersion: 2
 skillTargets: [claude, agents]
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/public-rules.git
+    repository: https://github.com/fabricahq/.code-rules.git
     rules:
-      include: [techs/typescript/*, practices/testing/*]
+      include: [techs/go/*, practices/testing/*]
       exclude:
-        - id: techs/typescript/prefer-type-aliases
-          reason: Our public extension API relies on declaration merging.
-          replacedBy: techs/typescript/prefer-interfaces
-    skills:
-      include: [skills/build-feature]
-  acme:
-    repository: https://github.com/acme/.code-rules.git
-    rules:
-      include: [techs/react/*, practices/*]
+        - id: practices/testing/table-tests
+          reason: Our test style is documented in CONTRIBUTING.md.
       pins:
         - id: practices/testing/verify-retry-limits
           version: "1.3.0"
-          reason: Waiting on the author's response to acme/.code-rules#45.
-  review-tools:
-    repository: https://github.com/example/review-skills.git
-    ref: v2.1.0
+          reason: Waiting on the author's response to fabricahq/.code-rules#45.
+    skills:
+      include: [recommended, skills/deploy-preview]
+      rename:
+        skills/review-change: fabrica-review
+  pstack:
+    repository: https://github.com/example/pstack.git
+    ref: main
     skills:
       include: ["*"]
+      uses:
+        skills/architect: [skills/how]
 ```
 
-Repository names, groups, rule IDs, and skill IDs in examples are illustrative.
-Replace them with libraries and rules your project can access.
+This project takes every Go rule and every testing rule from Fabrica's library except one, and keeps one rule at an older version. It installs the skills Fabrica requires, the ones it recommends, and one offered skill, and installs Fabrica's `review-change` skill under another name. From `pstack`, a repository without a manifest, it installs every skill from the newest commit on `main` at its last update.
+
+Repository names, rule IDs, and skill IDs in examples are illustrative.
+Replace them with libraries, rules, and skills your project can access.
 
 ## Fields
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion` | Configuration format version; Code Rules accepts only `2`. See [Version 1 configuration](#version-1-configuration). |
-| `skillTargets` | Optional. Where build and sync install skills: a list of `claude`, for `.claude/skills/`, and `agents`, for `.agents/skills/`. An empty list, or no field, installs no copies. `code-rules project init` writes `[claude, agents]`. See [Skill targets](#skill-targets). |
-| `sources` | Map of stable source names to source configurations. Use an empty object for a project with only its own groups and skills. |
-| `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
-| `sources.<name>.ref` | Import the source exactly as it was at one tag or commit. Required for a repository without library releases, such as one that isn't a library. Can't be combined with `rules.pins`. See [Import one revision](#import-one-revision). |
-| `sources.<name>.rules` | The rules to include from this library, and the project's exceptions. A source needs `rules`, `skills`, or both. |
-| `sources.<name>.rules.include` | Required. A list of at least one [selector](#select-rules): whole groups, such as `techs/typescript/*`, every group of a type, such as `practices/*`, everything, `"*"`, or single rule IDs. |
-| `sources.<name>.rules.exclude` | Optional list of entries, each with a selector as its `id`, a `reason` and, for a single rule, optionally a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
-| `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
-| `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, or `"*"` alone for every skill the source offers. See [Select skills](#select-skills). |
-| `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
+| `schemaVersion` | Required. `2`. See [No backward compatibility](#no-backward-compatibility). |
+| `skillTargets` | Optional. Where installed copies of skills go: an array of `claude` (`.claude/skills/`) and `agents` (`.agents/skills/`). Missing means `[]`. See [Skill targets](#skill-targets). |
+| `sources` | Map of stable source names to sources. Use an empty object for a repository that uses only its authored rules and skills. |
+| `sources.<name>.repository` | Required. Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
+| `sources.<name>.ref` | The branch, tag, commit, or library release to take the source from. Required for a source without `release/<number>` tags; see [Refs](#refs). |
+| `sources.<name>.rules.include` | Optional [rule selectors](#rule-selectors): rule IDs, prefixes ending in `/*`, or `"*"`. |
+| `sources.<name>.rules.exclude` | Optional list of rules to leave out, each with an `id` selector and a `reason`, and optionally a [replacement](#exclude-or-replace-a-rule). |
+| `sources.<name>.rules.pins` | Optional list of rules to hold at one version, each with an `id`, a `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
+| `sources.<name>.skills.include` | Optional [skill selectors](#skill-selectors): `recommended`, `"*"`, or skill IDs. |
+| `sources.<name>.skills.exclude` | Optional list of skills to leave out, each with an `id` and a `reason`, and optionally a [replacement](#exclude-or-replace-a-skill). |
+| `sources.<name>.skills.uses` | Optional map of a skill ID to the skill IDs it calls that its own metadata doesn't declare. See [Declare the skills a skill calls](#declare-the-skills-a-skill-calls). |
+| `sources.<name>.skills.rename` | Optional map of a skill ID to the install name it gets in this repository. See [Rename a skill](#rename-a-skill). |
+| `library` | Optional. The [manifest](#library-manifest): what this repository publishes as a library, and the level of each skill it offers. |
 
-Unknown configuration fields are rejected, including unknown source and exclusion fields.
-Groups the project authors are discovered from `rules/<group-id>/_group.yaml`; no source entry or separate group list is required.
-The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
-`rules.exclude` and `rules.pins` are optional; omit them when a source has no exceptions.
+Unknown fields are rejected, at every level.
+Every part of a source except `repository` is optional. A source with no `include` still installs the skills its library [requires](#skill-levels).
+Authored rules, rule groups, and skills are discovered from `rules/` and `skills/` in the Code Rules directory; they need no configuration entry. See [Project files](/reference/files/).
 
-Each source owns its selection, pins, and exceptions.
-Sources have no `version` or `replace` field. Rule versions are chosen rule by rule; use `rules.pins` to keep individual rules at exact versions, and `rules.exclude` with `replacedBy` to replace a rule.
+## Selectors
 
-## Select rules
+The selection from a source is everything its `include` lists name, minus everything its `exclude` lists name. Rules and skills each have their own lists, so a rule selector never installs a skill, and a skill selector never includes a rule.
 
-A source's `rules.include` lists selectors. A **selector** is a rule ID, or a prefix that ends in `/*`:
+### Rule selectors
 
 | Selector | Includes |
 | --- | --- |
-| `"*"` | Every rule in the library. |
-| `practices/*` | Every practice rule, at any depth. |
-| `techs/*` | Every technology rule, at any depth. |
-| `techs/go/*` | Every rule in one group, such as `techs/go`. |
-| `practices/testing/verify-retry-limits` | One rule. See [Select individual rules](#select-individual-rules). |
+| `practices/testing/verify-retry-limits` | One rule, by its ID. |
+| `practices/testing/*` | Every rule in the `practices/testing` rule group, at any depth, including rules the library adds to it later. |
+| `practices/*` | Every practice rule, in every practice group. `techs/*` is every technology rule. |
+| `"*"` | Every rule in the source. |
 
-For example, to adopt the whole library:
+A selector is a rule ID, or a prefix that ends in `/*`. The `*` is allowed only at the end, after a `/`, or alone: `techs/go*`, `techs/*/testing`, and `**` are rejected. A rule ID names the rule's path in its library's `rules/` folder, without `.md`.
+
+`exclude` entries take the same forms. Use a prefix to leave out a whole rule group that a wider `include` brings in:
 
 ```yaml
-schemaVersion: 2
-sources:
-  team:
-    repository: https://github.com/my-team/rules.git
-    rules:
-      include: ["*"]
+rules:
+  include: [practices/*]
+  exclude:
+    - id: practices/observability/*
+      reason: This CLI has no hosted service to observe.
 ```
 
-The `*` is allowed only at the end, after a `/`, or alone: `techs/go*`, `techs/*/testing`, and `**` are rejected. A prefix ending in `/*` names a type, `techs` or `practices`, or one group; a directory inside a group, such as `techs/go/errors/*`, is rejected. A group ID on its own, such as `techs/go`, is rejected with a hint to write `techs/go/*`. Each entry may appear once.
+`pins` take single rule IDs only.
 
-Combine selectors freely: `[techs/*, practices/testing/*]` includes every technology group and one practice group. A selector that another in the same list already covers, such as `techs/go/*` beside `techs/*`, changes nothing; `code-rules project sync` and `code-rules project update` warn about it so you can delete it.
+Each rule ID in `include` must name a rule the source publishes, and each prefix must match at least one rule, except `"*"`. A rule included by an ID and also by a prefix is included once. When a rule brings in its rule group, it brings the rule group's metadata, so the rule group appears in the generated index with only the included rules.
 
-A selector ending in `/*` includes every group in its scope in the imported library, including empty groups with valid metadata. Each group it names must exist.
-Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When a newer library release adds rules or groups within a selector's scope, `code-rules project update` adds them. Review those additions in the changed source records and generated provenance.
-Offline builds do not discover changes on the remote repository.
+### Skill selectors
 
-Local metadata can describe a group that is also selected from a library, including through a selector.
+| Selector | Installs |
+| --- | --- |
+| *(no `include`)* | The skills the library requires. |
+| `recommended` | The skills the library requires and those it recommends. |
+| `"*"` | Every skill the source offers, at any level. |
+| `skills/deploy-preview` | That skill, whatever its level, plus the required ones. |
 
-Snapshots record the selected groups and type selectors as `groupSelection`, and the concrete `groups` list.
-A snapshot of a type selector or `"*"` must record it in `groupSelection` and contain every group within that scope at its resolved commit.
-For example, `"practices/*"` requires all practice groups, while `"*"` requires both kinds.
-The builder compares discovered groups with the recorded expansion and validates every group and rule within the selected scope.
-An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
-This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
+Skill selectors have no prefixes: `skills/*` and `recommended/*` are rejected. A library's required skills always install, whatever `include` says; see [Skill levels](#skill-levels). A skill a library borrows from another repository is named as the library's manifest names it, with the borrowed source's name, such as `mattpocock:skills/engineering/to-spec`; see [Borrowed skills](#borrowed-skills).
+
+`exclude` entries take a skill ID, `recommended`, or `"*"`, with a reason. Excluding a required skill fails validation, however the exclusion names it.
+
+## Skill levels
+
+A library sets one of three **levels** for each skill it publishes, in its [manifest](#library-manifest):
+
+| Level | Installed in a project that uses the source when |
+| --- | --- |
+| Required | Always, whatever `include` says. The project can't exclude or fork it. |
+| Recommended | `include` lists `recommended` or `"*"`, or names the skill. |
+| Offered | `include` lists `"*"`, or names the skill. |
+
+A library's own skill that no level lists is offered. A source without a manifest, a **non-library source**, offers every skill it has and requires none.
+
+A project sees only the levels of the libraries it names as sources. When a library borrows a skill from another library, the project sees the level the borrowing library sets, not the one the original library sets: levels don't chain.
+
+Because required skills install with no `include`, a source declared with only a `repository` installs its library's required skills, now and after every update that adds one:
+
+```yaml
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.code-rules.git
+```
+
+Renaming a required skill is allowed, since it stays installed.
+
+## Exclude or replace a rule
+
+A source's `rules.exclude` list leaves rules out of the generated guidance. Each entry records why, and can name an authored rule for agents to read instead:
+
+```yaml
+rules:
+  exclude:
+    - id: practices/testing/avoid-snapshot-tests
+      reason: Contract snapshots follow our separate review policy.
+    - id: techs/typescript/prefer-type-aliases
+      reason: Our public extension API relies on declaration merging.
+      replacedBy: techs/typescript/prefer-interfaces
+      basedOn: "2.0.0"
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Required. A [rule selector](#rule-selectors). |
+| `reason` | Required non-blank text explaining why the repository leaves the rule out. |
+| `replacedBy` | Optional, with a single rule ID only. The ID of an authored rule in `rules/` that agents read in place of the excluded rule. It must be in the same rule group as the rule it replaces, and each authored rule can replace only one rule. |
+| `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
+
+An excluded rule is still kept in the source's vendor snapshot, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your rule needs the same change:
+
+- With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project includes. The preview lists every change after `basedOn`. To replace your rule with a fork of the newest version, overwriting your edits, pass `code-rules project update --update-fork SOURCE:RULE`, or answer `replace` to the terminal question; either sets `basedOn` to that version. If you merge the changes into your rule by hand instead, edit `basedOn` to the version you merged. Code Rules never advances it otherwise, because only you know whether your rule took the changes in.
+- Without `basedOn`, such as for a replacement you wrote yourself, whenever the library's newest version of the rule is newer than the version the project includes, also when a pin holds the vendored copy there. The preview lists the changes since that version, which your rule may already have. Replacing your rule with a fork, as above, also records `basedOn`.
+
+## Exclude or replace a skill
+
+```yaml
+skills:
+  exclude:
+    - id: skills/write-changelog
+      reason: Release Planner writes our release notes.
+    - id: skills/fix-bug
+      reason: We use our own bug workflow.
+      replacedBy: skills/fix-bug
+      basedOn: "1.0.0"
+```
+
+An excluded skill isn't installed into the target folders or listed in `generated/SKILLS.md`. A replacement is an authored skill in `skills/`, named by its skill ID and installed in place of the excluded skill under its own name. Each authored skill can replace only one skill, and a rule can't replace a skill or the reverse. [Forking a skill](/reference/cli/#fork-a-skill) writes the exclusion for you, with the forked version as `basedOn`. For a skill from a non-library source, which has no versions, `basedOn` is the full 40-character commit SHA the fork copied.
+
+Excluding or forking a [required skill](#skill-levels) fails validation and names the library that requires it. To stop using a required skill, stop using the source.
+
+When another installed skill calls a skill you exclude without a replacement, `code-rules project sync` warns that the skill it calls isn't installed. With a replacement, the calling skill's installed copy lists your skill instead in its "Skills this skill uses" line.
+
+You can also exclude a rule that an installed skill cites, such as one outside your rule `include`. The skill's installed copy then says the rule is excluded by this repository, with your reason.
+
+## Rename a skill
+
+Agents find skills by their install name, the `name` in `SKILL.md`, so two installed skills can't share one. When two sources ship skills with the same name, rename one of them:
+
+```yaml
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.code-rules.git
+    skills:
+      include: [skills/review-change]
+      rename:
+        skills/review-change: fabrica-review
+```
+
+The installed copy's `name` becomes `fabrica-review`, and it's installed in `<target>/fabrica-review/`. The skill's ID doesn't change, so configuration, provenance, and update previews still call it `fabrica:skills/review-change`. Each key must be a skill this source installs, and each new name follows the [name grammar](/reference/skill-format/#skill-ids).
+
+Code Rules doesn't rewrite the old name where skill text mentions it, such as in a skill that tells the agent to use `review-change`. Every sync, update, and build that applies a rename prints the same warning:
+
+```text
+Warning: fabrica:skills/review-change is installed as fabrica-review. Mentions of review-change in skill text aren't rewritten; check the skills that call it by that name.
+```
+
+When two installed skills still have the same install name, from any sources or your authored skills, sync fails with `skill-name-clash`, naming both, and writes nothing. Rename or exclude one of them. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+
+## Declare the skills a skill calls
+
+A skill can call other skills without listing them in `syllabus-skills-used`, especially one from a [non-library source](#refs), whose skills rarely have that metadata. Declare those calls in the source's `skills.uses`:
+
+```yaml
+skills:
+  uses:
+    skills/architect: [skills/how]
+```
+
+Each key is a skill ID the source installs, and each value lists skill IDs in the same repository. Every ID must exist there. `uses` adds to what the skill declares itself; it can't remove a call the skill declares. Code Rules installs the listed skills alongside the skill that calls them, and the installed copy's "Skills this skill uses" line includes them. Calls can't form a cycle. Code Rules doesn't look for calls a skill doesn't declare: `syllabus-skills-used` and `uses` are the only ways it learns of them.
+
+## Refs
+
+A source's `ref` names where to take it from. Each project resolves the ref to a commit when it runs `code-rules project update`, records that commit in the source's vendor snapshot, and keeps it on every `code-rules project sync`:
+
+| `ref` | Sync takes | Update moves to |
+| --- | --- | --- |
+| *(none)* | The recorded library release. | The newest library release. |
+| A branch, such as `main` | The recorded commit. | The branch's newest commit. |
+| A tag, such as `release/5` or `v1.2` | The recorded commit. | The commit the tag names now, warning when the tag moved since the last update. |
+| A full 40-character commit SHA | That commit. | Nowhere; it never moves. |
+
+When a bare name is both a branch and a tag, sync and update fail with `ambiguous-ref`; write `refs/heads/<name>` or `refs/tags/<name>` to say which one you mean. Abbreviated SHAs aren't accepted.
+
+Sources have no declared type. Code Rules decides when it fetches a source:
+
+- A source whose repository has a [manifest](#library-manifest) is a **library**. It publishes skill levels, and versioned rules and skills once it has library releases. A library without `release/<number>` tags must have a `ref`.
+- A source without a manifest is a **non-library source**, such as a third party's skill collection. Every skill in it is offered, it has no rules or versions, and it must have a `ref`, because it has no library releases to follow. `rules` is rejected on it.
+
+All of a source's skills come from its one recorded revision, so skills that call each other always come from the same commit. Skills have no pins. To hold a skill back, exclude or fork it, or set the source's `ref`, which holds everything from that source. When a source's repository gains or loses its manifest, so that the source's fields no longer fit it, `code-rules project update` fails and names the fields to change.
+
+### Take one revision
+
+Taking a library at a revision other than a library release, such as a branch with unreleased changes, opts that source out of versions for what changed: rules and skills whose files match a published version record that version, and the rest record `null`, have no version to cite, and update previews list the files that changed but no summaries of the changes. `code-rules project sync` and `code-rules project update` warn about such a source, naming its unreleased rules and skills, and the generated library summary in `generated/libraries/<source-name>/README.md` says so. `code-rules project check` still passes.
+
+A source can use `rules.pins` or `ref`, not both.
+
+## Pin a rule
+
+```yaml
+rules:
+  pins:
+    - id: practices/testing/verify-retry-limits
+      version: "1.3.0"
+      reason: Waiting on the author's response to acme/.code-rules#45.
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Required. One rule ID the source includes. Prefixes aren't accepted. |
+| `version` | Required. An exact published version of the rule, such as `"1.3.0"`. Quote it so YAML reads it as text. |
+| `reason` | Required non-blank text explaining why the rule stays at this version. `code-rules project update` shows it next to any newer version, so the decision keeps its context. |
+
+A pin holds the rule at exactly that version:
+
+- `code-rules project update` never moves a pinned rule. Its preview lists the pin, the newest available version, and your reason.
+- When you add or change a pin, `code-rules project sync` moves the rule to the pinned version, up or down, when the source's recorded library release or an earlier one published it. Sync never moves the source, so a pin to a version published after the recorded library release fails and names `code-rules project update SOURCE`, which takes it.
+- Removing a pin doesn't move the rule; the next `code-rules project update` offers its newest version.
+
+To hold a rule at the version you have, pin it to the version recorded in the source's `_source.json`, which also appears in the rule's generated file. `code-rules project update --keep` writes that pin for you. Skills can't be pinned; see [Refs](#refs).
+
+A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it.
 
 ## Skill targets
 
-`skillTargets` names the folders that build and sync install each skill into, so agents that load skills from them find it:
+`skillTargets` says where installed copies of skills go:
 
-| Target | Folder |
+| Value | Folder | Read by |
+| --- | --- | --- |
+| `claude` | `.claude/skills/` at the repository root | Claude Code |
+| `agents` | `.agents/skills/` at the repository root | Codex, Cursor, and other agents that read the shared folder |
+
+```yaml
+schemaVersion: 2
+skillTargets: [claude, agents]
+```
+
+`code-rules project init` writes `[claude, agents]`; `--skill-targets claude`, `agents`, or `none` changes it. Each value can appear once.
+
+`skillTargets: []` is valid, and so is leaving the field out. With no targets, Code Rules still records every skill the repository includes, required skills too, lists them in `generated/SKILLS.md`, and checks them, but writes no installed copies, and sync warns that it installed nothing. Use it to record what your sources require before you choose agent folders.
+
+Each installed skill gets a folder `<target>/<install-name>/`. Code Rules writes and removes only the skill folders it installed, and leaves every other folder in the target alone, such as a skill another tool installed. Code Rules never writes to your home directory. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+
+## Library manifest
+
+The `library` section makes a repository a library. It publishes the repository's authored rules, rule groups, skills, and assets, and sets the level of each skill it offers:
+
+```yaml
+# fabricahq/.code-rules: .code-rules/config.yaml
+schemaVersion: 2
+sources:
+  mattpocock:
+    repository: https://github.com/mattpocock/skills.git
+    ref: main
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices: []
+  skills:
+    required: [skills/ship-service]
+    recommended:
+      - skills/build-feature
+      - mattpocock:skills/engineering/to-spec
+    offered:
+      - mattpocock:skills/productivity/grilling
+```
+
+| Field | Meaning |
 | --- | --- |
-| `claude` | `.claude/skills/` |
-| `agents` | `.agents/skills/` |
+| `library.license` | Optional. The terms that cover everything the library publishes. See [License metadata](/reference/library-format/#license-metadata). |
+| `library.skills.required` | Skills every project that uses the library installs. |
+| `library.skills.recommended` | Skills a project installs when it includes `recommended`. |
+| `library.skills.offered` | Skills a project installs when it names them or includes `"*"`. |
 
-Each installed skill is a folder named by its install name, such as `.claude/skills/build-feature/`. List each target once. With `skillTargets: []`, or without the field, the project still records and lists its skills in `generated/SKILLS.md`, and sync warns that it installed no copy. Code Rules writes only to these folders in the project, never to your home directory, and only to folders it installed; see [Skills](/reference/sync/#skills).
+An empty `library: {}` makes a repository a library with no levels and no declared license. Each level is an optional list. Each entry is either an authored skill's ID, such as `skills/ship-service`, or a borrowed skill, `<source>:<skill-id>`, where `<source>` names an entry in this repository's own `sources`. A skill can appear in one level only. An authored skill that no level lists is offered.
 
-## Select skills
+`code-rules library check` validates the manifest, and fails when two listed skills, authored or borrowed, have the same install name, so projects never inherit a clash from one library. See [Library format](/reference/library-format/).
 
-A source's `skills.include` lists the skills to install from it, all from the one revision its record locks:
+The manifest replaces the separate `rule-library.yaml` that earlier versions used. A repository with a `rule-library.yaml` fails to load; see [No backward compatibility](#no-backward-compatibility).
 
-```yaml
-sources:
-  team:
-    repository: https://github.com/my-team/rules.git
-    rules:
-      include: [techs/go/*]
-    skills:
-      include: [skills/build-feature, skills/review-tests]
-```
+### Borrowed skills
 
-A **skill ID** is the path of the skill's folder. A library's skills are the folders directly in its `.code-rules/skills/`, with IDs such as `skills/build-feature`. In a repository that isn't a library, a skill is any folder that holds a `SKILL.md`, other than the repository root and a folder inside another skill's folder, and its ID is its path from the repository root, such as `tools/review`.
+A library can list skills from another repository in its levels, such as a third party's skill it wants its projects to use. The repository it takes them from is a **borrowed source**: an ordinary entry in the library's own `sources`, with the `ref` the library tracks. A library borrows skills only; rules in its sources are for its own use, and it never publishes them.
 
-`"*"` includes every skill the source offers, except, in a repository that isn't a library, skills in a folder whose name starts with a dot, such as another tool's installed copies in `.claude/skills/`; name one by its ID to include it. `"*"` can't be combined with skill IDs, and skill selectors have no prefixes such as `skills/*`. Each ID may appear once.
+- **Every borrowed skill is listed.** A skill from a borrowed source reaches projects only when a level lists it.
+- **Files come from the original repository.** A skill's identity is its repository plus its path. Projects fetch a borrowed skill's files from the borrowed source, not from the library, and provenance records which library required, recommended, or offered it.
+- **Refs resolve per project.** A library release doesn't lock a borrowed source's `ref`. Each project resolves it when it runs `code-rules project update` and records the commit in the library source's `_source.json`, so `ref: main` gives each project the newest commit at its own update, without a new library release. `code-rules project sync` keeps the recorded commit.
+- **A project can override the ref.** When a project declares a source with the same repository as a borrowed source, its own `ref` decides which commit the borrowed skills come from. Repository identity decides the match, not the source name; see [Repository addresses](#repository-addresses).
 
-A source that isn't a library has only skills, so it needs a `ref` and can't include `rules`:
-
-```yaml
-sources:
-  review-tools:
-    repository: https://github.com/example/review-skills.git
-    ref: v2.1.0
-    skills:
-      include: [tools/review]
-```
-
-Skill levels, such as `recommended`, and the `rename`, `exclude`, and `uses` fields aren't supported yet.
+The library repository is a project too: it installs the required skills of the sources it borrows from, as any project would, and whatever it includes from them for its own use.
 
 ## Repository addresses
 
@@ -178,13 +364,12 @@ Nested GitLab namespaces, private hosts, and explicit ports are supported.
 The `.git` suffix is optional. Git uses the caller's credentials; do not embed HTTPS credentials or SSH passwords in configuration.
 SSH usernames are allowed.
 
-Keep selected rules in `rules.include` and pinned versions in `rules.pins`.
 Repository addresses do not accept query strings, fragments, `git::` prefixes, getter options, or `//subdirectory` selection.
 Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper protocols are outside this format.
-The earlier `owner/name` shorthand is no longer accepted; use `https://github.com/owner/name.git` instead.
+The `owner/name` shorthand isn't accepted; use `https://github.com/owner/name.git` instead.
 
 Code Rules preserves the supplied address in provenance and requires the snapshot to match it exactly.
-Duplicate detection normalizes host spelling and recognizes standard GitHub.com and GitLab.com transport aliases and optional `.git` suffixes.
+Two addresses name the same repository when they match after normalizing host spelling, standard GitHub.com and GitLab.com transport aliases, and optional `.git` suffixes. This decides duplicate sources, and which project source overrides a [borrowed source's](#borrowed-skills) ref.
 GitHub path matching ignores case; generic repository paths and GitLab paths retain case.
 Other hosts retain their transport, username, port, and path distinctions.
 For example, `git@host:rules.git` is home-relative, while `ssh://git@host/rules.git` is absolute. Code Rules does not equate them.
@@ -196,245 +381,123 @@ Syntax validation does not fetch or authenticate a repository.
 Generated source links use pinned GitHub.com or GitLab.com URLs for recognized standard endpoints.
 For other hosts, they point to the retained source file under `vendor/<source>/`.
 If a relative document or image is missing from that snapshot, generation fails with instructions to retain it or supply an explicit URL.
-Code Rules does not infer a host's web interface from its name. See [How imports work](/reference/imports/).
+Code Rules does not infer a host's web interface from its name. See [How sources work](/reference/imports/).
 
-## Source names and rule identity
+## Source names and IDs
 
 Choose stable source names such as `fabrica` or `acme`.
-Names must match `[a-z][a-z0-9-]*`; `local` is reserved for project-authored rules.
-Declare each repository once, with its own selection and pins.
+Names must match `[a-z][a-z0-9-]*`. `techs` and `practices` are reserved, because authored rules use those names in `generated/rules/`.
+Declare each repository once.
 
-An imported rule's project ID is `<source-name>:<library-rule-id>`:
+Inside a source's configuration, rule and skill IDs are relative to that source, without its name. Everywhere else, in generated files, provenance, review findings, and commands such as `code-rules project update fabrica:skills/build-feature`, an included rule or skill has a **project ID** that starts with its source name:
 
 ```text
 fabrica:practices/testing/verify-retry-limits
 acme:practices/testing/verify-retry-limits
-local:practices/testing/test-project-contracts
+fabrica:skills/build-feature
+fabrica:mattpocock:skills/engineering/to-spec
+practices/testing/test-project-contracts
+skills/fix-bug
 ```
 
-A library rule ID is its path without `.md`.
-The source prefix keeps identical paths from different libraries distinct.
-Renaming a source changes its generated project rule IDs and any external references to those IDs.
-The `id` of each of its `rules.exclude` and `rules.pins` entries remains library-relative.
-Replacing a repository under an existing source name also requires reviewing those entries.
+- A rule ID is the rule's path in its repository's `rules/` folder, without `.md`.
+- A skill ID is the skill folder's path: `skills/<name>` for a library's skills, and the folder's path from the repository root for a non-library source's, such as `skills/engineering/to-spec`.
+- A borrowed skill's project ID adds the borrowed source's name after the library's, as the manifest lists it. When the project declares the borrowed repository as its own source, the skill's project ID uses that source's name instead.
+- Authored rules and skills have no source name.
 
-A skill's project ID works the same way: `<source-name>:<skill-id>`, such as `fabrica:skills/build-feature`, while a skill authored in `.code-rules/skills/` keeps its bare ID, such as `skills/release-checklist`. Installed copies are named by install name, not ID, so two skills with the same install name can't both be installed: build and sync fail with `skill-name-clash` until you stop including one of them.
+The source name keeps identical IDs from different sources distinct. Renaming a source changes its project IDs and any external references to them. Replacing a repository under an existing source name also requires reviewing its `exclude`, `pins`, `uses`, and `rename` entries.
+
+The installed copy of a skill goes in a folder named only by its install name, because agents find skills by name. See [Rename a skill](#rename-a-skill).
 
 ## Choose versions
 
-Each rule in a library has its own [version](/reference/rule-versions/). By default, a project follows each rule's newest version, but only when someone updates:
+Each rule and skill in a library has its own [version](/reference/rule-versions/). A project takes each source from one library release or commit, its **lock**, and moves it only when someone updates:
 
-- `vendor/<source-name>/_source.json` records the exact version of every imported rule, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) restores those versions, so every checkout imports the same content.
-- [`code-rules project update`](/reference/cli/#project-update) previews newer versions, new rules, and retirements, and applies them after you confirm.
+- `vendor/<source-name>/_source.json` records the library release or commit, and the exact version of every included rule and skill. [`code-rules project sync`](/reference/cli/#project-sync) restores exactly that, so every checkout has the same content.
+- [`code-rules project update`](/reference/cli/#project-update) previews newer versions, new rules and skills, level changes, and retirements, and applies them after you confirm.
 
-Two optional source fields change that:
+`code-rules project sync` never moves a source. A rule or skill you newly include comes from the recorded library release or commit. When it isn't there, such as a skill the library published after your last update, sync fails and names the command that moves the source, `code-rules project update SOURCE`.
 
-| Field | Use it to |
-| --- | --- |
-| `rules.pins` | Keep individual rules at exact versions while the rest follow updates. |
-| `ref` | Import the library exactly as it was at one Git revision. Advanced. |
-
-A source can use `rules.pins` or `ref`, not both. Neither changes which rules are imported; `rules.include` does that.
-
-### Pin a rule
-
-```yaml
-rules:
-  include: [practices/testing/*]
-  pins:
-    - id: practices/testing/verify-retry-limits
-      version: "1.3.0"
-      reason: Waiting on the author's response to acme/.code-rules#45.
-```
-
-| Field | Meaning |
-| --- | --- |
-| `id` | Required. The library rule ID of one rule. A pin keeps one rule, so its `id` can't be a selector ending in `*`. Each rule can have one pin. |
-| `version` | Required. An exact published version of the rule, such as `"1.3.0"`. Quote it so YAML reads it as text. |
-| `reason` | Required non-blank text explaining why the rule stays at this version. `code-rules project update` shows it next to any newer version, so the decision keeps its context. |
-
-A pin keeps the rule at exactly that version:
-
-- `code-rules project update` never moves a pinned rule. Its preview lists the pin, the newest available version, and your reason.
-- When you add or change a pin, `code-rules project sync` moves the rule to the pinned version, up or down.
-- Removing a pin doesn't move the rule; the next `code-rules project update` offers its newest version.
-
-To keep a rule at the version you have, pin it to the version recorded in `_source.json`, which also appears in the rule's generated file. `code-rules project update --keep` writes that pin for you.
-
-A pin must name a rule the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it; once the retirement is applied, the rule is no longer imported and can't be pinned.
-
-### Import one revision
-
-Set a source's `ref` to import the source exactly as it was at one Git revision. A source whose repository has no `release/<number>` tags, such as one that isn't a library, needs a `ref`; without one, sync fails with `ref-required`:
-
-```yaml
-sources:
-  vendor-rules:
-    repository: https://github.com/example/engineering-rules.git
-    ref: release/5
-    rules:
-      include: ["*"]
-```
-
-`ref` accepts a tag name, such as the library release tag `release/5`, or a full 40-character commit SHA. A tag may also use the explicit `refs/tags/<name>` form. Branch names and abbreviated SHAs aren't supported, so every import can be reproduced. Code Rules resolves the tag when you add or change `ref`, then keeps the recorded commit even if someone later moves the tag.
-
-What you get depends on what the revision is:
-
-- **A [library release](/reference/rule-versions/#library-releases)**, which is the usual case. Every selected rule is imported at the version that library release published, as recorded in its release record.
-- **Any other commit or tag**, such as unreleased changes a library author wants to test in a real project, or a library that hasn't published its first library release. Rules whose files match a published version record that version. Rules with unreleased changes record their version as `null`, and generated guidance shows no version for them.
-
-Importing a revision other than a library release opts that source out of rule versions: rules with unreleased changes have no version to cite, and no update preview reviews their changes. To keep that from shipping by accident, `code-rules project sync` and `code-rules project update` print a warning naming the source and its unreleased rules, and the generated library summary in `generated/libraries/<source-name>/README.md` says the source is imported from unreleased changes. `code-rules project check` still passes.
-
-`code-rules project update` doesn't move a source that uses `ref`. To import another revision, change `ref` and run `code-rules project sync`. To go back to following versions, remove `ref` and run `code-rules project sync`: rules keep their recorded versions when those are published versions, and the rest get their newest version.
+A project chooses rule versions one by one, with pins, but not skill versions. All of a source's skills come from its one recorded revision, and move together when it moves. A skill's version still says what changed, in release notes, `generated/SKILLS.md`, the installed copy's marker line, provenance, and the update preview.
 
 ### Where each rule's files come from
 
-Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from one library release, recorded as `release` in the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files), or from the revision your `ref` names. A new source, and newly selected groups or rules, take them from the newest library release, and `code-rules project update` moves them to the newest library release; `code-rules project sync` keeps the recorded one. That library release is never older than the one that published any imported rule version. When that library release no longer has the metadata of an imported rule's group, such as the group of a retired rule you kept, the group's metadata comes from the newest library release among its imported rule versions that still has it.
+Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as rule group metadata, shared assets, the manifest, and license files, and every skill's whole folder come from the source's one recorded library release, or from the revision your `ref` names. That library release is never older than the one that published any included rule version. When it no longer has the metadata of an included rule's rule group, such as the rule group of a retired rule you pinned, that rule group's metadata comes from the newest library release among its included rule versions that still has it.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
-## Exclude or replace a rule
+## Rule groups
 
-A source's `rules.exclude` list leaves rules out of the generated guidance. Each entry records why, and an entry for a single rule can name a local rule for agents to read instead:
-
-```yaml
-rules:
-  include: [techs/typescript/*, practices/*]
-  exclude:
-    - id: practices/observability/*
-      reason: We don't run our own telemetry.
-    - id: practices/testing/avoid-snapshot-tests
-      reason: Contract snapshots follow our separate review policy.
-    - id: techs/typescript/prefer-type-aliases
-      reason: Our public extension API relies on declaration merging.
-      replacedBy: techs/typescript/prefer-interfaces
-      basedOn: "2.0.0"
-```
-
-| Field | Meaning |
-| --- | --- |
-| `id` | Required. A [selector](#select-rules): one rule ID, or a prefix ending in `/*` that excludes every rule it matches, including rules the library adds there later. Each `id` can appear once. When several entries match a rule, the rule's own entry applies, then its group's, then its type's, then `"*"`. |
-| `reason` | Required non-blank text explaining why the project leaves the rule out. |
-| `replacedBy` | Optional, with a single rule ID only. The ID of an authored rule, under `rules/`, that agents read in place of the excluded rule, such as `techs/typescript/prefer-interfaces` for `rules/techs/typescript/prefer-interfaces.md`. It must be in the same group as the rule it replaces, and each authored rule can replace only one rule. |
-| `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your local rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
-
-An excluded rule is still imported into `vendor/`, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your local rule needs the same change:
-
-- With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project imports. The preview lists every change after `basedOn`. To replace your local rule with a fork of the newest version, overwriting your edits, pass `code-rules project update --update-fork SOURCE:RULE`, or answer `replace` to the terminal question; either sets `basedOn` to that version. If you merge the changes into your rule by hand instead, edit `basedOn` to the version you merged. Code Rules never advances it otherwise, because only you know whether your rule took the changes in.
-- Without `basedOn`, such as for a replacement you wrote yourself, whenever the library's newest version of the rule is newer than the version the project imports, also when a pin keeps the imported copy there. The preview lists the changes since the imported version, which your rule may already have. Replacing your rule with a fork, as above, also records `basedOn`.
-
-### Source-scoped exceptions
-
-The `id` of an entry in a source's `rules.exclude` is library-relative, without a source prefix.
-For example, an entry with `id: practices/testing/verify-retry-limits` under `sources.fabrica.rules.exclude` affects only Fabrica's rule.
-An identically named rule from `acme` remains active.
-Full paths distinguish matching filenames in different groups of the same library.
-
-Generated files and review findings retain source-qualified IDs because they appear outside the configuration's source nesting.
-
-A `rules.pins` entry must name a rule this source imports, and a `rules.exclude` entry must match at least one; any other entry fails validation. When the library retires a rule that an exclusion names, or every rule an exclusion's selector matches, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked. Offline, `code-rules project build` and `code-rules project check` accept a pin at the version the source imports, an exclusion of an imported rule, and a pin or exclusion naming a rule the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files) lists as retired. For any other pin or exclusion, they ask you to run `code-rules project sync`, which checks it against the library. The snapshot record doesn't hold pins, so adding, rewording, or removing a pin that moves no rule never changes it.
-
-## Group selection
-
-Select complete groups separately for each source, add individual rules if needed, then exclude rules when necessary.
-Each selected group must exist in the imported library.
-A selected group includes rules the library adds to it later.
-Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
+Rules from the same rule group ID combine into one generated rule group, whatever source supplies them.
+Including `practices/testing/*` from two sources combines both sets of rules into one effective testing rule group, with a rule group page and individual resolved rule files.
 Source order never establishes precedence.
 
-Every valid rule file under `rules/` automatically joins its adopted group; individual authored rules do not need source entries.
-Local rules can join any imported group. A matching filename does not override an imported rule.
-A local rule that an exclusion names as `replacedBy` appears once under its local ID; the excluded rule is removed from active output.
-The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
-A local `_group.yaml` defines a group, including an empty group, without any configuration entry.
-If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
+Every valid authored rule in `rules/` joins its rule group, and needs no configuration entry.
+An authored rule with the same ID as an included rule doesn't replace it; name it in an exclusion's `replacedBy` to do that.
+An authored rule that an exclusion names as `replacedBy` appears once under its own ID; the excluded rule is removed from active output.
+The complete authored definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
+An authored `_group.yaml` defines a rule group, including an empty one, without any configuration entry.
+If authored metadata exists for an included rule group, its complete description and reading cues take precedence for discovery.
 Otherwise, descriptions from every contributing library remain source-labeled.
-Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
-Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last import supplying an authored rule's group, it writes the group's last imported metadata to `rules/<group-id>/_group.yaml` instead of failing; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
-The root `rules/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
-Shared assets that authored rules link to sit in `assets/`, beside `rules/`, so a rule in `rules/practices/testing/` links to one as `../../../assets/retry-lifecycle.svg`. A file in `rules/assets/` is an error.
+Provenance retains all rule group metadata and identifies the sources supplying the effective discovery guidance.
+Authored rules without either authored or included rule group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last source supplying an authored rule's rule group, it writes that rule group's last vendored metadata to `rules/<group-id>/_group.yaml` instead of failing; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 
-The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.
-Local metadata supplies the complete project description when present.
-The importer does not silently choose one library's description over another's.
-
-## Select individual rules
-
-To import some rules without the rest of their group, list their rule IDs in the source's `rules.include`:
-
-```yaml
-sources:
-  team:
-    repository: https://github.com/acme/.code-rules.git
-    rules:
-      include:
-        - techs/react/*
-        - practices/testing/verify-retry-limits
-        - techs/go/wrap-errors-with-operation
-```
-
-This imports every rule in `techs/react`, including rules added to it later, plus exactly two other rules. Rules the library later adds to `practices/testing` or `techs/go` don't join, because those groups aren't selected.
-
-- Each entry is a library-relative rule ID that must exist in the library.
-- An individually selected rule brings its group's metadata, so its group appears in the generated index with only the selected rules.
-- The imported rules are the union of all selectors: every rule in the selected groups, plus every listed rule. Listing a rule whose group another selector also selects is allowed and changes nothing; `code-rules project sync` and `code-rules project update` warn about it so you can delete the entry.
-- `rules.exclude` applies to every imported rule, however it was selected.
-- When the library retires an individually selected rule, `code-rules project update` shows the retirement in its preview. After you confirm, the entry no longer does anything, and later syncs and updates warn about it so you can delete it. To keep the rule instead, pin it to its last version.
-
-Individually selected rules follow updates and pins like any other imported rule.
+The generated index shows rule group names, applicability guidance, and explicit **Open group** links. Without authored metadata, guidance from multiple libraries remains labeled by source.
+Code Rules does not silently choose one library's description over another's.
 
 ## Conflicting rules
 
 Source-qualified IDs prevent naming collisions, but distinct rules can still require incompatible behavior in the same situation.
-Both remain active unless the project explicitly excludes or replaces a rule under its owning source.
-The importer does not infer priority from source order or interpret prose to resolve contradictions.
+Both remain active unless the repository explicitly excludes or replaces a rule under its owning source.
+Code Rules does not infer priority from source order or interpret prose to resolve contradictions.
 
 See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an agent review prompt, and ways to resolve competing instructions.
 
-## Library section
+## Skill precedence
 
-The optional `library` section makes the repository a [library](/reference/library-format/) as well as, or instead of, a project. `code-rules library init` adds it. Its only field is `license`, which [License metadata](/reference/library-format/#license-metadata) describes; `library.skills` is rejected, since this version of Code Rules doesn't support skill levels yet:
+Skill decisions layer in this order, each overriding the ones before it: a library's levels, then an org library's, then the project's configuration, then each person's [personal skills](/reference/sync/#personal-skills-with-the-same-name). Required skills are a floor: the project can add, rename, and replace around them, but can't remove them.
 
-```yaml
-schemaVersion: 2
-sources: {}
-library:
-  license:
-    spdxExpression: MIT
-    file: LICENSE.md
-    notices: []
+A personal skill with the same name as a skill the repository installs wins in some agents, even over a required skill. Code Rules can't prevent that, and doesn't write to your home directory. It warns instead; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+
+## No backward compatibility
+
+Code Rules reads only version 2 configuration. A version 1 configuration, or a repository with a `rule-library.yaml`, fails to load, with a message that shows the version 2 shape:
+
+```text
+Error: .code-rules/config.yaml uses schemaVersion 1, which this version of Code Rules doesn't read. Rewrite it in the version 2 shape, for example:
+
+  schemaVersion: 2
+  skillTargets: [claude, agents]
+  sources:
+    fabrica:
+      repository: https://github.com/fabricahq/public-rules.git
+      rules:
+        include: [practices/testing/*]
+        exclude:
+          - id: practices/testing/avoid-snapshot-tests
+            reason: ...
+
+Move authored rules from local/ to rules/, and authored skills to skills/. See https://code-rules.fabricahq.com/reference/configuration/
 ```
 
-A library publishes only this section of the configuration, never its `sources`. A repository can keep both: project commands read `sources`, library commands read `library`, and both read the groups in `rules/`. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
-
-## Version boundaries
-
-`schemaVersion` describes this configuration, including its `library` section, and so each library's manifest.
-The caller-supplied `toolVersion` identifies the tool that generated the output.
-
-Each source's `rules.pins`, and its `ref` when present, state which rule versions the project wants; every other rule follows its newest version when the project updates.
-Vendored provenance records each imported rule's version, library release, and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
-A project imports multiple sources directly.
-Libraries that themselves inherit and republish other libraries are not supported: a library that is also a project uses its sources itself and publishes only its own rules.
-
-## Version 1 configuration
-
-Code Rules reads only version 2. A configuration with `schemaVersion: 1` fails to load with an example of the version 2 shape, and nothing converts it for you. Rewrite it by hand:
+There's no upgrade command. Rewrite the file by hand:
 
 | Version 1 | Version 2 |
 | --- | --- |
-| `schemaVersion: 1` | `schemaVersion: 2` |
-| `groups: [techs/go]` | `rules: {include: [techs/go/*]}`: each group becomes its selector. |
-| `groups: "*"`, `"techs/*"`, or `"practices/*"` | The same selector in `rules.include`, such as `include: ["*"]`. |
-| `rules: [techs/go/wrap-errors]` | The rule ID in `rules.include`. |
-| `exclude:` map keyed by rule ID | `rules.exclude:` list of entries, each with the rule ID as its `id`. |
-| `pins:` map keyed by rule ID | `rules.pins:` list of entries, each with the rule ID as its `id`. |
+| `groups: [practices/testing]` | `rules: {include: [practices/testing/*]}` |
+| `groups: "*"` | `rules: {include: ["*"]}` |
+| `rules: [techs/go/wrap-errors]` | Add the IDs to `rules.include`. |
+| `exclude` and `pins` maps keyed by rule ID | `rules.exclude` and `rules.pins` lists, each entry with an `id`. |
 | `replacedBy: local/techs/go/x.md` | `replacedBy: techs/go/x`, the authored rule's ID. |
 | `.code-rules/local/<group-id>/` | `.code-rules/rules/<group-id>/` |
-| `.code-rules/local/assets/` | `.code-rules/assets/` |
+| `rule-library.yaml` and root-level `techs/`, `practices/`, and `assets/` | A `library` section in `.code-rules/config.yaml`, and `.code-rules/rules/` and `.code-rules/assets/`. |
 
-Move the files yourself too: every project command fails while `.code-rules/local/` exists, with a message that shows where each file belongs. Rule IDs don't change. A moved rule sits one directory deeper, so add one `../` to its links to shared assets.
+## Version boundaries
 
-Then run `code-rules project check`. A rewrite that selects the same rules keeps the recorded versions in `vendor/`, so it needs no sync.
+`schemaVersion` describes this configuration.
+The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-See [Library format](/reference/library-format/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.
+Each source's pins, and its `ref` when present, state which versions the project wants; every other rule and skill follows the source's lock, which only `code-rules project update` moves.
+Vendored provenance records each included rule's and skill's version, library release, and commit, or a non-library source's commit, used by offline commands. It is output Code Rules owns, not a second version the project chooses.
+
+See [Library format](/reference/library-format/) for library contents and [Include rules](/guides/select-rules/#adapt-the-selection-to-your-project) for examples of exceptions.
