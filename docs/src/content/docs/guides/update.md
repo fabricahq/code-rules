@@ -1,24 +1,28 @@
 ---
-title: "Update rules"
-description: "Upgrade the rules your project imports to newer versions: preview each change, keep rules where they are when you need to, and adopt the rest deliberately."
+title: "Update rules and skills"
+description: "Move the rules and skills your project takes from its sources to newer versions: preview each change, keep rules where they are when you need to, and take the rest deliberately."
 ---
 
-This guide is for projects that import rules from libraries. Updating rules brings changes from those libraries into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
+:::caution[Preview]
+Skills, skill levels, borrowed skills, and non-library sources aren't in a released version of Code Rules yet. This guide describes how updating them will work.
+:::
 
-In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one library](#update-one-library) or [upgrade a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
+This guide is for projects that take rules and skills from sources: libraries, and repositories of skills that aren't libraries. Updating brings changes from those sources into your project. Library authors may improve advice, fix mistakes, add rules and skills, make rules stricter, change a skill's steps or level, or retire either. Your project takes those changes only when you run `code-rules project update` and confirm them. `code-rules project sync` never moves a source, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
-Start with a project that already [imports rules](/guides/select-rules/). To publish new rule versions from a library you maintain, see [Version your rules](/guides/version-rules/) instead. For details about how commands change files, see [Sync and recovery](/reference/sync/).
+In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one source](#update-one-source) or [move a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how [skills](#update-skills), [skill levels](#level-changes), [non-library sources and borrowed skills](#update-a-non-library-source), and [one library release](#take-one-library-release) update, how to change what you include, and how to recover from a failed update.
+
+Start with a project that already [includes rules](/guides/select-rules/). To publish new rule versions from a library you maintain, see [Version your rules](/guides/version-rules/) instead. For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
 ## Sync and update
 
-Two commands import library rules, and they do different things:
+Two commands take rules and skills from your sources, and they do different things:
 
-- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a newly added source or selected rule, a changed repository, or when you add or change a pin or `ref`.
-- **`code-rules project update`** looks for newer rule versions, new rules, and retirements, shows you a preview, and applies the changes once you confirm.
+- **`code-rules project sync`** restores the **lock** recorded in `.code-rules/vendor/`: each source's library release or commit, and each rule's version. Everyone who syncs the project gets the same rules and skills. Sync never moves a source: a rule or skill you newly include comes from the recorded library release or commit too, and a source that's new to the project is taken as an update would take it. When you include something the recorded revision doesn't have, sync fails and names `code-rules project update SOURCE`.
+- **`code-rules project update`** moves each source along its `ref`: it looks for newer rule and skill versions, new rules and skills, level changes, retirements, and new commits on branches and tags, including those of [borrowed skills](/reference/configuration/#borrowed-skills), shows you a preview, and applies the changes once you confirm.
 
-Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
+Neither command runs during ordinary coding, review, or `code-rules project check`, so rules and skills never change underneath your agents.
 
-## Update your libraries
+## Update your sources
 
 From the project root, run:
 
@@ -26,7 +30,7 @@ From the project root, run:
 code-rules project update
 ```
 
-The command previews every change in each library, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm:
+The command previews every change in each source, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm:
 
 ```text
 team
@@ -59,14 +63,14 @@ When a rule moves through several versions, each summary starts with the version
 | `patch` | Work that complied with the previous version still complies. The rule adds no new guidance. |
 | `minor` | Work that complied with the previous version still complies. The rule adds new guidance. |
 | `major` | Work that complied with the previous version could fail this one. |
-| `new` | A rule the library added to a group you import. |
+| `new` | A rule the library added that your selectors reach, such as one in a rule group you include with `practices/testing/*`. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
-| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule) since the version your rule is based on, its `basedOn`, which a fork records. The preview lists those changes. Without `basedOn`, it lists the changes since the version the project imports, which your rule may already have. Your rule doesn't change unless you replace it with a fork of the newest version. |
+| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule) since the version your rule is based on, its `basedOn`, which a fork records. The preview lists those changes. Without `basedOn`, it lists the changes since the version your project's lock records, which your rule may already have. Your rule doesn't change unless you replace it with a fork of the newest version. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
-When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
+When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as rule group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
 
-Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
+Read the major changes, new rules, and retirements closely: each can change what your code must do. Skills appear in the same list; see [Update skills](#update-skills). For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
 For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing replaces or removes. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would replace and those it would remove. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
 
@@ -80,27 +84,131 @@ In a script or CI job, where there's no terminal to confirm in, the command only
 code-rules project update --yes
 ```
 
-## Update one library
+## Update skills
 
-When your project imports rules from several libraries, you can update just one of them. Name the library's source, its name under `sources` in `.code-rules/config.yaml`:
+Library skills have versions too, so the preview lists them beside the rules, with the same changes and summaries. Unlike rules, skills aren't updated one by one: all of a source's skills come from the one library release or commit the project recorded for it, the one that supplies its [library-wide files](/reference/rule-versions/#what-a-version-covers). When an update moves that revision, every installed skill from the source moves with it, and the preview lists each skill whose version changed:
+
+```text
+fabrica
+  minor     skills/build-feature                   1.2.0 -> 1.3.0
+            Add a step that writes a failing test before each slice.
+            script changed: scripts/verify.sh
+  new       skills/tdd                             1.1.0
+            Write a failing test before each change.
+            Installed because skills/build-feature uses it.
+            script added: scripts/run-tests.sh
+  new       practices/testing/test-behavior-not-implementation  2.0.0
+            Test what callers observe, not how the code does it.
+            Cited by skills/build-feature; reference-only.
+  replaced  skills/fix-bug                         1.0.0 -> 1.1.0
+            Reproduce the bug in a failing test before fixing it.
+            Your skill: skills/fix-bug, based on 1.0.0.
+            Changes since 1.0.0, the version your skill is based on.
+            To replace your skill with a fork of 1.1.0,
+            pass --update-fork fabrica:skills/fix-bug.
+
+Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.
+```
+
+Under each skill's row, the preview flags every executable file that's new or changed: a file whose executable bit is set at the new revision and that the update adds or changes, as `script added` or `script changed`, and a file whose executable bit changed, as `script changed`. When it flags any, the preview ends with one warning. Code Rules never runs these scripts, but your agents may, so read them before you confirm. The warning doesn't block the update.
+
+For a skill, the change levels describe what the skill does rather than an obligation:
+
+| Change | What it means for your project |
+| --- | --- |
+| `patch` | The skill only clarifies its wording. |
+| `minor` | The skill adds steps or guidance without changing how it was used. |
+| `major` | The skill now produces or requires something different, such as a removed or reordered step people rely on, a new required input, or a new skill or rule it uses. |
+
+A skill's new version can use more skills or cite more rules. The preview lists each skill it newly brings in as `new`, saying which skill uses it, and each rule it newly cites as `new`, at the rule's newest version, marked reference-only unless your selectors also reach it. A skill or cited rule that no installed skill needs any longer is dropped.
+
+`--exclude` and `--update-fork` take skill IDs the same way they take rule IDs, such as `--exclude fabrica:skills/review-change`. Pins and `--keep` are for rules only, and `code-rules project update fabrica:skills/build-feature` is refused: skills move only when their whole source updates, in a full update or `code-rules project update fabrica`. In a terminal, the update asks you to confirm each major skill change, retirement, and level change, and asks about each new skill that isn't required, as it does for rules. To hold a skill back, stop the update, then [exclude](/guides/install-skills/#exclude-a-skill) or [fork](/guides/install-skills/#fork-a-skill) it, or set the source's [`ref`](#take-one-library-release), which holds every rule and skill from that source. `--update-fork` replaces your whole `.code-rules/skills/<name>/` folder with a fork of the newest version and sets the exclusion's `basedOn` to it; files you added to the folder are removed, so commit your edits first.
+
+After you confirm, the update rewrites the installed copies in your target folders, `generated/SKILLS.md`, and `generated/installed-skills.json` in the same step as `vendor/` and `generated/`.
+
+### Level changes
+
+A library can change a skill's [level](/reference/configuration/#skill-levels) in any library release. The preview shows each move on the skill's row, with the library release that made it:
+
+```text
+fabrica
+  new       skills/ship-service                    1.0.0
+            level: offered -> required, by fabrica release 8
+  level     skills/build-feature                   1.3.0
+            level: offered -> recommended, by fabrica release 8
+            Not installed: this project doesn't include recommended.
+  dropped   skills/write-design-doc                1.1.0
+            level: recommended -> offered, by fabrica release 8
+            Was installed because this project includes recommended; add skills/write-design-doc to keep it.
+```
+
+- A move that installs a skill, such as `offered -> required`, or `offered -> recommended` when you include `recommended`, shows the skill as `new`.
+- A move that stops installing one, such as `recommended -> offered` when you don't name the skill, shows it as `dropped`. To keep it, add its ID to the source's `skills.include` before you confirm.
+- A move that changes nothing for your project, such as `offered -> recommended` when you don't include `recommended`, shows the skill as `level`, so you can decide whether to include it.
+
+When a skill's version changes too, its row shows the version change, with the level move on the line below.
+
+A skill that becomes required while your project excludes or forks it stops the update: required skills can't be excluded or forked. The error names the library and your exclusion; remove the exclusion, or stop using the source. Levels don't chain: a project sees only the levels of the libraries it names as sources.
+
+## Update a non-library source
+
+A [non-library source](/reference/imports/#non-library-sources) has no versions. When its `ref` names a branch, the update moves it to the newest commit on the branch, and the preview lists each installed skill folder that changed between the recorded commit and that one, with the files that changed:
+
+```text
+pstack  main: 3f9c2e1 -> 8a41d07
+  changed   skills/architect
+            Changed: SKILL.md, scripts/diagram.sh
+            script changed: scripts/diagram.sh
+  added     skills/review
+            Included by "*".
+  removed   skills/sketch
+            The folder no longer exists on main.
+
+Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.
+```
+
+- `changed` lists a skill folder whose files differ, including a file whose executable bit changed.
+- `added` lists a new skill folder that the source's `"*"` includes. New folders you haven't included aren't listed; run `code-rules project list skills` to see them.
+- `removed` lists an installed skill whose folder is gone. Applying the update stops installing it. When the skill is in your `skills.include`, the entry no longer does anything, and sync and update warn about it so you can delete it.
+
+Scripts are flagged and warned about as they are for [library skills](#update-skills). Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A tag that now names a different commit than at your last update moves too, and the preview warns that the tag moved. A non-library source whose `ref` is a commit never moves; to take another commit, change `ref` and run `code-rules project update SOURCE`. `--keep` and pins don't apply to non-library sources; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
+
+### Borrowed skills
+
+A library can list skills it [borrows](/reference/configuration/#borrowed-skills) from another repository at a level. Your project resolves the borrowed source's ref itself, when it updates, so a borrowed skill can move even when the library doesn't publish a new library release. The preview lists the borrowed source's move under the library that borrows it, with the same rows as a non-library source:
+
+```text
+fabrica  release 7 -> 7
+  fabrica borrows mattpocock  main: 3f9c2e1 -> 8a41d07
+  changed   mattpocock:skills/engineering/to-spec
+            Changed: SKILL.md
+```
+
+To take a newer or older revision of a borrowed skill than the library's ref gives you, declare the same repository as your own source, with the `ref` you want. Your source's ref then decides for every skill from that repository; see [Try a newer version of a borrowed skill](/guides/install-skills/#try-a-newer-version-of-a-borrowed-skill).
+
+## Update one source
+
+When your project takes rules and skills from several sources, you can update just one of them. Name the source, its name under `sources` in `.code-rules/config.yaml`:
 
 ```sh
 code-rules project update team
 ```
 
-The update works like a full one, with the same preview and questions, for `team` only. Your other libraries stay where they are until your next full update.
+The update works like a full one, with the same preview and questions, for `team` only. Your other sources stay where they are until your next full update.
 
 ## Update one rule to its newest version
 
-To upgrade a single rule your project imports, without taking anything else from its library, name the rule after its source, as `SOURCE:RULE`:
+To move a single rule to its newest version, without taking anything else from its library, name it after its source, as `SOURCE:RULE`:
 
 ```sh
 code-rules project update team:techs/react/prefer-server-components
 ```
 
-The preview and the update cover only that rule. The library's new rules, its other rule changes, and its shared files stay where they are, with one exception: when the rule's new version comes from a newer library release than your shared files, they move to that library release, because a rule version can rely on the shared files its library release published. To upgrade several rules together, name each of them.
+The preview and the update cover only that rule. The library's new rules, its other rule changes, and its shared files stay where they are, with one exception: when the rule's new version comes from a newer library release than your shared files, they move to that library release, because a rule version can rely on the shared files its library release published. The source's skills come from the same library release, so they move with the shared files, and the preview lists them. To move several rules together, name each of them.
 
-A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first.
+You can't update one skill on its own: a library's skills all come from one library release, and a non-library source's from one commit. Update the whole source instead.
+
+A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first. A source that uses `ref` moves only as a whole; see [Refs](/reference/configuration/#refs).
 
 ## Keep a rule at its current version
 
@@ -120,7 +228,7 @@ sources:
 
 There are three ways to add one:
 
-- **During the update.** In a terminal, `code-rules project update` asks whether to adopt each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
+- **During the update.** In a terminal, `code-rules project update` asks whether to take each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
 - **With `--keep`.** Pin rules as part of the update, without prompts:
 
   ```sh
@@ -131,54 +239,27 @@ There are three ways to add one:
 
 - **By hand.** Add the pin to `.code-rules/config.yaml`, using the version recorded in `.code-rules/vendor/<source-name>/_source.json`, and run `code-rules project sync`. An agent asked to keep a rule at its current version can do this for you.
 
+Pins are for rules only. To hold a skill back, see [Update skills](#update-skills).
+
 A pinned rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. Every update preview lists it, with its newest version and your reason, so the decision isn't forgotten.
 
-When you're ready to adopt the newer version, delete the pin and [update that rule](#update-one-rule-to-its-newest-version):
+When you're ready for the newer version, delete the pin and [update that rule](#update-one-rule-to-its-newest-version):
 
 ```sh
 code-rules project update team:practices/testing/verify-retry-limits
 ```
 
-A pin can also move a rule to a specific version: set `version`, and `code-rules project sync` moves the rule to exactly that version, up or down. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
+A pin can also move a rule to a specific version: set `version`, and `code-rules project sync` moves the rule to exactly that version, up or down, when your recorded library release or an earlier one published it; for a later version, run `code-rules project update SOURCE`. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's `.code-rules/rules/`. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
 
 ## Handle retirements
 
-A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
+A retired rule or skill appears in the preview with its last version, the summary explaining why, and its replacement if it has one. A rule never replaces a skill, or the reverse. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped, or the skill's installed folders are removed. For a rule with a replacement, read the replacement, and check that your selectors include it; for a skill, check that you include its replacement. To keep using a skill the library retires, [fork it](/guides/install-skills/#fork-a-skill) before you apply the update.
 
-To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `rules/<group-id>/_group.yaml` so the fork keeps its group.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or include by ID a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only source of its rule group's metadata, the update writes that metadata to `.code-rules/rules/<group-id>/_group.yaml` so the fork keeps its rule group.
 
-## Review skill scripts
+## Take one library release
 
-:::note[Preview]
-Skill rows and the scripts warning in the update preview come in the next Code Rules release.
-:::
-
-A source's [skills](/concepts/skill/) move with its library-wide files, so an update of a whole library can change them. The preview lists each skill that changes after the rules, with the files that changed, and flags each executable script that's new or changed:
-
-```text
-team
-  minor     techs/go/errors  1.0.0 -> 1.1.0
-            Wrap errors.
-  changed   skills/build-feature
-            Changed: references/notes.md, scripts/run.sh, scripts/setup.sh
-            script changed: scripts/run.sh
-            script added: scripts/setup.sh
-  added     skills/plan
-            script added: scripts/plan.sh
-  Shared files: release 1 -> 2
-
-Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.
-```
-
-- `changed` lists a skill whose files differ, including a file whose executable bit changed.
-- `added` lists a skill the update starts installing, such as one you newly named in `skills.include`. Each of its executable files is flagged as `script added`.
-- `removed` lists a skill the update stops installing.
-
-A script is any file in the skill's folder whose executable bit is set at the new revision. The preview flags one the update adds as `script added`, and one it changes, or makes executable, as `script changed`. A script that stays the same isn't flagged, and neither is a file that isn't executable, such as `references/notes.md` above. Code Rules never runs these scripts, but your agents may, so read each flagged script before you confirm. The warning doesn't block the update. When an update [names rules](#update-one-rule-to-its-newest-version), keeping one of them can leave the skills at an earlier library release; in a terminal, when your answers change the skill rows, the command lists them again, with the warning when they flag a script, before it asks you to confirm. With `--json`, the rows are in each source's `skills` list and the warning in `value.warnings`; see [project update](/reference/cli/#skills-and-their-scripts).
-
-## Import one library release
-
-To import exactly what one library release published, set the source's `ref` to its tag:
+To take exactly what one library release published, set the source's `ref` to its tag:
 
 ```yaml
 sources:
@@ -189,34 +270,34 @@ sources:
       include: ["*"]
 ```
 
-`code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
+`code-rules project update` doesn't move this source past release 5. To take another library release, change the tag and run `code-rules project update vendor-rules`; sync never moves a source, so it reports that the record is out of date. To go back to following library releases, remove `ref` and update the source.
 
-`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules with unreleased changes have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
+`ref` also accepts a branch, any other tag, or a full commit SHA, which library authors use to test unreleased changes. Rules and skills with unreleased changes have no version, so Code Rules warns about them every time you sync or update. See [Take one revision](/reference/configuration/#take-one-revision).
 
 ## Review and commit the update
 
 `code-rules project update` reports added, changed, and removed file paths. Before committing:
 
-- Inspect the diff of `.code-rules/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
-- For each `replaced` rule in the preview, compare the library's old and new text before deciding whether your local rule still makes sense.
-- Inspect the diff of the installed skills in your skill targets, such as `.claude/skills/`, especially the scripts the preview flagged, which your agents may run.
+- Inspect the diff of `.code-rules/vendor/` for changes from your sources, including rules and skills hidden by your exclusions and replacements, and changes to retained licenses and notices.
+- Inspect the diff of the installed skills in `.claude/skills/` and `.agents/skills/`, especially scripts, which your agents may run.
+- For each `replaced` rule in the preview, compare the library's old and new text before deciding whether your own rule still makes sense.
 - When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
 
-Commit the configuration, vendor snapshots, and generated files together.
+Commit the configuration, vendor snapshots, generated files, and installed skill folders together.
 
-## Change selected groups or rules
+## Change what you include
 
-Edit the relevant `sources.<name>.rules.include` and run `code-rules project sync`.
-`code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
-The vendor snapshot must match that selection before an offline build can use it.
-Regeneration removes a group index only when no source or discovered local group still supplies it.
-You don't need to create group metadata before deselecting, or removing, the last library supplying an authored rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last imported copy in `vendor/`, to `rules/<group-id>/_group.yaml` and warns that it did. See [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group). Review the file afterward; it's now yours to edit. If `rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
+Edit the source's `rules.include` or `skills.include`, or its `exclude` lists, and run `code-rules project sync`.
+Sync takes newly included rules and skills from the library release or commit your project already recorded for the source, and leaves the rest of your rules and skills unchanged. Each new rule gets the newest version that library release or an earlier one published. When something you include isn't in the recorded revision, such as a skill the library published after your last update, sync fails and names `code-rules project update SOURCE`, which moves the whole source.
+The vendor snapshot must match your selectors before an offline build can use it.
+Regeneration removes a rule group index only when no source or authored rule group still supplies it.
+You don't need to create rule group metadata before you stop including, or remove, the last source supplying an authored rule's rule group: sync writes the rule group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the rule group, from its last vendored copy, to `.code-rules/rules/<group-id>/_group.yaml` and warns that it did. See [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule). Review the file afterward; it's now yours to edit. If `.code-rules/rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 
 `code-rules project update` and `code-rules project sync` validate and render before installing output.
-A failed import, or an update you didn't confirm, preserves the previous working ruleset.
+A failed sync, or an update you didn't confirm, preserves the previous working rules and skills.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
-Rules never change automatically during coding, review, or offline checks.
-Code Rules keeps the versions it recorded until you change your selection, pins, or `ref`, or confirm an update.
+Rules and skills never change automatically during coding, review, or offline checks.
+Code Rules keeps the versions and commits it recorded until you change a pin or confirm an update.
