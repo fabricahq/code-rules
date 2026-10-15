@@ -63,6 +63,12 @@ type ImportedSkill struct {
 	// Level is the skill's level in its library, which is "offered" for every skill a library publishes, or empty
 	// for a skill from a repository that isn't a library.
 	Level string `json:"level,omitempty"`
+	// Included reports that the source's skills.include selects the skill; a skill it doesn't select is installed
+	// because other installed skills of the source use it.
+	Included bool `json:"included"`
+	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their fg-skills-used
+	// or the source's skills.uses; it is empty, never nil, when none does, which happens only when Included is set.
+	UsedBy []string `json:"usedBy"`
 }
 
 // SkillFiles returns the files of skill id, by path in its folder. The bytes are shared with the snapshot.

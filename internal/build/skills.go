@@ -59,17 +59,26 @@ type resolvedSkill struct {
 	// the same order; both are empty for a skill that cites no rules.
 	RulesUsed []string
 	Cited     []citedRule
+	// SkillsUsed lists the lines of the skill's fg-skills-used, as written; nil when it has none.
+	SkillsUsed []string
+	// Included reports that the configuration includes the skill, as it includes every authored skill; a source's
+	// skill that isn't included is installed because other skills use it.
+	Included bool
+	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its fg-skills-used
+	// and its source's skills.uses, and of those that use it; each is empty, never nil, when there are none.
+	Uses, UsedBy []string
 }
 
 // resolveSkills returns, sorted by project ID, the skills of every configured source's snapshot and the authored
-// skills in local, keyed by ID, skills/<name>. It fails when a SKILL.md is missing or its frontmatter unreadable,
-// when an install name isn't valid, and with *ClashError when two skills share an install name.
+// skills in local, keyed by ID, skills/<name>, each with the skills it uses and those that use it. It fails when a
+// SKILL.md is missing or its frontmatter unreadable, when an install name isn't valid, with *ClashError when two
+// skills share an install name, and as linkSkillUses does for an authored skill's uses.
 func resolveSkills(config rules.Configuration, libraries map[string]Library, local map[string]SkillFiles) ([]resolvedSkill, error) {
 	result := []resolvedSkill{}
 	for _, source := range config.Sources {
 		snapshot := libraries[source.Name].Snapshot
 		for _, id := range slices.Sorted(maps.Keys(snapshot.Skills)) {
-			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level}
+			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
 			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
 				return nil, err
 			}
@@ -77,7 +86,7 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(local)) {
-		skill := resolvedSkill{ID: id, Folder: id, Files: local[id]}
+		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
 		if err := describeSkill(&skill, id+"/"+skills.File); err != nil {
 			return nil, err
 		}
@@ -94,6 +103,9 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			return nil, &ClashError{Name: skill.Name, IDs: [2]string{other, skill.ID}}
 		}
 		names[skill.Name] = skill.ID
+	}
+	if err := linkSkillUses(result, config); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -118,7 +130,7 @@ func describeSkill(skill *resolvedSkill, location string) error {
 	if skill.Name, err = skills.InstallName(skill.Folder, metadata, location); err != nil {
 		return err
 	}
-	skill.Description, skill.Type, skill.RulesUsed = metadata.Description, metadata.Type, metadata.RulesUsed
+	skill.Description, skill.Type, skill.RulesUsed, skill.SkillsUsed = metadata.Description, metadata.Type, metadata.RulesUsed, metadata.SkillsUsed
 	return nil
 }
 
@@ -276,6 +288,7 @@ func skillsIndex(resolved []resolvedSkill) string {
 			}
 			facts = append(facts, "- **Applies:**\n"+strings.Join(lines, "\n"))
 		}
+		facts = append(facts, useFacts(skill, resolved)...)
 		if len(skill.Targets) == 0 {
 			source := ".code-rules/" + skill.Folder + "/" + skills.File
 			if skill.Source != "" {
