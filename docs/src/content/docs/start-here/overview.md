@@ -7,7 +7,7 @@ Code Rules is the package manager for your agent skills and rules.
 
 Most teams today use skills to guide their agents, but skills aren't always the ideal package for delivering guidance, and managing skills across repos, organizations, and your local environment can be tricky.
 
-Code Rules solves these problems by adding a second format beyond skills. Skills are coarse-grained: a single skill often bundles many insights, which makes it hard to update, version, and understand. A **rule** is fine-grained: one directive, such as "Never write secrets to logs," in its own Markdown file.
+Code Rules solves these problems by first adding a second format beyond skills. Skills are coarse-grained: a single skill often bundles many insights, which makes it hard to update, version, and understand. A **rule** is fine-grained: one directive, such as "Never write secrets to logs," in its own Markdown file.
 
 Code Rules then manages both skills and rules the way a package manager manages code. Each project declares the skills and rules it uses and where they come from: public or private libraries, your organization's shared library, or the project itself. Skills can also come from any Git repository of skill folders, even one that doesn't use Code Rules. Code Rules records each skill's and rule's source and version, updates them only when you choose, and installs skills for Claude Code, Codex, Cursor, and other agents at once.
 
