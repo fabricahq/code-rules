@@ -12,7 +12,7 @@ See [product scope](/start-here/overview/#what-syllabus-does-not-do).
 `syllabus project init`, `build`, `sync`, and `update` keep this section in the project's `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers. If your agent reads another instruction file, have it import or link `AGENTS.md`, or use the section as a starting point for a direct agent prompt.
 
 ```markdown
-## Engineering rules
+## Skills and Rules
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 

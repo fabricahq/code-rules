@@ -1,4 +1,4 @@
-## Engineering rules
+## Skills and Rules
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 

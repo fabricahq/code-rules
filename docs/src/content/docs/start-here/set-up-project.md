@@ -138,7 +138,7 @@ Open `.syllabus/generated/RULES.md` again. You'll now see your local Testing gro
 Your local and imported rules are now available in the repository. Your coding agent reads them because `syllabus project init` added this section to `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers:
 
 ```markdown
-## Engineering rules
+## Skills and Rules
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 

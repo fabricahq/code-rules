@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-// agentInstructions matches the fenced "Engineering rules" section that pages quote from AGENTS.md.
-var agentInstructions = regexp.MustCompile("(?ms)^```markdown\\n(## Engineering rules\\n.*?)^```$")
+// agentInstructions matches the fenced "Skills and Rules" section that pages quote from AGENTS.md.
+var agentInstructions = regexp.MustCompile("(?ms)^```markdown\\n(## Skills and Rules\\n.*?)^```$")
 
 // TestAgentInstructions_MatchTheSection fails when the docs drift from the section Syllabus writes.
 func TestAgentInstructions_MatchTheSection(t *testing.T) {
@@ -26,7 +26,7 @@ func TestAgentInstructions_MatchTheSection(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got := agentInstructions.FindSubmatch(data); got == nil || string(got[1]) != want {
-			t.Errorf("%s: Engineering rules section differs from the AGENTS.md section:\n%s", name, got)
+			t.Errorf("%s: Skills and Rules section differs from the AGENTS.md section:\n%s", name, got)
 		}
 	}
 }
