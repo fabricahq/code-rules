@@ -55,7 +55,7 @@ type Metadata struct {
 	Name string
 	// Description is the frontmatter's description, or empty.
 	Description string
-	// Type is metadata.fg-skill-type as written, or empty.
+	// Type is metadata.syllabus-skill-type as written, or empty.
 	Type string
 	// Frontmatter reports whether the file starts with a frontmatter block.
 	Frontmatter bool
@@ -96,8 +96,8 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 		if json.Unmarshal(*fields.Metadata, &metadata) != nil {
 			return Metadata{}, invalid(location+".metadata", "expected a mapping of string keys to string values")
 		}
-		if raw, ok := metadata["fg-skill-type"]; ok && json.Unmarshal(raw, &result.Type) != nil {
-			return Metadata{}, invalid(location+".metadata.fg-skill-type", "expected a string, such as playbook or review")
+		if raw, ok := metadata["syllabus-skill-type"]; ok && json.Unmarshal(raw, &result.Type) != nil {
+			return Metadata{}, invalid(location+".metadata.syllabus-skill-type", "expected a string, such as playbook or review")
 		}
 	}
 	return result, nil

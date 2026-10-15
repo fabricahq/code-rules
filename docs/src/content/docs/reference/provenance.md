@@ -103,7 +103,7 @@ Each entry in the `skills` array of `generated/provenance.json` records one skil
 | Field | What it records |
 | --- | --- |
 | `id` | The skill's project ID, such as `fabrica:skills/build-feature`, or `skills/release-checklist` for a skill authored in `.code-rules/skills/`. |
-| `name` and `type` | The install name, which names its installed folders, and the `metadata.fg-skill-type` its `SKILL.md` declares, or `null`. |
+| `name` and `type` | The install name, which names its installed folders, and the `metadata.syllabus-skill-type` its `SKILL.md` declares, or `null`. |
 | `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.code-rules/`. `version` and `release` are `null`: skills don't have versions yet. |
 | `level` | `offered` for a library's skill, or `null` for an authored skill or one from a repository that isn't a library. |
 | `targets` | The folders the skill is installed in, such as `.claude/skills/build-feature`, empty when the project has no skill targets. |
