@@ -5,7 +5,7 @@ description: "Choose clear terms for rule content and preserve them when project
 
 A library's **license** states the terms for using, copying, modifying, and sharing its rules. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
 
-This guide walks through choosing what your terms should cover, declaring them in `rule-library.yaml`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
+This guide walks through choosing what your terms should cover, declaring them in the `library` section of `.code-rules/config.yaml`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
 
 ## Decide what the license covers
 
@@ -31,18 +31,20 @@ Have the chosen terms reviewed for the rights and restrictions you intend before
 
 The Code Rules format does not require a particular license.
 
-Keep the actual license text in `LICENSE.md` at the library root, or another explicitly named file.
-The library metadata identifies the terms for the whole library and any accompanying notice files:
+Keep the actual license text in `LICENSE.md` at the repository root, or another explicitly named file.
+The `library` section of `.code-rules/config.yaml` identifies the terms for the whole library and any accompanying notice files:
 
 ```yaml
-formatVersion: 1
-license:
-  spdxExpression: MIT
-  file: LICENSE.md
-  notices: []
+schemaVersion: 2
+sources: {}
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices: []
 ```
 
-Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
+Paths resolve from the repository root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
 For example, list `NOTICE.md` in `notices` when the library supplies a notice that must accompany imported content.
 No extra notice file is required when the license and rule files already contain the necessary notices.
 The [file reference](/reference/library-format/#license-metadata) defines these fields.
@@ -68,7 +70,7 @@ The consuming workspace retains them alongside the imported rules:
   vendor/
     fabrica/
       LICENSE.md
-      rule-library.yaml
+      config.yaml
       _source.json
       practices/testing/...
   generated/

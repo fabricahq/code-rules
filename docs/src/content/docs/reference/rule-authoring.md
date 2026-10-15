@@ -216,7 +216,7 @@ Put prerequisites and instructions in the body. Mention them in `whenToRead` onl
 
 ## Supporting material
 
-Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library-root `assets/` directory.
+Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the `.code-rules/assets/` directory.
 
 Link to supporting files using ordinary Markdown. Markdown in an asset directory is supporting text, not another rule.
 

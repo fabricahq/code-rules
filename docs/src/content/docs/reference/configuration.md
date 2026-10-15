@@ -49,6 +49,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.rules.include` | Required. A list of at least one [selector](#select-rules): whole groups, such as `techs/typescript/*`, every group of a type, such as `practices/*`, everything, `"*"`, or single rule IDs. |
 | `sources.<name>.rules.exclude` | Optional list of entries, each with a selector as its `id`, a `reason` and, for a single rule, optionally a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
+| `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
 Groups the project authors are discovered from `rules/<group-id>/_group.yaml`; no source entry or separate group list is required.
@@ -332,16 +333,31 @@ The importer does not infer priority from source order or interpret prose to res
 
 See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an agent review prompt, and ways to resolve competing instructions.
 
+## Library section
+
+The optional `library` section makes the repository a [library](/reference/library-format/) as well as, or instead of, a project. `code-rules library init` adds it. Its only field is `license`, which [License metadata](/reference/library-format/#license-metadata) describes; `library.skills` is rejected, since this version of Code Rules doesn't support skill levels yet:
+
+```yaml
+schemaVersion: 2
+sources: {}
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices: []
+```
+
+A library publishes only this section of the configuration, never its `sources`. A repository can keep both: project commands read `sources`, library commands read `library`, and both read the groups in `rules/`. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
+
 ## Version boundaries
 
-`schemaVersion` describes this configuration.
-Each library's `formatVersion` describes its authoring format.
+`schemaVersion` describes this configuration, including its `library` section, and so each library's manifest.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `rules.pins`, and its `ref` when present, state which rule versions the project wants; every other rule follows its newest version when the project updates.
 Vendored provenance records each imported rule's version, library release, and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly.
-Libraries that themselves inherit and republish other libraries are not supported.
+Libraries that themselves inherit and republish other libraries are not supported: a library that is also a project uses its sources itself and publishes only its own rules.
 
 ## Version 1 configuration
 

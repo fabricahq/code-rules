@@ -182,8 +182,8 @@ The license record distinguishes original files from the copies retained with ge
 
 | Field inside `license` | Paths in a source record | Paths in a rule record |
 | --- | --- | --- |
-| `files` | Original license files, relative to the library root. | Original license files under `vendor/<source-name>/`, relative to the Code Rules directory. |
-| `attributionFiles` | Original notice files, relative to the library root. | Original notice files under `vendor/<source-name>/`, relative to the Code Rules directory. |
+| `files` | Original license files, by their paths in the library: relative to the repository root, or to `.code-rules/` for a file in `.code-rules/assets/`. | Original license files under `vendor/<source-name>/`, relative to the Code Rules directory. |
+| `attributionFiles` | Original notice files, by their paths in the library, as `files`. | Original notice files under `vendor/<source-name>/`, relative to the Code Rules directory. |
 | `generatedFiles` | Retained license copies, relative to `generated/`. | The same generated license copies. |
 | `generatedAttributionFiles` | Retained notice copies, relative to `generated/`. | The same generated notice copies. |
 

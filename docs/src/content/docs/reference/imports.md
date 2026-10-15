@@ -37,7 +37,7 @@ The copy includes:
 - Rules from the selected groups and the individually selected rules, including rules your project excludes or replaces.
 - Supporting files, such as images and examples, from the library's designated asset directories.
 - Group metadata, which describes each group and when to read it.
-- The library manifest, `rule-library.yaml`, and its declared license and notice files.
+- The library's manifest, as `config.yaml`, holding only the `library` section of the library's `.code-rules/config.yaml`, and its declared license and notice files. The library's own `sources`, change notes, and `vendor/` and `generated/` directories are never copied; see [What a library publishes](/reference/library-format/#what-a-library-publishes).
 
 Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `rules/`; syncing replaces the imported files.
 
@@ -136,7 +136,7 @@ Code Rules reads original Git file contents without checking out the library. It
 Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
 - **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
-- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the library release that supplies the source's library-wide files.
+- **Shared assets:** files in the library's `.code-rules/assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the library release that supplies the source's library-wide files.
 
 Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
 
@@ -173,6 +173,7 @@ When finding the newest library release, Code Rules can report:
 | `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
 | `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
 | `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
+| `unsupported-library-layout` | The library release or commit the source selects keeps the library in the [earlier layout](/reference/library-format/#libraries-in-the-earlier-layout), with `rule-library.yaml` and rule folders at the repository root, which this Code Rules can't read; or a rule version that such a library release published has a link that resolves to another file in the current layout. Ask the library's maintainer to move the library into `.code-rules/` and publish a library release, then select it, such as with `code-rules project update`, or select a version of the rule published after the move. |
 
 When Code Rules can't read the library's repository, it can report:
 

@@ -67,12 +67,12 @@ Declare accompanying license and notice files in the [library manifest](/referen
 
 ## Supporting assets
 
-Use two optional locations for supporting files:
+Use two optional locations for supporting files, both in the Code Rules directory, `.code-rules/`, of a library or a project:
 
 ```text
 assets/                              # Shared across the library
   retry-lifecycle.svg
-practices/testing/
+rules/practices/testing/
   _group.yaml
   verify-retries.md
   assets/
@@ -88,11 +88,10 @@ Markdown within assets is supporting text and does not need rule frontmatter.
 
 Keep the rule's obligations and exceptions in the rule itself. Use assets for explanations, images, sample data, and other supporting material.
 Link from the rule with ordinary Markdown, such as `[Explanation](assets/verify-retries/explanation.md)`.
-Use `../../assets/retry-lifecycle.svg` from this rule to reference a shared image.
-In a project, authored rules sit in `.code-rules/rules/` and shared assets in `.code-rules/assets/`, so the same rule links to a shared image as `../../../assets/retry-lifecycle.svg`.
+Links resolve from where the file sits, so this rule references the shared image as `../../../assets/retry-lifecycle.svg`. A link that starts with `/` resolves from `.code-rules/`, so `/assets/retry-lifecycle.svg` names the same image from any rule. Libraries and projects keep rules in `.code-rules/rules/` and shared assets in `.code-rules/assets/`, so a link works the same way in both.
 
 Code Rules preserves each selected rule's complete asset directory, including files that are not individually linked.
-From the library-root `assets/` directory, Code Rules imports only the files a selected rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `code-rules project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
+From a library's `.code-rules/assets/` directory, Code Rules imports only the files a selected rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `code-rules project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
 Other shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the import size and file-type limits.
 No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
 
@@ -100,7 +99,7 @@ A rule or its assets may link to its own assets, shared assets, and declared lib
 Shared assets may link to other shared assets and declared license files, but cannot depend on one rule's private assets.
 A link into another rule's assets is invalid: move that material to the shared directory.
 Missing local destinations and supporting references elsewhere in the repository fail import.
-Filesystem links to another rule document are invalid, even when the target is selected or retained. This also applies to Markdown attachments, including HTML `href` and `src` attributes. Rules must remain independently selectable; move shared supporting explanations into `assets/`. Self-links and anchors within the same document remain valid. External URLs remain links and are not downloaded.
+Filesystem links to another rule document are invalid, even when the target is selected or retained. This also applies to Markdown attachments, including HTML `href` and `src` attributes. Rules must remain independently selectable; move shared supporting explanations into `.code-rules/assets/`. Self-links and anchors within the same document remain valid. External URLs remain links and are not downloaded.
 
 Files elsewhere in the repository can still hold project documentation or tooling, but cannot serve as local supporting dependencies for rules.
 Relative links in raw HTML are rejected during generation. Use Markdown links, images, or reference definitions instead.

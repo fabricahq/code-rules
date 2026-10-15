@@ -88,7 +88,7 @@ In a project, the versions you import are listed under **Rule versions** in `.co
 
 You manage versions and library releases with three Code Rules commands. You never set versions or create tags by hand.
 
-- **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `changes/` directory.
+- **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `.code-rules/changes/` directory.
 - **`code-rules library check`** confirms that every changed rule has a change note, and previews the versions the next library release will publish.
 - **`code-rules library release`** publishes a [library release](#library-releases).
 
@@ -116,7 +116,7 @@ code-rules library change practices/testing/verify-retry-limits \
   --summary 'Add a Python example of the retry-limit test.'
 ```
 
-This writes a new note, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
+This writes a new note, such as `.code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
 
 ```yaml
 summary: Add a Python example of the retry-limit test.
@@ -187,11 +187,22 @@ Projects see the old rule retired, with the new rule as its replacement.
 
 ### Change a shared file or group description
 
-Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
+Files in the library's shared `.code-rules/assets/` directory, such as a diagram, group descriptions in `_group.yaml`, and the license in the `library` section of `.code-rules/config.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
 
 A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that starts importing your library, or selects more of it, also gets them from the newest library release.
 
 Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release that supplies the project's library-wide files, so shared files should only explain and illustrate.
+
+### Move a library from the earlier layout
+
+Earlier versions of Code Rules kept a library's files at the repository root. Library commands now fail, writing nothing, until you move them into `.code-rules/`, and their message lists each move. In one pull request:
+
+1. Move `techs/` and `practices/` to `.code-rules/rules/`, `assets/` to `.code-rules/assets/`, and `changes/` to `.code-rules/changes/`, such as with `git mv`.
+2. Delete `rule-library.yaml`, and write its `license` fields in the `library` section of `.code-rules/config.yaml`.
+3. Add one `../` to each relative link from a rule to a shared asset, and two to each link to a license file at the repository root. Links that start with `/assets/` keep working.
+4. Record each rule whose links changed with `code-rules library change RULE_ID --bump patch --summary '...'`.
+
+Rule IDs and versions don't change, and rules you didn't edit need no note. Publish a library release once the pull request merges: projects can't import a library release made in the earlier layout, so they need one from the new layout. See [Libraries in the earlier layout](/reference/library-format/#libraries-in-the-earlier-layout).
 
 ### Check your changes
 
@@ -210,7 +221,7 @@ Pending library release 3
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
 
-When you changed library-wide files, such as a group description, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed.
+When you changed library-wide files, such as a group description or the license in the `library` section of `.code-rules/config.yaml`, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed.
 
 Commit each rule and its note together. Reviewers can then review the rule and the wording of its note in the same pull request.
 
@@ -226,7 +237,7 @@ Preview exactly what will be published:
 code-rules library release --dry-run
 ```
 
-The preview shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `changes/` in a normal pull request, then preview again.
+The preview shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `.code-rules/changes/` in a normal pull request, then preview again.
 
 ### Publish
 

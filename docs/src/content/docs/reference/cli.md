@@ -214,7 +214,9 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 
 ## Library commands
 
-`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
+`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. A library keeps its manifest in the `library` section of `.code-rules/config.yaml`, its groups and rules in `.code-rules/rules/`, its shared assets in `.code-rules/assets/`, and its change notes in `.code-rules/changes/`; see [Library format](/reference/library-format/). Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
+
+Every library command fails, writing nothing, in a repository that still has `rule-library.yaml`, `techs`, or `practices` at its root, where earlier versions kept a library; its message shows where each file moves. See [Libraries in the earlier layout](/reference/library-format/#libraries-in-the-earlier-layout).
 
 ### library init
 
@@ -222,7 +224,7 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 code-rules library init [options]
 ```
 
-Create `rule-library.yaml`, an authoring README, and a GitHub Actions workflow without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
+Create `.code-rules/config.yaml` with an empty `library` section, an authoring README at the repository root, and a GitHub Actions workflow without overwriting existing authored files. In a project, it adds the `library` section to the existing `.code-rules/config.yaml`, keeping its `sources`, so the repository is both; a configuration that already has a `library` section is left as it is. Optionally copy explicitly supplied license terms into the library.
 
 The workflow, `.github/workflows/code-rules.yml`, runs `code-rules library check` on every pull request, using the Code Rules version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`, and prints the version it installed in the job's log and summary. Rerunning `code-rules library init` never changes an existing workflow; to move it to the Code Rules version you run, delete the workflow and run `code-rules library init` again. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
 
@@ -234,7 +236,7 @@ The workflow, `.github/workflows/code-rules.yml`, runs `code-rules library check
 | `--notice-file PATH` | Optional UTF-8 notice text to copy to `NOTICE.md`. Requires both license options. Relative to your working directory. |
 | `--non-interactive` | Accepted; library init runs without prompts even when this flag is omitted. |
 
-If you omit the license options, `rule-library.yaml` leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library.
+If you omit the license options, the `library` section leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library.
 
 ### library add group
 
@@ -242,7 +244,7 @@ If you omit the license options, `rule-library.yaml` leaves the license undeclar
 code-rules library add group ID [options]
 ```
 
-Create a group with `_group.yaml` metadata and an authoring README in the library. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a group with `_group.yaml` metadata and an authoring README in the library's `.code-rules/rules/`. `ID` is a group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
@@ -260,7 +262,7 @@ Empty groups are valid. Existing group files are preserved.
 code-rules library add rule ID [options]
 ```
 
-Create a rule in an existing library group. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
+Create a rule in an existing library group. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`; the rule's file is `.code-rules/rules/<ID>.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -290,7 +292,7 @@ Write a new [change note](/reference/rule-versions/#change-notes) for one or mor
 | `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. If it isn't a rule in the library yet, the command warns; add it before the next library release. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes a new file in `changes/` with a unique name, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
+The command writes a new file in `.code-rules/changes/` with a unique name, such as `.code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
 
 See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
 
@@ -300,7 +302,7 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 code-rules library check [options]
 ```
 
-Validate `rule-library.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
+Validate the `library` section of `.code-rules/config.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |
@@ -324,7 +326,7 @@ Check warns when a note that a library release already published was edited, bec
 
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `code-rules library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
-When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `code-rules library release` reports the rules it publishes in `value.rules` the same way.
+When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, license files, or the `library` section of `config.yaml`, changed since the latest library release, the preview lists them too, by their paths in the library, such as `config.yaml` and `practices/testing/_group.yaml`, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `code-rules library release` reports the rules it publishes in `value.rules` the same way.
 
 ### library release
 
@@ -443,7 +445,7 @@ The root `--version` flag prints the tool version. To choose which versions of a
 
 In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `code-rules library init --directory`.
 
-Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project commands use that root's `.code-rules/config.yaml`; library commands use its `rule-library.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
+Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands use that root's `.code-rules/config.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
 
 Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
 

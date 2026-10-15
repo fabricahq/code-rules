@@ -14,6 +14,10 @@ In this walkthrough, you'll:
 
 You need [Code Rules installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can stay [local to that project](/start-here/set-up-project/).
 
+:::note[Preview]
+This walkthrough uses the library layout of the next Code Rules release, which keeps a library's files in `.code-rules/`. Released versions keep `rule-library.yaml` and rule folders at the repository root.
+:::
+
 ## 1. Create a repository for your library
 
 Give your library its own Git repository so you can publish its rules independently of the projects that use them. Start in the directory where you keep your repositories:
@@ -27,7 +31,7 @@ code-rules library init
 
 `engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates:
 
-- `rule-library.yaml`, which identifies the library format.
+- `.code-rules/config.yaml`, whose `library` section makes the repository a library.
 - A README for authors at the repository root.
 - `.github/workflows/code-rules.yml`, which checks pull requests once the library is on GitHub.
 
@@ -58,7 +62,7 @@ code-rules library add rule practices/error-handling/make-errors-actionable \
   --impact-description 'Helps people recover from a failure without guessing what went wrong.'
 ```
 
-Open `practices/error-handling/make-errors-actionable.md` in your editor and replace its entire contents with this complete rule:
+Open `.code-rules/rules/practices/error-handling/make-errors-actionable.md` in your editor and replace its entire contents with this complete rule:
 
 ```md
 ---
@@ -90,15 +94,17 @@ Your library now looks like this:
 engineering-rules/
   .github/workflows/code-rules.yml
   README.md
-  rule-library.yaml
-  practices/
-    error-handling/
-      _group.yaml
-      README.md
-      make-errors-actionable.md
+  .code-rules/
+    config.yaml
+    rules/
+      practices/
+        error-handling/
+          _group.yaml
+          README.md
+          make-errors-actionable.md
 ```
 
-Library rules live directly under `practices/` or `techs/`. Publishing a library does not require a Code Rules directory or generated agent guidance. Those belong to projects that consume rules.
+Library rules live under `.code-rules/rules/practices/` or `.code-rules/rules/techs/`, where a project keeps its own rules. Publishing a library doesn't need generated agent guidance; that belongs to the projects that import the rules. If you also want this repository's own agents to follow its rules, it can be a project too; see [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
 
 ## 3. Check the library
 
@@ -116,14 +122,16 @@ There is no library build step. A library publishes source rules; each consuming
 
 Decide who may use, adapt, and redistribute the library. Public visibility alone does not grant those permissions. Use [License rules](/guides/license-rules/) to choose and record terms, especially when including someone else's material.
 
-For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md`, then set `rule-library.yaml` to:
+For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md` at the repository root, then set the `library` section of `.code-rules/config.yaml` to:
 
 ```yaml
-formatVersion: 1
-license:
-  spdxExpression: MIT
-  file: LICENSE.md
-  notices: []
+schemaVersion: 2
+sources: {}
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices: []
 ```
 
 This records your choice; Code Rules does not supply or infer the license text. Retain any required notices for adapted material and declare them in `notices`.
@@ -141,7 +149,7 @@ The check verifies that the declared files exist and that the metadata is valid.
 Once the library passes its checks and you've reviewed the rule and license, commit the files:
 
 ```sh
-git add .github README.md rule-library.yaml LICENSE.md practices/
+git add .github README.md LICENSE.md .code-rules
 git commit -m "Create the first shared rule"
 ```
 

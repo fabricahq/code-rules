@@ -25,23 +25,26 @@ The library uses this layout:
 
 ```text
 adapted-rules/
-  rule-library.yaml
   LICENSE.md
   NOTICE.md
-  techs/javascript/
-    _group.yaml
-    prefer-for-of.md
+  .code-rules/
+    config.yaml
+    rules/techs/javascript/
+      _group.yaml
+      prefer-for-of.md
 ```
 
-Declare one license covering the whole library in `rule-library.yaml`:
+Declare one license covering the whole library in the `library` section of `.code-rules/config.yaml`:
 
 ```yaml
-formatVersion: 1
-license:
-  spdxExpression: MIT
-  file: LICENSE.md
-  notices:
-    - NOTICE.md
+schemaVersion: 2
+sources: {}
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices:
+      - NOTICE.md
 ```
 
 Keep the complete license text and required notices at those paths.

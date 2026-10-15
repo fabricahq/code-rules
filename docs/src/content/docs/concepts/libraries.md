@@ -9,22 +9,25 @@ You can publish your team's rules in a library or import libraries from others. 
 
 ## What a library contains
 
-A library lives in a Git repository. It contains:
+A library lives in a Git repository, in the same Code Rules directory, `.code-rules/`, that a project uses. It contains:
 
-- **Library metadata** in `rule-library.yaml`, which declares the format and any license information.
-- **Groups** under `techs/` and `practices/`, each with group metadata and Markdown rule files.
+- **A manifest**, the `library` section of `.code-rules/config.yaml`, which makes the repository a library and declares any license information.
+- **Groups** under `.code-rules/rules/techs/` and `.code-rules/rules/practices/`, each with group metadata and Markdown rule files.
 
 For example, a repository named "engineering-rules" might contain:
 
 ```text
 engineering-rules/
-  rule-library.yaml
-  practices/testing/
-    _group.yaml
-    test-changed-behavior.md
+  .code-rules/
+    config.yaml
+    rules/practices/testing/
+      _group.yaml
+      test-changed-behavior.md
 ```
 
-The repository name is your choice. Library groups live at its root; they don't need a `.code-rules/` directory. Rules can also include [supporting assets](/reference/rule-format/#supporting-assets).
+The repository name is your choice. Rules can also include [supporting assets](/reference/rule-format/#supporting-assets). A library publishes only these files and its license files; its change notes stay in the repository.
+
+Because a library and a project share the layout, one repository can be both: its configuration lists the `sources` it imports beside its `library` section, and the rules in `.code-rules/rules/` guide its own agents as well as the projects that import them. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
 
 ## How projects use a library
 

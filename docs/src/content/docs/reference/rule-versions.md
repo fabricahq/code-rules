@@ -16,7 +16,7 @@ A rule version covers the rule itself:
 
 A project that imports a rule version gets exactly these files as they were in that version.
 
-Everything else is a **library-wide file**: group metadata, shared files in the library-root `assets/` directory, the license declaration, and license and notice files. Every file is one or the other, so a library can't declare a rule's Markdown file or a file in a rule's asset directory as a license or notice file; see [License metadata](/reference/library-format/#license-metadata). Library-wide files aren't part of any rule version, and changing them needs no change note. A project receives them from one library release, which is never older than the library release of any rule version it imports, or from the revision its `ref` names. A new source, or newly selected groups or rules, take them from the newest library release; `code-rules project update` moves them to the newest library release, even when no rule changes; and `code-rules project sync` keeps the library release recorded in `vendor/<source-name>/_source.json`. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
+Everything else the library publishes is a **library-wide file**: group metadata, shared files in `.code-rules/assets/`, the manifest, which is the `library` section of `.code-rules/config.yaml`, and license and notice files. Every file is one or the other, so a library can't declare a rule's Markdown file or a file in a rule's asset directory as a license or notice file; see [License metadata](/reference/library-format/#license-metadata). Library-wide files aren't part of any rule version, and changing them needs no change note. A project receives them from one library release, which is never older than the library release of any rule version it imports, or from the revision its `ref` names. A new source, or newly selected groups or rules, take them from the newest library release; `code-rules project update` moves them to the newest library release, even when no rule changes; and `code-rules project sync` keeps the library release recorded in `vendor/<source-name>/_source.json`. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
 
 ## Library releases
 
@@ -75,7 +75,7 @@ libraryFiles:
 | `rules` | Every current rule and its version after this library release. |
 | `changes` | Each rule this library release changed or added: its `change` (`new`, `major`, `minor`, or `patch`), its previous version as `from` (absent for a new rule), and its `summaries`: a list with one summary per change note that named the rule, in note order. |
 | `retired` | Each rule this library release retired: its `lastVersion`, its `summaries`, as in `changes`, and its `replacedBy` rule when there is one. |
-| `libraryFiles` | Library-wide files this library release changed, such as group metadata and shared assets. |
+| `libraryFiles` | Library-wide files this library release changed, such as group metadata and shared assets, by their paths in the library: a path below `.code-rules/rules/` or `.code-rules/`, such as `practices/testing/_group.yaml` or `assets/retry-lifecycle.svg`, `config.yaml` when the `library` section changed, and license and notice files by their declared paths. A change to `config.yaml` outside the `library` section, such as to the `sources` the repository uses as a project, isn't listed. |
 
 Each `summaries` list has at least one item, and each item follows the rules of a [change note's](#change-notes) `summary`: one non-blank line without control characters.
 
@@ -126,7 +126,7 @@ After the first library release, every change to a rule needs a **change note**:
 
 Before the first library release, no rule has a version, so rules need no notes. The first library release gives every rule version `1.0.0`.
 
-Notes live in the library-root `changes/` directory. Each is a YAML file with a unique name, so changes made in parallel never conflict. `code-rules library change` names new notes by date, rule, and a random suffix, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, but any unique name ending in `.yaml` works. Notes are never deleted.
+Notes live in the library's `.code-rules/changes/` directory. Each is a YAML file with a unique name, so changes made in parallel never conflict. `code-rules library change` names new notes by date, rule, and a random suffix, such as `.code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, but any unique name ending in `.yaml` works. Notes are never deleted.
 
 ```yaml
 summary: Require a test at the limit for every retry policy.
