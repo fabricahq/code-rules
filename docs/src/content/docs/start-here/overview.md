@@ -49,33 +49,6 @@ The bigger payoff comes after an agent session. When an agent misses something y
 
 [Set up your first project](/start-here/set-up-project/) walks through these steps.
 
-## Why we built Code Rules
-
-Most people already guide their coding agents with skills. When people talk about skills for AI agents, they usually mean folders that follow the open [Agent Skills](https://agentskills.io) standard: a `SKILL.md` file of instructions that an agent loads when a task calls for it. Skills work well, but managing them doesn't. And skills alone aren't enough.
-
-### Skills need a package manager
-
-Everyone is installing skills from everywhere: a teammate's repository, a vendor's collection, a folder copied from the last project. Before long, you run into problems like these:
-
-- **Unclear provenance.** Once a skill folder is copied in, there's no record of where it came from, who maintains it, or what license it carries.
-- **No updates.** You can't tell which version of a skill a repository has, or whether a newer one exists. An improvement made in one place never reaches the other copies unless someone copies it over by hand.
-- **No way to share across an organization.** Each repository has its own copy, and the copies drift apart. Nothing says which skills every project should have.
-- **One agent at a time.** Claude Code reads skills from `.claude/skills/`, while Codex and Cursor read `.agents/skills/`. Using more than one agent means keeping several copies in step.
-
-We've seen this before! Teams used to copy third-party code into each project by hand, and ran into every one of these issues. That's exactly the problem **package managers** like `npm` and `go mod` solve: shared code lives in one place, each project declares what it depends on and pins a version, and each project adopts updates on its own schedule.
-
-Code Rules does the same for skills. Each project declares where its skills come from in one configuration file. Code Rules records each skill's source and exact revision, moves it to a newer one only when you run `code-rules project update`, and installs it into the folders Claude Code, Codex, Cursor, and other agents read. An organization can publish shared skills in its own `.code-rules` repository, and require or recommend them for every project that uses it.
-
-If you publish skills, you publish them in a [library](/concepts/libraries/), in a format tools can read: a manifest that lists the skills it offers and their levels, a version for each skill, a change note for each change, and metadata that says which rules a skill applies. You can still take skills from any Git repository of skill folders.
-
-### Skills aren't enough
-
-Skills are coarse-grained. They're good for playbooks, techniques, and coordinating a whole task, like building a feature or reviewing a pull request. But much of what makes code good is smaller than a task: test the failure path, keep the context of an error, label every form control. Put those practices inside a skill, and a project can't take one without the rest, or keep a practice the same across every skill that needs it.
-
-So Code Rules adds [rules](/concepts/rule/). A rule is one engineering practice in a Markdown file: what to do, when it applies, and how to check the work. Rules live in rule groups, such as Go or testing, and agents read only the rule groups that match their task. A skill cites the rules each step applies instead of restating them. When a project excludes or replaces a rule, or a rule gets a new version, every skill that cites it follows.
-
-Code Rules manages rules and skills together: for libraries that publish them, organizations that standardize on them, and projects that use them. For the longer story, read [Announcing Code Rules](https://fabricahq.com/blog/code-rules/).
-
 ## Core concepts
 
 Code Rules is built around just a few simple concepts.
