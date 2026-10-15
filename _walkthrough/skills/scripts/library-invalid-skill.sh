@@ -13,6 +13,8 @@ metadata:
   syllabus-skill-type: runbook
   syllabus-rules-used: |
     practices/deploys/canary-first
+  syllabus-skills-used: |
+    skills/acme-rollback
 ---
 
 1. Deploy.

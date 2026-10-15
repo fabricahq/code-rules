@@ -51,7 +51,23 @@ MD
 expect_failure code-rules project build
 
 echo
-echo "4. A valid skill. It cites a library rule, a library rule the project excludes, and an authored rule:"
+echo "4. A source's rule whose ID is misspelled. acme includes practices/*, so Code Rules knows the rule doesn't exist:"
+cat > "$SKILL" <<'MD'
+---
+name: release-checklist
+description: Prepare a release of demo-app. Use when asked to cut a release.
+metadata:
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
+    acme:practices/releases/write-release-note
+---
+
+1. Check that main is green.
+MD
+expect_failure code-rules project build
+
+echo
+echo "5. A valid skill. It cites a library rule, a library rule the project excludes, and an authored rule:"
 cat > "$SKILL" <<'MD'
 ---
 name: release-checklist

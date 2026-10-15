@@ -207,7 +207,7 @@ The old `.code-rules/local/` folder isn't read anymore. Every project command fa
     title="Try a project that still has .code-rules/local/"
 />
 
-The move list in the message is a fixed example of the mapping, not a list of your files.
+Look for the move list in the message: each file under `.code-rules/local/`, and where it belongs now.
 
 ## The library manifest
 
@@ -220,7 +220,7 @@ A library's manifest is now the `library` section of its `.code-rules/config.yam
     title="Show acme-library's manifest and check it"
 />
 
-A library that still has `rule-library.yaml`, or rule folders at its repository root, fails with the moves to make. This block tries it on a scratch copy of the library.
+A library that still has `rule-library.yaml`, or rule folders at its repository root, fails with the moves to make, listing each of its files there. This block tries it on a scratch copy of the library.
 
 <Command
     id="legacy-library"
@@ -277,7 +277,7 @@ Look for the two problems in the check output, then `Status: up to date.` after 
 
 ## Skill metadata and cited rules
 
-A skill you author in `.code-rules/skills/<name>/` is checked before it's installed. Its `metadata` can hold three `syllabus-` keys: `syllabus-skill-type` (`playbook` or `review`), `syllabus-rules-used`, and `syllabus-skills-used`. Any other `syllabus-` key is an error, and a bare rule ID must name a rule the project authors.
+A skill you author in `.code-rules/skills/<name>/` is checked before it's installed. Its `metadata` can hold three `syllabus-` keys: `syllabus-skill-type` (`playbook` or `review`), `syllabus-rules-used`, and `syllabus-skills-used`. Any other `syllabus-` key is an error, and a bare rule ID must name a rule the project authors. A source's rule in a group the source includes in full must exist, so a misspelled rule ID fails too.
 
 When a skill cites rules, its installed copy ends with **Rules this skill applies**, which links to the project's version of each one, or says why there's none.
 
@@ -288,7 +288,7 @@ When a skill cites rules, its installed copy ends with **Rules this skill applie
     title="Try invalid metadata, then install a valid skill"
 />
 
-Look for the three build errors, each naming the skill's `SKILL.md`, then the section at the end of the installed copy: a link with the rule's version, a note for the rule the project excludes, and a link to the project's own rule.
+Look for the four build errors, each naming the skill's `SKILL.md`, then the section at the end of the installed copy: a link with the rule's version, a note for the rule the project excludes, and a link to the project's own rule.
 
 <Check
     id="check-cited-rules"
@@ -308,7 +308,7 @@ Look for the three build errors, each naming the skill's `SKILL.md`, then the se
     title="Add a broken skill to the library, then remove it"
 />
 
-Look for three problems in one error: the name that doesn't match the folder, the unknown skill type, and the cited rule the library doesn't have. The JSON output shows `"code": "invalid-skill"`.
+Look for four problems in one error: the name that doesn't match the folder, the unknown skill type, the cited rule the library doesn't have, and the used skill the library doesn't have. The JSON output shows `"code": "invalid-skill"`.
 
 ## Skill dependencies
 
