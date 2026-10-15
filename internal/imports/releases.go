@@ -169,7 +169,7 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 	var unsupported *coderules.UnsupportedReleaseRecordError
 	switch {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
-		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
+		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Syllabus can't read. Upgrade Syllabus, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
 	case invalid != nil:
 		return releaseHistory{}, fail("invalid-release-tag", "Invalid release record: "+invalid.Problem()+". Don't create or move release tags by hand.", invalid.Err)
 	}
@@ -232,7 +232,7 @@ func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRe
 		name := "release/" + strconv.Itoa(release.number)
 		tag, ok := fetched[release.number]
 		if !ok || tag.Type != "tag" || tag.Object != release.tag || tag.Target != release.commit {
-			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Code Rules read it; retry. Don't create or move release tags by hand.", name), nil)
+			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Syllabus read it; retry. Don't create or move release tags by hand.", name), nil)
 		}
 		if tag.TargetType != "commit" {
 			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, tag.TargetType), nil)

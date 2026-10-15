@@ -5,7 +5,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": null
@@ -21,7 +21,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -55,7 +55,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Apache-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -89,7 +89,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT OR Apache-2.0) AND BSD-2-Clause\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -123,7 +123,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0+\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -157,7 +157,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -191,7 +191,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -225,7 +225,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -259,7 +259,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT or Apache-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -293,7 +293,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" MIT \"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -327,7 +327,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"]}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -361,7 +361,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"LICENSE\", \"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -395,7 +395,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -425,13 +425,13 @@
     "input": {
       "manifest": "{"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: expected one YAML document",
-        "location": "library/.code-rules/config.yaml"
+        "message": "library/.syllabus/config.yaml: expected one YAML document",
+        "location": "library/.syllabus/config.yaml"
       }
     }
   },
@@ -441,13 +441,13 @@
     "input": {
       "manifest": "null"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: configuration: expected an object",
-        "location": "library/.code-rules/config.yaml: configuration"
+        "message": "library/.syllabus/config.yaml: configuration: expected an object",
+        "location": "library/.syllabus/config.yaml: configuration"
       }
     }
   },
@@ -457,13 +457,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": null}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license: expected an object",
-        "location": "library/.code-rules/config.yaml: library.license"
+        "message": "library/.syllabus/config.yaml: library.license: expected an object",
+        "location": "library/.syllabus/config.yaml: library.license"
       }
     }
   },
@@ -473,13 +473,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": null, \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.notices: expected an array of notice paths",
-        "location": "library/.code-rules/config.yaml: library.license.notices"
+        "message": "library/.syllabus/config.yaml: library.license.notices: expected an array of notice paths",
+        "location": "library/.syllabus/config.yaml: library.license.notices"
       }
     }
   },
@@ -489,13 +489,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"../LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: expected a contained relative path, got \"../LICENSE\"",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: expected a contained relative path, got \"../LICENSE\"",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -505,13 +505,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"future\": true}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license: unknown field future",
-        "location": "library/.code-rules/config.yaml: library.license"
+        "message": "library/.syllabus/config.yaml: library.license: unknown field future",
+        "location": "library/.syllabus/config.yaml: library.license"
       }
     }
   },
@@ -521,13 +521,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"expression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license: unknown field expression",
-        "location": "library/.code-rules/config.yaml: library.license"
+        "message": "library/.syllabus/config.yaml: library.license: unknown field expression",
+        "location": "library/.syllabus/config.yaml: library.license"
       }
     }
   },
@@ -537,13 +537,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" \"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected nonempty text",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected nonempty text",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -553,13 +553,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\n\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected a single-line license expression",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected a single-line license expression",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -569,13 +569,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"mit\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -585,13 +585,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Unreal-1.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -601,13 +601,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT OR\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -617,13 +617,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -633,13 +633,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT +\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -649,13 +649,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -665,13 +665,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH Unknown\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -681,13 +681,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT \"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -697,13 +697,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH classpath-exception-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -713,7 +713,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -747,7 +747,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -781,13 +781,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -797,13 +797,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team+ WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -813,13 +813,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -829,13 +829,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Team:  \"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -845,13 +845,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT AND (\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
+        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -861,7 +861,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MVT-1.1\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -890,7 +890,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH PCRE2-exception\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -917,15 +917,15 @@
     "id": "license-file-is-a-rule",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/techs/go/errors.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/techs/go/errors.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/rules/techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -933,15 +933,15 @@
     "id": "license-file-in-a-group-assets-directory",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/techs/go/assets/LICENSE\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/techs/go/assets/LICENSE\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/rules/techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -949,15 +949,15 @@
     "id": "license-notice-in-a-rules-assets",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \".code-rules/rules/practices/testing/assets/verify/nested/NOTICE.md\"]}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \".syllabus/rules/practices/testing/assets/verify/nested/NOTICE.md\"]}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.notices[1]: \".code-rules/rules/practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
-        "location": "library/.code-rules/config.yaml: library.license.notices[1]"
+        "message": "library/.syllabus/config.yaml: library.license.notices[1]: \".syllabus/rules/practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.syllabus/config.yaml: library.license.notices[1]"
       }
     }
   },
@@ -965,9 +965,9 @@
     "id": "license-library-wide-paths-in-groups",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/techs/go/LICENSE.md\", \"notices\": [\".code-rules/assets/NOTICE.md\", \".code-rules/rules/techs/go/README.md\"]}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/techs/go/LICENSE.md\", \"notices\": [\".syllabus/assets/NOTICE.md\", \".syllabus/rules/techs/go/README.md\"]}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -988,7 +988,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": null,
@@ -1001,7 +1001,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/acme/rules\", \"rules\": {\"include\": [\"techs/go/*\"]}}}, \"library\": {\"license\": {\"file\": \"LICENSE.md\", \"notices\": [], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -1019,7 +1019,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"docs/LICENSE.md\", \"notices\": [\"docs/NOTICE.md\"]}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -1039,13 +1039,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": []}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library: expected an object",
-        "location": "library/.code-rules/config.yaml: library"
+        "message": "library/.syllabus/config.yaml: library: expected an object",
+        "location": "library/.syllabus/config.yaml: library"
       }
     }
   },
@@ -1055,13 +1055,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"review\": \"required\"}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.skills: skill levels aren't supported yet in this version of Code Rules; remove library.skills",
-        "location": "library/.code-rules/config.yaml: library.skills"
+        "message": "library/.syllabus/config.yaml: library.skills: skill levels aren't supported yet in this version of Syllabus; remove library.skills",
+        "location": "library/.syllabus/config.yaml: library.skills"
       }
     }
   },
@@ -1071,13 +1071,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"formatVersion\": 1}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library: unknown field formatVersion",
-        "location": "library/.code-rules/config.yaml: library"
+        "message": "library/.syllabus/config.yaml: library: unknown field formatVersion",
+        "location": "library/.syllabus/config.yaml: library"
       }
     }
   },
@@ -1087,13 +1087,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"techs/go/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1103,13 +1103,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"assets/NOTICE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1119,13 +1119,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"changes/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1135,13 +1135,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"config.yaml\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1149,15 +1149,15 @@
     "id": "license-manifest",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/config.yaml\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/config.yaml\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/config.yaml\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1165,15 +1165,15 @@
     "id": "license-change-note",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/changes/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/changes/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1181,15 +1181,15 @@
     "id": "license-vendor",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/vendor/team/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/vendor/team/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1197,15 +1197,15 @@
     "id": "license-generated",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/generated/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/generated/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   },
@@ -1213,15 +1213,15 @@
     "id": "license-rules-readme",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.code-rules/config.yaml",
+    "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
-        "location": "library/.code-rules/config.yaml: library.license.file"
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
   }

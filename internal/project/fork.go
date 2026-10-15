@@ -194,7 +194,7 @@ func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.C
 		return nil, err
 	}
 	if p.groupMetadata == nil {
-		return nil, failure("missing-group", fmt.Sprintf("release/%d has no metadata for group %s; create the group with code-rules project add group %s, then retry the fork", p.release, group, group), nil)
+		return nil, failure("missing-group", fmt.Sprintf("release/%d has no metadata for group %s; create the group with syllabus project add group %s, then retry the fork", p.release, group, group), nil)
 	}
 	guideName, _ := projectGuide()
 	files := []filetxn.File{}
@@ -257,7 +257,7 @@ func forkLibrary(config rules.Configuration, name, id, group string) (rules.Sour
 	if !strings.Contains(name, ":") {
 		index := slices.IndexFunc(config.Sources, func(source rules.Source) bool { return source.Name == name })
 		if index < 0 {
-			return rules.Source{}, nil, &ValidationError{Location: "--from", Problem: "no source named " + name + " in .code-rules/config.yaml; name a configured source or the library's repository address"}
+			return rules.Source{}, nil, &ValidationError{Location: "--from", Problem: "no source named " + name + " in .syllabus/config.yaml; name a configured source or the library's repository address"}
 		}
 		configured = &config.Sources[index]
 		library.Repository = configured.Repository
@@ -288,7 +288,7 @@ func importsRule(ctx context.Context, root *os.Root, source rules.Source, id str
 		return false, err
 	}
 	if data == nil {
-		return false, invalidSnapshot(location, "missing source record, so whether the source imports "+id+" isn't known; run code-rules project sync, then fork the rule")
+		return false, invalidSnapshot(location, "missing source record, so whether the source imports "+id+" isn't known; run syllabus project sync, then fork the rule")
 	}
 	record, err := parseSourceRecord(data, source.Name)
 	if err != nil {
@@ -435,7 +435,7 @@ func requireSelfContained(files map[string][]byte) error {
 				return &ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
 			}
 		}
-		// A fork's files sit in .code-rules/rules/ as the library's rule files do, so its links resolve as theirs do.
+		// A fork's files sit in .syllabus/rules/ as the library's rule files do, so its links resolve as theirs do.
 		targets, err := rules.LibraryTargets(string(files[file]), file)
 		if err != nil {
 			return fmt.Errorf("%s: %w", file, err)

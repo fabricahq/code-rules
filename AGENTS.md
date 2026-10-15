@@ -1,4 +1,4 @@
-# Code Rules agent guide
+# Syllabus agent guide
 
 Use this file to understand the product we are building and the decisions it should guide.
 [CONTRIBUTING.md](CONTRIBUTING.md) owns repository setup and validation commands.
@@ -63,7 +63,7 @@ Groups guide selection; individual rules determine applicability. A testing rule
 
 #### Library
 
-A library is a collection of groups published in a Git repository. Each library rule has its own version, and a library release publishes new versions of the rules that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, and rules to import.
+A library is a collection of groups published in a Git repository. Each library rule has its own version, and a library release publishes new versions of the rules that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.syllabus`; a project explicitly chooses which libraries, groups, and rules to import.
 
 Projects may import multiple sources, adopt each rule's published versions on their own schedule, and add or override rules locally.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
@@ -93,18 +93,18 @@ See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](d
 
 ### Ownership and boundaries
 
-This public repository owns the Code Rules conventions, importer, authoring tools, and documentation.
+This public repository owns the Syllabus conventions, importer, authoring tools, and documentation.
 Independently owned libraries supply the engineering policies.
 Keep Fabrica's private rule corpus separate; public examples must be original or authorized for redistribution.
 
 Projects retain their product vision, domain knowledge, and architecture context.
-Code Rules manages which versioned rules a codebase adopts and delivers their resolved definitions.
-Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
-Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
+Syllabus manages which versioned rules a codebase adopts and delivers their resolved definitions.
+Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Syllabus does not prescribe or run that workflow; its agent instructions are a suggested integration.
+Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-syllabus-does-not-do).
 
 ## Working in this repository
 
-This repository uses Code Rules to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules) and to keep its own conventions as local rules; [its guide](.code-rules/README.md) explains how to manage them.
+This repository uses Syllabus to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules) and to keep its own conventions as local rules; [its guide](.code-rules/README.md) explains how to manage them.
 Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant groups and read their rules in full.
 Follow the applicable rules and their exceptions, and check your work against them before finishing.
 If required rule files are unavailable or give conflicting instructions, report the issue rather than silently skipping a rule or choosing a policy.

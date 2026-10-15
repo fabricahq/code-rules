@@ -11,5 +11,5 @@ for target in .claude/skills .agents/skills; do
   [ -x "$target/acme-review/scripts/check-diff.sh" ] || fail "$target/acme-review/scripts/check-diff.sh isn't executable."
   pass "$target/acme-review/scripts/check-diff.sh is executable"
 done
-"$CR" project check >/dev/null || fail "code-rules project check reports problems."
-pass "code-rules project check: up to date"
+"$CR" project check >/dev/null || fail "syllabus project check reports problems."
+pass "syllabus project check: up to date"

@@ -266,7 +266,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 					return failure("invalid-library", name+": use rule Markdown, _group.yaml, or a conventional assets directory", err)
 				}
 				if rules.HasDraftMarker(files[name]) {
-					return failure("incomplete-rule", name+": complete the draft and remove its code-rules:draft marker", nil)
+					return failure("incomplete-rule", name+": complete the draft and remove its syllabus:draft marker", nil)
 				}
 			}
 		}

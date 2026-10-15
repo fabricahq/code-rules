@@ -12,10 +12,10 @@ In this walkthrough, you'll:
 3. Commit the library and publish the rule's first version in a library release.
 4. Import the rule into a project and inspect the guidance its agents will read.
 
-You need [Code Rules installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can stay [local to that project](/start-here/set-up-project/).
+You need [Syllabus installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can stay [local to that project](/start-here/set-up-project/).
 
 :::note[Preview]
-This walkthrough uses the library layout of the next Code Rules release, which keeps a library's files in `.code-rules/`. Released versions keep `rule-library.yaml` and rule folders at the repository root.
+This walkthrough uses the library layout of the next Syllabus release, which keeps a library's files in `.syllabus/`. Released versions keep `rule-library.yaml` and rule folders at the repository root.
 :::
 
 ## 1. Create a repository for your library
@@ -26,14 +26,14 @@ Give your library its own Git repository so you can publish its rules independen
 mkdir engineering-rules
 cd engineering-rules
 git init
-code-rules library init
+syllabus library init
 ```
 
-`engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates:
+`engineering-rules` is an example repository name; you can choose another. `syllabus library init` creates:
 
-- `.code-rules/config.yaml`, whose `library` section makes the repository a library.
+- `.syllabus/config.yaml`, whose `library` section makes the repository a library.
 - A README for authors at the repository root.
-- `.github/workflows/code-rules.yml`, which checks pull requests once the library is on GitHub.
+- `.github/workflows/syllabus.yml`, which checks pull requests once the library is on GitHub.
 
 You'll publish this repository to your Git host in step 5.
 
@@ -46,7 +46,7 @@ You may see a reminder that the library has no declared license. We'll address t
 A **group** collects related rules and tells agents when to read them. Create a group named "Error handling" to hold rules about how your code handles errors:
 
 ```sh
-code-rules library add group practices/error-handling \
+syllabus library add group practices/error-handling \
   --name 'Error handling' \
   --description 'Help callers and users understand and recover from failures.' \
   --when-to-read 'When implementing or reviewing error handling and error messages.'
@@ -55,14 +55,14 @@ code-rules library add group practices/error-handling \
 Use the CLI to create a draft rule in that group:
 
 ```sh
-code-rules library add rule practices/error-handling/make-errors-actionable \
+syllabus library add rule practices/error-handling/make-errors-actionable \
   --title 'Make errors actionable' \
   --when-to-read 'When writing or reviewing an error message a user or caller will receive.' \
   --impact MEDIUM \
   --impact-description 'Helps people recover from a failure without guessing what went wrong.'
 ```
 
-Open `.code-rules/rules/practices/error-handling/make-errors-actionable.md` in your editor and replace its entire contents with this complete rule:
+Open `.syllabus/rules/practices/error-handling/make-errors-actionable.md` in your editor and replace its entire contents with this complete rule:
 
 ```md
 ---
@@ -92,9 +92,9 @@ Your library now looks like this:
 
 ```text
 engineering-rules/
-  .github/workflows/code-rules.yml
+  .github/workflows/syllabus.yml
   README.md
-  .code-rules/
+  .syllabus/
     config.yaml
     rules/
       practices/
@@ -104,14 +104,14 @@ engineering-rules/
           make-errors-actionable.md
 ```
 
-Library rules live under `.code-rules/rules/practices/` or `.code-rules/rules/techs/`, where a project keeps its own rules. Publishing a library doesn't need generated agent guidance; that belongs to the projects that import the rules. If you also want this repository's own agents to follow its rules, it can be a project too; see [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
+Library rules live under `.syllabus/rules/practices/` or `.syllabus/rules/techs/`, where a project keeps its own rules. Publishing a library doesn't need generated agent guidance; that belongs to the projects that import the rules. If you also want this repository's own agents to follow its rules, it can be a project too; see [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
 
 ## 3. Check the library
 
-You've written a rule. Now check that Code Rules can read and import it:
+You've written a rule. Now check that Syllabus can read and import it:
 
 ```sh
-code-rules library check
+syllabus library check
 ```
 
 The result should report **1 group and 1 rule**, and preview the first library release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the library metadata, group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
@@ -122,7 +122,7 @@ There is no library build step. A library publishes source rules; each consuming
 
 Decide who may use, adapt, and redistribute the library. Public visibility alone does not grant those permissions. Use [License rules](/guides/license-rules/) to choose and record terms, especially when including someone else's material.
 
-For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md` at the repository root, then set the `library` section of `.code-rules/config.yaml` to:
+For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md` at the repository root, then set the `library` section of `.syllabus/config.yaml` to:
 
 ```yaml
 schemaVersion: 2
@@ -134,12 +134,12 @@ library:
     notices: []
 ```
 
-This records your choice; Code Rules does not supply or infer the license text. Retain any required notices for adapted material and declare them in `notices`.
+This records your choice; Syllabus does not supply or infer the license text. Retain any required notices for adapted material and declare them in `notices`.
 
 Check the library again after adding the license file and metadata:
 
 ```sh
-code-rules library check
+syllabus library check
 ```
 
 The check verifies that the declared files exist and that the metadata is valid. It does not decide whether you have permission to publish someone else's material.
@@ -149,7 +149,7 @@ The check verifies that the declared files exist and that the metadata is valid.
 Once the library passes its checks and you've reviewed the rule and license, commit the files:
 
 ```sh
-git add .github README.md LICENSE.md .code-rules
+git add .github README.md LICENSE.md .syllabus
 git commit -m "Create the first shared rule"
 ```
 
@@ -163,41 +163,41 @@ git push -u origin HEAD
 Preview your first library release:
 
 ```sh
-code-rules library release --dry-run
+syllabus library release --dry-run
 ```
 
 It shows the release notes that will be published: this is your first library release, so every rule gets version `1.0.0`. Then publish it:
 
 ```sh
-code-rules library release
+syllabus library release
 ```
 
 The command tags your commit `release/1`, recording `practices/error-handling/make-errors-actionable` at version `1.0.0`, and pushes the tag. On GitHub.com, it also creates a GitHub Release page that announces the library release, using the [GitHub CLI](https://cli.github.com/), which must be installed and signed in; to publish the tag without the page, pass `--no-github-release`. If your library isn't on GitHub.com, it creates the tag only. No files change.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
-Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note; the workflow in `.github/workflows/code-rules.yml` runs `code-rules library check` on each one. When you're ready, publish the next library release with `code-rules library release`, just as you did the first. See [Version your rules](/guides/version-rules/) for the full workflow.
+Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `syllabus library change`, that tells projects what changed. Change rules through pull requests, each with its note; the workflow in `.github/workflows/syllabus.yml` runs `syllabus library check` on each one. When you're ready, publish the next library release with `syllabus library release`, just as you did the first. See [Version your rules](/guides/version-rules/) for the full workflow.
 
 ## 6. Try the library in a project
 
 In a [project you've set up](/start-here/set-up-project/), run the following from its root directory. Replace the example URL below with your library's Git URL:
 
 ```sh
-code-rules project add source acme-rules \
+syllabus project add source acme-rules \
   --repository https://github.com/YOUR-ORG/engineering-rules.git \
   --rules 'practices/error-handling/*'
 ```
 
-This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. The project follows each rule's newest version whenever someone runs `code-rules project update`.
+This adds the library's repository and group to `.syllabus/config.yaml` under the source name `acme-rules`. The project follows each rule's newest version whenever someone runs `syllabus project update`.
 
 Download the rules and build the project's agent guidance:
 
 ```sh
-code-rules project sync
-code-rules project check
+syllabus project sync
+syllabus project check
 ```
 
-Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
+Open `.syllabus/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `syllabus project sync` records that version, so the project keeps the same rules until someone runs `syllabus project update`.
 
 The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#5-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
 
@@ -205,6 +205,6 @@ Other projects can import the same library. You maintain the shared rule in the 
 
 ## Next steps
 
-As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
+As your library grows, [write focused rules](/guides/write-rules/), record each change with `syllabus library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
 
 For metadata and supporting files, see [Rule and group format](/reference/rule-format/) and [Library format](/reference/library-format/).

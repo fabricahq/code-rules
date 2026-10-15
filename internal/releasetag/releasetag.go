@@ -52,7 +52,7 @@ type Release struct {
 }
 
 // RecordError reports a release tag whose message isn't release notes followed by a release record this version of
-// Code Rules can read, including a record whose number differs from the tag's. Err is the parser's error: a
+// Syllabus can read, including a record whose number differs from the tag's. Err is the parser's error: a
 // *coderules.UnsupportedReleaseRecordError for a record in a newer format, which callers report separately, and
 // otherwise an errs.ValidationError with its location.
 type RecordError struct {

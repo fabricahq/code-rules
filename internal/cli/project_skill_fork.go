@@ -13,12 +13,12 @@ import (
 // projectSkillCommand registers project add skill. It only forks: an authored skill is written by hand.
 func projectSkillCommand(options Options, output *commandOutput) *cobra.Command {
 	skill, sf := newAuthoringCommand("skill --from SOURCE:SKILL", "Fork a skill a source installs, to replace it with your own", skillForkArguments, options.Directory)
-	skill.Long = skill.Short + "\n\nCopies the skill from vendor/, as the source's last sync recorded it, with every\nfile's executable bit, into .code-rules/skills/<name>/, where <name> is the name\nagents already know the skill by. The skills and rules its SKILL.md cites get\nthe source's name, such as fabrica:skills/tdd, so they still name the source's.\nconfig.yaml gets an entry in the source's skills.exclude that names the fork as\nthe skill's replacement, records the commit it copied as basedOn, and records\nyour reason, so the fork installs in place of the source's skill and code-rules\nproject update lists the source's later changes to it.\n\nTo write a new skill instead, create .code-rules/skills/<name>/SKILL.md." + documentationHelp
+	skill.Long = skill.Short + "\n\nCopies the skill from vendor/, as the source's last sync recorded it, with every\nfile's executable bit, into .syllabus/skills/<name>/, where <name> is the name\nagents already know the skill by. The skills and rules its SKILL.md cites get\nthe source's name, such as fabrica:skills/tdd, so they still name the source's.\nconfig.yaml gets an entry in the source's skills.exclude that names the fork as\nthe skill's replacement, records the commit it copied as basedOn, and records\nyour reason, so the fork installs in place of the source's skill and syllabus\nproject update lists the source's later changes to it.\n\nTo write a new skill instead, create .syllabus/skills/<name>/SKILL.md." + documentationHelp
 	sf.add(skill, "from", "The skill to fork, as `SOURCE:SKILL`: a configured source and the skill's ID in it, such as fabrica:skills/fix-bug")
 	sf.add(skill, "reason", "Why the project uses the fork instead of the source's skill")
 	skill.RunE = func(cmd *cobra.Command, _ []string) error {
 		if !cmd.Flags().Changed("from") {
-			return usage(fmt.Errorf("--from is required: name the skill to fork as SOURCE:SKILL, such as fabrica:skills/fix-bug. To write a new skill instead, create .code-rules/skills/<name>/SKILL.md"))
+			return usage(fmt.Errorf("--from is required: name the skill to fork as SOURCE:SKILL, such as fabrica:skills/fix-bug. To write a new skill instead, create .syllabus/skills/<name>/SKILL.md"))
 		}
 		from, err := project.ParseSkillForkSource(sf.value("from"))
 		if err != nil {
@@ -37,7 +37,7 @@ func projectSkillCommand(options Options, output *commandOutput) *cobra.Command 
 			if !sf.interactive() {
 				return usage(fmt.Errorf("--reason is required: the fork replaces %s's %s, and the exclusion that makes it the replacement records why", from.Source, from.Skill))
 			}
-			sf.introduction = fmt.Sprintf("Forking %s into:\n  .code-rules/skills/%s/\n\nThe fork replaces the source's skill: config.yaml gets an exclusion that names\nthe fork and records your reason.\n\n", from, plan.Name())
+			sf.introduction = fmt.Sprintf("Forking %s into:\n  .syllabus/skills/%s/\n\nThe fork replaces the source's skill: config.yaml gets an exclusion that names\nthe fork and records your reason.\n\n", from, plan.Name())
 			if reason, err = sf.askValidated("Why use the fork instead of the source's skill?", func(value string) error { return validateAnswer("reason", value) }); err != nil {
 				return err
 			}
@@ -57,7 +57,7 @@ func skillForkArguments(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	return fmt.Errorf("project add skill takes no arguments: it forks the skill --from names, keeping its name. To write a new skill instead, create .code-rules/skills/%s/SKILL.md.\n\nUsage:\n  %s", args[0], cmd.UseLine())
+	return fmt.Errorf("project add skill takes no arguments: it forks the skill --from names, keeping its name. To write a new skill instead, create .syllabus/skills/%s/SKILL.md.\n\nUsage:\n  %s", args[0], cmd.UseLine())
 }
 
 // skillForkedReport lists the fork's files and explains what the fork replaced and how to install it.
@@ -66,7 +66,7 @@ func skillForkedReport(result project.AuthoringResult, from project.SkillForkSou
 	fmt.Fprintf(&out, "Skill forked from %s at commit %s.\n", from, shortCommit(plan.BasedOn()))
 	formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	instruction := "Next: Edit the forked skill to change its steps. A fork has no version: it changes\nonly when you edit it. The source's license still applies to the copied files." +
-		"\nconfig.yaml now excludes " + from.String() + " and names skills/" + plan.Name() + " as its replacement,\nbased on commit " + shortCommit(plan.BasedOn()) + "; code-rules project update lists the source's later changes to it."
-	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then install the fork in place of the source's skill:", Commands: []string{"code-rules project build", "code-rules project check"}}}
+		"\nconfig.yaml now excludes " + from.String() + " and names skills/" + plan.Name() + " as its replacement,\nbased on commit " + shortCommit(plan.BasedOn()) + "; syllabus project update lists the source's later changes to it."
+	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then install the fork in place of the source's skill:", Commands: []string{"syllabus project build", "syllabus project check"}}}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }

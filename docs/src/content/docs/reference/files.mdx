@@ -1,19 +1,19 @@
 ---
 title: "Project files"
-description: "What to edit, what Code Rules manages, and where your agent starts reading."
+description: "What to edit, what Syllabus manages, and where your agent starts reading."
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
 
-A **project** is the codebase whose rules and skills Code Rules manages. Its **Code Rules directory**, `.code-rules/` at the project root, contains project configuration, project-only rules and their shared assets, project-only skills, imported source snapshots, and generated guidance. These files define which rules and skills the project uses and give your agents a shared place to read them. Installed copies of the skills live in the project's skill target folders, such as `.claude/skills/`.
+A **project** is the codebase whose rules and skills Syllabus manages. Its **Syllabus directory**, `.syllabus/` at the project root, contains project configuration, project-only rules and their shared assets, project-only skills, imported source snapshots, and generated guidance. These files define which rules and skills the project uses and give your agents a shared place to read them. Installed copies of the skills live in the project's skill target folders, such as `.claude/skills/`.
 
 :::note[Preview]
-Skills, `skills/`, `SKILLS.md`, `installed-skills.json`, and the skill target folders come in the next Code Rules release.
+Skills, `skills/`, `SKILLS.md`, `installed-skills.json`, and the skill target folders come in the next Syllabus release.
 :::
 
 ## Project layout
 
-The tree below shows **`/.code-rules/` at the project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
+The tree below shows **`/.syllabus/` at the project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
 
 <FileTree>
 
@@ -23,7 +23,7 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
 - /.agents/skills/
   - build-feature/
     - SKILL.md
-- /.code-rules/
+- /.syllabus/
   - config.yaml
   - README.md
   - rules/
@@ -58,19 +58,19 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
 
 </FileTree>
 
-Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.yaml`.
+Your `AGENTS.md` stays outside the Syllabus directory, at the project root. The **project configuration** is `.syllabus/config.yaml`.
 
-Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
+Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.syllabus/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 
 ## Authored, imported, and resolved rules
 
 The directories serve different purposes:
 
 - **`rules/` and `assets/`: content you author for this project.** Add your own groups and rules to `rules/`, or write replacements for imported rules and select those replacements in `config.yaml`. Put supporting files that several of your rules share in `assets/`; a rule's own assets sit beside it in `rules/`. You maintain these files; syncing libraries preserves them.
-- **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of each selected rule at its recorded version, along with the library files it needs. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `rules/` instead.
-- **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and authored rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
+- **`vendor/`: source files imported from libraries.** Syllabus keeps a snapshot of each selected rule at its recorded version, along with the library files it needs. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `rules/` instead.
+- **`generated/`: the resolved rules your agents read.** Syllabus combines the imported and authored rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
 
-- **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill. A fork of a source's skill, which `code-rules project add skill --from` writes, lives here too, and a `skills.exclude` entry names it as the skill's replacement.
+- **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill. A fork of a source's skill, which `syllabus project add skill --from` writes, lives here too, and a `skills.exclude` entry names it as the skill's replacement.
 - **Skill target folders: installed copies of every skill.** Build and sync copy each skill into each folder that `skillTargets` names, `.claude/skills/` and `.agents/skills/`, with a marker line saying not to edit it, and record the folders they installed in `generated/installed-skills.json`. They never replace or remove a folder there that they didn't install. Commit the copies; edit the skill's source instead. Check fails while a copy differs from what build would write.
 
 When a skill cites rules in `syllabus-rules-used`, the installed `SKILL.md` ends with a generated section that links to the project's version of each one, relative to the copy, so the same copy works in every skill target:
@@ -80,8 +80,8 @@ When a skill cites rules in `syllabus-rules-used`, the installed `SKILL.md` ends
 
 Read each rule in full before the step that applies it. These are the project's versions of the rules this skill cites, for reference: they don't join RULES.md.
 
-- `fabrica:practices/testing/test-behavior-not-implementation` 1.3.0: [.code-rules/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md](../../../.code-rules/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md)
-- `local:practices/releases/write-release-notes`: [.code-rules/generated/rules/local/practices/releases/write-release-notes.md](../../../.code-rules/generated/rules/local/practices/releases/write-release-notes.md)
+- `fabrica:practices/testing/test-behavior-not-implementation` 1.3.0: [.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md](../../../.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md)
+- `local:practices/releases/write-release-notes`: [.syllabus/generated/rules/local/practices/releases/write-release-notes.md](../../../.syllabus/generated/rules/local/practices/releases/write-release-notes.md)
 ```
 
 A cited rule the project replaces names the authored rule that does; one it excluded, doesn't include, or whose library retired it, has no link and says why.
@@ -91,45 +91,45 @@ For example, when you replace a library rule, its imported source stays in `vend
 
 The same layout serves a library: a library repository keeps its manifest in the `library` section of `config.yaml`, the rules it publishes in `rules/`, their shared assets in `assets/`, and its change notes in `changes/`, so one repository can be both a project and a library. A library never publishes `vendor/` or `generated/`. See [Library format](/reference/library-format/). An imported library's `vendor/<source-name>/config.yaml` holds only that library's `library` section.
 
-Code Rules doesn't read a `local/` directory, where earlier versions kept authored rules. Every project command fails while `.code-rules/local/` exists, and its message shows where each file moves: groups and rules to `rules/`, and `local/assets/` to `assets/`. Rule IDs don't change. A moved rule sits one directory deeper, so add one `../` to its links to shared assets.
+Syllabus doesn't read a `local/` directory, where earlier versions kept authored rules. Every project command fails while `.syllabus/local/` exists, and its message shows where each file moves: groups and rules to `rules/`, and `local/assets/` to `assets/`. Rule IDs don't change. A moved rule sits one directory deeper, so add one `../` to its links to shared assets.
 
 ## What to edit
 
 | File or directory | Who maintains it | Purpose |
 | --- | --- | --- |
 | `AGENTS.md` | You | Tell your agent to read the generated rules. |
-| `.code-rules/config.yaml` | You | Choose libraries, groups, rule versions, and exceptions. |
-| `.code-rules/rules/` | You, after initialization | Add project rules, replacements, and group metadata. |
-| `.code-rules/assets/` | You | Add supporting files that several of your rules share. |
-| `.code-rules/skills/` | You | Add skills, one folder with a `SKILL.md` per skill. |
-| `.claude/skills/`, `.agents/skills/` | `code-rules project sync`, `code-rules project update`, and `code-rules project build`, for the folders they install | Installed copies of the project's skills, for agents that load skills from these folders. |
-| `.code-rules/README.md` | `code-rules project init`, `code-rules project build`, and `code-rules project sync` | Explain the project's rule setup and commands. |
-| `.code-rules/vendor/` | `code-rules project sync` and `code-rules project update` | Store imported source files and their records of each rule's version. |
-| `.code-rules/generated/` | `code-rules project sync`, `code-rules project update`, and `code-rules project build` | Provide resolved rules and indexes for your agent. |
+| `.syllabus/config.yaml` | You | Choose libraries, groups, rule versions, and exceptions. |
+| `.syllabus/rules/` | You, after initialization | Add project rules, replacements, and group metadata. |
+| `.syllabus/assets/` | You | Add supporting files that several of your rules share. |
+| `.syllabus/skills/` | You | Add skills, one folder with a `SKILL.md` per skill. |
+| `.claude/skills/`, `.agents/skills/` | `syllabus project sync`, `syllabus project update`, and `syllabus project build`, for the folders they install | Installed copies of the project's skills, for agents that load skills from these folders. |
+| `.syllabus/README.md` | `syllabus project init`, `syllabus project build`, and `syllabus project sync` | Explain the project's rule setup and commands. |
+| `.syllabus/vendor/` | `syllabus project sync` and `syllabus project update` | Store imported source files and their records of each rule's version. |
+| `.syllabus/generated/` | `syllabus project sync`, `syllabus project update`, and `syllabus project build` | Provide resolved rules and indexes for your agent. |
 
 Keep authored changes in configuration, `rules/`, `assets/`, and `skills/`. Edits in `vendor/`, `generated/`, or installed skill copies will be replaced or removed.
 Commit configuration, authored rules, assets, and skills, both managed directories, and the installed skill copies so your team and agents can use the same rules and skills offline.
 Commit the project instructions and README as well.
 
-Use `code-rules project build` to regenerate guidance from stored inputs, and `code-rules project check` to verify consistency without changing files.
-Missing or mismatched imported snapshots require `code-rules project sync`.
+Use `syllabus project build` to regenerate guidance from stored inputs, and `syllabus project check` to verify consistency without changing files.
+Missing or mismatched imported snapshots require `syllabus project sync`.
 For recovery and file ownership details, see [Sync and recovery](/reference/sync/).
 
-Generated Markdown and the managed Code Rules guide include a "Generated by Code Rules" notice and regeneration instructions. `generated/provenance.json` stores that notice in `generatedNotice`. Copied license and notice files retain their original bytes.
+Generated Markdown and the managed Syllabus guide include a "Generated by Syllabus" notice and regeneration instructions. `generated/provenance.json` stores that notice in `generatedNotice`. Copied license and notice files retain their original bytes.
 
 ## Project and group guides
 
-`code-rules project init` creates `.code-rules/README.md` with definitions and commands for managing rules. It preserves the project's own `README.md` at the project root.
+`syllabus project init` creates `.syllabus/README.md` with definitions and commands for managing rules. It preserves the project's own `README.md` at the project root.
 
-After upgrading Code Rules, run `code-rules project build` to refresh an older guide and regenerate guidance, or rerun `code-rules project init` to refresh only the guide and setup files. Build, sync, and init preserve valid configuration and authored rules but refuse to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `code-rules project check` reports a missing or outdated managed guide without changing it.
+After upgrading Syllabus, run `syllabus project build` to refresh an older guide and regenerate guidance, or rerun `syllabus project init` to refresh only the guide and setup files. Build, sync, and init preserve valid configuration and authored rules but refuse to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `syllabus project check` reports a missing or outdated managed guide without changing it.
 
-Managed guide format changes are breaking changes under the [version policy](https://github.com/fabricahq/code-rules/blob/main/.release-planner/policy.md#choosing-a-version): a new minor version of Code Rules before 1.0, and a new major version after 1.0. This guide is separate from your project's own README.
+Managed guide format changes are breaking changes under the [version policy](https://github.com/fabricahq/code-rules/blob/main/.release-planner/policy.md#choosing-a-version): a new minor version of Syllabus before 1.0, and a new major version after 1.0. This guide is separate from your project's own README.
 
 Local and library group creation also writes a `README.md` beside `_group.yaml`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
 
 ## Where agents start
 
-Point your agent to `.code-rules/generated/RULES.md`. It lists the groups and explains when to read each one.
+Point your agent to `.syllabus/generated/RULES.md`. It lists the groups and explains when to read each one.
 Agents then open relevant groups and read the applicable rules in full.
 See [Plan, write, and review](/for-agents/) for instructions you can add to `AGENTS.md`.
 
@@ -141,7 +141,7 @@ See [Plan, write, and review](/for-agents/) for instructions you can add to `AGE
 | `libraries/` | Source summaries and retained license and notice files. |
 | `provenance.json` | Machine-readable source versions, origins, replacement decisions, and installed skills. |
 | `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, how many rules it applies, and, for a replacement, the skill it replaces and why. It also lists the skills each one uses, by install name, and says why a source's skill is installed: `included`, `used by <name>` when only other skills use it, or both. Then it lists the skills the project excludes, with their reasons. `RULES.md` links to it when the project installs a skill. |
-| `installed-skills.json` | The skill folders Code Rules installed, with each skill's ID, install name, and folder digest, so later commands replace or remove only those folders. |
+| `installed-skills.json` | The skill folders Syllabus installed, with each skill's ID, install name, and folder digest, so later commands replace or remove only those folders. |
 
 Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.
 Full rule definitions are never shortened to fit an index.
@@ -157,7 +157,7 @@ These abbreviated excerpts show how an agent finds a local rule. The full genera
 
 ### RULES.md: choose a group
 
-`.code-rules/generated/RULES.md` is the starting point. Each entry tells the agent when to open a group:
+`.syllabus/generated/RULES.md` is the starting point. Each entry tells the agent when to open a group:
 
 ```md
 ### Testing
@@ -169,7 +169,7 @@ These abbreviated excerpts show how an agent finds a local rule. The full genera
 
 ### Group page: find the rules
 
-`.code-rules/generated/groups/practices/testing.md` contains the group's rules. Small groups include full rule text; larger groups use summaries like this, linking to each full definition:
+`.syllabus/generated/groups/practices/testing.md` contains the group's rules. Small groups include full rule text; larger groups use summaries like this, linking to each full definition:
 
 ```md
 ### Test changed behavior
@@ -193,7 +193,7 @@ Local rules have no version.
 
 ### Rule file: read the guidance
 
-`.code-rules/generated/rules/local/practices/testing/test-changed-behavior.md` contains the rule the agent follows:
+`.syllabus/generated/rules/local/practices/testing/test-changed-behavior.md` contains the rule the agent follows:
 
 ```md
 # Test changed behavior
@@ -205,7 +205,7 @@ Rule ID: `local:practices/testing/test-changed-behavior`
 When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
 ```
 
-The authored version stays in `.code-rules/rules/practices/testing/test-changed-behavior.md`. Edit that source file and rebuild to update the generated copy.
+The authored version stays in `.syllabus/rules/practices/testing/test-changed-behavior.md`. Edit that source file and rebuild to update the generated copy.
 
 ### Examples of other project files
 

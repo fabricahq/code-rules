@@ -1,5 +1,5 @@
 {
-  "name": "code-rules-website-tools",
+  "name": "syllabus-website-tools",
   "type": "module",
   "workspaces": [
     "docs"

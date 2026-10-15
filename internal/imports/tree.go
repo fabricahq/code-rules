@@ -142,8 +142,8 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 // libraryTree places a commit's files, given by repository path, at their library paths, as librarytree.LibraryPath
 // does, leaving out the files outside the library, such as the repository's vendor/ and generated/ folders. It also
 // reports whether the commit keeps its library in the layout before version 2, with rule-library.yaml at the
-// repository root: such a commit's files keep their paths, except its .code-rules/, which held only a project's
-// files, and its manifest, which this version of Code Rules doesn't read.
+// repository root: such a commit's files keep their paths, except its .syllabus/, which held only a project's
+// files, and its manifest, which this version of Syllabus doesn't read.
 func libraryTree(files map[string]treeEntry) (map[string]treeEntry, bool) {
 	_, legacy := files[librarytree.LegacyManifest]
 	result := map[string]treeEntry{}
@@ -164,7 +164,7 @@ func libraryTree(files map[string]treeEntry) (map[string]treeEntry, bool) {
 // legacyLayoutProblem explains why a source can't import revision, a library release or commit that keeps the
 // library in the layout before version 2.
 func legacyLayoutProblem(source, revision string) string {
-	return fmt.Sprintf("sources.%s: the library's %s keeps its files in the layout from before this version of Code Rules, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .code-rules/config.yaml and its rules from .code-rules/rules/, so it can't import %s. Ask the library's maintainer to move the library's files into .code-rules/ and publish a library release, then select that release, such as with code-rules project update %s.", source, revision, revision, source)
+	return fmt.Sprintf("sources.%s: the library's %s keeps its files in the layout from before this version of Syllabus, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .syllabus/config.yaml and its rules from .syllabus/rules/, so it can't import %s. Ask the library's maintainer to move the library's files into .syllabus/ and publish a library release, then select that release, such as with syllabus project update %s.", source, revision, revision, source)
 }
 
 // revisionName names a library release by its tag, such as release/4, or another revision by its commit, when
@@ -189,7 +189,7 @@ func (r *repository) requireLibraryLayout(source string, release int, commit str
 // requireLegacyRuleLinks fails with unsupported-library-layout when rule id, imported from a fetched commit in the
 // layout before version 2, has a link that resolved to another file then than it does now: a relative link out of
 // the rule folders, such as to a shared asset or a license file. Such links resolved from the repository root then,
-// and resolve from .code-rules/rules/ now, so the rule's version would import with broken links. owned holds the
+// and resolve from .syllabus/rules/ now, so the rule's version would import with broken links. owned holds the
 // rule's files by library path.
 func (r *repository) requireLegacyRuleLinks(ctx context.Context, source, id string, rule library.ImportedRule, owned map[string]treeEntry) error {
 	if !r.legacy[rule.Commit] {
@@ -216,7 +216,7 @@ func (r *repository) requireLegacyRuleLinks(ctx context.Context, source, id stri
 	if rule.Version != nil {
 		version = " version " + rule.Version.String()
 	}
-	return fail("unsupported-library-layout", fmt.Sprintf("sources.%s: rule %s%s comes from the library's %s, which keeps its files in the layout from before this version of Code Rules, and its link to %s resolves differently in the current layout, so this version of Code Rules can't import the rule's version. Select a version of %s that the library published after moving its files into .code-rules/, such as with code-rules project update %s:%s, or ask the library's maintainer to publish one.", source, id, version, revisionName(rule.Release, rule.Commit), before[index], id, source, id), nil)
+	return fail("unsupported-library-layout", fmt.Sprintf("sources.%s: rule %s%s comes from the library's %s, which keeps its files in the layout from before this version of Syllabus, and its link to %s resolves differently in the current layout, so this version of Syllabus can't import the rule's version. Select a version of %s that the library published after moving its files into .syllabus/, such as with syllabus project update %s:%s, or ask the library's maintainer to publish one.", source, id, version, revisionName(rule.Release, rule.Commit), before[index], id, source, id), nil)
 }
 
 // ruleFiles returns the files of rule id at a fetched commit, its Markdown file and its asset directory's files,

@@ -60,7 +60,7 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]stri
 					continue
 				}
 				if _, installed := uses[target]; !installed {
-					return nil, invalid(location, fmt.Sprintf("the skill uses %s, which the project doesn't install; run code-rules project sync", id))
+					return nil, invalid(location, fmt.Sprintf("the skill uses %s, which the project doesn't install; run syllabus project sync", id))
 				}
 				used = append(used, target)
 			}
@@ -105,11 +105,11 @@ func authoredUseProblem(citation skills.Citation, sources map[string]rules.Sourc
 	source, configured := sources[citation.Source]
 	switch {
 	case citation.Source == "":
-		return fmt.Sprintf("%s names %s, which isn't a skill in .code-rules/skills/; write the skill, or name a source's skill with its source name, such as fabrica:%s", skills.SkillsUsedKey, citation.ID, citation.ID)
+		return fmt.Sprintf("%s names %s, which isn't a skill in .syllabus/skills/; write the skill, or name a source's skill with its source name, such as fabrica:%s", skills.SkillsUsedKey, citation.ID, citation.ID)
 	case !configured:
 		return fmt.Sprintf("%s names %s, but the configuration has no source named %s; add the source, or correct the source name", skills.SkillsUsedKey, citation, citation.Source)
 	}
-	return fmt.Sprintf("%s names %s, which the project doesn't install; add %s to sources.%s.skills.include, then run code-rules project sync", skills.SkillsUsedKey, citation, citation.ID, source.Name)
+	return fmt.Sprintf("%s names %s, which the project doesn't install; add %s to sources.%s.skills.include, then run syllabus project sync", skills.SkillsUsedKey, citation, citation.ID, source.Name)
 }
 
 // useFacts returns the SKILLS.md lines that say which installed skills skill uses, and, for a source's skill, why it

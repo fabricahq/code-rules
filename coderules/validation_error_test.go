@@ -14,7 +14,7 @@ import (
 const ruleDocument = "---\ntitle: Handle errors\nimpact: HIGH\nimpactDescription: Unhandled errors hide failures.\nwhenToRead: Before returning errors.\n---\n\nCheck every error.\n"
 
 // TestParsers_ReportInvalidInputAsValidationError covers the shared decoding rules and the rule and group ID rules
-// that Code Rules checks in internal packages: each failure reaches callers as *ValidationError at the input's
+// that Syllabus checks in internal packages: each failure reaches callers as *ValidationError at the input's
 // location, keeps its text, and carries no error type from outside this package.
 func TestParsers_ReportInvalidInputAsValidationError(t *testing.T) {
 	for _, test := range []struct {
@@ -117,7 +117,7 @@ func record(input string) func() error {
 	}
 }
 
-// requireOnlyPublicErrors fails when any error in err's chain comes from one of Code Rules' internal packages, whose
+// requireOnlyPublicErrors fails when any error in err's chain comes from one of Syllabus's internal packages, whose
 // types callers outside the module can't name.
 func requireOnlyPublicErrors(t *testing.T, err error) {
 	t.Helper()

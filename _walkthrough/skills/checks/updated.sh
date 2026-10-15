@@ -3,7 +3,7 @@
 . "{{ .inputs.WorkDir }}/env.sh" || exit 1
 cd "$APP" || exit 1
 
-require_text .code-rules/generated/SKILLS.md "from release/2"
+require_text .syllabus/generated/SKILLS.md "from release/2"
 [ -x .claude/skills/acme-review/scripts/run-linters.sh ] || fail "The new script isn't installed, or isn't executable."
 pass "the new script is installed and executable"
 grep -q "Write the root cause" .claude/skills/acme-fix-bug/SKILL.md && fail "The update changed your fork."

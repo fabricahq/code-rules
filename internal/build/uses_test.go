@@ -106,7 +106,7 @@ func TestGenerateRejectsAnAuthoredSkillThatUsesASkillTheProjectDoesNotInstall(t 
 	}{
 		"a missing authored skill": {
 			map[string]SkillFiles{"skills/release": authored("release", "skills/tag")}, "skills/release/SKILL.md",
-			"syllabus-skills-used names skills/tag, which isn't a skill in .code-rules/skills/; write the skill, or name a source's skill with its source name, such as fabrica:skills/tag",
+			"syllabus-skills-used names skills/tag, which isn't a skill in .syllabus/skills/; write the skill, or name a source's skill with its source name, such as fabrica:skills/tag",
 		},
 		"an unknown source": {
 			map[string]SkillFiles{"skills/release": authored("release", "other:skills/build")}, "skills/release/SKILL.md",
@@ -114,7 +114,7 @@ func TestGenerateRejectsAnAuthoredSkillThatUsesASkillTheProjectDoesNotInstall(t 
 		},
 		"a source's skill the project doesn't install": {
 			map[string]SkillFiles{"skills/release": authored("release", "team:skills/tdd")}, "skills/release/SKILL.md",
-			"syllabus-skills-used names team:skills/tdd, which the project doesn't install; add skills/tdd to sources.team.skills.include, then run code-rules project sync",
+			"syllabus-skills-used names team:skills/tdd, which the project doesn't install; add skills/tdd to sources.team.skills.include, then run syllabus project sync",
 		},
 		"authored skills in a cycle": {
 			map[string]SkillFiles{"skills/release": authored("release", "skills/tag"), "skills/tag": authored("tag", "skills/release")}, "skills/release/SKILL.md",

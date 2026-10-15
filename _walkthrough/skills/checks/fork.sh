@@ -3,10 +3,10 @@
 . "{{ .inputs.WorkDir }}/env.sh" || exit 1
 cd "$APP" || exit 1
 
-require_text .code-rules/config.yaml "replacedBy: skills/acme-fix-bug"
-require_text .code-rules/skills/acme-fix-bug/SKILL.md "acme:skills/acme-tdd"
-require_text .claude/skills/acme-fix-bug/SKILL.md "code-rules:installed skills/acme-fix-bug."
+require_text .syllabus/config.yaml "replacedBy: skills/acme-fix-bug"
+require_text .syllabus/skills/acme-fix-bug/SKILL.md "acme:skills/acme-tdd"
+require_text .claude/skills/acme-fix-bug/SKILL.md "syllabus:installed skills/acme-fix-bug."
 require_text .claude/skills/acme-fix-bug/SKILL.md "tests/regressions/"
-require_text .code-rules/generated/SKILLS.md '- **Replaces:** `acme:skills/acme-fix-bug`, which the project excludes'
-"$CR" project check >/dev/null || fail "code-rules project check reports problems."
-pass "code-rules project check: up to date"
+require_text .syllabus/generated/SKILLS.md '- **Replaces:** `acme:skills/acme-fix-bug`, which the project excludes'
+"$CR" project check >/dev/null || fail "syllabus project check reports problems."
+pass "syllabus project check: up to date"

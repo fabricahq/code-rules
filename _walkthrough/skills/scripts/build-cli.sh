@@ -1,5 +1,5 @@
 #!/bin/bash
-# Get the code-rules source at the preview branch and build the CLI into the work folder.
+# Get the syllabus source at the preview branch and build the CLI into the work folder.
 set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 
@@ -10,7 +10,7 @@ if [ -n "$CHECKOUT" ]; then
   echo "Using your checkout at $SRC, as it is:"
   git -C "$SRC" log -1 --format='%h %s (%cr)'
 else
-  SRC="$WORK/code-rules"
+  SRC="$WORK/syllabus"
   if [ -d "$SRC/.git" ]; then
     show git -C "$SRC" fetch -q origin "$BRANCH"
     show git -C "$SRC" checkout -q -B "$BRANCH" FETCH_HEAD
@@ -21,6 +21,6 @@ else
 fi
 
 cd "$SRC"
-show go build -o "$CR" ./cmd/code-rules
+show go build -o "$CR" ./cmd/syllabus
 echo
 echo "Built $CR"

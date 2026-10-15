@@ -24,12 +24,12 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"README.md", "generated/groups/README.md"} {
-		if err := os.Remove(filepath.Join(directory, ".code-rules", name)); err != nil {
+		if err := os.Remove(filepath.Join(directory, ".syllabus", name)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	for _, name := range []string{"generated/RULES.md", "generated/unexpected.md"} {
-		if err := os.WriteFile(filepath.Join(directory, ".code-rules", name), []byte("Manual content."), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(directory, ".syllabus", name), []byte("Manual content."), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -86,7 +86,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		t.Fatal("check wrote files")
 	}
 	for repair := range repairs {
-		script := strings.Replace(repair, "code-rules", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
+		script := strings.Replace(repair, "syllabus", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
 		command := exec.Command("/bin/sh", "-eu", "-c", script)
 		command.Dir = directory
 		if output, err := command.CombinedOutput(); err != nil {
@@ -118,9 +118,9 @@ func TestGuideRepairFromSubdirectory(t *testing.T) {
 					t.Fatal(code, out, diagnostic)
 				}
 			}
-			guide := filepath.Join(root, ".code-rules", "README.md")
+			guide := filepath.Join(root, ".syllabus", "README.md")
 			body := []byte("# Earlier guide\n")
-			data := []byte(fmt.Sprintf("<!-- code-rules:project-guide sha256:%x -->\n%s", sha256.Sum256(body), body))
+			data := []byte(fmt.Sprintf("<!-- syllabus:project-guide sha256:%x -->\n%s", sha256.Sum256(body), body))
 			if state == "edited" {
 				data = append(data, []byte("Manual notes.\n")...)
 			}
@@ -145,7 +145,7 @@ func TestGuideRepairFromSubdirectory(t *testing.T) {
 			if code != 1 || diagnostic != "" || !strings.Contains(human, repairCommand(t, problem)) {
 				t.Fatal(code, human, diagnostic)
 			}
-			script := strings.Replace(repairCommand(t, problem), "code-rules", shellDirectory(binary), 1)
+			script := strings.Replace(repairCommand(t, problem), "syllabus", shellDirectory(binary), 1)
 			repair := func() ([]byte, error) {
 				cmd := exec.Command("/bin/sh", "-eu", "-c", script)
 				cmd.Dir = child

@@ -253,7 +253,7 @@ func TestWriterRejectsAmbiguousOwners(t *testing.T) {
 
 // TestKilledWriterReclaimsLock exercises actual process death with a completed first replacement.
 func TestKilledWriterReclaimsLock(t *testing.T) {
-	if dir := os.Getenv("CODE_RULES_WRITER_CHILD"); dir != "" {
+	if dir := os.Getenv("SYLLABUS_WRITER_CHILD"); dir != "" {
 		root, err := os.OpenRoot(dir)
 		if err != nil {
 			t.Fatal(err)
@@ -283,7 +283,7 @@ func TestKilledWriterReclaimsLock(t *testing.T) {
 	}
 	root := openProject(t)
 	cmd := exec.Command(os.Args[0], "-test.run=^TestKilledWriterReclaimsLock$")
-	cmd.Env = append(os.Environ(), "CODE_RULES_WRITER_CHILD="+root.Name())
+	cmd.Env = append(os.Environ(), "SYLLABUS_WRITER_CHILD="+root.Name())
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -515,5 +515,20 @@ func TestWriterCancellationDuringReplacement(t *testing.T) {
 	}
 	if err := RequireIdle(root); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestWriterWaitsForCodeRules refuses to read or write a project while a Code Rules process from before the rename
+// holds its lock, or left a transaction that only it recovers.
+func TestWriterWaitsForCodeRules(t *testing.T) {
+	for _, name := range []string{".code-rules-lock", ".code-rules-transaction", ".code-rules-cleanup"} {
+		t.Run(name, func(t *testing.T) {
+			root := openProject(t)
+			if err := root.Mkdir(name, 0700); err != nil {
+				t.Fatal(err)
+			}
+			projectCode(t, RequireIdle(root), "busy")
+			projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { t.Fatal("writer entered"); return nil }), "busy")
+		})
 	}
 }

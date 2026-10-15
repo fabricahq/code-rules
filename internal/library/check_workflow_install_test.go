@@ -19,7 +19,7 @@ import (
 
 // fakeGitHubCLI stands in for gh. release view prints FAKE_LATEST, as the --jq filter would. release download
 // copies the files of FAKE_ASSETS/<tag> matching each --pattern, as a glob, and fails when none match. attestation
-// verify passes only for Code Rules' release workflow on main and FAKE_ATTESTATION=pass, whatever SHA256SUMS holds,
+// verify passes only for Syllabus's release workflow on main and FAKE_ATTESTATION=pass, whatever SHA256SUMS holds,
 // as for an older release's legitimately attested file. Each call is logged to FAKE_LOG.
 const fakeGitHubCLI = `echo "gh $*" >> "$FAKE_LOG"
 case "$1 $2" in
@@ -50,14 +50,14 @@ func installScript(t *testing.T, workflow string) string {
 	return regexp.MustCompile(`(?m)^ {10}`).ReplaceAllString(block[1], "") + "\n"
 }
 
-// releaseArchive returns a gzipped tar archive holding a code-rules executable that prints version.
+// releaseArchive returns a gzipped tar archive holding a syllabus executable that prints version.
 func releaseArchive(t *testing.T, version string) []byte {
 	t.Helper()
 	var data bytes.Buffer
 	compressed := gzip.NewWriter(&data)
 	archive := tar.NewWriter(compressed)
 	executable := []byte("#!/bin/sh\necho " + version + "\n")
-	if err := archive.WriteHeader(&tar.Header{Name: "code-rules", Mode: 0755, Size: int64(len(executable))}); err != nil {
+	if err := archive.WriteHeader(&tar.Header{Name: "syllabus", Mode: 0755, Size: int64(len(executable))}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := archive.Write(executable); err != nil {
@@ -94,7 +94,7 @@ func publish(t *testing.T, assets, tag string, files, sums map[string][]byte) {
 }
 
 // TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion runs the install step with bash -e, as GitHub Actions
-// does: it adds Code Rules to PATH only when the attested checksums list exactly the requested version's archive
+// does: it adds Syllabus to PATH only when the attested checksums list exactly the requested version's archive
 // with its bytes, so a release whose assets were replaced with an older release's fails instead of installing it,
 // and it prints the installed version to the log and the job summary.
 func TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion(t *testing.T) {
@@ -117,7 +117,7 @@ func TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion(t *testing.T) {
 		}
 	}
 	current, older := releaseArchive(t, "0.2.0"), releaseArchive(t, "0.1.0")
-	currentName, olderName := "code-rules_0.2.0_linux_amd64.tar.gz", "code-rules_0.1.0_linux_amd64.tar.gz"
+	currentName, olderName := "syllabus_0.2.0_linux_amd64.tar.gz", "syllabus_0.1.0_linux_amd64.tar.gz"
 	for _, test := range []struct {
 		name, version, latest, attestation string
 		// assets publishes the GitHub Release page v0.2.0.
@@ -168,19 +168,19 @@ func TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion(t *testing.T) {
 				t.Fatalf("install step error %v, want installed %q:\n%s\ngh calls:\n%s", err, test.installed, output, calls)
 			}
 			path, _ := os.ReadFile(githubPath)
-			executable, readErr := os.ReadFile(filepath.Join(runner, "temp", "code-rules", "code-rules"))
+			executable, readErr := os.ReadFile(filepath.Join(runner, "temp", "syllabus", "syllabus"))
 			if test.installed == "" {
 				if len(path) > 0 {
 					t.Fatalf("added %q to PATH after a failed install", path)
 				}
 				return
 			}
-			if string(path) != filepath.Join(runner, "temp", "code-rules")+"\n" || readErr != nil || !strings.Contains(string(executable), "echo "+test.installed+"\n") {
+			if string(path) != filepath.Join(runner, "temp", "syllabus")+"\n" || readErr != nil || !strings.Contains(string(executable), "echo "+test.installed+"\n") {
 				t.Fatalf("GITHUB_PATH %q, executable %q %v; want %s installed", path, executable, readErr, test.installed)
 			}
 			// The log and the job summary say which version the check runs.
 			reported, _ := os.ReadFile(summary)
-			if want := "Installed Code Rules " + test.installed + ".\n"; !strings.Contains(string(output), want) || string(reported) != want {
+			if want := "Installed Syllabus " + test.installed + ".\n"; !strings.Contains(string(output), want) || string(reported) != want {
 				t.Fatalf("log %q, step summary %q; want each to report %q", output, reported, want)
 			}
 		})

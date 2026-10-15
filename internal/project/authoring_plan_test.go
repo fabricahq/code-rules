@@ -38,7 +38,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 		t.Fatal(err)
 	}
 	ruleMetadata := rules.RuleMetadata{Title: "Return errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	if err := os.Remove(filepath.Join(options.Directory, ".code-rules/rules/techs/go/_group.yaml")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, ".syllabus/rules/techs/go/_group.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	_, commitErr = rule.Commit(ctx, ruleMetadata, nil)
@@ -46,7 +46,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if commitErr == nil || planErr == nil || commitErr.Error() != planErr.Error() {
 		t.Fatal(commitErr, planErr)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, ".code-rules/rules/techs/go/errors.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Directory, ".syllabus/rules/techs/go/errors.md")); !os.IsNotExist(err) {
 		t.Fatal("wrote rule after group disappeared", err)
 	}
 
@@ -78,7 +78,7 @@ func TestRulePlanPreservesCompetingFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := filepath.Join(options.Directory, ".code-rules/rules/techs/go/errors.md")
+	name := filepath.Join(options.Directory, ".syllabus/rules/techs/go/errors.md")
 	if err := os.WriteFile(name, []byte("Concurrent author's content"), 0600); err != nil {
 		t.Fatal(err)
 	}

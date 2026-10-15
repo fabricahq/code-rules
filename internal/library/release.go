@@ -14,7 +14,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// ReleaseRequest selects what code-rules library release does.
+// ReleaseRequest selects what syllabus library release does.
 type ReleaseRequest struct {
 	Options
 	// DryRun shows what would be published without creating a tag or a GitHub Release page.
@@ -251,7 +251,7 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
 	release, err := releasetag.ParseObject(name, body)
-	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
+	// A newer Syllabus may have created the tag and stopped before pushing it; this version can't compare it.
 	var unsupported *coderules.UnsupportedReleaseRecordError
 	if errors.As(err, &unsupported) {
 		return unsupportedRecord(name, unsupported.FormatVersion)
@@ -259,7 +259,7 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 	if err == nil && !planned.empty && release.Notes == planned.notes && reflect.DeepEqual(release.Record, planned.record) {
 		return nil
 	}
-	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what code-rules library release computes from the change notes since the remote's latest library release. Only code-rules library release creates release tags; delete this one with git tag --delete "+name+", then run code-rules library release again.", nil)
+	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what syllabus library release computes from the change notes since the remote's latest library release. Only syllabus library release creates release tags; delete this one with git tag --delete "+name+", then run syllabus library release again.", nil)
 }
 
 // describe fills in what a library release publishes.

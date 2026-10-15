@@ -25,22 +25,22 @@ const legacyLayoutMoves = 20
 // repository root, where each of the first legacyLayoutMoves belongs now, and how many more there are. A manifest,
 // rule-library.yaml, must come first in paths. Empty paths mean only empty rule folders, to delete.
 func legacyLayoutProblem(paths []string) string {
-	const reads = "this version of Code Rules reads a library's manifest from the library section of .code-rules/config.yaml, and its groups, shared assets, and change notes from .code-rules/. It no longer reads rule-library.yaml or rule folders at the repository root"
+	const reads = "this version of Syllabus reads a library's manifest from the library section of .syllabus/config.yaml, and its groups, shared assets, and change notes from .syllabus/. It no longer reads rule-library.yaml or rule folders at the repository root"
 	if len(paths) == 0 {
-		return reads + ". The rule folders there hold no files: delete them, then run code-rules library check."
+		return reads + ". The rule folders there hold no files: delete them, then run syllabus library check."
 	}
 	moves := make([][2]string, 0, min(len(paths), legacyLayoutMoves))
 	for _, from := range paths[:min(len(paths), legacyLayoutMoves)] {
 		to := librarytree.RepositoryPath(from)
 		if from == librarytree.LegacyManifest {
-			to = "the library section of .code-rules/config.yaml"
+			to = "the library section of .syllabus/config.yaml"
 		}
 		moves = append(moves, [2]string{from, to})
 	}
 	problem := reads + ", and doesn't move them. Move them yourself, keeping each path below its folder:\n\n" +
 		moveList(moves, len(paths)-len(moves)) + "\n\n"
 	if paths[0] == librarytree.LegacyManifest {
-		problem += `Then delete rule-library.yaml. Write its license fields, without formatVersion, in .code-rules/config.yaml, beside the sources the repository uses as a project, if any:
+		problem += `Then delete rule-library.yaml. Write its license fields, without formatVersion, in .syllabus/config.yaml, beside the sources the repository uses as a project, if any:
 
   schemaVersion: 2
   sources: {}
@@ -52,7 +52,7 @@ func legacyLayoutProblem(paths []string) string {
 
 License and notice paths stay relative to the repository root. `
 	}
-	return problem + "Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg, and its links to license files at the repository root need two more; links that start with /assets/ still work. Once the library has a library release, record each rule whose links change with code-rules library change --bump patch. Then run code-rules library check."
+	return problem + "Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg, and its links to license files at the repository root need two more; links that start with /assets/ still work. Once the library has a library release, record each rule whose links change with syllabus library change --bump patch. Then run syllabus library check."
 }
 
 // moveList lists each of moves, a path and where it belongs, aligned on one line each, followed by a count of the
@@ -146,10 +146,10 @@ func listFiles(ctx context.Context, files fs.FS, directory string) ([]string, er
 	return paths, err
 }
 
-// openCodeRulesDirectory opens the Code Rules directory of the library repository at root, whose writer the
+// openSyllabusDirectory opens the Syllabus directory of the library repository at root, whose writer the
 // repository's project and library commands share. create makes a missing directory; otherwise a missing one fails
 // with needs-init. The caller closes the returned root.
-func openCodeRulesDirectory(ctx context.Context, root *os.Root, create bool) (*os.Root, error) {
+func openSyllabusDirectory(ctx context.Context, root *os.Root, create bool) (*os.Root, error) {
 	directory := filepath.Join(root.Name(), librarytree.Directory)
 	if create {
 		return filetxn.Create(ctx, directory)
@@ -157,10 +157,29 @@ func openCodeRulesDirectory(ctx context.Context, root *os.Root, create bool) (*o
 	dir, err := filetxn.Open(ctx, directory)
 	var missing *filetxn.Error
 	if errors.As(err, &missing) && missing.Code == "missing-root" {
-		return nil, failure("needs-init", "missing "+librarytree.Directory+"/config.yaml; run code-rules library init first", err)
+		return nil, failure("needs-init", "missing "+librarytree.Directory+"/config.yaml; run syllabus library init first", err)
 	}
 	return dir, err
 }
+
+// requireCurrentDirectory fails, writing nothing, when the repository at root has no Syllabus directory but has one
+// under the name Code Rules used, explaining how to rename it.
+func requireCurrentDirectory(root *os.Root) error {
+	if _, err := root.Lstat(librarytree.Directory); !errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if _, err := root.Lstat(librarytree.LegacyDirectory); err != nil {
+		return nil
+	}
+	return &ValidationError{Location: librarytree.LegacyDirectory + "/", Problem: legacyDirectoryProblem}
+}
+
+// legacyDirectoryProblem tells a library that still keeps its files in the directory Code Rules used to move them.
+const legacyDirectoryProblem = `Code Rules is now Syllabus, and library commands read a library's files from .syllabus/. Rename the directory, keeping everything in it, then run the command again:
+
+  git mv .code-rules .syllabus
+
+Library releases published from .code-rules/ stay readable, so projects keep their versions. Projects that import this library need no changes. Update the line in AGENTS.md or CLAUDE.md that points agents to .code-rules/generated/RULES.md.`
 
 // repositoryFiles lends a library repository's files, read through input by their repository paths, to the
 // catalog reader by their library paths, as librarytree.RepositoryPath places them. The library root, ".", lists
@@ -205,10 +224,10 @@ func (r repositoryFiles) ReadDir(name string) ([]fs.DirEntry, error) {
 	return entries, nil
 }
 
-// requireIdle fails with busy while a writer holds, or a pending recovery waits in, the Code Rules directory of the
+// requireIdle fails with busy while a writer holds, or a pending recovery waits in, the Syllabus directory of the
 // library repository at root, so a read-only command never reads a half-published edit.
 func requireIdle(ctx context.Context, root *os.Root) error {
-	dir, err := openCodeRulesDirectory(ctx, root, false)
+	dir, err := openSyllabusDirectory(ctx, root, false)
 	if err != nil {
 		return err
 	}

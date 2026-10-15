@@ -10,7 +10,7 @@ mkdir -p "$FAKE_HOME/.claude/skills/acme-tdd"
 printf -- '---\nname: acme-tdd\ndescription: My own TDD routine.\n---\n\nMy own steps.\n' > "$FAKE_HOME/.claude/skills/acme-tdd/SKILL.md"
 show find "$FAKE_HOME" -type f
 
-printf '\n$ HOME=%s code-rules project check\n' "$FAKE_HOME"
+printf '\n$ HOME=%s syllabus project check\n' "$FAKE_HOME"
 HOME="$FAKE_HOME" "$CR" project check
-printf '\n$ HOME=%s code-rules project sync\n' "$FAKE_HOME"
+printf '\n$ HOME=%s syllabus project sync\n' "$FAKE_HOME"
 HOME="$FAKE_HOME" "$CR" project sync

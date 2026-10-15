@@ -68,7 +68,7 @@ func citeRules(resolved *resolution, config rules.Configuration, libraries map[s
 			switch _, configured := sources[citation.Source]; {
 			case citation.Source == "":
 				if active["local:"+citation.ID] == nil {
-					return nil, invalid(location, fmt.Sprintf("%s names %s, which isn't a rule in .code-rules/rules/; write the rule, or cite a source's rule with its source name, such as fabrica:%s", skills.RulesUsedKey, citation.ID, citation.ID))
+					return nil, invalid(location, fmt.Sprintf("%s names %s, which isn't a rule in .syllabus/rules/; write the rule, or cite a source's rule with its source name, such as fabrica:%s", skills.RulesUsedKey, citation.ID, citation.ID))
 				}
 				citation.Source = "local"
 			case !configured:
@@ -96,7 +96,7 @@ func citeRules(resolved *resolution, config rules.Configuration, libraries map[s
 	return retired, nil
 }
 
-// skillLocation returns where a skill's SKILL.md is, relative to the Code Rules directory, for diagnostics.
+// skillLocation returns where a skill's SKILL.md is, relative to the Syllabus directory, for diagnostics.
 func skillLocation(skill resolvedSkill) string {
 	if skill.Source == "" {
 		return skill.Folder + "/" + skills.File
@@ -130,7 +130,7 @@ func citedLine(cited citedRule, installed string) string {
 		} else if cited.Active.Origin.Version != nil {
 			label += " " + cited.Active.Origin.Version.String()
 		}
-		file := ".code-rules/generated/" + rulePath(cited.Active.Rule)
+		file := ".syllabus/generated/" + rulePath(cited.Active.Rule)
 		return label + ": [" + file + "](" + rules.RelativeLink(installed, file) + ")"
 	case cited.Retired:
 		return id + ": retired by its library, so the project has no version of it"

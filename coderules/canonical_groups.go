@@ -23,7 +23,7 @@ type CanonicalGroup struct {
 	Description string
 }
 
-// ParseCanonicalGroups validates a canonical group list, such as canonical-groups.yaml at the root of the Code Rules
+// ParseCanonicalGroups validates a canonical group list, such as canonical-groups.yaml at the root of the Syllabus
 // repository, and returns its entries in file order. location names the list in errors. The list is one strict
 // YAML mapping from group ID to an entry with exactly a name and a description. IDs are valid group IDs, such as
 // techs/go, and must be in ascending byte order, so a list has no duplicates.

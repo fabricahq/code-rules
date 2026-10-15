@@ -3,7 +3,7 @@
 set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 cd "$APP"
-SKILL=.code-rules/skills/release-checklist/SKILL.md
+SKILL=.syllabus/skills/release-checklist/SKILL.md
 mkdir -p "$(dirname "$SKILL")"
 
 echo "1. A skill type that isn't playbook or review:"
@@ -17,10 +17,10 @@ metadata:
 
 1. Check that main is green.
 MD
-expect_failure code-rules project build
+expect_failure syllabus project build
 
 echo
-echo "2. A syllabus- key Code Rules doesn't define:"
+echo "2. A syllabus- key Syllabus doesn't define:"
 cat > "$SKILL" <<'MD'
 ---
 name: release-checklist
@@ -32,7 +32,7 @@ metadata:
 
 1. Check that main is green.
 MD
-expect_failure code-rules project build
+expect_failure syllabus project build
 
 echo
 echo "3. A bare rule ID that isn't one of the project's own rules:"
@@ -48,10 +48,10 @@ metadata:
 
 1. Check that main is green.
 MD
-expect_failure code-rules project build
+expect_failure syllabus project build
 
 echo
-echo "4. A source's rule whose ID is misspelled. acme includes practices/*, so Code Rules knows the rule doesn't exist:"
+echo "4. A source's rule whose ID is misspelled. acme includes practices/*, so Syllabus knows the rule doesn't exist:"
 cat > "$SKILL" <<'MD'
 ---
 name: release-checklist
@@ -64,7 +64,7 @@ metadata:
 
 1. Check that main is green.
 MD
-expect_failure code-rules project build
+expect_failure syllabus project build
 
 echo
 echo "5. A valid skill. It cites a library rule, a library rule the project excludes, and an authored rule:"
@@ -84,6 +84,6 @@ metadata:
 2. Draft the release notes.
 3. Check new log lines for secrets.
 MD
-show code-rules project build
+show syllabus project build
 show cat .claude/skills/release-checklist/SKILL.md
 commit_all "Add the release-checklist skill"

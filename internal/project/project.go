@@ -125,7 +125,7 @@ type checkedProject struct {
 
 // checkWithFiles checks generated output, the installed skill folders, and additional root-relative files in one
 // optimistic snapshot. Missing files are reported as additions; invalid paths, unreadable files, concurrent edits, a
-// folder in a skill target that Code Rules would install into but didn't install, and a rule an authored skill cites
+// folder in a skill target that Syllabus would install into but didn't install, and a rule an authored skill cites
 // that its library retired are errors.
 func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (checkedProject, error) {
 	if err := ctx.Err(); err != nil {
@@ -334,7 +334,7 @@ func authoredFiles(state projectState) (map[string][]byte, error) {
 	files := map[string][]byte{}
 	for name, data := range treeFiles(state.local) {
 		if strings.HasPrefix(name, "assets/") {
-			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .code-rules/assets/; move this file there"}
+			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .syllabus/assets/; move this file there"}
 		}
 		files[name] = data
 	}
@@ -386,11 +386,11 @@ func verifyLoadedSnapshot(source rules.Source, catalog library.Catalog, snapshot
 	}
 	slices.Sort(loaded)
 	if !slices.Equal(loaded, slices.Sorted(maps.Keys(snapshot.Rules))) {
-		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run code-rules project sync", nil)
+		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run syllabus project sync", nil)
 	}
 	files := catalog.Files()
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
+		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run syllabus project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {

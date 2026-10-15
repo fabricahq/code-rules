@@ -138,7 +138,7 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 // not an invalid rule.
 func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
 	files := validFiles()
-	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".code-rules/rules/techs/go/LICENSE.md","notices":[]}}}`
+	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/LICENSE.md","notices":[]}}}`
 	files["techs/go/LICENSE.md"] = "License terms."
 	files["techs/go/errors.md"] += "\n[terms](LICENSE.md)\n"
 	_, root := fixture(t, files)
@@ -167,7 +167,7 @@ func TestLoadRejectsTermsInsideRuleContent(t *testing.T) {
 				_, root := fixture(t, files)
 				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
 				var invalid errs.ValidationError
-				if !errors.As(err, &invalid) || invalid.ValidationLocation() != "team/.code-rules/config.yaml: library.license.notices[0]" || got.Groups != nil {
+				if !errors.As(err, &invalid) || invalid.ValidationLocation() != "team/.syllabus/config.yaml: library.license.notices[0]" || got.Groups != nil {
 					t.Fatalf("got %+v, %v; want the notice path refused", got, err)
 				}
 			})

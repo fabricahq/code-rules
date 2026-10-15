@@ -57,7 +57,7 @@ func TestPackagedPreviewWarning(t *testing.T) {
 				{[]string{"project", "init", "--json"}, 0},
 			} {
 				args := test.args
-				command := exec.Command(filepath.Join(installed, "code-rules"), args...)
+				command := exec.Command(filepath.Join(installed, "syllabus"), args...)
 				command.Dir = t.TempDir()
 				var stdout, stderr bytes.Buffer
 				command.Stdout, command.Stderr = &stdout, &stderr

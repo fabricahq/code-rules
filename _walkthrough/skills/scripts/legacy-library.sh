@@ -11,4 +11,4 @@ fi
 cd "$SCRATCH"
 printf 'formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n' > rule-library.yaml
 show cat rule-library.yaml
-expect_failure code-rules library check
+expect_failure syllabus library check

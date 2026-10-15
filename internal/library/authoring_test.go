@@ -145,9 +145,9 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 				initRepository(t, options.Directory)
 				write(".git/objects/example", "arbitrary repository bytes")
 				write("docs/design.txt", "unrelated documentation")
-				write(".code-rules/vendor/team/config.yaml", "not this library's manifest")
-				write(".code-rules/generated/RULES.md", "[missing](absent.md)")
-				write(".code-rules/rules/README.md", "[missing](absent.md)")
+				write(".syllabus/vendor/team/config.yaml", "not this library's manifest")
+				write(".syllabus/generated/RULES.md", "[missing](absent.md)")
+				write(".syllabus/rules/README.md", "[missing](absent.md)")
 			case "cross-rule":
 				write("assets/shared.md", "[rule](/rules/techs/go/errors.md)")
 			case "malformed-rule":

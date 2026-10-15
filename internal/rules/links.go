@@ -139,9 +139,9 @@ func RelativeTarget(destination, file string) (target, suffix string, local bool
 
 // LibraryTarget resolves a decoded Markdown destination in the library file at library path file, as
 // RelativeTarget does, from where the file lives in its repository, and returns the target's library path. A
-// destination starting with / is relative to the Code Rules directory, .code-rules/, as in a project's authored
+// destination starting with / is relative to the Syllabus directory, .syllabus/, as in a project's authored
 // files, so /assets/diagram.svg names a shared asset. A local destination that holds no library file, such as one in
-// .code-rules/vendor/, fails.
+// .syllabus/vendor/, fails.
 func LibraryTarget(destination, file string) (target, suffix string, local bool, err error) {
 	location := librarytree.RepositoryPath(file)
 	target, suffix, local, err = RelativeTarget(destination, location)
@@ -155,7 +155,7 @@ func LibraryTarget(destination, file string) (target, suffix string, local bool,
 	}
 	path, ok := librarytree.LibraryPath(target)
 	if !ok {
-		return "", "", false, invalid(file, "links to "+target+", which isn't part of the library; link to this rule's own assets directory, a shared asset in .code-rules/assets/, or a declared license or notice file")
+		return "", "", false, invalid(file, "links to "+target+", which isn't part of the library; link to this rule's own assets directory, a shared asset in .syllabus/assets/, or a declared license or notice file")
 	}
 	return path, suffix, true, nil
 }

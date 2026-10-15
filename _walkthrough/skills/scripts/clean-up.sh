@@ -3,7 +3,7 @@
 set -eo pipefail
 WORK="{{ .inputs.WorkDir }}"
 
-if [ ! -f "$WORK/.code-rules-walkthrough" ]; then
+if [ ! -f "$WORK/.syllabus-walkthrough" ]; then
   echo "$WORK isn't a walkthrough work folder, so it's left as it is."
   exit 1
 fi

@@ -1,4 +1,4 @@
-// Test that Check reports every problem in an authored skill's name and Code Rules metadata keys.
+// Test that Check reports every problem in an authored skill's name and Syllabus metadata keys.
 
 package skills_test
 
@@ -35,7 +35,7 @@ func TestCheckReportsEachProblemInAnAuthoredSkillsFrontmatter(t *testing.T) {
 		"name isn't folder":        {with(func(m *skills.Metadata) { m.Name = "fix-bugs" }), false, []string{`name is "fix-bugs", but the folder is fix-bug; they must match`}},
 		"unknown type":             {with(func(m *skills.Metadata) { m.Type = "design" }), false, []string{`syllabus-skill-type is "design"; use playbook or review, or leave it out`}},
 		"type spelled in capitals": {with(func(m *skills.Metadata) { m.Type = "Review" }), false, []string{`syllabus-skill-type is "Review"; use playbook or review, or leave it out`}},
-		"reserved key":             {with(func(m *skills.Metadata) { m.ReservedKeys = []string{"syllabus-groups"} }), false, []string{`metadata."syllabus-groups" isn't a Code Rules key; use syllabus-skill-type, syllabus-rules-used, or syllabus-skills-used`}},
+		"reserved key":             {with(func(m *skills.Metadata) { m.ReservedKeys = []string{"syllabus-groups"} }), false, []string{`metadata."syllabus-groups" isn't a Syllabus key; use syllabus-skill-type, syllabus-rules-used, or syllabus-skills-used`}},
 		"qualified rule in a library": {with(func(m *skills.Metadata) { m.RulesUsed = []string{"fabrica:techs/go/errors"} }), false, []string{
 			`syllabus-rules-used names "fabrica:techs/go/errors"; cite a rule by its ID in this library, without a source name, such as practices/testing/verify-retries`,
 		}},

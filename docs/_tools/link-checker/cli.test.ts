@@ -21,7 +21,7 @@ function checkSite(
   stdout: string;
   stderr: string;
 } {
-  const workspace = mkdtempSync(join(tmpdir(), 'code-rules-links-'));
+  const workspace = mkdtempSync(join(tmpdir(), 'syllabus-links-'));
   try {
     const site = join(workspace, 'dist');
     for (const [path, content] of Object.entries(pages)) {

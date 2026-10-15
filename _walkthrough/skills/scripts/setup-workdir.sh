@@ -6,14 +6,14 @@ set -eo pipefail
 WORK="{{ .inputs.WorkDir }}"
 case "$WORK" in
   /*) ;;
-  *) echo "WorkDir must be an absolute path, such as /tmp/code-rules-skills-walkthrough."; exit 1 ;;
+  *) echo "WorkDir must be an absolute path, such as /tmp/syllabus-skills-walkthrough."; exit 1 ;;
 esac
-if [ -e "$WORK" ] && [ ! -f "$WORK/.code-rules-walkthrough" ]; then
+if [ -e "$WORK" ] && [ ! -f "$WORK/.syllabus-walkthrough" ]; then
   echo "$WORK already exists and isn't a walkthrough work folder. Choose another WorkDir."
   exit 1
 fi
 mkdir -p "$WORK/bin" "$WORK/remotes"
-touch "$WORK/.code-rules-walkthrough"
+touch "$WORK/.syllabus-walkthrough"
 
 # Git configuration for the walkthrough only. GIT_CONFIG_GLOBAL in env.sh points here, so your ~/.gitconfig, its
 # signing settings, and its credential helpers are never read or changed.
@@ -28,7 +28,7 @@ cat > "$WORK/gitconfig" <<'GITCONFIG'
 	detachedHead = false
 GITCONFIG
 
-# Code Rules fetches sources only over HTTPS or SSH. This stand-in for ssh serves git@demo.invalid:<name> from
+# Syllabus fetches sources only over HTTPS or SSH. This stand-in for ssh serves git@demo.invalid:<name> from
 # $WORK/remotes/<name>, so the demo library and skills repository behave like hosted repositories without a
 # network or an SSH server. The CLI's own tests use the same technique.
 cat > "$WORK/bin/demo-ssh" <<'SSH'
@@ -49,7 +49,7 @@ cat > "$WORK/env.sh" <<ENV
 export WORK="$WORK"
 ENV
 cat >> "$WORK/env.sh" <<'ENV'
-export CR="$WORK/bin/code-rules"
+export CR="$WORK/bin/syllabus"
 export LIB="$WORK/acme-library" TEAM="$WORK/team-skills" APP="$WORK/demo-app"
 
 # Git: ignore system and global configuration, and commit as a demo author.
@@ -61,8 +61,8 @@ export GIT_SSH_COMMAND="$WORK/bin/demo-ssh" GIT_SSH_VARIANT=ssh
 # Go: keep the module cache, build cache, and any downloaded toolchain in the work folder.
 export GOPATH="$WORK/go" GOCACHE="$WORK/go-build-cache" GOFLAGS=-modcacherw GOTOOLCHAIN=auto
 
-# code-rules runs the CLI this walkthrough built, so the commands below read like the ones you'd type.
-code-rules() { "$CR" "$@"; }
+# syllabus runs the CLI this walkthrough built, so the commands below read like the ones you'd type.
+syllabus() { "$CR" "$@"; }
 
 # quote_command prints its arguments as a command you could paste into a shell.
 quote_command() {

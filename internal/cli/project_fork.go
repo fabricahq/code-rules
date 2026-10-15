@@ -41,7 +41,7 @@ func forkRule(cmd *cobra.Command, id string, f *authoringFlags, options Options,
 		if !f.interactive() {
 			return usage(fmt.Errorf("--reason is required: the project imports %s from %s, so the fork replaces it, and the exclusion that makes it the replacement records why", id, plan.Replaces()))
 		}
-		f.introduction = fmt.Sprintf("Forking %s %s from %s into:\n  .code-rules/rules/%s.md\n\nThe project imports this rule from %s, so the fork replaces it: config.yaml\ngets an exclusion that names the fork and records your reason.\n\n", id, from.Version, from.Library, id, plan.Replaces())
+		f.introduction = fmt.Sprintf("Forking %s %s from %s into:\n  .syllabus/rules/%s.md\n\nThe project imports this rule from %s, so the fork replaces it: config.yaml\ngets an exclusion that names the fork and records your reason.\n\n", id, from.Version, from.Library, id, plan.Replaces())
 		if reason, err = f.askValidated("Why use the fork instead of the imported rule?", func(value string) error { return validateAnswer("reason", value) }); err != nil {
 			return err
 		}
@@ -61,8 +61,8 @@ func ruleForkedReport(result project.AuthoringResult, id string, from project.Fo
 	formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	instruction := "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text."
 	if source := plan.Replaces(); source != "" {
-		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement,\nbased on " + from.Version.String() + "; code-rules project update lists the library's later changes to it."
+		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement,\nbased on " + from.Version.String() + "; syllabus project update lists the library's later changes to it."
 	}
-	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
+	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"syllabus project build", "syllabus project check"}}}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }

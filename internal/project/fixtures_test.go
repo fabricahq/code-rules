@@ -15,7 +15,7 @@ import (
 // openProject creates a disposable project root owned by the test.
 func openTestProject(t *testing.T) *os.Root {
 	t.Helper()
-	directory := filepath.Join(t.TempDir(), ".code-rules")
+	directory := filepath.Join(t.TempDir(), ".syllabus")
 	if err := os.Mkdir(directory, 0700); err != nil {
 		t.Fatal(err)
 	}

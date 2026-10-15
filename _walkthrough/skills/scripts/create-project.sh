@@ -1,5 +1,5 @@
 #!/bin/bash
-# Create demo-app, a small Git repository, and set up Code Rules in it.
+# Create demo-app, a small Git repository, and set up Syllabus in it.
 set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 
@@ -14,6 +14,6 @@ printf 'module example.com/demo-app\n\ngo 1.22\n' > go.mod
 printf 'package main\n\nfunc main() {}\n' > main.go
 commit_all "Start demo-app"
 
-show code-rules project init --non-interactive
+show syllabus project init --non-interactive
 echo
-show cat .code-rules/config.yaml
+show cat .syllabus/config.yaml

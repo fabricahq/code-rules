@@ -4,8 +4,8 @@ set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 cd "$LIB"
 
-mkdir -p .code-rules/skills/acme-deploy
-cat > .code-rules/skills/acme-deploy/SKILL.md <<'MD'
+mkdir -p .syllabus/skills/acme-deploy
+cat > .syllabus/skills/acme-deploy/SKILL.md <<'MD'
 ---
 name: deploy
 description: Deploy a service.
@@ -19,11 +19,11 @@ metadata:
 
 1. Deploy.
 MD
-show cat .code-rules/skills/acme-deploy/SKILL.md
-expect_failure code-rules library check
+show cat .syllabus/skills/acme-deploy/SKILL.md
+expect_failure syllabus library check
 echo
 echo "The same failure as JSON, with its error code:"
 "$CR" library check --json || true
 
-rm -r .code-rules/skills/acme-deploy
-show code-rules library check
+rm -r .syllabus/skills/acme-deploy
+show syllabus library check

@@ -55,14 +55,14 @@ func TestSync_LeavesOutAnExcludedSkill(t *testing.T) {
 	if exists(t, options, ".claude/skills/review") || !exists(t, options, ".claude/skills/build-feature/SKILL.md") {
 		t.Fatal("sync installed the excluded skill, or not the other one")
 	}
-	if !exists(t, options, ".code-rules/vendor/team/skills/review/SKILL.md") {
+	if !exists(t, options, ".syllabus/vendor/team/skills/review/SKILL.md") {
 		t.Fatal("sync didn't keep the excluded skill's files in vendor/")
 	}
-	index := readRepositoryFile(t, options, ".code-rules/generated/SKILLS.md")
+	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
 	if !strings.Contains(index, "## Excluded skills") || !strings.Contains(index, "- `team:skills/review`: We review in CI.") || strings.Contains(index, "### review") {
 		t.Fatalf("SKILLS.md doesn't list the excluded skill with its reason:\n%s", index)
 	}
-	if readme := readRepositoryFile(t, options, ".code-rules/generated/libraries/team/README.md"); !strings.Contains(readme, "- `skills/review`: excluded") {
+	if readme := readRepositoryFile(t, options, ".syllabus/generated/libraries/team/README.md"); !strings.Contains(readme, "- `skills/review`: excluded") {
 		t.Fatalf("source README:\n%s", readme)
 	}
 	if result, err := Check(ctx, options); err != nil || !result.Current() {
@@ -97,27 +97,27 @@ func TestPlanSkillFork_InstallsTheForkInPlaceOfTheSkill(t *testing.T) {
 	if plan.Name() != "build-feature" || plan.BasedOn() != commit {
 		t.Fatalf("plan = %s based on %s", plan.Name(), plan.BasedOn())
 	}
-	codeRules := filepath.Join(options.Directory, ".code-rules")
-	if want := []string{filepath.Join(codeRules, "skills/build-feature/SKILL.md"), filepath.Join(codeRules, "skills/build-feature/scripts/run.sh")}; !reflect.DeepEqual(result.Added, want) || !reflect.DeepEqual(result.Changed, []string{filepath.Join(codeRules, "config.yaml")}) {
+	syllabus := filepath.Join(options.Directory, ".syllabus")
+	if want := []string{filepath.Join(syllabus, "skills/build-feature/SKILL.md"), filepath.Join(syllabus, "skills/build-feature/scripts/run.sh")}; !reflect.DeepEqual(result.Added, want) || !reflect.DeepEqual(result.Changed, []string{filepath.Join(syllabus, "config.yaml")}) {
 		t.Fatalf("result = %+v", result)
 	}
-	if fork := readRepositoryFile(t, options, ".code-rules/skills/build-feature/SKILL.md"); fork != buildSkill {
+	if fork := readRepositoryFile(t, options, ".syllabus/skills/build-feature/SKILL.md"); fork != buildSkill {
 		t.Fatalf("fork's SKILL.md:\n%s", fork)
 	}
-	if info, err := os.Stat(filepath.Join(options.Directory, ".code-rules/skills/build-feature/scripts/run.sh")); err != nil || info.Mode().Perm()&0o100 == 0 {
+	if info, err := os.Stat(filepath.Join(options.Directory, ".syllabus/skills/build-feature/scripts/run.sh")); err != nil || info.Mode().Perm()&0o100 == 0 {
 		t.Fatalf("the fork's script isn't executable: %v %v", info, err)
 	}
-	data := []byte(readRepositoryFile(t, options, ".code-rules/config.yaml"))
+	data := []byte(readRepositoryFile(t, options, ".syllabus/config.yaml"))
 	if want := "      exclude:\n        - id: skills/build-feature\n          reason: We build with make.\n          replacedBy: skills/build-feature\n          basedOn: \"" + commit + "\"\n"; !strings.Contains(string(data), want) {
 		t.Fatalf("config.yaml:\n%s\nwant:\n%s", data, want)
 	}
 	if _, err := Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	if installed := readRepositoryFile(t, options, ".claude/skills/build-feature/SKILL.md"); !strings.Contains(installed, "<!-- code-rules:installed skills/build-feature. Do not edit; edit .code-rules/skills/build-feature/ instead. -->") {
+	if installed := readRepositoryFile(t, options, ".claude/skills/build-feature/SKILL.md"); !strings.Contains(installed, "<!-- syllabus:installed skills/build-feature. Do not edit; edit .syllabus/skills/build-feature/ instead. -->") {
 		t.Fatalf("installed copy isn't the fork:\n%s", installed)
 	}
-	index := readRepositoryFile(t, options, ".code-rules/generated/SKILLS.md")
+	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
 	for _, want := range []string{"**Skill:** `skills/build-feature`, authored in this project", "**Replaces:** `team:skills/build-feature`, which the project excludes, based on its copy at commit `" + commit + "`", "**Reason:** We build with make."} {
 		if !strings.Contains(index, want) {
 			t.Errorf("SKILLS.md lacks %q:\n%s", want, index)
@@ -135,7 +135,7 @@ func TestPlanSkillFork_InstallsTheForkInPlaceOfTheSkill(t *testing.T) {
 			BasedOn *string `json:"basedOn"`
 		} `json:"skills"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".code-rules/generated/provenance.json")), &provenance); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/generated/provenance.json")), &provenance); err != nil {
 		t.Fatal(err)
 	}
 	if len(provenance.Skills) != 2 {
@@ -181,7 +181,7 @@ func TestPlanSkillFork_RefusesWhatItCannotFork(t *testing.T) {
 	for _, test := range []struct {
 		from, location, problem string
 	}{
-		{"other:skills/review", "--from", "no source named other in .code-rules/config.yaml"},
+		{"other:skills/review", "--from", "no source named other in .syllabus/config.yaml"},
 		{"team:skills/missing", "--from", "source team doesn't install skill skills/missing, as its last sync recorded"},
 		{"team:skills/review", "sources.team.skills.exclude.skills/review", "the source already excludes this skill"},
 	} {
@@ -228,7 +228,7 @@ func TestPlanSkillFork_CommitRefusesABlankReasonAndAConcurrentChange(t *testing.
 	writeFixture(t, root, configurationFile, strings.ReplaceAll("# Edited.\n"+skillConfig(""), "REPOSITORY", quoteJSON(f.Repository)))
 	_, err = plan.Commit(ctx, "Ours.")
 	projectCode(t, err, "concurrent-change")
-	if exists(t, options, ".code-rules/skills/review") {
+	if exists(t, options, ".syllabus/skills/review") {
 		t.Fatal("a refused fork wrote files")
 	}
 }
@@ -238,8 +238,8 @@ func secondSkillRelease(t *testing.T, f *gitfixture.Fixture) string {
 	t.Helper()
 	ctx := context.Background()
 	commit, err := f.Commit(ctx, f.Worktree(), "Change a skill", map[string][]byte{
-		".code-rules/skills/build-feature/SKILL.md":         []byte(strings.Replace(buildSkill, "Run scripts/run.sh.", "Run scripts/check.sh first.", 1)),
-		".code-rules/skills/build-feature/scripts/check.sh": []byte("#!/bin/sh\necho check\n"),
+		".syllabus/skills/build-feature/SKILL.md":         []byte(strings.Replace(buildSkill, "Run scripts/run.sh.", "Run scripts/check.sh first.", 1)),
+		".syllabus/skills/build-feature/scripts/check.sh": []byte("#!/bin/sh\necho check\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -268,7 +268,7 @@ func TestUpdate_ListsChangesToAReplacedSkill(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				config := readRepositoryFile(t, options, ".code-rules/config.yaml")
+				config := readRepositoryFile(t, options, ".syllabus/config.yaml")
 				writeFixture(t, root, configurationFile, strings.Replace(config, "          basedOn: \""+commit+"\"\n", "", 1))
 				root.Close()
 				basedOn = ""
@@ -289,15 +289,15 @@ func TestUpdate_ListsChangesToAReplacedSkill(t *testing.T) {
 			if len(preview.Sources) != 1 || !reflect.DeepEqual(preview.Sources[0].ReplacedSkills, want) {
 				t.Fatalf("preview = %+v\nwant replaced skills %+v", preview.Sources, want)
 			}
-			fork := readRepositoryFile(t, options, ".code-rules/skills/build-feature/SKILL.md")
-			config := readRepositoryFile(t, options, ".code-rules/config.yaml")
+			fork := readRepositoryFile(t, options, ".syllabus/skills/build-feature/SKILL.md")
+			config := readRepositoryFile(t, options, ".syllabus/config.yaml")
 			if _, err := plan.Apply(ctx, nil); err != nil {
 				t.Fatal(err)
 			}
-			if readRepositoryFile(t, options, ".code-rules/skills/build-feature/SKILL.md") != fork || readRepositoryFile(t, options, ".code-rules/config.yaml") != config {
+			if readRepositoryFile(t, options, ".syllabus/skills/build-feature/SKILL.md") != fork || readRepositoryFile(t, options, ".syllabus/config.yaml") != config {
 				t.Fatal("the update changed the fork or its exclusion")
 			}
-			if installed := readRepositoryFile(t, options, ".claude/skills/build-feature/SKILL.md"); !strings.Contains(installed, "edit .code-rules/skills/build-feature/ instead") {
+			if installed := readRepositoryFile(t, options, ".claude/skills/build-feature/SKILL.md"); !strings.Contains(installed, "edit .syllabus/skills/build-feature/ instead") {
 				t.Fatalf("after the update, the installed copy isn't the fork:\n%s", installed)
 			}
 		})
@@ -310,7 +310,7 @@ func TestSync_ChecksTheCommitAReplacementIsBasedOn(t *testing.T) {
 	ctx := context.Background()
 	f, _ := skillLibrary(t)
 	// A commit after release/1 removes the skill, so the repository has the commit but the commit lacks the skill.
-	without, err := f.Commit(ctx, f.Worktree(), "Remove a skill", map[string][]byte{".code-rules/skills/build-feature/SKILL.md": nil, ".code-rules/skills/build-feature/scripts/run.sh": nil})
+	without, err := f.Commit(ctx, f.Worktree(), "Remove a skill", map[string][]byte{".syllabus/skills/build-feature/SKILL.md": nil, ".syllabus/skills/build-feature/scripts/run.sh": nil})
 	if err != nil {
 		t.Fatal(err)
 	}

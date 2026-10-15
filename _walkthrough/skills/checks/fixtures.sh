@@ -6,4 +6,4 @@ git ls-remote --tags git@demo.invalid:acme-library.git | grep -q 'refs/tags/rele
 pass "acme-library has library release 1 (tag release/1)."
 git ls-remote --tags git@demo.invalid:team-skills.git | grep -q 'refs/tags/v1.0.0$' || fail "team-skills has no v1.0.0 tag."
 pass "team-skills has tag v1.0.0."
-require_text "$APP/.code-rules/config.yaml" "skillTargets: [claude, agents]"
+require_text "$APP/.syllabus/config.yaml" "skillTargets: [claude, agents]"

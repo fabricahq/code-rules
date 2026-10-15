@@ -10,19 +10,19 @@ A **library** is an independently maintained collection of rule **groups**. Libr
 Libraries live in Git repositories. This page covers what makes a repository a library. For the rule and group files inside it, see [Rule and group format](/reference/rule-format/). For how each rule is versioned, see [Rule versions](/reference/rule-versions/).
 
 :::note[Preview]
-This page describes the library layout of the next Code Rules release, which keeps a library's files in `.code-rules/`, the same directory a project uses. Released versions read `rule-library.yaml` and rule folders at the repository root; see [Libraries in the earlier layout](#libraries-in-the-earlier-layout).
+This page describes the library layout of the next Syllabus release, which keeps a library's files in `.syllabus/`, the same directory a project uses. Released versions read `rule-library.yaml` and rule folders at the repository root; see [Libraries in the earlier layout](#libraries-in-the-earlier-layout).
 :::
 
 ## Library layout
 
-The tree below shows a library repository named **`engineering-rules/`**. The folder name is an example; you can name your library repository anything you like. A library keeps its files in the repository's **Code Rules directory**, `.code-rules/`, which has the same layout as a [project's](/reference/files/). A consuming project stores imported copies under `vendor/` in its own Code Rules directory (`.code-rules/vendor/`).
+The tree below shows a library repository named **`engineering-rules/`**. The folder name is an example; you can name your library repository anything you like. A library keeps its files in the repository's **Syllabus directory**, `.syllabus/`, which has the same layout as a [project's](/reference/files/). A consuming project stores imported copies under `vendor/` in its own Syllabus directory (`.syllabus/vendor/`).
 
 <FileTree>
 
 - engineering-rules/
   - LICENSE.md
   - README.md
-  - .code-rules/
+  - .syllabus/
     - config.yaml
     - rules/
       - techs/
@@ -45,7 +45,7 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
 
 </FileTree>
 
-The `library` section of `.code-rules/config.yaml` is the library's **manifest**. A configuration with a `library` section makes the repository a library; it can be empty, `library: {}`, or declare the library's [license](#license-metadata):
+The `library` section of `.syllabus/config.yaml` is the library's **manifest**. A configuration with a `library` section makes the repository a library; it can be empty, `library: {}`, or declare the library's [license](#license-metadata):
 
 ```yaml
 schemaVersion: 2
@@ -57,11 +57,11 @@ library:
     notices: []
 ```
 
-The `library` section accepts only `license`. Other fields are rejected, including `skills`, which this version of Code Rules doesn't support yet.
+The `library` section accepts only `license`. Other fields are rejected, including `skills`, which this version of Syllabus doesn't support yet.
 
-Discover groups only under `.code-rules/rules/techs/` and `.code-rules/rules/practices/`. Rule IDs are paths below `rules/`, so `.code-rules/rules/practices/testing/verify-retry-limits.md` is the rule `practices/testing/verify-retry-limits`.
+Discover groups only under `.syllabus/rules/techs/` and `.syllabus/rules/practices/`. Rule IDs are paths below `rules/`, so `.syllabus/rules/practices/testing/verify-retry-limits.md` is the rule `practices/testing/verify-retry-limits`.
 Within selected groups, Markdown files outside reserved asset directories are rules. The group-root `README.md` and declared license and notice files, which can't use a rule's path, are exempt. Group READMEs and `rules/README.md` are authoring documentation, not generated rule guidance.
-[Change notes](/reference/rule-versions/#change-notes) live in `.code-rules/changes/`. Projects never import them.
+[Change notes](/reference/rule-versions/#change-notes) live in `.syllabus/changes/`. Projects never import them.
 Library releases are Git tags, not files; see [Library releases](/reference/rule-versions/#library-releases).
 Other supporting files, including `_README.md`, must live in an asset directory.
 Rules and [group metadata](/reference/rule-format/#group-metadata) must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
@@ -73,17 +73,17 @@ The builder does not inspect the contents of unselected groups.
 
 A library publishes only the files it authors:
 
-- the `library` section of `.code-rules/config.yaml`;
-- its groups and rules, in `.code-rules/rules/`;
-- its shared assets, in `.code-rules/assets/`;
-- its skills, in `.code-rules/skills/`, one folder with a `SKILL.md` per skill, which projects install when they include them; see [Select skills](/reference/configuration/#select-skills);
+- the `library` section of `.syllabus/config.yaml`;
+- its groups and rules, in `.syllabus/rules/`;
+- its shared assets, in `.syllabus/assets/`;
+- its skills, in `.syllabus/skills/`, one folder with a `SKILL.md` per skill, which projects install when they include them; see [Select skills](/reference/configuration/#select-skills);
 - its declared license and notice files.
 
 Projects that import the library receive nothing else from the repository. Change notes stay in the library, and so do the `sources` and other fields of `config.yaml`: a project's copy, `vendor/<source-name>/config.yaml`, holds only the `library` section. A change to `sources` alone, or to a comment, is not a library-wide change.
 
 ## A repository that is a project and a library
 
-Because a library and a project use the same layout, one repository can be both. Its `.code-rules/config.yaml` lists the `sources` the repository imports as a project beside its `library` section:
+Because a library and a project use the same layout, one repository can be both. Its `.syllabus/config.yaml` lists the `sources` the repository imports as a project beside its `library` section:
 
 ```yaml
 schemaVersion: 2
@@ -100,15 +100,15 @@ library:
     notices: []
 ```
 
-`code-rules project` commands sync, build, check, and update the project, which reads the rules in `.code-rules/rules/` as its own. `code-rules library` commands check, record changes to, and publish those same rules as the library. The project's `vendor/` and `generated/` directories are never published. Project and library commands share one lock on `.code-rules/`, so they never change it at the same time.
+`syllabus project` commands sync, build, check, and update the project, which reads the rules in `.syllabus/rules/` as its own. `syllabus library` commands check, record changes to, and publish those same rules as the library. The project's `vendor/` and `generated/` directories are never published. Project and library commands share one lock on `.syllabus/`, so they never change it at the same time.
 
-Run `code-rules library init` in an existing project to add an empty `library` section, keeping its `sources`, or `code-rules project init` in a library to add the project's files.
+Run `syllabus library init` in an existing project to add an empty `library` section, keeping its `sources`, or `syllabus project init` in a library to add the project's files.
 
 ## Shared assets
 
 Files that several rules use, such as a shared diagram, live in the library-root `assets/` directory. A rule's own supporting files live beside it instead. [Supporting assets](/reference/rule-format/#supporting-assets) covers both locations and the rules for linking to them.
 
-Shared files are library-wide files: they aren't part of any rule version, need no change note when they change, and reach projects with the next library release, when each project runs `code-rules project update`. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
+Shared files are library-wide files: they aren't part of any rule version, need no change note when they change, and reach projects with the next library release, when each project runs `syllabus project update`. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
 
 ## License metadata
 
@@ -121,15 +121,15 @@ The optional `license` object declares the library-wide terms. Authors should us
 | `license.notices` | Paths to accompanying notices, relative to the repository root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the repository.
-Keep them outside `.code-rules/`, such as at the repository root, or in `.code-rules/assets/`. A declared path can't be `.code-rules/config.yaml` or lie in `.code-rules/changes/`, `.code-rules/vendor/`, or `.code-rules/generated/`, and `config.yaml` and the `assets/`, `changes/`, `practices/`, and `techs/` folders at the repository root are reserved, since the layout before this one kept the library's files there.
-Declared license and notice files are [library-wide files](/reference/rule-versions/#what-a-version-covers), so they can't be part of a rule's version: a declared path can't be a rule's Markdown file or lie in an asset directory inside a technology or practice group, such as `.code-rules/rules/practices/testing/assets/verify-retry-limits/LICENSE`. Otherwise a later library release could replace a file that a project's pinned rule version covers. `code-rules library check` rejects such a declaration, and projects refuse to import a library release whose manifest has one.
+Keep them outside `.syllabus/`, such as at the repository root, or in `.syllabus/assets/`. A declared path can't be `.syllabus/config.yaml` or lie in `.syllabus/changes/`, `.syllabus/vendor/`, or `.syllabus/generated/`, and `config.yaml` and the `assets/`, `changes/`, `practices/`, and `techs/` folders at the repository root are reserved, since the layout before this one kept the library's files there.
+Declared license and notice files are [library-wide files](/reference/rule-versions/#what-a-version-covers), so they can't be part of a rule's version: a declared path can't be a rule's Markdown file or lie in an asset directory inside a technology or practice group, such as `.syllabus/rules/practices/testing/assets/verify-retry-limits/LICENSE`. Otherwise a later library release could replace a file that a project's pinned rule version covers. `syllabus library check` rejects such a declaration, and projects refuse to import a library release whose manifest has one.
 Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
-Code Rules retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
-If the declaration is absent, provenance records `license: null`. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
+Syllabus retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
+If the declaration is absent, provenance records `license: null`. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Syllabus never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
 Every imported library has a generated `libraries/<source-name>/README.md` with its repository, imported library release, requested `ref` or pins, each rule's version and whether the project excludes or replaces it, or still imports it after the library retired it, a notice when it was imported from unreleased changes, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. [Provenance](/reference/provenance/) documents the machine-readable records.
 
-The manifest paths select **source files**, not output locations. For declared terms, Code Rules uses these fixed destinations:
+The manifest paths select **source files**, not output locations. For declared terms, Syllabus uses these fixed destinations:
 
 ```text
 generated/libraries/<source-name>/licenses/LICENSE.md
@@ -145,24 +145,24 @@ See [License rules](/guides/license-rules/) for publisher guidance and the bound
 
 ## Libraries in the earlier layout
 
-Earlier versions of Code Rules read a library's manifest from `rule-library.yaml`, and its groups, shared assets, and change notes from `techs/`, `practices/`, `assets/`, and `changes/` at the repository root. This version doesn't read that layout and doesn't move it. Every library command fails, writing nothing, while `rule-library.yaml`, `techs`, or `practices` exists at the repository root, with a message that shows where each file moves:
+Earlier versions of Syllabus read a library's manifest from `rule-library.yaml`, and its groups, shared assets, and change notes from `techs/`, `practices/`, `assets/`, and `changes/` at the repository root. This version doesn't read that layout and doesn't move it. Every library command fails, writing nothing, while `rule-library.yaml`, `techs`, or `practices` exists at the repository root, with a message that shows where each file moves:
 
 | Earlier layout | This layout |
 | --- | --- |
-| `rule-library.yaml` | The `library` section of `.code-rules/config.yaml` |
-| `techs/<group>/`, `practices/<group>/` | `.code-rules/rules/techs/<group>/`, `.code-rules/rules/practices/<group>/` |
-| `assets/` | `.code-rules/assets/` |
-| `changes/` | `.code-rules/changes/` |
+| `rule-library.yaml` | The `library` section of `.syllabus/config.yaml` |
+| `techs/<group>/`, `practices/<group>/` | `.syllabus/rules/techs/<group>/`, `.syllabus/rules/practices/<group>/` |
+| `assets/` | `.syllabus/assets/` |
+| `changes/` | `.syllabus/changes/` |
 
-Move the files with `git mv`, then delete `rule-library.yaml` and write its `license` fields, without `formatVersion`, in the `library` section of `.code-rules/config.yaml`, beside the `sources` the repository uses as a project, if any. License and notice paths stay relative to the repository root, so they don't change.
+Move the files with `git mv`, then delete `rule-library.yaml` and write its `license` fields, without `formatVersion`, in the `library` section of `.syllabus/config.yaml`, beside the `sources` the repository uses as a project, if any. License and notice paths stay relative to the repository root, so they don't change.
 
-Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more `../`, such as `../../../assets/retry-lifecycle.svg`, and its links to license files at the repository root need two more. Links that start with `/assets/` still work, because a link that starts with `/` resolves from `.code-rules/`. Once the library has a library release, record each rule whose links changed with `code-rules library change RULE_ID --bump patch`, then run `code-rules library check`. A rule whose bytes didn't change needs no note, and moving the manifest isn't a library-wide change unless its license fields changed.
+Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more `../`, such as `../../../assets/retry-lifecycle.svg`, and its links to license files at the repository root need two more. Links that start with `/assets/` still work, because a link that starts with `/` resolves from `.syllabus/`. Once the library has a library release, record each rule whose links changed with `syllabus library change RULE_ID --bump patch`, then run `syllabus library check`. A rule whose bytes didn't change needs no note, and moving the manifest isn't a library-wide change unless its license fields changed.
 
-Projects can't import a library release in the earlier layout; sync and update fail with [`unsupported-library-layout`](/reference/imports/#import-limits-and-version-errors) until the library publishes a library release from the new layout and the project selects it. Rule versions that a library release in the earlier layout published still import when a later library release keeps them, unless one of their links resolves to another file in the new layout. A project that imported the library before it moved keeps a `vendor/<source-name>/rule-library.yaml`, which this version can't read either: once the library has published a library release from the new layout, delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`.
+Projects can't import a library release in the earlier layout; sync and update fail with [`unsupported-library-layout`](/reference/imports/#import-limits-and-version-errors) until the library publishes a library release from the new layout and the project selects it. Rule versions that a library release in the earlier layout published still import when a later library release keeps them, unless one of their links resolves to another file in the new layout. A project that imported the library before it moved keeps a `vendor/<source-name>/rule-library.yaml`, which this version can't read either: once the library has published a library release from the new layout, delete `.syllabus/vendor/<source-name>/` and run `syllabus project sync`.
 
 ## Read libraries from other tools
 
-Tools written in Go, such as a catalog of libraries, can read library release tags, release records, rule files, group metadata, and the [canonical group list](/concepts/groups/#canonical-group-ids) with the `github.com/fabricahq/code-rules/coderules` package, whose Go documentation describes its API. Code Rules reads libraries through the same package, so both read them the same way. The package only parses text the tool has already read, such as with a Git library; it has no Git, filesystem, or network access. It follows Code Rules' version, and its API may change before Code Rules 1.0.0.
+Tools written in Go, such as a catalog of libraries, can read library release tags, release records, rule files, group metadata, and the [canonical group list](/concepts/groups/#canonical-group-ids) with the `github.com/fabricahq/code-rules/coderules` package, whose Go documentation describes its API. Syllabus reads libraries through the same package, so both read them the same way. The package only parses text the tool has already read, such as with a Git library; it has no Git, filesystem, or network access. It follows Syllabus's version, and its API may change before Syllabus 1.0.0.
 
 ## Related guides
 

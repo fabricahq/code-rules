@@ -19,7 +19,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-const transactionName = ".code-rules-transaction"
+const transactionName = ".syllabus-transaction"
 
 // backupPrefix begins the name of each backup of a target's previous output in the transaction directory.
 const backupPrefix = "old-"
@@ -27,14 +27,32 @@ const backupPrefix = "old-"
 // maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
 // trees, format 3 adds a project guide, format 4 adds the configuration, format 5 adds local group metadata, format 6
 // adds local rules and their asset directories, which it can remove, and format 7 adds skill folders outside the
-// Code Rules directory, which it can remove too.
+// Syllabus directory, which it can remove too.
 var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules, 7: 4 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders}
 
 // maxJournalFormat is the newest journal format; Apply writes the oldest one that can hold its targets.
 const maxJournalFormat = 7
 
-const lockName = ".code-rules-lock"
-const cleanupName = ".code-rules-cleanup"
+const lockName = ".syllabus-lock"
+const cleanupName = ".syllabus-cleanup"
+
+// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Syllabus. Their
+// presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers.
+var legacyNames = []string{".code-rules-lock", ".code-rules-transaction", ".code-rules-cleanup"}
+
+// requireNoLegacyWriter fails with busy when root holds one of legacyNames.
+func requireNoLegacyWriter(root *os.Root) error {
+	for _, name := range legacyNames {
+		present, err := exists(root, name)
+		if err != nil {
+			return err
+		}
+		if present {
+			return failure("busy", name+": a Code Rules process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command with the code-rules version that was interrupted to recover its changes, then run this command again", nil)
+		}
+	}
+	return nil
+}
 
 // Target is a managed directory, project guide, the project configuration, an authored group's metadata, an
 // authored rule or its asset directory, which only update replaces, when it replaces a fork, or an installed skill
@@ -87,6 +105,9 @@ type journalRecord struct {
 // RequireIdle refuses read-only operations while writing or recovery could expose mixed output.
 // It never creates a lock or performs recovery.
 func RequireIdle(root *os.Root) error {
+	if err := requireNoLegacyWriter(root); err != nil {
+		return err
+	}
 	for _, name := range []string{lockName, transactionName, cleanupName} {
 		present, err := exists(root, name)
 		if err != nil {
@@ -107,6 +128,9 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	}
 	if root == nil || operation == nil {
 		return failure("invalid-operation", "expected an open project root and writer operation", nil)
+	}
+	if err := requireNoLegacyWriter(root); err != nil {
+		return err
 	}
 	if err := acquireLock(ctx, root); err != nil {
 		return err
@@ -279,7 +303,7 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 			recoveryErr = w.root.RemoveAll(transactionName)
 		}
 		if recoveryErr != nil {
-			err = failure("recovery-required", "update failed and rollback could not finish; preserve .code-rules-transaction for recovery", errors.Join(err, recoveryErr))
+			err = failure("recovery-required", "update failed and rollback could not finish; preserve .syllabus-transaction for recovery", errors.Join(err, recoveryErr))
 		}
 	}()
 	entries := []journalEntry{}
@@ -440,7 +464,7 @@ type parent struct {
 	directory string
 }
 
-// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Code Rules
+// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Syllabus
 // directory.
 func (w *Writer) renameIn(p place, from, to string) error {
 	if p.root == w.root {
@@ -521,7 +545,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	ctx := context.Background()
 	places := &roots{project: root}
 	defer places.close()
-	// renameIn renames within p.root, through rename in the Code Rules directory.
+	// renameIn renames within p.root, through rename in the Syllabus directory.
 	renameIn := func(p place, from, to string) error {
 		if p.root == root {
 			return rename(from, to)

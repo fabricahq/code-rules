@@ -1,12 +1,12 @@
-# Code Rules documentation
+# Syllabus documentation
 
-The [Fabrica Code Rules](https://code-rules.fabricahq.com) website documents the Go CLI and its file formats.
+The [Fabrica Syllabus](https://code-rules.fabricahq.com) website documents the Go CLI and its file formats.
 
 The site uses Astro and Starlight, with human-facing guides, a reference, and a dedicated “For agents” section.
 Its visual direction follows [FM Linear's documentation](https://github.com/josh-padnick/fm-linear/tree/main/docs): monochrome typography, generous spacing, and rounded example panels.
 The starting design reference is commit `bbb6bb3f1b94d0506120277179128066270f2e3b`.
 Shared theme tokens and the accessible-callout transform are adapted from that project.
-Homepage content and illustrations are original Code Rules examples; no FM Linear brand imagery is included.
+Homepage content and illustrations are original Syllabus examples; no FM Linear brand imagery is included.
 
 ## Run locally
 
@@ -49,10 +49,10 @@ Homepage composition lives in `src/components/HomePage.astro` and its illustrati
 
 ### Brand assets
 
-The Code Rules mark is the Corner check: a rule card with an open corner and a clear checkmark.
+The Syllabus mark is the Corner check: a rule card with an open corner and a clear checkmark.
 The [brand reference](src/content/docs/reference/brand.mdx) explains how to use it and links every downloadable logo export in `public/brand/`.
 The homepage hero shows the horizontal logo exports, switching between the dark and white files by theme, and `src/components/BrandAsset.astro` renders the reference page's previews.
-The site's favicons at the root of `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) come from the brand package; its favicon and app icon exports are deliberately not published for download because they identify Code Rules itself.
+The site's favicons at the root of `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) come from the brand package; its favicon and app icon exports are deliberately not published for download because they identify Syllabus itself.
 
 ### Styling
 

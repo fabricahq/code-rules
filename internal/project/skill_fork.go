@@ -49,7 +49,7 @@ type SkillForkPlan struct {
 	// name is the skill's install name, which names the fork's folder, and commit the commit of the source's
 	// repository that the source record locks, which the exclusion records as basedOn.
 	name, commit string
-	// files holds the fork's files, by path relative to the Code Rules directory, with their executable bits.
+	// files holds the fork's files, by path relative to the Syllabus directory, with their executable bits.
 	files []filetxn.File
 }
 
@@ -69,7 +69,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		plan.configBytes = original
 		index := slices.IndexFunc(config.Sources, func(source rules.Source) bool { return source.Name == from.Source })
 		if index < 0 {
-			return &ValidationError{Location: "--from", Problem: "no source named " + from.Source + " in .code-rules/config.yaml; name a configured source"}
+			return &ValidationError{Location: "--from", Problem: "no source named " + from.Source + " in .syllabus/config.yaml; name a configured source"}
 		}
 		source := config.Sources[index]
 		if _, excluded := source.SkillExclude[from.Skill]; excluded {
@@ -88,7 +88,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		}
 		snapshot := snapshots[source.Name]
 		if _, installed := snapshot.Skills[from.Skill]; !installed {
-			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run code-rules project sync first", source.Name, from.Skill)}
+			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run syllabus project sync first", source.Name, from.Skill)}
 		}
 		files := snapshot.SkillFiles(from.Skill)
 		location := "vendor/" + source.Name + "/" + from.Skill + "/" + skills.File
@@ -121,7 +121,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 	return plan, nil
 }
 
-// requireSkillForkTarget fails when the Code Rules directory already has folder, the fork's authored skill folder,
+// requireSkillForkTarget fails when the Syllabus directory already has folder, the fork's authored skill folder,
 // skills/<name>, or when an exclusion already names that authored skill as its replacement.
 func requireSkillForkTarget(ctx context.Context, root *os.Root, config rules.Configuration, folder string) error {
 	for _, source := range config.Sources {

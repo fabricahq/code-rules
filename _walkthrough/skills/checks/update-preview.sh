@@ -4,7 +4,7 @@
 cd "$APP" || exit 1
 
 preview="$WORK/update-preview.txt"
-"$CR" project update > "$preview" 2>&1 || { cat "$preview"; fail "code-rules project update failed."; }
+"$CR" project update > "$preview" 2>&1 || { cat "$preview"; fail "syllabus project update failed."; }
 require_text "$preview" "replaced  skills/acme-fix-bug"
 require_text "$preview" "Your skill: skills/acme-fix-bug, based on commit"
 require_text "$preview" "script changed: scripts/check-diff.sh"

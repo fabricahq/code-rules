@@ -90,9 +90,9 @@ type RuleUpdate struct {
 	ReplacementRetired bool   `json:"replacementRetired,omitempty"`
 	CurrentReplacement string `json:"currentReplacement,omitempty"`
 	// ReplacementLocalRule is the project's local rule that already replaces ReplacedBy, when the project replaced
-	// it, relative to the Code Rules directory, so the row doesn't recommend a rule agents don't read.
+	// it, relative to the Syllabus directory, so the row doesn't recommend a rule agents don't read.
 	ReplacementLocalRule string `json:"replacementLocalRule,omitempty"`
-	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Code Rules directory.
+	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Syllabus directory.
 	LocalRule string `json:"localRule,omitempty"`
 	// BasedOn is the version of a replaced rule that its local rule incorporates, as the exclusion records it; the
 	// row then lists the changes after it, From being the imported version. It is nil otherwise.
@@ -106,7 +106,7 @@ type RuleUpdate struct {
 	Reason   string `json:"reason,omitempty"`
 	// Overwrites and Removes list, for an update-fork decision, the local files that replacing the fork writes again
 	// and deletes: of the local rule and the files in its asset directory, those the new fork has and those it
-	// doesn't, relative to the Code Rules directory. The project's preview leaves both empty, never nil, for other
+	// doesn't, relative to the Syllabus directory. The project's preview leaves both empty, never nil, for other
 	// rows; planning leaves them nil.
 	Overwrites []string `json:"overwrites"`
 	Removes    []string `json:"removes"`
@@ -318,7 +318,7 @@ func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, ve
 	}
 	return readPublishedRule(ctx, source, id, version, options, func(release *libraryRelease) error {
 		if release.number != expected.number || release.commit != expected.commit {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when code-rules project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run code-rules project update again.", expected.number, version, id, source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when syllabus project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run syllabus project update again.", expected.number, version, id, source.Name), nil)
 		}
 		return nil
 	})
@@ -353,7 +353,7 @@ func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source
 	}
 	for _, number := range slices.Sorted(maps.Keys(recorded)) {
 		if commit, listed := current[number]; listed && commit != recorded[number] {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when code-rules project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run code-rules project update again.", number, source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when syllabus project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run syllabus project update again.", number, source.Name), nil)
 		}
 	}
 	return nil
@@ -426,10 +426,10 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 		}
 		index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == target.Source })
 		if index < 0 {
-			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .code-rules/config.yaml"}
+			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .syllabus/config.yaml"}
 		}
 		if !configuration.Sources[index].Ref.IsZero() {
-			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run code-rules project sync"}
+			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run syllabus project sync"}
 		}
 		if target.Rule == "" {
 			whole[target.Source] = true

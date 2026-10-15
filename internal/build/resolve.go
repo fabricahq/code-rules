@@ -195,7 +195,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			}
 			version, recorded := snapshot.Rules[id]
 			if !recorded || !validCommit(version.Commit) {
-				return resolution{}, invalid(parsed.ID, "the source snapshot records no version or commit for this rule; run code-rules project sync")
+				return resolution{}, invalid(parsed.ID, "the source snapshot records no version or commit for this rule; run syllabus project sync")
 			}
 			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref.String(), Commit: version.Commit, Version: version.Version, Release: version.Release, legacyLayout: version.LegacyLayout}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
@@ -286,7 +286,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 			continue
 		}
 		if rules.HasDraftMarker(files[file]) {
-			return nil, invalid(authoredLocation(file), "complete the draft and remove its code-rules:draft marker")
+			return nil, invalid(authoredLocation(file), "complete the draft and remove its syllabus:draft marker")
 		}
 		parsed, err := coderules.ParseRule(string(files[file]), file, "local")
 		if err != nil {
@@ -298,7 +298,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 }
 
 // validateLocalLinks checks local rules and Markdown attachments against the shared destination policy, resolving
-// each link from where its file sits in the Code Rules directory. It checks retained attachments even if no active
+// each link from where its file sits in the Syllabus directory. It checks retained attachments even if no active
 // rule links to them; target existence belongs to rendering.
 func validateLocalLinks(files map[string][]byte, localRules map[string]coderules.Rule) error {
 	for _, file := range slices.Sorted(maps.Keys(files)) {

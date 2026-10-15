@@ -56,10 +56,10 @@ func testInstallerPath(t *testing.T) {
 				}
 				t.Skipf("profile written and checked; %s unavailable for evaluation", shell)
 			}
-			command := `. "$1"; . "$1"; command -v code-rules; printf '%s\n' "$PATH"`
+			command := `. "$1"; . "$1"; command -v syllabus; printf '%s\n' "$PATH"`
 			args := []string{"-c", command, "profile-check", profile}
 			if shell == "fish" {
-				args = []string{"--no-config", "-c", `source $argv[1]; source $argv[1]; command -s code-rules; string join : $PATH`, profile}
+				args = []string{"--no-config", "-c", `source $argv[1]; source $argv[1]; command -s syllabus; string join : $PATH`, profile}
 			}
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
@@ -68,7 +68,7 @@ func testInstallerPath(t *testing.T) {
 			cmd.Env = f.environment()
 			checked, err := cmd.CombinedOutput()
 			lines := strings.Split(strings.TrimSpace(string(checked)), "\n")
-			if err != nil || len(lines) != 2 || lines[0] != filepath.Join(destination, "code-rules") || strings.Count(lines[1], destination) != 1 {
+			if err != nil || len(lines) != 2 || lines[0] != filepath.Join(destination, "syllabus") || strings.Count(lines[1], destination) != 1 {
 				t.Fatalf("profile failed in %s: %v\n%s\n%s", shell, err, first, checked)
 			}
 			f.absent(filepath.Join(f.root, "unwanted"))
@@ -140,7 +140,7 @@ func testInstallerPath(t *testing.T) {
 			t.Fatal(output)
 		}
 		f.absent(filepath.Join(f.home, ".profile"))
-		f.content(filepath.Join(f.destination, "code-rules"), f.binary)
+		f.content(filepath.Join(f.destination, "syllabus"), f.binary)
 	})
 	t.Run("unsafe profile remains untouched with manual fallback", func(t *testing.T) {
 		for _, kind := range []string{"symlink", "directory", "read-only"} {
@@ -173,7 +173,7 @@ func testInstallerPath(t *testing.T) {
 				if kind == "read-only" {
 					f.content(profile, original)
 				}
-				f.content(filepath.Join(f.destination, "code-rules"), f.binary)
+				f.content(filepath.Join(f.destination, "syllabus"), f.binary)
 			})
 		}
 	})

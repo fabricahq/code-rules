@@ -13,8 +13,8 @@ git init -q --bare "$WORK/remotes/acme-library.git"
 git clone -q git@demo.invalid:acme-library.git "$LIB" 2>/dev/null
 cd "$LIB"
 
-mkdir -p .code-rules
-cat > .code-rules/config.yaml <<'YAML'
+mkdir -p .syllabus
+cat > .syllabus/config.yaml <<'YAML'
 schemaVersion: 2
 sources: {}
 library:
@@ -35,12 +35,12 @@ TEXT
 
 # write_group GROUP NAME DESCRIPTION WHEN_TO_READ
 write_group() {
-  mkdir -p ".code-rules/rules/$1"
-  printf 'name: %s\ndescription: %s\nwhenToRead: %s\n' "$2" "$3" "$4" > ".code-rules/rules/$1/_group.yaml"
+  mkdir -p ".syllabus/rules/$1"
+  printf 'name: %s\ndescription: %s\nwhenToRead: %s\n' "$2" "$3" "$4" > ".syllabus/rules/$1/_group.yaml"
 }
 # write_rule RULE TITLE WHEN_TO_READ BODY
 write_rule() {
-  printf -- '---\ntitle: %s\nwhenToRead: %s\nimpact: HIGH\nimpactDescription: Agents repeat this mistake without the rule.\n---\n\n%s\n' "$2" "$3" "$4" > ".code-rules/rules/$1.md"
+  printf -- '---\ntitle: %s\nwhenToRead: %s\nimpact: HIGH\nimpactDescription: Agents repeat this mistake without the rule.\n---\n\n%s\n' "$2" "$3" "$4" > ".syllabus/rules/$1.md"
 }
 
 write_group practices/testing "Testing" "How Acme tests code" "Before writing or changing tests"
@@ -59,8 +59,8 @@ write_rule techs/go/table-tests "Use table-driven tests" "When writing Go tests"
 
 # write_skill NAME DESCRIPTION METADATA BODY
 write_skill() {
-  mkdir -p ".code-rules/skills/$1"
-  printf -- '---\nname: %s\ndescription: %s\nmetadata:\n%s---\n\n%s\n' "$1" "$2" "$3" "$4" > ".code-rules/skills/$1/SKILL.md"
+  mkdir -p ".syllabus/skills/$1"
+  printf -- '---\nname: %s\ndescription: %s\nmetadata:\n%s---\n\n%s\n' "$1" "$2" "$3" "$4" > ".syllabus/skills/$1/SKILL.md"
 }
 
 write_skill acme-build-feature "Build a feature one slice at a time. Use when starting a feature." \
@@ -86,9 +86,9 @@ write_skill acme-review "Review a change against Acme rules. Use when asked for 
 '  syllabus-skill-type: review
 ' '1. Run scripts/check-diff.sh to list the changed files.
 2. Check each change against the rules the project includes.'
-mkdir -p .code-rules/skills/acme-review/scripts
-printf '#!/bin/sh\n# List the files the current branch changes.\ngit diff --name-only main...HEAD\n' > .code-rules/skills/acme-review/scripts/check-diff.sh
-chmod +x .code-rules/skills/acme-review/scripts/check-diff.sh
+mkdir -p .syllabus/skills/acme-review/scripts
+printf '#!/bin/sh\n# List the files the current branch changes.\ngit diff --name-only main...HEAD\n' > .syllabus/skills/acme-review/scripts/check-diff.sh
+chmod +x .syllabus/skills/acme-review/scripts/check-diff.sh
 
 write_skill acme-release-notes "Draft release notes. Use when preparing a release." \
 '  syllabus-skill-type: playbook
@@ -109,10 +109,10 @@ commit_all "Add Acme rules and skills"
 git push -q origin main
 
 echo "The library's files:"
-find .code-rules LICENSE.md -type f | sort
+find .syllabus LICENSE.md -type f | sort
 echo
-show code-rules library check
-show code-rules library release --no-github-release --non-interactive
+show syllabus library check
+show syllabus library release --no-github-release --non-interactive
 echo
 echo "Tags in the hosted library:"
 git ls-remote --tags origin

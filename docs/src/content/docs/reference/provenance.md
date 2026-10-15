@@ -3,19 +3,19 @@ title: "Provenance"
 description: "Where to find a rule's source, imported version, replacement reason, and declared license."
 ---
 
-**Provenance** records where your project's rules came from. The main file is `generated/provenance.json` in the **Code Rules directory**, so its path from the project root is `.code-rules/generated/provenance.json`. It identifies the libraries and versions your project uses, the source of each active rule, and any local replacements.
+**Provenance** records where your project's rules came from. The main file is `generated/provenance.json` in the **Syllabus directory**, so its path from the project root is `.syllabus/generated/provenance.json`. It identifies the libraries and versions your project uses, the source of each active rule, and any local replacements.
 
 Read it when you want to understand why a rule is present, investigate a library update, or find out why your project replaced a rule. Tools can also read the JSON to report this information. To find and follow the rules themselves, agents start with [the generated rule index](/reference/files/#where-agents-start).
 
-This page shows where the records live, how Code Rules creates them, and how to trace a rule or skill back to its source.
+This page shows where the records live, how Syllabus creates them, and how to trace a rule or skill back to its source.
 
 :::note[Preview]
-Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields, and the `upstream`, `replacementReason`, and `basedOn` fields of a skill, come in the next Code Rules release.
+Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields, and the `upstream`, `replacementReason`, and `basedOn` fields of a skill, come in the next Syllabus release.
 :::
 
 ## Where to look
 
-Code Rules keeps three related records:
+Syllabus keeps three related records:
 
 | File | What it tells you |
 | --- | --- |
@@ -23,14 +23,14 @@ Code Rules keeps three related records:
 | `vendor/<source-name>/_source.json` | Which commit and original files were imported from one library. |
 | `generated/libraries/<source-name>/README.md` | A readable summary of the imported library release, rule versions, and declared license terms. |
 
-These paths are relative to the Code Rules directory, `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `team`.
+These paths are relative to the Syllabus directory, `.syllabus/`. The **source name** is the name you gave a library in your configuration, such as `team`.
 
-Code Rules writes these files. To change the information they describe, edit your configuration or local rules and run the appropriate [sync or build command](/reference/sync/).
+Syllabus writes these files. To change the information they describe, edit your configuration or local rules and run the appropriate [sync or build command](/reference/sync/).
 
 ## How the records are created
 
 1. **You select libraries and rules.** Configuration records the libraries, selected groups and rules, pins, exclusions, and replacements your project wants to use.
-2. **Sync and update record what they import.** `code-rules project sync` and `code-rules project update` copy each library's selected files and write its `_source.json` record with the exact Git commit, rule versions, and file checksums.
+2. **Sync and update record what they import.** `syllabus project sync` and `syllabus project update` copy each library's selected files and write its `_source.json` record with the exact Git commit, rule versions, and file checksums.
 3. **Generation records the result.** Sync, update, or build combines the imported and local rules, then writes `generated/provenance.json` alongside the guidance your agents read.
 
 An **active rule** is one included in that generated guidance. An excluded rule has no active rule entry. A local replacement has an entry that also identifies the imported rule it replaced.
@@ -86,8 +86,8 @@ The same `generated/provenance.json` file contains four other top-level fields:
 
 | Field | What it records |
 | --- | --- |
-| `generatedNotice` | A reminder that Code Rules generates the file, and how to regenerate it. |
-| `toolVersion` | The Code Rules version that generated the files. |
+| `generatedNotice` | A reminder that Syllabus generates the file, and how to regenerate it. |
+| `toolVersion` | The Syllabus version that generated the files. |
 | `sources` | Each named source, its `kind`, `library` or `non-library`, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, declared terms, its `skillInclude`, and the IDs of the `skills` it supplies, including those the project excludes. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 | `skills` | Each installed skill, as described in [Trace a skill to its source](#trace-a-skill-to-its-source). |
@@ -102,9 +102,9 @@ Each entry in the `skills` array of `generated/provenance.json` records one skil
 
 | Field | What it records |
 | --- | --- |
-| `id` | The skill's project ID, such as `fabrica:skills/build-feature`, or `skills/release-checklist` for a skill authored in `.code-rules/skills/`. |
+| `id` | The skill's project ID, such as `fabrica:skills/build-feature`, or `skills/release-checklist` for a skill authored in `.syllabus/skills/`. |
 | `name` and `type` | The install name, which names its installed folders, and the `metadata.syllabus-skill-type` its `SKILL.md` declares, or `null`. |
-| `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.code-rules/`. `version` and `release` are `null`: skills don't have versions yet. |
+| `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.syllabus/`. `version` and `release` are `null`: skills don't have versions yet. |
 | `level` | `offered` for a library's skill, or `null` for an authored skill or one from a repository that isn't a library. |
 | `included` | `true` when configuration includes the skill, as it includes every authored skill; `false` for a source's skill installed only because other skills use it. |
 | `usedBy` and `uses` | The project IDs of the installed skills that use this one, and of those it uses, by its `syllabus-skills-used` and its source's `skills.uses`, sorted; empty when there are none. |
@@ -115,7 +115,7 @@ Every skill of a source comes from the source's one recorded commit. The install
 
 ## Inspect the original imported files
 
-Each source has a separate `vendor/<source-name>/_source.json` file. It describes the **snapshot**: the original files the project imported, which version of each rule they belong to, and the skills they hold. It works like a lockfile: `code-rules project sync` restores exactly what it records. The directory name identifies the source.
+Each source has a separate `vendor/<source-name>/_source.json` file. It describes the **snapshot**: the original files the project imported, which version of each rule they belong to, and the skills they hold. It works like a lockfile: `syllabus project sync` restores exactly what it records. The directory name identifies the source.
 
 ```json
 {
@@ -183,21 +183,21 @@ Each source has a separate `vendor/<source-name>/_source.json` file. It describe
 
 | Field | Meaning |
 | --- | --- |
-| `formatVersion` | The snapshot format version, `3`. An older format, such as `2`, fails with advice to delete `.code-rules/vendor/` and run `code-rules project sync`, which records the sources again. With no record to restore, that sync imports each rule's newest version, except rules you pin and sources that set `ref`, so it can move rules to versions your project didn't use before; pin a rule, or set `ref: release/<number>`, first to keep what you had. A newer format, written by a later Code Rules, fails with `unsupported-source-record` and asks you to upgrade Code Rules instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
-| `checksum` | The SHA-256 checksum of the record's other fields, as sync wrote them. Offline, `code-rules project build` and `code-rules project check` refuse a record whose checksum doesn't match, or that has none, as changed outside `code-rules project sync`, such as by hand or in a merge resolution, because its versions and releases can't be trusted without the library. `code-rules project sync`, `code-rules project update`, and a [fork](/reference/cli/#fork-a-library-rule) refuse it too and write nothing, as sync does when it removes a source whose record holds the group metadata a local rule needs; a removed source whose record no local rule needs is discarded with the rest of its files: it never records again a record it didn't write, whatever the record says, since no check of individual facts can establish that an edited record is right. Records from earlier preview builds, which have no checksum, are refused the same way. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. To resolve a merge conflict in `_source.json`, take one side of the file rather than combining them, and let sync apply the merged configuration. A record that sync can't read at all, such as one with an unknown field, fails with advice to delete `.code-rules/vendor/<source-name>/` and sync, which imports the source again, with its unpinned rules at their newest versions. |
+| `formatVersion` | The snapshot format version, `3`. An older format, such as `2`, fails with advice to delete `.syllabus/vendor/` and run `syllabus project sync`, which records the sources again. With no record to restore, that sync imports each rule's newest version, except rules you pin and sources that set `ref`, so it can move rules to versions your project didn't use before; pin a rule, or set `ref: release/<number>`, first to keep what you had. A newer format, written by a later Syllabus, fails with `unsupported-source-record` and asks you to upgrade Syllabus instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
+| `checksum` | The SHA-256 checksum of the record's other fields, as sync wrote them. Offline, `syllabus project build` and `syllabus project check` refuse a record whose checksum doesn't match, or that has none, as changed outside `syllabus project sync`, such as by hand or in a merge resolution, because its versions and releases can't be trusted without the library. `syllabus project sync`, `syllabus project update`, and a [fork](/reference/cli/#fork-a-library-rule) refuse it too and write nothing, as sync does when it removes a source whose record holds the group metadata a local rule needs; a removed source whose record no local rule needs is discarded with the rest of its files: it never records again a record it didn't write, whatever the record says, since no check of individual facts can establish that an edited record is right. Records from earlier preview builds, which have no checksum, are refused the same way. To recover, restore a record sync wrote with `git checkout -- .syllabus/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `syllabus project sync`, which applies any configuration changes; or delete `.syllabus/vendor/<source-name>/` and run `syllabus project sync`, which imports the source again, with its unpinned rules at their newest versions. To resolve a merge conflict in `_source.json`, take one side of the file rather than combining them, and let sync apply the merged configuration. A record that sync can't read at all, such as one with an unknown field, fails with advice to delete `.syllabus/vendor/<source-name>/` and sync, which imports the source again, with its unpinned rules at their newest versions. |
 | `kind` | `library`, or `non-library` for a repository without a library manifest at the recorded commit. A `non-library` record has only skills: no `release`, and empty `groupSelection`, `groups`, `rules`, and `retiredRules`. |
 | `repository` | The source's repository address. |
-| `ref` | The source's `ref` from configuration when the snapshot was recorded, omitted when configuration has none. Changing it to another spelling of the same revision, such as `refs/tags/release/2` for `release/2`, keeps the recorded spelling, so the record stays current. Pins and exclusions aren't recorded: configuration owns them, and a pinned rule's `version` in `rules` is the pinned version. So adding, rewording, or removing a pin that moves nothing, or an exclusion, by hand or with a fork, never makes the record out of date, unless the entry names a retired rule that `retiredRules` doesn't list yet; then offline checks ask for `code-rules project sync`, which records the retirement. Generated guidance and `generated/provenance.json` show the configured pins and their reasons. |
-| `release` | The library release that supplied the library-wide files: the group metadata, shared assets, and license files. It is the newest library release when the source was added, selected more rules, or last ran a full `code-rules project update`, and never older than the `release` of any imported rule; plain `code-rules project sync` keeps it. With `ref`, it's the library release your `ref` names, and it's omitted when your `ref` isn't a library release. |
+| `ref` | The source's `ref` from configuration when the snapshot was recorded, omitted when configuration has none. Changing it to another spelling of the same revision, such as `refs/tags/release/2` for `release/2`, keeps the recorded spelling, so the record stays current. Pins and exclusions aren't recorded: configuration owns them, and a pinned rule's `version` in `rules` is the pinned version. So adding, rewording, or removing a pin that moves nothing, or an exclusion, by hand or with a fork, never makes the record out of date, unless the entry names a retired rule that `retiredRules` doesn't list yet; then offline checks ask for `syllabus project sync`, which records the retirement. Generated guidance and `generated/provenance.json` show the configured pins and their reasons. |
+| `release` | The library release that supplied the library-wide files: the group metadata, shared assets, and license files. It is the newest library release when the source was added, selected more rules, or last ran a full `syllabus project update`, and never older than the `release` of any imported rule; plain `syllabus project sync` keeps it. With `ref`, it's the library release your `ref` names, and it's omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |
-| `retiredRules` | The IDs of the rules the library retired that the source would otherwise import, sorted, and empty when there are none. A retired rule the source still imports, such as one a pin keeps at its last version, is in both `rules` and `retiredRules`, which says it's retired, and the generated library README marks it so. The rules it lists are those your `rules.include` selects, and those the previous record imported or listed, so an exclusion left after you deselect a retired rule still only warns. It records what the library told sync, not your configuration, so offline checks can tell an exclusion of a retired rule from a typo. `code-rules project update` refreshes it; `code-rules project sync` keeps it byte for byte unless the selection, `ref`, or `release` changes, so a pin or exclusion edit leaves `_source.json` unchanged when the record already covers the rule it names. When you pin or exclude a retired rule the record doesn't list yet, sync checks it against the library and adds it. |
+| `retiredRules` | The IDs of the rules the library retired that the source would otherwise import, sorted, and empty when there are none. A retired rule the source still imports, such as one a pin keeps at its last version, is in both `rules` and `retiredRules`, which says it's retired, and the generated library README marks it so. The rules it lists are those your `rules.include` selects, and those the previous record imported or listed, so an exclusion left after you deselect a retired rule still only warns. It records what the library told sync, not your configuration, so offline checks can tell an exclusion of a retired rule from a typo. `syllabus project update` refreshes it; `syllabus project sync` keeps it byte for byte unless the selection, `ref`, or `release` changes, so a pin or exclusion edit leaves `_source.json` unchanged when the record already covers the rule it names. When you pin or exclude a retired rule the record doesn't list yet, sync checks it against the library and adds it. |
 | `groupSelection` | The groups your `rules.include` selects in full: `"*"`, `"practices/*"`, or `"techs/*"` alone, or a list of group IDs, such as `techs/go` for `techs/go/*`, with any of those selectors. |
 | `ruleSelection` | The rule IDs your `rules.include` lists individually. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
 | `skillInclude` | The source's `skills.include`, sorted, and empty when it includes no skills. |
-| `skills` | Each installed skill's ID, including skills the project excludes, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library; `included`, `true` when `skills.include` selects it; and `usedBy`, the source's installed skills that use it, sorted. A skill that isn't included is installed because the skills in its `usedBy` use it. Every skill comes from `resolvedCommit`; `code-rules project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` or `skills.uses` names a skill this commit doesn't have. Offline checks read each vendored skill's `syllabus-skills-used` and your `skills.uses`, and ask for `code-rules project sync` when the record doesn't install exactly the skills they reach. |
-| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. A library's skill files are stored under `skills/<name>/`, as its `.code-rules/skills/` holds them, and another repository's at their path in the repository. |
+| `skills` | Each installed skill's ID, including skills the project excludes, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library; `included`, `true` when `skills.include` selects it; and `usedBy`, the source's installed skills that use it, sorted. A skill that isn't included is installed because the skills in its `usedBy` use it. Every skill comes from `resolvedCommit`; `syllabus project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` or `skills.uses` names a skill this commit doesn't have. Offline checks read each vendored skill's `syllabus-skills-used` and your `skills.uses`, and ask for `syllabus project sync` when the record doesn't install exactly the skills they reach. |
+| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. A library's skill files are stored under `skills/<name>/`, as its `.syllabus/skills/` holds them, and another repository's at their path in the repository. |
 | `executable` | The skill files whose executable bit the repository records, sorted. The vendored copies, and the installed copies, carry the same bit, and offline checks compare it. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
@@ -208,16 +208,16 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 
 ### What offline checks can verify
 
-`code-rules project build` and `code-rules project check` compare the recorded library selection with configuration and compare stored files with their checksums. Version checks depend on how the source chooses versions:
+`syllabus project build` and `syllabus project check` compare the recorded library selection with configuration and compare stored files with their checksums. Version checks depend on how the source chooses versions:
 
-| Choice | What Code Rules verifies offline |
+| Choice | What Syllabus verifies offline |
 | --- | --- |
 | Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. `release` is at least as new as every rule's `release`. |
 | One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release `release/N`, the source records release N, and every rule records a published version from library release N or earlier. A tag's recorded commit is used without checking where the tag points now. |
 
-For every source, offline checks first verify the record's `checksum`, so a record changed outside sync fails until you restore a record sync wrote or import the source again. They also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions. Each exclusion must name a rule in `rules` or `retiredRules`; any other exclusion could be a typo that leaves the rule you meant active, so the check reports that it names no rule the library supplies and asks you to run `code-rules project sync`, which checks it against the library.
+For every source, offline checks first verify the record's `checksum`, so a record changed outside sync fails until you restore a record sync wrote or import the source again. They also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions. Each exclusion must name a rule in `rules` or `retiredRules`; any other exclusion could be a typo that leaves the rule you meant active, so the check reports that it names no rule the library supplies and asks you to run `syllabus project sync`, which checks it against the library.
 
-Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags; `code-rules project sync` checks the latter against the release records before it imports anything. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
+Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags; `syllabus project sync` checks the latter against the release records before it imports anything. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
 
 ## Find declared licenses and source credits
 
@@ -229,8 +229,8 @@ The license record distinguishes original files from the copies retained with ge
 
 | Field inside `license` | Paths in a source record | Paths in a rule record |
 | --- | --- | --- |
-| `files` | Original license files, by their paths in the library: relative to the repository root, or to `.code-rules/` for a file in `.code-rules/assets/`. | Original license files under `vendor/<source-name>/`, relative to the Code Rules directory. |
-| `attributionFiles` | Original notice files, by their paths in the library, as `files`. | Original notice files under `vendor/<source-name>/`, relative to the Code Rules directory. |
+| `files` | Original license files, by their paths in the library: relative to the repository root, or to `.syllabus/` for a file in `.syllabus/assets/`. | Original license files under `vendor/<source-name>/`, relative to the Syllabus directory. |
+| `attributionFiles` | Original notice files, by their paths in the library, as `files`. | Original notice files under `vendor/<source-name>/`, relative to the Syllabus directory. |
 | `generatedFiles` | Retained license copies, relative to `generated/`. | The same generated license copies. |
 | `generatedAttributionFiles` | Retained notice copies, relative to `generated/`. | The same generated notice copies. |
 

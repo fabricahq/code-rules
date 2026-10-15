@@ -3,7 +3,7 @@
 . "{{ .inputs.WorkDir }}/env.sh" || exit 1
 cd "$APP" || exit 1
 
-rules=.code-rules/generated/rules/acme
+rules=.syllabus/generated/rules/acme
 for rule in practices/testing/test-behavior practices/testing/name-tests-by-behavior practices/releases/write-release-notes techs/go/wrap-errors; do
   [ -f "$rules/$rule.md" ] || fail "$rule wasn't imported."
   pass "$rule imported"

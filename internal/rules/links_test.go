@@ -72,7 +72,7 @@ func TestLibraryTarget(t *testing.T) {
 		{"/assets/retry.svg?raw=1", "techs/go/errors.md", "assets/retry.svg", "?raw=1", true, false},
 		{"/rules/techs/go/assets/errors/x.png", "techs/go/errors.md", "techs/go/assets/errors/x.png", "", true, false},
 		{"/LICENSE.md", "techs/go/errors.md", "", "", false, true},
-		{"/.code-rules/assets/retry.svg", "techs/go/errors.md", "", "", false, true},
+		{"/.syllabus/assets/retry.svg", "techs/go/errors.md", "", "", false, true},
 		{"../../practices/testing/retries.md", "techs/go/errors.md", "practices/testing/retries.md", "", true, false},
 		{"retry.svg", "assets/guide.md", "assets/retry.svg", "", true, false},
 		{"#part", "techs/go/errors.md", "techs/go/errors.md", "#part", true, false},

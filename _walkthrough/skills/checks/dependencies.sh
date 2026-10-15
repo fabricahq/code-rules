@@ -7,5 +7,5 @@ for skill in acme-tdd team-security-review; do
   [ -f ".claude/skills/$skill/SKILL.md" ] || fail "$skill isn't installed."
   pass "$skill installed"
 done
-require_text .code-rules/generated/SKILLS.md '- **Installed because:** used by `acme-build-feature`'
-require_text .code-rules/generated/SKILLS.md '- **Installed because:** used by `team-pr-review`'
+require_text .syllabus/generated/SKILLS.md '- **Installed because:** used by `acme-build-feature`'
+require_text .syllabus/generated/SKILLS.md '- **Installed because:** used by `team-pr-review`'

@@ -38,7 +38,7 @@ description: Write a commit message. Use when committing.
 
 Write a short subject in the imperative mood, then a body that says why.
 MD
-printf '# Team skills\n\nSkills our team shares. This repository is not a Code Rules library.\n' > README.md
+printf '# Team skills\n\nSkills our team shares. This repository is not a Syllabus library.\n' > README.md
 
 commit_all "Add team skills"
 git tag v1.0.0

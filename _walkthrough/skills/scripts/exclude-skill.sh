@@ -4,7 +4,7 @@ set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 cd "$APP"
 
-cat > .code-rules/config.yaml <<'YAML'
+cat > .syllabus/config.yaml <<'YAML'
 schemaVersion: 2
 skillTargets: [claude, agents]
 sources:
@@ -31,8 +31,8 @@ sources:
       uses:
         review/pr-review: [review/security-review]
 YAML
-show cat .code-rules/config.yaml
-show code-rules project sync
+show cat .syllabus/config.yaml
+show syllabus project sync
 show ls .claude/skills
-show sed -n '/^## Excluded skills/,$p' .code-rules/generated/SKILLS.md
+show sed -n '/^## Excluded skills/,$p' .syllabus/generated/SKILLS.md
 commit_all "Take every Acme skill but one"

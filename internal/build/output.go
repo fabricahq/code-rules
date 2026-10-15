@@ -89,7 +89,7 @@ func libraryReadme(source resolvedSource) string {
 	sections := []string{"# " + escapeText(source.Name)}
 	// Only a library that declares license or notice files has copies here to describe.
 	if source.License != nil && len(licenseMappings(source.Name, source.License)) > 0 {
-		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.")
+		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `syllabus project sync`.")
 	}
 	sections = append(sections, "**Repository:** "+escapeText(source.Repository))
 	if source.NonLibrary {
@@ -123,7 +123,7 @@ func libraryReadme(source resolvedSource) string {
 		sections = append(sections, "## Skills", "This source supplies these skills from the resolved commit, and the project installs each one it doesn't exclude or replace. [SKILLS.md](../../SKILLS.md) says what each one does, where it's installed, and why the project excludes or replaces one.", strings.Join(items, "\n"))
 	}
 	if len(source.Pins) > 0 {
-		sections = append(sections, "## Pins", "`code-rules project update` keeps these rules at their pinned versions.", pinList(source.Pins))
+		sections = append(sections, "## Pins", "`syllabus project update` keeps these rules at their pinned versions.", pinList(source.Pins))
 	}
 	sections = append(sections, "## License terms")
 	if source.License == nil {
@@ -241,7 +241,7 @@ type provenanceSkill struct {
 
 // provenanceSkillOrigin identifies the source, repository, and commit that supplied a skill, and its folder there:
 // in the source's repository, or, for an authored skill, whose source, repository, and commit are null, in the
-// Code Rules directory. Version and release are null until skills have versions.
+// Syllabus directory. Version and release are null until skills have versions.
 type provenanceSkillOrigin struct {
 	Source     *string `json:"source"`
 	Repository *string `json:"repository"`

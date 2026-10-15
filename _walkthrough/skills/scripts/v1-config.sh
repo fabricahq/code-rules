@@ -4,10 +4,10 @@ set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 
 SCRATCH="$WORK/scratch/v1-config"
-mkdir -p "$SCRATCH/.code-rules"
+mkdir -p "$SCRATCH/.syllabus"
 cd "$SCRATCH"
 [ -d .git ] || git init -q
-cat > .code-rules/config.yaml <<'YAML'
+cat > .syllabus/config.yaml <<'YAML'
 schemaVersion: 1
 sources:
   acme:
@@ -18,5 +18,5 @@ sources:
       practices/testing/name-tests-by-behavior:
         reason: We name tests after the function they cover.
 YAML
-show cat .code-rules/config.yaml
-expect_failure code-rules project check
+show cat .syllabus/config.yaml
+expect_failure syllabus project check

@@ -4,8 +4,8 @@ set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 cd "$APP"
 
-show code-rules project update --yes
-show code-rules project check
+show syllabus project update --yes
+show syllabus project check
 show ls -l .claude/skills/acme-review/scripts
 echo
 echo "Your fork is unchanged; the library's new step 4 isn't in it:"

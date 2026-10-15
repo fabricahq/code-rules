@@ -4,7 +4,7 @@ set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 cd "$APP"
 
-cat > .code-rules/config.yaml <<'YAML'
+cat > .syllabus/config.yaml <<'YAML'
 schemaVersion: 2
 skillTargets: [claude, agents]
 sources:
@@ -18,9 +18,9 @@ sources:
         - id: practices/testing/name-tests-by-behavior
           reason: We name tests after the function they cover.
 YAML
-show cat .code-rules/config.yaml
+show cat .syllabus/config.yaml
 
 # check notices that generated guidance no longer matches the configuration, and build fixes it offline.
-expect_failure code-rules project check
-show code-rules project build
-show code-rules project check
+expect_failure syllabus project check
+show syllabus project build
+show syllabus project check

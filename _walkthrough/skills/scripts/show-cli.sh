@@ -3,6 +3,6 @@
 set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 
-show code-rules --version
-show code-rules --help
-show code-rules project --help
+show syllabus --version
+show syllabus --help
+show syllabus project --help

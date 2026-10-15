@@ -80,19 +80,19 @@ type recordRule struct {
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
-const unsupportedRecord = "unsupported source record; delete .code-rules/vendor/ and run code-rules project sync to import it again, which imports unpinned rules at their newest versions"
+const unsupportedRecord = "unsupported source record; delete .syllabus/vendor/ and run syllabus project sync to import it again, which imports unpinned rules at their newest versions"
 
 // reimport is the next step for a source record sync can't read: importing the source again, as if it were new.
 func reimport(name string) string {
-	return "delete .code-rules/vendor/" + name + "/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
+	return "delete .syllabus/vendor/" + name + "/ and run syllabus project sync to import the source again, which imports its unpinned rules at their newest versions"
 }
 
 // changedOutsideSync refuses the source record of the source name, whose checksum shows it was changed outside sync,
 // for offline commands and sync alike, since nothing in it can be trusted, and says how to recover: restore a record
 // sync wrote, or import the source again.
 func changedOutsideSync(name string) error {
-	record := ".code-rules/vendor/" + name + "/_source.json"
-	return invalidSnapshot("vendor/"+name+"/_source.json", "was changed outside code-rules project sync, such as by hand or in a merge, and only a record sync wrote can be trusted; restore one with git checkout -- "+record+", or, during a merge conflict, take one side with git checkout --ours or --theirs -- "+record+", then run code-rules project sync, which applies any configuration changes; or delete .code-rules/vendor/"+name+"/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions")
+	record := ".syllabus/vendor/" + name + "/_source.json"
+	return invalidSnapshot("vendor/"+name+"/_source.json", "was changed outside syllabus project sync, such as by hand or in a merge, and only a record sync wrote can be trusted; restore one with git checkout -- "+record+", or, during a merge conflict, take one side with git checkout --ours or --theirs -- "+record+", then run syllabus project sync, which applies any configuration changes; or delete .syllabus/vendor/"+name+"/ and run syllabus project sync to import the source again, which imports its unpinned rules at their newest versions")
 }
 
 // isChangedOutsideSync reports whether err is changedOutsideSync's refusal of the source name's record.
@@ -118,12 +118,12 @@ func recordChecksum(record sourceRecord) string {
 func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) (map[string][]byte, error) {
 	output := map[string][]byte{}
 	if len(snapshots) != len(config.Sources) {
-		return nil, invalidSnapshot("vendor", "source inventory differs from configuration; run code-rules project sync")
+		return nil, invalidSnapshot("vendor", "source inventory differs from configuration; run syllabus project sync")
 	}
 	for _, source := range config.Sources {
 		snapshot, ok := snapshots[source.Name]
 		if !ok {
-			return nil, invalidSnapshot("vendor/"+source.Name, "missing source snapshot; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+source.Name, "missing source snapshot; run syllabus project sync")
 		}
 		selection, err := json.Marshal(snapshot.Selection)
 		if err != nil {
@@ -216,7 +216,7 @@ func verifyExecutable(snapshots map[string]snapshot, vendor *filetxn.Tree) error
 	if expected := vendorExecutable(snapshots); !slices.Equal(actual, expected) {
 		for _, file := range slices.Concat(actual, expected) {
 			if !slices.Contains(actual, file) || !slices.Contains(expected, file) {
-				return invalidSnapshot("vendor/"+file, "its executable bit differs from what the source record lists; run code-rules project sync")
+				return invalidSnapshot("vendor/"+file, "its executable bit differs from what the source record lists; run syllabus project sync")
 			}
 		}
 	}
@@ -237,7 +237,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		recordPath := source.Name + "/_source.json"
 		data, ok := vendor[recordPath]
 		if !ok {
-			return nil, invalidSnapshot("vendor/"+recordPath, "missing source record; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+recordPath, "missing source record; run syllabus project sync")
 		}
 		record, err := parseSourceRecord(data, source.Name)
 		if err != nil {
@@ -252,7 +252,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 			full := source.Name + "/" + file
 			data, ok := vendor[full]
 			if !ok || digest(data) != record.digests[file] {
-				return nil, invalidSnapshot("vendor/"+full, "missing or modified imported content; run code-rules project sync")
+				return nil, invalidSnapshot("vendor/"+full, "missing or modified imported content; run syllabus project sync")
 			}
 			record.Files[file] = bytes.Clone(data)
 			expected[full] = true
@@ -264,7 +264,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {
-			return nil, invalidSnapshot("vendor/"+file, "unexpected imported file or removed source; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+file, "unexpected imported file or removed source; run syllabus project sync")
 		}
 	}
 	return result, nil
@@ -300,11 +300,11 @@ type parsedRecord struct {
 // match its fields, or that has none, so no caller can use a record changed outside sync. Relationships to
 // configuration are matchSnapshotSource's. A record it can't read fails validation with advice to import the source
 // again, and so does an older format, such as 2; a newer one fails with code unsupported-source-record, asking to
-// upgrade Code Rules.
+// upgrade Syllabus.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	record, err := readSourceRecord(data, name)
 	var invalid errs.ValidationError
-	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.ValidationProblem(), "code-rules project sync") {
+	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.ValidationProblem(), "syllabus project sync") {
 		return parsedRecord{}, invalidSnapshot(invalid.ValidationLocation(), invalid.ValidationProblem()+"; "+reimport(name))
 	}
 	return record, err
@@ -313,7 +313,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // readSourceRecord is parseSourceRecord without the next step its validation errors share.
 func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	where := "vendor/" + name + "/_source.json"
-	if err := rules.RequireResolvedMerge(data, where, "take one side, which sync wrote, such as with git checkout --ours or --theirs -- .code-rules/vendor/"+name+"/_source.json, and run code-rules project sync"); err != nil {
+	if err := rules.RequireResolvedMerge(data, where, "take one side, which sync wrote, such as with git checkout --ours or --theirs -- .syllabus/vendor/"+name+"/_source.json, and run syllabus project sync"); err != nil {
 		return parsedRecord{}, err
 	}
 	var fields map[string]json.RawMessage
@@ -323,7 +323,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	var format int
 	if json.Unmarshal(fields["formatVersion"], &format) == nil && format > sourceRecordFormat {
 		// Deleting vendor/ and syncing would rewrite the project in an older format, so this isn't the advice.
-		return parsedRecord{}, failure("unsupported-source-record", fmt.Sprintf("%s was written by a newer version of Code Rules, in source record format %d, but this version reads only format %d; upgrade Code Rules to use this project", where, format, sourceRecordFormat), nil)
+		return parsedRecord{}, failure("unsupported-source-record", fmt.Sprintf("%s was written by a newer version of Syllabus, in source record format %d, but this version reads only format %d; upgrade Syllabus to use this project", where, format, sourceRecordFormat), nil)
 	}
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
@@ -428,7 +428,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	}
 	if _, ok := paths[librarytree.Manifest]; !ok {
 		if _, legacy := paths[librarytree.LegacyManifest]; legacy {
-			return parsedRecord{}, invalidSnapshot(where, "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, "+reimport(name))
+			return parsedRecord{}, invalidSnapshot(where, "records a library in the layout from before this version of Syllabus, with rule-library.yaml, which this version can't read. Once the library has moved its files into .syllabus/ and published a library release, "+reimport(name))
 		}
 		return parsedRecord{}, invalidSnapshot(where, "missing library manifest from inventory")
 	}
@@ -504,7 +504,7 @@ func readRecordSkills(record sourceRecord, where string, paths map[string][]byte
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	where := "vendor/" + source.Name + "/_source.json"
 	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || !source.Groups.Equal(record.Selection) || !slices.Equal(source.Rules, record.RuleSelection) || !slices.Equal(source.Skills, record.SkillSelection) {
-		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
+		return invalidSnapshot(where, "source identity or selection changed; run syllabus project sync")
 	}
 	included := []string{}
 	for id, skill := range record.Skills {
@@ -514,17 +514,17 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	}
 	slices.Sort(included)
 	if !slices.Equal(source.Skills, []string{skills.Wildcard}) && !slices.Equal(source.Skills, included) {
-		return invalidSnapshot(where, "recorded skills differ from sources."+source.Name+".skills.include; run code-rules project sync")
+		return invalidSnapshot(where, "recorded skills differ from sources."+source.Name+".skills.include; run syllabus project sync")
 	}
 	if record.NonLibrary && source.Ref.IsZero() {
-		return invalidSnapshot(where, "a source that isn't a library needs a ref; run code-rules project sync")
+		return invalidSnapshot(where, "a source that isn't a library needs a ref; run syllabus project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
 		pin := source.Pins[id]
 		// A pin of a rule the library retired keeps nothing, so any version passes; sync warns about it.
 		rule, imported := record.Rules[id]
 		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && !slices.Contains(record.RetiredRules, id) {
-			return invalidSnapshot(where, "sources."+source.Name+".rules.pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
+			return invalidSnapshot(where, "sources."+source.Name+".rules.pins."+id+" names a version the snapshot doesn't import; run syllabus project sync")
 		}
 	}
 	// An exclusion matching neither an imported rule nor a retired one could be a typo that leaves the intended rule
@@ -532,7 +532,7 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	for _, id := range slices.Sorted(maps.Keys(source.Exclude)) {
 		matches := func(rule string) bool { return rules.SelectorMatches(id, rule) }
 		if !slices.ContainsFunc(slices.Collect(maps.Keys(record.Rules)), matches) && !slices.ContainsFunc(record.RetiredRules, matches) {
-			return invalidSnapshot("sources."+source.Name+".rules.exclude."+id, "names no rule the library supplies to this source; run code-rules project sync to check it against the library")
+			return invalidSnapshot("sources."+source.Name+".rules.exclude."+id, "names no rule the library supplies to this source; run syllabus project sync to check it against the library")
 		}
 	}
 	for _, group := range source.Groups.Groups {
@@ -594,19 +594,19 @@ func matchSkillUses(source rules.Source, snapshot library.Snapshot) error {
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.SkillUses)) {
 		if _, ok := snapshot.Skills[id]; !ok {
-			return invalidSnapshot("sources."+source.Name+".skills.uses."+id, "names a skill the snapshot doesn't install; run code-rules project sync to check it against the source")
+			return invalidSnapshot("sources."+source.Name+".skills.uses."+id, "names a skill the snapshot doesn't install; run syllabus project sync to check it against the source")
 		}
 	}
 	installed, err := skills.ResolveUses(included, uses)
 	if err != nil {
-		return invalidSnapshot(where, "the recorded skills don't install every skill they use, by syllabus-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
+		return invalidSnapshot(where, "the recorded skills don't install every skill they use, by syllabus-skills-used and sources."+source.Name+".skills.uses; run syllabus project sync")
 	}
 	if len(installed) != len(snapshot.Skills) {
-		return invalidSnapshot(where, "the recorded skills differ from those sources."+source.Name+".skills.include selects and the skills they use; run code-rules project sync")
+		return invalidSnapshot(where, "the recorded skills differ from those sources."+source.Name+".skills.include selects and the skills they use; run syllabus project sync")
 	}
 	for id, why := range installed {
 		if !slices.Equal(why.UsedBy, snapshot.Skills[id].UsedBy) {
-			return invalidSnapshot(where+".skills."+id, "the skills recorded as using it differ from syllabus-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
+			return invalidSnapshot(where+".skills."+id, "the skills recorded as using it differ from syllabus-skills-used and sources."+source.Name+".skills.uses; run syllabus project sync")
 		}
 	}
 	return nil

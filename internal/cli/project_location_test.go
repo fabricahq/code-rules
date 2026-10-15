@@ -60,7 +60,7 @@ func TestProjectCommandsRejectCustomConfiguration(t *testing.T) {
 	}
 }
 
-func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
+func TestProjectUsesOnlyRootSyllabusDirectory(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	// An unrelated configuration file must never become project state implicitly.
@@ -80,7 +80,7 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"config.yaml", "README.md", "generated/RULES.md"} {
-		if _, err := os.Stat(filepath.Join(directory, ".code-rules", name)); err != nil {
+		if _, err := os.Stat(filepath.Join(directory, ".syllabus", name)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -99,14 +99,14 @@ func TestProjectRootFailuresAreConsistent(t *testing.T) {
 			if out, diagnostic, code := runCLI(t, binary, target, "project", "init"); code != 0 {
 				t.Fatal(code, out, diagnostic)
 			}
-			want := "run code-rules project init"
+			want := "run syllabus project init"
 			switch state {
 			case "missing-config":
-				if err := os.Mkdir(filepath.Join(directory, ".code-rules"), 0700); err != nil {
+				if err := os.Mkdir(filepath.Join(directory, ".syllabus"), 0700); err != nil {
 					t.Fatal(err)
 				}
 			case "symlink":
-				if err := os.Symlink(filepath.Join(target, ".code-rules"), filepath.Join(directory, ".code-rules")); err != nil {
+				if err := os.Symlink(filepath.Join(target, ".syllabus"), filepath.Join(directory, ".syllabus")); err != nil {
 					t.Fatal(err)
 				}
 				want = "without symlinks"

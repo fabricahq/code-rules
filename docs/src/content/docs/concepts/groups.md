@@ -33,7 +33,7 @@ Use `--name` when creating a group to give it a readable title; the title does n
 
 ## Canonical group IDs
 
-Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical group list, `canonical-groups.yaml` at the root of the [Code Rules repository](https://github.com/fabricahq/code-rules), names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the group.
+Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical group list, `canonical-groups.yaml` at the root of the [Syllabus repository](https://github.com/fabricahq/code-rules), names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the group.
 
 When you create a group, use a canonical ID if one fits. Tools and catalogs can read the list to combine groups across libraries, for example to show every library's Go rules together. A group whose ID isn't on the list works the same way in projects, but those tools show it on its own. The list has no aliases: a group ID is part of every rule's ID, so another name for the same group is a different group.
 
@@ -57,7 +57,7 @@ For example, from a library repository's root:
   test-changed-behavior.md
 ```
 
-For a group a project authors, the same files live in `/.code-rules/rules/practices/testing/`, relative to the project root.
+For a group a project authors, the same files live in `/.syllabus/rules/practices/testing/`, relative to the project root.
 
 You maintain the metadata and rules you author. The CLI supplies group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
 
@@ -65,7 +65,7 @@ See [Rule and group format](/reference/rule-format/#group-metadata) for the fiel
 
 ## Assets
 
-Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Code Rules includes them in the generated guidance. See [Supporting assets](/reference/rule-format/#supporting-assets) for the layout.
+Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Syllabus includes them in the generated guidance. See [Supporting assets](/reference/rule-format/#supporting-assets) for the layout.
 
 ## When to read a group
 

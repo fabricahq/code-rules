@@ -60,7 +60,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		options.Version = "0.0.0-development"
 	}
 	output := &commandOutput{}
-	root := &cobra.Command{Use: "code-rules", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
+	root := &cobra.Command{Use: "syllabus", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
 	// An unnamed, hidden command prevents Cobra from installing its help subcommand. Help flags remain local.
 	root.SetHelpCommand(&cobra.Command{Hidden: true})
@@ -73,7 +73,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.SetUsageFunc(commandUsage)
 	var showLicense bool
-	root.Flags().BoolVar(&showLicense, "license", false, "Print the Code Rules license and copyright notice")
+	root.Flags().BoolVar(&showLicense, "license", false, "Print the Syllabus license and copyright notice")
 	root.RunE = func(cmd *cobra.Command, _ []string) error {
 		if showLicense {
 			_, err := io.WriteString(cmd.OutOrStdout(), coderules.License())
@@ -92,7 +92,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	if command, err := validateCommandPath(root, args); err != nil {
 		return output.finish(streams, command, usage(err))
 	}
-	command, err := root.ExecuteContextC(ctx)
+	command, err := root.ExecuteContextC(context.WithValue(ctx, outputKey{}, output))
 	if command == nil {
 		command = root
 	}

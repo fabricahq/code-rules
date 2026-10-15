@@ -4,4 +4,4 @@ set -eo pipefail
 . "{{ .inputs.WorkDir }}/env.sh"
 cd "$APP"
 
-show code-rules project update
+show syllabus project update

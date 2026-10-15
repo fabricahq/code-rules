@@ -22,8 +22,11 @@ type installerFixture struct {
 	t                                           *testing.T
 	root, home, commands, releases, destination string
 	binary                                      []byte
-	platform, arch                              string
-	shell, zdotdir, configHome                  string
+	// executable names the release's archive and the executable in it: syllabus, or code-rules for releases made
+	// before Code Rules was renamed Syllabus.
+	executable                 string
+	platform, arch             string
+	shell, zdotdir, configHome string
 }
 
 type installerMember struct {
@@ -35,7 +38,7 @@ type installerMember struct {
 func newInstallerFixture(t *testing.T) *installerFixture {
 	t.Helper()
 	root := t.TempDir()
-	f := &installerFixture{t: t, root: root, home: filepath.Join(root, "home"), commands: filepath.Join(root, "commands"), releases: filepath.Join(root, "releases"), platform: "Linux", arch: "x86_64", shell: "/bin/sh", binary: []byte("#!/bin/sh\nprintf 'code-rules 1.2.3\\n'\n")}
+	f := &installerFixture{t: t, root: root, home: filepath.Join(root, "home"), commands: filepath.Join(root, "commands"), releases: filepath.Join(root, "releases"), platform: "Linux", arch: "x86_64", shell: "/bin/sh", binary: []byte("#!/bin/sh\nprintf 'syllabus 1.2.3\\n'\n"), executable: "syllabus"}
 	f.destination = filepath.Join(f.home, ".local/bin")
 	for _, dir := range []string{f.home, f.commands, f.releases} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -68,14 +71,14 @@ func (f *installerFixture) read(path string) []byte {
 func (f *installerFixture) release(version, target string, members []installerMember) string {
 	f.t.Helper()
 	if members == nil {
-		members = []installerMember{{"code-rules", f.binary, false}, {"LICENSE.md", []byte("MIT license"), false}, {"README.txt", []byte("Code Rules"), false}}
+		members = []installerMember{{f.executable, f.binary, false}, {"LICENSE.md", []byte("MIT license"), false}, {"README.txt", []byte("Syllabus"), false}}
 	}
 	var data bytes.Buffer
 	compressed := gzip.NewWriter(&data)
 	archive := tar.NewWriter(compressed)
 	for _, member := range members {
 		header := &tar.Header{Name: member.name, Mode: 0644, Size: int64(len(member.data)), Typeflag: tar.TypeReg, Format: tar.FormatUSTAR}
-		if member.name == "code-rules" {
+		if member.name == f.executable {
 			header.Mode = 0755
 		}
 		if member.symlink {
@@ -102,7 +105,7 @@ func (f *installerFixture) release(version, target string, members []installerMe
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		f.t.Fatal(err)
 	}
-	name := fmt.Sprintf("code-rules_%s_%s.tar.gz", version, target)
+	name := fmt.Sprintf("%s_%s_%s.tar.gz", f.executable, version, target)
 	path := filepath.Join(dir, name)
 	f.write(path, data.Bytes(), 0644)
 	f.write(filepath.Join(dir, "SHA256SUMS"), fmt.Appendf(nil, "%x  %s\n", sha256.Sum256(data.Bytes()), name), 0644)

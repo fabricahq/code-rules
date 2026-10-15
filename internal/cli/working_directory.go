@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/project"
 )
 
 // commandDirectory resolves the nearest .git boundary for ordinary commands and refuses nested init.
@@ -59,11 +60,13 @@ func commandDirectory(ctx context.Context, directory, scope string, initialize b
 				return "", &filetxn.Error{Code: "unsafe-path", Problem: filepath.Join(current, ".git") + ": expected a Git directory or file without symlinks"}
 			}
 			if initialize && current != physical {
-				return "", &filetxn.Error{Code: "not-repository-root", Problem: fmt.Sprintf("initialize Code Rules at the Git repository root, not in a subfolder. Run:\n  cd %s && code-rules %s init", shellDirectory(current), scope)}
+				return "", &filetxn.Error{Code: "not-repository-root", Problem: fmt.Sprintf("initialize Syllabus at the Git repository root, not in a subfolder. Run:\n  cd %s && syllabus %s init", shellDirectory(current), scope)}
 			}
+			warnLegacyDirectory(ctx, current, scope)
 			return current, nil
 		}
 		if filepath.Dir(current) == current {
+			warnLegacyDirectory(ctx, absolute, scope)
 			return absolute, nil
 		}
 	}
@@ -102,4 +105,22 @@ func physicalDirectory(ctx context.Context, directory string) (string, error) {
 
 func shellDirectory(directory string) string {
 	return "'" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
+}
+
+// legacyDirectoryWarning tells a project that keeps its files in the directory Code Rules used how to move them.
+const legacyDirectoryWarning = `this project keeps its files in .code-rules/, the directory Code Rules used before it was renamed Syllabus. Syllabus still reads and updates it, but a later version won't. Rename it, keeping everything in it:
+
+  git mv .code-rules .syllabus
+
+Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .syllabus/generated/RULES.md, and run syllabus project build.`
+
+// warnLegacyDirectory warns, for a project command, when root, the project root, has no Syllabus directory but has
+// one under the name Code Rules used, which the project package then opens.
+func warnLegacyDirectory(ctx context.Context, root, scope string) {
+	if scope != "project" {
+		return
+	}
+	if project.UsesLegacyDirectory(root) {
+		warn(ctx, legacyDirectoryWarning)
+	}
 }
