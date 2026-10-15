@@ -39,6 +39,8 @@ To install another skill later, add its ID to the source's `skills.include` and 
 code-rules project update fabrica
 ```
 
+Code Rules never runs a skill's scripts, but your agents may. When an update moves a library's skills, its preview flags each executable script it adds or changes, including every script of a skill it newly installs, and warns you to read them before you confirm; see [Review skill scripts](/guides/update/#review-skill-scripts).
+
 ## Install skills from another repository
 
 A repository that isn't a library, such as a third party's skill collection, works as a source too. Every folder in it that holds a `SKILL.md` is a skill, named by its path from the repository root. Because it has no library releases, set `--ref` to a tag or full commit SHA:
