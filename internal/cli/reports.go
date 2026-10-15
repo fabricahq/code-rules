@@ -266,6 +266,9 @@ func projectCheckedReport(result projectCheckResult, root, workdir string) comma
 			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
 	}
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(&out, "Warning: %s\n", warning)
+	}
 	report.human = out.String()
 	return report
 }

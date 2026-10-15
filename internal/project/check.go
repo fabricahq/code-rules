@@ -35,20 +35,26 @@ type Problem struct {
 
 // CheckResult lists all freshness problems in deterministic order; an empty list means current.
 // Invalid, unreadable, or concurrently changing inputs return an error instead of this report.
-type CheckResult struct{ Problems []Problem }
+type CheckResult struct {
+	Problems []Problem
+	// Warnings never make the project out of date: one for each personal skill with the name of a skill the
+	// project installs. It is empty, never nil, when there are none.
+	Warnings []string
+}
 
 // Current reports whether both generated output and the managed guide match the selected inputs.
 func (r CheckResult) Current() bool { return len(r.Problems) == 0 }
 
 // Check compares generated output and the managed guide in one optimistic snapshot.
-// It performs no writes, locks, recovery, Git, or network access. Staleness is a result, not an error.
+// It performs no writes, locks, recovery, Git, or network access. Staleness is a result, not an error. It also
+// warns about personal skills in options.Home with the name of a skill generated/ records as installed.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
 	guideName, guideBytes := projectGuide()
 	changes, guideChanges, err := checkWithFiles(ctx, options, map[string][]byte{guideName: guideBytes})
 	if err != nil {
 		return CheckResult{}, err
 	}
-	result := CheckResult{Problems: []Problem{}}
+	result := CheckResult{Problems: []Problem{}, Warnings: changes.Warnings}
 	for _, group := range []struct {
 		kind  ProblemKind
 		paths []string

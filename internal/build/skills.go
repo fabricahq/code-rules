@@ -178,25 +178,52 @@ const InstalledSkillsFile = "installed-skills.json"
 // InstalledFolders reads the folders an installed-skills.json record lists, by path from the repository root,
 // sorted. A record it can't read lists none, so no folder counts as installed by Code Rules.
 func InstalledFolders(data []byte) []string {
-	var record struct {
-		FormatVersion int `json:"formatVersion"`
-		Skills        []struct {
-			Targets []string `json:"targets"`
-		} `json:"skills"`
-	}
-	if json.Unmarshal(data, &record) != nil || record.FormatVersion != 1 {
-		return []string{}
-	}
 	folders := []string{}
-	for _, skill := range record.Skills {
+	for _, skill := range InstalledSkills(data) {
 		for _, target := range skill.Targets {
-			if parent := path.Dir(target); slices.Contains(slices.Collect(maps.Values(rules.SkillTargetFolders)), parent) && skills.ValidName(path.Base(target)) && !slices.Contains(folders, target) {
+			if !slices.Contains(folders, target) {
 				folders = append(folders, target)
 			}
 		}
 	}
 	slices.Sort(folders)
 	return folders
+}
+
+// InstalledSkill is one skill an installed-skills.json record lists.
+type InstalledSkill struct {
+	// Name is the install name, and ID the project ID: source:folder, or skills/<name> for an authored skill.
+	Name, ID string
+	// Targets lists the folders the skill is installed in, by path from the repository root; it is empty when the
+	// project has no skill targets.
+	Targets []string
+}
+
+// InstalledSkills reads the skills an installed-skills.json record lists, in its order. It keeps only targets that
+// are a skill target's folder holding a validly named skill folder. A record it can't read lists none.
+func InstalledSkills(data []byte) []InstalledSkill {
+	var record struct {
+		FormatVersion int `json:"formatVersion"`
+		Skills        []struct {
+			Name    string   `json:"name"`
+			ID      string   `json:"id"`
+			Targets []string `json:"targets"`
+		} `json:"skills"`
+	}
+	if json.Unmarshal(data, &record) != nil || record.FormatVersion != 1 {
+		return []InstalledSkill{}
+	}
+	result := []InstalledSkill{}
+	for _, skill := range record.Skills {
+		installed := InstalledSkill{Name: skill.Name, ID: skill.ID, Targets: []string{}}
+		for _, target := range skill.Targets {
+			if parent := path.Dir(target); slices.Contains(slices.Collect(maps.Values(rules.SkillTargetFolders)), parent) && skills.ValidName(path.Base(target)) {
+				installed.Targets = append(installed.Targets, target)
+			}
+		}
+		result = append(result, installed)
+	}
+	return result
 }
 
 // folderDigest returns the SHA-256 of an installed folder: each file's path, executable bit, and contents.

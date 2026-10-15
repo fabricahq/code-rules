@@ -8,6 +8,7 @@ import (
 	"errors"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -27,6 +28,9 @@ type Options struct {
 	IndexMaxLines int
 	// GroupInlineMaxBytes uses the renderer's 8 KiB default when nil; zero forces summaries.
 	GroupInlineMaxBytes *int
+	// Home is the home directory whose personal skill folders sync, update, and check read, never write, to warn
+	// about personal skills with the name of a skill the project installs. Empty reads none.
+	Home string
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
@@ -40,7 +44,8 @@ type FileChanges struct {
 	Guide   *GuideChange `json:"guide,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
-	// they wrote. Build reports none.
+	// they wrote. Last, one for each personal skill in Options.Home with the name of a skill the project installs.
+	// Build reports none.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
 	// that command's files, which the lists above don't include.
@@ -108,7 +113,8 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 }
 
 // checkWithFiles checks generated output and additional root-relative files in one optimistic snapshot.
-// Missing files are reported as additions; invalid paths, unreadable files, and concurrent edits are errors.
+// Missing files are reported as additions; invalid paths, unreadable files, and concurrent edits are errors. The
+// generated changes' warnings are the personal skill warnings for the skills generated/ records as installed.
 func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (FileChanges, FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, FileChanges{}, err
@@ -139,7 +145,9 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err := requireCheckUnchanged(ctx, root, before, expected, files); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	return compareFiles(treeFiles(before.generated), output.Files), compareFiles(files, expected), nil
+	changes := compareFiles(treeFiles(before.generated), output.Files)
+	changes.Warnings = personalSkillWarnings(options.Home, filepath.Dir(root.Name()), treeFiles(before.generated)[build.InstalledSkillsFile])
+	return changes, compareFiles(files, expected), nil
 }
 
 // readCheckFiles retains only requested files, preserving absence as a missing map entry.

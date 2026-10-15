@@ -30,7 +30,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			projectOptions := project.Options{Directory: directory, ToolVersion: options.Version}
+			projectOptions := project.Options{Directory: directory, ToolVersion: options.Version, Home: options.home()}
 			var changes project.FileChanges
 			switch name {
 			case "sync":
