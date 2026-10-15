@@ -2,7 +2,8 @@
 // It owns the storage protocol: writer ownership, interrupted-operation recovery, staging, installation, and
 // rollback. Callers use WithWriter and Writer.Apply for managed trees and Edit for authored files rather than
 // spreading that protocol across callers. Concurrent changes cause refusal before installation; once replacement
-// begins, it completes or rolls back. Parent directories it creates are never removed, even by a rollback.
+// begins, it completes or rolls back. Parent directories it creates are never removed, even by a rollback, except a
+// skill target's folder, such as .claude/skills, that removing an installed skill folder leaves empty.
 package filetxn
 
 import (

@@ -131,7 +131,7 @@ func stageInterruption(t *testing.T, root *os.Root, committed bool) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeTree(ctx, root, transactionName+"/new-generated", map[string][]byte{"new": []byte("after")}); err != nil {
+	if err := writeTree(ctx, root, transactionName+"/new-generated", map[string][]byte{"new": []byte("after")}, nil); err != nil {
 		t.Fatal(err)
 	}
 	after, err := ReadTree(ctx, root, transactionName+"/new-generated")
