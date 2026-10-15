@@ -13,6 +13,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/skills"
 )
 
 // Snapshot owns one source's original library bytes and the record of what was imported, which works like a lockfile.
@@ -53,6 +54,9 @@ type Snapshot struct {
 	// Skills maps the ID of each skill the source installs to its record; it is empty, never nil, when there are
 	// none. Every skill comes from Commit.
 	Skills map[string]ImportedSkill `json:"skills"`
+	// AvailableSkills maps the ID of every skill the source offers at Commit, installed or not, to its record, so
+	// listings can show what else the project could install; it is empty, never nil, when there are none.
+	AvailableSkills map[string]ImportedSkill `json:"availableSkills"`
 	// Executable lists, sorted, the paths in Files whose executable bit the repository records; it is empty, never
 	// nil, when there are none.
 	Executable []string `json:"executable"`
@@ -60,9 +64,35 @@ type Snapshot struct {
 
 // ImportedSkill records one installed skill from a source.
 type ImportedSkill struct {
-	// Level is the skill's level in its library, which is "offered" for every skill a library publishes, or empty
-	// for a skill from a repository that isn't a library.
+	// Level is the skill's level in its library, one of skills.Levels, or empty for a skill from a repository that
+	// isn't a library.
 	Level string `json:"level,omitempty"`
+	// Included reports that the source's skills.include selects the skill; a skill it doesn't select is installed
+	// because other installed skills of the source use it.
+	Included bool `json:"included"`
+	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their syllabus-skills-used
+	// or the source's skills.uses; it is empty, never nil, when none does, which happens only when Included is set.
+	UsedBy []string `json:"usedBy"`
+}
+
+// SelectedSkills returns, sorted, the IDs of the available skills that a source with skills.include selectors
+// include installs: the required ones, the recommended ones for skills.Recommended, every one HiddenSkill doesn't
+// hide for skills.Wildcard, and each one an ID names.
+func (s Snapshot) SelectedSkills(include []string) []string {
+	selected := []string{}
+	for _, id := range slices.Sorted(maps.Keys(s.AvailableSkills)) {
+		level := s.AvailableSkills[id].Level
+		if level == skills.LevelRequired || slices.Contains(include, skills.Wildcard) && !HiddenSkill(id) || slices.Contains(include, id) || level == skills.LevelRecommended && slices.Contains(include, skills.Recommended) {
+			selected = append(selected, id)
+		}
+	}
+	return selected
+}
+
+// HiddenSkill reports whether skill id is in a folder whose name starts with a dot, such as another tool's installed
+// copies in .claude/skills/, which "*" doesn't include.
+func HiddenSkill(id string) bool {
+	return slices.ContainsFunc(strings.Split(id, "/"), func(part string) bool { return strings.HasPrefix(part, ".") })
 }
 
 // SkillFiles returns the files of skill id, by path in its folder. The bytes are shared with the snapshot.

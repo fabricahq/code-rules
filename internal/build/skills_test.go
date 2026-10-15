@@ -62,12 +62,29 @@ func TestGenerateWithoutSkillsAddsNoSkillFiles(t *testing.T) {
 	}
 }
 
-func TestGenerateRejectsTwoSkillsWithOneInstallName(t *testing.T) {
-	skill := build.SkillFiles{Files: map[string][]byte{"SKILL.md": []byte("---\nname: shared\n---\n")}}
-	_, err := build.Generate(skillConfig(t, `[]`), nil, nil, build.Options{ToolVersion: "test", LocalSkills: map[string]build.SkillFiles{"skills/a": skill, "skills/b": skill}})
+func TestGenerateRejectsASourceSkillAndAnAuthoredSkillWithOneInstallName(t *testing.T) {
+	commit := strings.Repeat("a", 40)
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"skillTargets":[],"sources":{"tools":{"repository":"https://example.com/tools.git","ref":"` + commit + `","skills":{"include":["*"]}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	skill := []byte("---\nname: shared\n---\n")
+	tools := build.Library{
+		Catalog:  library.Catalog{Rules: []string{}, Groups: []library.Group{}, SupportingFiles: map[string][]byte{}},
+		Snapshot: library.Snapshot{NonLibrary: true, Commit: commit, Skills: map[string]library.ImportedSkill{"tools/shared": {}}, Files: map[string][]byte{"tools/shared/SKILL.md": skill}},
+	}
+	_, err = build.Generate(config, map[string]build.Library{"tools": tools}, nil, build.Options{ToolVersion: "test", LocalSkills: map[string]build.SkillFiles{"skills/shared": {Files: map[string][]byte{"SKILL.md": skill}}}})
 	var clash *build.ClashError
-	if !errors.As(err, &clash) || clash.Name != "shared" || clash.IDs != [2]string{"skills/a", "skills/b"} {
-		t.Fatalf("got %v; want a clash of skills/a and skills/b", err)
+	if !errors.As(err, &clash) || clash.Name != "shared" || clash.IDs != [2]string{"skills/shared", "tools:tools/shared"} {
+		t.Fatalf("got %v; want a clash of skills/shared and tools:tools/shared", err)
+	}
+}
+
+func TestInstalledSkillIDsNamesTheSkillInEachFolder(t *testing.T) {
+	record := `{"formatVersion":1,"skills":[{"id":"skills/tidy","targets":[".agents/skills/tidy",".claude/skills/tidy"]},{"id":"team:skills/review","targets":[".claude/skills/review"]}]}`
+	want := map[string]string{".agents/skills/tidy": "skills/tidy", ".claude/skills/tidy": "skills/tidy", ".claude/skills/review": "team:skills/review"}
+	if got := build.InstalledSkillIDs([]byte(record)); !maps.Equal(got, want) {
+		t.Fatalf("installed skills = %v, want %v", got, want)
 	}
 }
 

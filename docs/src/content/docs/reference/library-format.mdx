@@ -45,7 +45,7 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
 
 </FileTree>
 
-The `library` section of `.syllabus/config.yaml` is the library's **manifest**. A configuration with a `library` section makes the repository a library; it can be empty, `library: {}`, or declare the library's [license](#license-metadata):
+The `library` section of `.syllabus/config.yaml` is the library's **manifest**. A configuration with a `library` section makes the repository a library; it can be empty, `library: {}`, or declare the library's [license](#license-metadata) and the [levels](/reference/configuration/#skill-levels) of its skills:
 
 ```yaml
 schemaVersion: 2
@@ -55,9 +55,12 @@ library:
     spdxExpression: MIT
     file: LICENSE.md
     notices: []
+  skills:
+    required: [skills/ship-service]
+    recommended: [skills/build-feature]
 ```
 
-The `library` section accepts only `license`. Other fields are rejected, including `skills`, which this version of Syllabus doesn't support yet.
+The `library` section accepts only `license` and `skills`; see [Library section](/reference/configuration/#library-section). Other fields are rejected.
 
 Discover groups only under `.syllabus/rules/techs/` and `.syllabus/rules/practices/`. Rule IDs are paths below `rules/`, so `.syllabus/rules/practices/testing/verify-retry-limits.md` is the rule `practices/testing/verify-retry-limits`.
 Within selected groups, Markdown files outside reserved asset directories are rules. The group-root `README.md` and declared license and notice files, which can't use a rule's path, are exempt. Group READMEs and `rules/README.md` are authoring documentation, not generated rule guidance.
@@ -76,7 +79,7 @@ A library publishes only the files it authors:
 - the `library` section of `.syllabus/config.yaml`;
 - its groups and rules, in `.syllabus/rules/`;
 - its shared assets, in `.syllabus/assets/`;
-- its skills, in `.syllabus/skills/`, one folder with a `SKILL.md` per skill, which projects install when they include them; see [Select skills](/reference/configuration/#select-skills);
+- its skills, in `.syllabus/skills/`, one folder with a `SKILL.md` per skill, which projects install by [level](/reference/configuration/#skill-levels): required skills always, and the others when projects include them;
 - its declared license and notice files.
 
 Projects that import the library receive nothing else from the repository. Change notes stay in the library, and so do the `sources` and other fields of `config.yaml`: a project's copy, `vendor/<source-name>/config.yaml`, holds only the `library` section. A change to `sources` alone, or to a comment, is not a library-wide change.

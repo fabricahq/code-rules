@@ -10,7 +10,7 @@ Read it when you want to understand why a rule is present, investigate a library
 This page shows where the records live, how Syllabus creates them, and how to trace a rule or skill back to its source.
 
 :::note[Preview]
-Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields, and the `upstream`, `replacementReason`, and `basedOn` fields of a skill, come in the next Syllabus release.
+Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, `availableSkills`, and `executable` fields, and the `requiredBy`, `recommendedBy`, `offeredBy`, `upstream`, `replacementReason`, and `basedOn` fields of a skill, come in the next Syllabus release.
 :::
 
 ## Where to look
@@ -106,7 +106,9 @@ Each entry in the `skills` array of `generated/provenance.json` records one skil
 | `name` and `type` | The install name, which names its installed folders, and the `metadata.syllabus-skill-type` its `SKILL.md` declares, or `null`. |
 | `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.syllabus/`. `version` and `release` are `null`: skills don't have versions yet. |
 | `renamedFrom` | The name the skill's `SKILL.md` declares, when [`skills.rename`](/reference/configuration/#rename-a-skill) installs it under `name` instead, or `null`. |
-| `level` | `offered` for a library's skill, or `null` for an authored skill or one from a repository that isn't a library. |
+| `requiredBy`, `recommendedBy`, `offeredBy` | The library that gave the skill its [level](/reference/configuration/#skill-levels): the field for the skill's level names the `source`, the library `release` whose manifest set it, or `null` for a `ref` that isn't a library release, and that revision's `commit`. The other two are `null`. All three are `null` for an authored skill or one from a repository that isn't a library. |
+| `included` | `true` when configuration, or its library's required level, includes the skill, as configuration includes every authored skill; `false` for a source's skill installed only because other skills use it. |
+| `usedBy` and `uses` | The project IDs of the installed skills that use this one, and of those it uses, by its `syllabus-skills-used` and its source's `skills.uses`, sorted; empty when there are none. |
 | `targets` | The folders the skill is installed in, such as `.claude/skills/build-feature`, empty when the project has no skill targets. |
 | `upstream`, `replacementReason`, and `basedOn` | For an authored skill that [replaces a source's skill](/reference/configuration/#exclude-or-replace-a-skill): the replaced skill's origin, as in `origin`, the exclusion's reason, and its `basedOn` commit, or `null` when it records none. All three are `null` for any other skill. |
 
@@ -158,6 +160,32 @@ Each source has a separate `vendor/<source-name>/_source.json` file. It describe
   ],
   "skills": {
     "skills/build-feature": {
+      "level": "offered",
+      "included": true,
+      "usedBy": []
+    },
+    "skills/ship-service": {
+      "level": "required",
+      "included": true,
+      "usedBy": []
+    },
+    "skills/tdd": {
+      "level": "offered",
+      "included": false,
+      "usedBy": ["skills/build-feature"]
+    }
+  },
+  "availableSkills": {
+    "skills/build-feature": {
+      "level": "offered"
+    },
+    "skills/review-change": {
+      "level": "recommended"
+    },
+    "skills/ship-service": {
+      "level": "required"
+    },
+    "skills/tdd": {
       "level": "offered"
     }
   },
@@ -188,7 +216,8 @@ Each source has a separate `vendor/<source-name>/_source.json` file. It describe
 | `ruleSelection` | The rule IDs your `rules.include` lists individually. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
 | `skillInclude` | The source's `skills.include`, sorted, and empty when it includes no skills. |
-| `skills` | Each skill `skills.include` selects, including skills the project excludes, by ID, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library. Every skill comes from `resolvedCommit`; `syllabus project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` names a skill this commit doesn't have. |
+| `skills` | Each installed skill's ID, including skills the project excludes: the library's required skills, those `skills.include` selects, and those they use. Each has its `level`: `required`, `recommended`, or `offered` for a library's skill, and `null` for a skill from a repository that isn't a library; `included`, `true` when `skills.include` or the library's required level selects it; and `usedBy`, the source's installed skills that use it, sorted. A skill that isn't included is installed because the skills in its `usedBy` use it. Every skill comes from `resolvedCommit`; `syllabus project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` or `skills.uses` names a skill this commit doesn't have. Offline checks read each vendored skill's `syllabus-skills-used` and your `skills.uses`, and ask for `syllabus project sync` when the record doesn't install exactly the skills they reach. |
+| `availableSkills` | Every skill the source has at `resolvedCommit`, installed or not, by ID, with its `level` as in `skills`, so [`syllabus project list skills`](/reference/cli/#project-list-skills) can show what else the project could install, and updates can show level changes. |
 | `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. A library's skill files are stored under `skills/<name>/`, as its `.syllabus/skills/` holds them, and another repository's at their path in the repository. |
 | `executable` | The skill files whose executable bit the repository records, sorted. The vendored copies, and the installed copies, carry the same bit, and offline checks compare it. |
 

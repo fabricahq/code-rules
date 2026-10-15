@@ -60,8 +60,8 @@ func TestInteractiveImpactRetry(t *testing.T) {
 	}
 }
 
-// TestSourceAnswerRetry corrects constrained source inputs, including a source that would include nothing, before
-// the declaration is saved.
+// TestSourceAnswerRetry corrects constrained source inputs, including skill selectors that name no skill, before the
+// declaration is saved.
 func TestSourceAnswerRetry(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	binary := buildCLI(t)
@@ -74,8 +74,8 @@ func TestSourceAnswerRetry(t *testing.T) {
 		{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
 		{Prompt: rulesPrompt, Answer: "techs/go/*, techs/go/*"},
 		{Prompt: rulesPrompt, Answer: ""},
-		{Prompt: skillsPrompt, Answer: ""},
 		{Prompt: skillsPrompt, Answer: "skills/*"},
+		{Prompt: skillsPrompt, Answer: "recommended/*"},
 		{Prompt: skillsPrompt, Answer: "*"},
 	}
 	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "source", "team"}, steps)

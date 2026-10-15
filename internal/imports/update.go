@@ -49,10 +49,27 @@ type SourceUpdate struct {
 	Rules []RuleUpdate `json:"rules"`
 	// SharedFiles is how the update moves the source's library-wide files, or nil when they stay.
 	SharedFiles *SharedFilesUpdate `json:"sharedFiles,omitempty"`
+	// Skills compares the skills the source installs once the update is applied with those its source record
+	// locks, as skillChanges does. It is empty, never nil, when they don't differ.
+	Skills []SkillUpdate `json:"skills"`
 	// ReplacedSkills lists, sorted by ID, the skills the project replaces with authored skills whose copy at the
 	// revision the update takes the source's skills from differs from the copy the replacement is based on. It is
 	// empty, never nil, when there are none.
 	ReplacedSkills []ReplacedSkillUpdate `json:"replacedSkills"`
+	// SkillLevels lists, sorted by ID, the skills whose level the library changes at the revision the update takes
+	// the source's skills from. It is empty, never nil, when there are none.
+	SkillLevels []SkillLevelUpdate `json:"skillLevels"`
+}
+
+// SkillLevelUpdate is a row of the update preview for a skill whose level in its library changes: a skill whose
+// level differs between the revisions, and a required skill the library adds or removes, which installs or
+// uninstalls whatever the project includes.
+type SkillLevelUpdate struct {
+	ID string `json:"id"`
+	// From is the level at the commit the source record locks, and To the level at the commit the update takes
+	// skills from; each is empty when the library has no such skill at that commit.
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -146,6 +163,9 @@ type plannedSource struct {
 	scoped   bool
 	recorded *library.Snapshot
 	history  releaseHistory
+	// skills maps each commit that can supply the source's skills once the project decides, the shared files'
+	// commit, to the preview of the skills the source installs from it.
+	skills map[string]skillPreview
 }
 
 // sharedFiles returns the library release, and its commit, that supplies the library-wide files once the update
@@ -168,16 +188,77 @@ func (u Update) SharedFiles(source string, kept []string) *SharedFilesUpdate {
 	if !named || planned.moved == nil {
 		return nil
 	}
-	decided := maps.Clone(planned.moved)
-	for _, id := range kept {
-		if rule, ok := planned.before.rules[id]; ok {
-			decided[id] = rule
-		}
-	}
-	if release, _ := planned.sharedFiles(decided); release != planned.before.release {
+	if release, _ := planned.keeping(kept); release != planned.before.release {
 		return &SharedFilesUpdate{From: planned.before.release, To: release}
 	}
 	return nil
+}
+
+// Skills returns the preview rows of the skills of source, which the update names, once the rules kept lists stay at
+// their versions from before the update: the skills come from the revision that then supplies the shared files.
+// It is empty, never nil, when the skills don't change or the update doesn't name source, and fails as installing
+// that revision would when planning couldn't read its skills, such as one skills.include names that it lacks.
+func (u Update) Skills(source string, kept []string) ([]SkillUpdate, error) {
+	planned, named := u.plans[source]
+	if !named {
+		return []SkillUpdate{}, nil
+	}
+	rows, err := planned.skillRows(kept)
+	if err != nil {
+		return nil, sourceError(source, err)
+	}
+	return rows, nil
+}
+
+// skillRows returns a copy of the preview rows of the revision that supplies the source's skills once the rules kept
+// lists stay at their versions from before the update, or the failure reading them. Planning reads every revision
+// that keeping rules can choose, as skillRevisions lists them.
+func (s plannedSource) skillRows(kept []string) ([]SkillUpdate, error) {
+	_, commit := s.keeping(kept)
+	preview, read := s.skills[commit]
+	switch {
+	case !read:
+		return nil, fmt.Errorf("the update preview didn't read the skills at commit %s", commit)
+	case preview.err != nil:
+		return nil, preview.err
+	}
+	return slices.Clone(preview.rows), nil
+}
+
+// keeping returns the library release, and its commit, that supplies the library-wide files and skills once the
+// rules kept lists stay at their versions from before the update. A source that uses ref keeps its revision.
+func (s plannedSource) keeping(kept []string) (int, string) {
+	if s.moved == nil {
+		return s.before.release, s.before.commit
+	}
+	decided := maps.Clone(s.moved)
+	for _, id := range kept {
+		if rule, ok := s.before.rules[id]; ok {
+			decided[id] = rule
+		}
+	}
+	return s.sharedFiles(decided)
+}
+
+// skillRevisions returns a plan of each revision that can supply the source's skills once the project decides: the
+// shared files' revision before the update for a scoped update, since keeping every rule it moves keeps them there,
+// and every library release a moved rule comes from, since keeping the others raises them only that far. after is
+// the plan without decisions, whose revision every whole-source update takes.
+func (s plannedSource) skillRevisions(after sourcePlan) []sourcePlan {
+	plans := []sourcePlan{after}
+	if !s.scoped {
+		return plans
+	}
+	revision := func(release int, commit string) sourcePlan {
+		return sourcePlan{release: release, commit: commit, locked: s.before.locked, nonLibrary: s.before.nonLibrary}
+	}
+	plans = append(plans, revision(s.before.release, s.before.commit))
+	for _, id := range slices.Sorted(maps.Keys(s.moved)) {
+		if rule := s.moved[id]; rule.Release > s.before.release {
+			plans = append(plans, revision(rule.Release, rule.Commit))
+		}
+	}
+	return plans
 }
 
 // decided returns what the source imports once the update is applied with source, its configuration plus the pins
@@ -294,9 +375,12 @@ func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source
 
 // PlanUpdate plans moving the rules that targets name to their newest versions, reading each named source's
 // release history without fetching rule files or writing anything. No targets names every source. It starts from
-// what project sync would import from configuration and recorded, the snapshots from the last sync without
-// files, so the preview never repeats changes sync makes on its own. It fails without a partial result when a
-// target names an unknown source, a source that uses ref, or a rule the source doesn't import.
+// what project sync would import from configuration and recorded, the snapshots from the last sync with only their
+// skills' files, so the preview never repeats changes sync makes on its own. It also reads the skills each named
+// source installs once updated, so the preview compares them with recorded's and flags every script the update adds
+// or changes; a skill that skills.include names and that revision lacks fails as installing it would. It fails
+// without a partial result when a target names an unknown source, a source that uses ref, or a rule the source
+// doesn't import.
 func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded map[string]library.Snapshot, targets []UpdateTarget, options Options) (Update, error) {
 	if err := ctx.Err(); err != nil {
 		return Update{}, gitexec.ContextFailure(err)
@@ -397,12 +481,19 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
-	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}}
+	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}, Skills: []SkillUpdate{}, SkillLevels: []SkillLevelUpdate{}}
 	if !source.Ref.IsZero() {
+		planned := plannedSource{before: before}
+		if planned.skills, err = repo.previewSkills(ctx, source, recorded, []sourcePlan{before}); err != nil {
+			return plannedSource{}, SourceUpdate{}, nil, err
+		}
+		if preview.Skills, err = planned.skillRows(nil); err != nil {
+			return plannedSource{}, SourceUpdate{}, nil, err
+		}
 		if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, before.commit); err != nil {
 			return plannedSource{}, SourceUpdate{}, nil, err
 		}
-		return plannedSource{before: before}, preview, before.warnings, nil
+		return planned, preview, before.warnings, nil
 	}
 	for _, id := range scope {
 		if _, imported := before.rules[id]; !imported {
@@ -424,7 +515,16 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err := p.requireUnmoved(before); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
+	if planned.skills, err = repo.previewSkills(ctx, source, recorded, planned.skillRevisions(after)); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
+	if preview.Skills, err = planned.skillRows(nil); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
 	if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, after.commit); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
+	if preview.SkillLevels, err = repo.skillLevelChanges(ctx, recorded, after.commit); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	preview.Rules = rows

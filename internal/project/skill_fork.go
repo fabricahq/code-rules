@@ -53,10 +53,11 @@ type SkillForkPlan struct {
 	files []filetxn.File
 }
 
-// PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ exactly as the
-// source's last sync recorded it, into skills/<name>/, where name is the skill's install name, without writing. It
-// fails when the source isn't configured, when its record doesn't match its configuration, when its last sync didn't
-// install the skill, when the source already excludes or renames the skill, or when the project already has an
+// PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ as the source's
+// last sync recorded it, with the IDs its SKILL.md cites qualified as qualifyCitations does, into skills/<name>/,
+// where name is the skill's install name, without writing. It fails when the source isn't configured, when its
+// record doesn't match its configuration, when its last sync didn't install the skill, when the source's library
+// requires the skill, when the source already excludes or renames the skill, or when the project already has an
 // authored skill with that name or another exclusion names it as a replacement, since existing authored skills and
 // exclusions are never replaced.
 func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (*SkillForkPlan, error) {
@@ -90,6 +91,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 			return err
 		}
 		snapshot := snapshots[source.Name]
+		if snapshot.Skills[from.Skill].Level == skills.LevelRequired {
+			return &ValidationError{Location: "--from", Problem: rules.RequiredSkillProblem(source.Name, from.Skill, snapshot.Release)}
+		}
 		if _, installed := snapshot.Skills[from.Skill]; !installed {
 			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run syllabus project sync first", source.Name, from.Skill)}
 		}
@@ -109,7 +113,11 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		}
 		executable := snapshot.SkillExecutable(from.Skill)
 		for _, name := range slices.Sorted(maps.Keys(files)) {
-			plan.files = append(plan.files, filetxn.File{Path: path.Join(folder, name), Content: files[name], Executable: slices.Contains(executable, name)})
+			content := files[name]
+			if name == skills.File {
+				content = qualifyCitations(content, metadata, source.Name, !snapshot.NonLibrary, location)
+			}
+			plan.files = append(plan.files, filetxn.File{Path: path.Join(folder, name), Content: content, Executable: slices.Contains(executable, name)})
 		}
 		return nil
 	})
@@ -169,4 +177,63 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 		}
 		return append(slices.Clone(p.files), filetxn.File{Path: configurationFile, Content: edited, Previous: original}), nil
 	})
+}
+
+// qualifyCitations returns data, the SKILL.md of a skill the source named source supplies, with the source's name
+// added to each bare ID its syllabus-skills-used lists, and, when the source is a library, its syllabus-rules-used,
+// so the fork, an authored skill, still names the source's skills and rules: in the source, skills/tdd is the
+// source's own skill, and in the project, the project's. metadata is data's, read at location. It returns data
+// unchanged when the lists aren't block strings it can rewrite exactly, leaving the fork's author to qualify them.
+func qualifyCitations(data []byte, metadata skills.Metadata, source string, library bool, location string) []byte {
+	keys := []string{skills.SkillsUsedKey}
+	if library {
+		keys = append(keys, skills.RulesUsedKey)
+	}
+	qualify := func(lines []string) []string {
+		result := []string{}
+		for _, line := range lines {
+			if !strings.Contains(line, ":") {
+				line = source + ":" + line
+			}
+			result = append(result, line)
+		}
+		return result
+	}
+	lines := strings.SplitAfter(string(data), "\n")
+	if len(lines) == 0 || strings.TrimRight(lines[0], "\r\n") != "---" {
+		return data
+	}
+	// keyIndent is the indentation of the key whose block string the loop is in, or -1 outside one.
+	keyIndent := -1
+	for i := 1; i < len(lines); i++ {
+		text := strings.TrimRight(lines[i], "\r\n")
+		content := strings.TrimSpace(text)
+		if content == "---" {
+			break
+		}
+		indent := len(text) - len(strings.TrimLeft(text, " "))
+		if keyIndent >= 0 && content != "" && indent > keyIndent {
+			if !strings.Contains(content, ":") {
+				lines[i] = text[:indent] + source + ":" + content + lines[i][len(text):]
+			}
+			continue
+		}
+		if content != "" {
+			keyIndent = -1
+		}
+		for _, key := range keys {
+			if value, ok := strings.CutPrefix(content, key+":"); ok && strings.HasPrefix(strings.TrimSpace(value), "|") {
+				keyIndent = indent
+			}
+		}
+	}
+	qualified := []byte(strings.Join(lines, ""))
+	rewritten, err := skills.ReadMetadata(qualified, location)
+	if err != nil || !slices.Equal(rewritten.SkillsUsed, qualify(metadata.SkillsUsed)) {
+		return data
+	}
+	if library && !slices.Equal(rewritten.RulesUsed, qualify(metadata.RulesUsed)) || !library && !slices.Equal(rewritten.RulesUsed, metadata.RulesUsed) {
+		return data
+	}
+	return qualified
 }

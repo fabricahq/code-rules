@@ -6,7 +6,7 @@ description: "Fields in .syllabus/config.yaml."
 The **project configuration**, `.syllabus/config.yaml`, records the project's sources, the rules and skills it includes from each, its exceptions, and where it installs skills. The **Syllabus directory**, `.syllabus/`, also holds `rules/`, `assets/`, `skills/`, `vendor/`, and `generated/`.
 
 :::note[Preview]
-`skillTargets`, `skills.include`, `skills.exclude`, `skills.rename`, and sources that aren't libraries come in the next Syllabus release.
+`skillTargets`, `skills.include`, `skills.uses`, `skills.exclude`, `skills.rename`, skill levels, and sources that aren't libraries come in the next Syllabus release.
 :::
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.syllabus/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
@@ -30,7 +30,7 @@ sources:
           reason: Our public extension API relies on declaration merging.
           replacedBy: techs/typescript/prefer-interfaces
     skills:
-      include: [skills/build-feature, skills/write-changelog]
+      include: [recommended, skills/write-changelog]
       exclude:
         - id: skills/write-changelog
           reason: Release Planner writes our release notes.
@@ -61,14 +61,15 @@ Replace them with libraries and rules your project can access.
 | `sources` | Map of stable source names to source configurations. Use an empty object for a project with only its own groups and skills. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.ref` | Import the source exactly as it was at one tag or commit. Required for a repository without library releases, such as one that isn't a library. Can't be combined with `rules.pins`. See [Import one revision](#import-one-revision). |
-| `sources.<name>.rules` | The rules to include from this library, and the project's exceptions. A source needs `rules`, `skills`, or both. |
+| `sources.<name>.rules` | Optional. The rules to include from this library, and the project's exceptions. A library source with neither `rules` nor `skills` installs only the library's [required skills](#skill-levels). |
 | `sources.<name>.rules.include` | Required. A list of at least one [selector](#select-rules): whole groups, such as `techs/typescript/*`, every group of a type, such as `practices/*`, everything, `"*"`, or single rule IDs. |
 | `sources.<name>.rules.exclude` | Optional list of entries, each with a selector as its `id`, a `reason` and, for a single rule, optionally a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
-| `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, or `"*"` alone for every skill the source offers. See [Select skills](#select-skills). |
+| `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, and `recommended` for the library's recommended skills, or `"*"` alone for every skill the source offers. A library's required skills install whatever it lists. See [Select skills](#select-skills). |
+| `sources.<name>.skills.uses` | Optional map of a skill ID to the skill IDs it uses that its own `syllabus-skills-used` doesn't list. See [Declare the skills a skill uses](#declare-the-skills-a-skill-uses). |
 | `sources.<name>.skills.exclude` | Optional list of skills to leave out, each with a skill ID as its `id` and a `reason`, and optionally an authored skill that `replacedBy` names to install instead, with the commit it's `basedOn`. See [Exclude or replace a skill](#exclude-or-replace-a-skill). |
 | `sources.<name>.skills.rename` | Optional map from a skill ID to the name to install that skill under instead of its own, such as `skills/review: team-review`. See [Rename a skill](#rename-a-skill). |
-| `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
+| `library` | Optional. Makes the repository a library that publishes the groups in `rules/` and the skills in `skills/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license` and the levels of its skills. See [Library section](#library-section). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
 Groups the project authors are discovered from `rules/<group-id>/_group.yaml`; no source entry or separate group list is required.
@@ -141,12 +142,34 @@ sources:
     rules:
       include: [techs/go/*]
     skills:
-      include: [skills/build-feature, skills/review-tests]
+      include: [recommended, skills/review-tests]
 ```
 
 A **skill ID** is the path of the skill's folder. A library's skills are the folders directly in its `.syllabus/skills/`, with IDs such as `skills/build-feature`. In a repository that isn't a library, a skill is any folder that holds a `SKILL.md`, other than the repository root and a folder inside another skill's folder, and its ID is its path from the repository root, such as `tools/review`.
 
-`"*"` includes every skill the source offers, except, in a repository that isn't a library, skills in a folder whose name starts with a dot, such as another tool's installed copies in `.claude/skills/`; name one by its ID to include it. `"*"` can't be combined with skill IDs, and skill selectors have no prefixes such as `skills/*`. Each ID may appear once.
+`recommended` includes the skills the library recommends. `"*"` includes every skill the source offers, except, in a repository that isn't a library, skills in a folder whose name starts with a dot, such as another tool's installed copies in `.claude/skills/`; name one by its ID to include it. `"*"` can't be combined with other selectors, and skill selectors have no prefixes such as `skills/*` or `recommended/*`. Each selector may appear once.
+
+### Skill levels
+
+A library gives each of its skills a level, which decides how a project that uses the library gets it:
+
+| Level | Installed when |
+| --- | --- |
+| `required` | Always. The project installs it whatever `skills.include` lists, including when the source has no `skills` at all, and can't exclude or fork it. |
+| `recommended` | `skills.include` lists `recommended`, `"*"`, or the skill's ID. |
+| `offered` | `skills.include` lists `"*"` or the skill's ID. |
+
+A library sets levels in its manifest's [`library.skills`](#library-section); a skill it doesn't list is offered. A project can add a library with no `include` at all, and still gets the required skills the library has now and any it requires in later library releases:
+
+```yaml
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.syllabus.git
+```
+
+Excluding or [forking](/reference/cli/#project-add-skill) a required skill fails with a message saying the project must stop using the source to diverge from it. Every other skill can be excluded or forked. A repository that isn't a library has no levels: every skill in it is offered, so its source must list the skills it includes, and `recommended` is rejected.
+
+`generated/SKILLS.md`, [provenance](/reference/provenance/), and [`syllabus project list skills`](/reference/cli/#project-list-skills) show each skill's level and the library release that set it. When an update moves a library to a release that changes a skill's level, the [update preview](/reference/cli/#project-update) shows it.
 
 A source that isn't a library has only skills, so it needs a `ref` and can't include `rules`:
 
@@ -159,7 +182,30 @@ sources:
       include: [tools/review]
 ```
 
-Skill levels, such as `recommended`, and the `uses` field aren't supported yet.
+Sync also installs every skill an included skill uses, from the same source; see [Declare the skills a skill uses](#declare-the-skills-a-skill-uses).
+
+### Declare the skills a skill uses
+
+A skill lists the other skills it calls in its `syllabus-skills-used` metadata, one skill ID per line, and sync installs them with it, and the skills they use in turn, all from the same source and revision. A skill installed only because another uses it isn't listed in `skills.include`, and `generated/SKILLS.md` says which skill uses it.
+
+Many skills, especially ones from a repository that isn't a library, call other skills without listing them. Declare those calls in the source's `skills.uses`, so sync installs them too:
+
+```yaml
+sources:
+  pstack:
+    repository: https://github.com/example/pstack.git
+    ref: v1.4.0
+    skills:
+      include: [skills/poteto-mode]
+      uses:
+        skills/architect: [skills/how]
+```
+
+Each key is a skill the source installs, because `skills.include` selects it or another installed skill uses it, and each value lists skill IDs in the same repository. `uses` adds to what the skill's `syllabus-skills-used` lists; it can't remove one. A skill can't use itself, and the skills used can't form a cycle, directly or through other skills. Syllabus doesn't search skill text for calls: `syllabus-skills-used` and `skills.uses` are the only ways it learns of them.
+
+Sync fails, writing nothing, when a skill uses one the source's revision doesn't have, naming both skills, and when skills use each other in a cycle. A `skills.uses` entry that names a skill the recorded revision lacks fails with `skill-not-in-revision`, because sync never moves a source. Offline, `syllabus project build` and `syllabus project check` ask for `syllabus project sync` when `skills.uses` changed what the source installs.
+
+Dependencies don't cross sources: a source's skill uses skills from its own repository. A skill you author in `.syllabus/skills/` can use a source's skill by its project ID, such as `pstack:skills/how`, but Syllabus doesn't install it for that: the source must install it, so add it to the source's `skills.include`.
 
 ## Exclude or replace a skill
 
@@ -179,7 +225,7 @@ skills:
 
 | Field | Meaning |
 | --- | --- |
-| `id` | Required. The ID of one skill that `skills.include` selects, such as `skills/write-changelog`; `"*"` is rejected. To install none of a source's skills, remove `skills.include`. Each `id` can appear once. The skill must be in the revision the source record locks: build, check, and sync fail when it isn't, such as after a newer revision removed it. |
+| `id` | Required. The ID of one skill the source installs, because `skills.include` selects it or another installed skill uses it, such as `skills/write-changelog`, and that the library doesn't require; `"*"` and `recommended` are rejected. To install none of a source's skills but its required ones, remove `skills.include`. Each `id` can appear once. The skill must be in the revision the source record locks: build, check, and sync fail when it isn't, such as after a newer revision removed it. |
 | `reason` | Required non-blank text explaining why the project leaves the skill out. |
 | `replacedBy` | Optional. The ID of an authored skill, `skills/<name>` for `.syllabus/skills/<name>/`, that the project installs in place of the excluded skill. Each authored skill can replace only one skill. |
 | `basedOn` | Optional, and only with `replacedBy`. The full 40-character commit SHA, in quotes, of the source's repository whose copy of the skill your skill is based on. [Forking a skill](/reference/cli/#project-add-skill) records the commit it copied here. Offline commands check only that it's a full commit SHA; `syllabus project sync` checks that the repository has the commit, and otherwise fails with `version-not-found`, and that the commit has the skill. |
@@ -197,6 +243,8 @@ The `syllabus project update` preview lists a replaced skill as `replaced` when 
 
 The update never changes your skill.
 
+When another installed skill uses a skill you exclude, by its `syllabus-skills-used` or `skills.uses`, it uses your replacement instead, and `generated/SKILLS.md` lists your skill among the skills it uses. With no replacement, sync, update, and build warn that the skill it uses isn't installed.
+
 ## Rename a skill
 
 Agents find skills by name, so two skills with the same install name can't both be installed: build, check, and sync fail with `skill-name-clash` and name both skills. To keep both, give one of them another name in its source's `skills.rename`:
@@ -211,7 +259,7 @@ sources:
         skills/review: fabrica-review
 ```
 
-Each key is the ID of a skill that `skills.include` selects, and each value is the name to install it under, which follows the same grammar as a skill's `name`. A skill can't be both excluded and renamed, and a rename that names a skill the source doesn't install fails with its location. A rename to the skill's own name changes nothing. Skills you author in `.syllabus/skills/` aren't renamed this way: rename the folder and its `name` instead.
+Each key is the ID of a skill the source installs, because `skills.include` selects it, its library requires it, or another installed skill uses it, and each value is the name to install it under, which follows the same grammar as a skill's `name`. A skill can't be both excluded and renamed, and a rename that names a skill the source doesn't install fails with its location. A rename to the skill's own name changes nothing. A [required](#skill-levels) skill can be renamed, because it stays installed. Skills you author in `.syllabus/skills/` aren't renamed this way: rename the folder and its `name` instead.
 
 The skill keeps its ID, so `skills.exclude`, `SKILLS.md`, and updates still refer to it as `fabrica:skills/review`. Build and sync install it into folders named by the new name, such as `.claude/skills/fabrica-review/`, and rewrite the `name` in each installed copy's `SKILL.md`, so agents know it by the new name. The copy in `vendor/` keeps the source's text. `provenance.json` records the name the skill was renamed from, and `SKILLS.md` tells agents that the skill's own text and other skills from its source may still use that name for it.
 
@@ -458,7 +506,7 @@ See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an 
 
 ## Library section
 
-The optional `library` section makes the repository a [library](/reference/library-format/) as well as, or instead of, a project. `syllabus library init` adds it. Its only field is `license`, which [License metadata](/reference/library-format/#license-metadata) describes; `library.skills` is rejected, since this version of Syllabus doesn't support skill levels yet:
+The optional `library` section makes the repository a [library](/reference/library-format/) as well as, or instead of, a project. `syllabus library init` adds it. It has two optional fields: `license`, which [License metadata](/reference/library-format/#license-metadata) describes, and `skills`, the [levels](#skill-levels) of the library's skills:
 
 ```yaml
 schemaVersion: 2
@@ -468,7 +516,19 @@ library:
     spdxExpression: MIT
     file: LICENSE.md
     notices: []
+  skills:
+    required: [skills/ship-service]
+    recommended: [skills/build-feature, skills/review-change]
+    offered: [skills/write-changelog]
 ```
+
+| Field | Meaning |
+| --- | --- |
+| `skills.required` | Optional list of the IDs of the library's skills that every project using the library installs. |
+| `skills.recommended` | Optional list of the IDs of the skills projects install by including `recommended`. |
+| `skills.offered` | Optional list of skills projects install only by naming them or including `"*"`. A skill no list names is offered too, so list one here only to say so. |
+
+Each entry is the ID of one of the library's own skills, `skills/<name>` for `.syllabus/skills/<name>/`, and each skill can appear in one list, once. Listing another source's skill, such as `mattpocock:skills/to-spec`, isn't supported yet. `syllabus library check` fails when a list names a skill the library doesn't have.
 
 A library publishes only this section of the configuration, never its `sources`. A repository can keep both: project commands read `sources`, library commands read `library`, and both read the groups in `rules/`. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
 

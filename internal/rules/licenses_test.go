@@ -96,7 +96,24 @@ func TestPublishedManifest(t *testing.T) {
 	if none, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\n"), "config.yaml"); err != nil || none != nil {
 		t.Fatalf("got %s, %v for a project's configuration", none, err)
 	}
-	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {}\n"), "config.yaml"); err == nil {
-		t.Fatal("published a library section with skill levels")
+	levels := "schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    required: [skills/ship]\n"
+	if published, err := rules.PublishedManifest([]byte(levels), "config.yaml"); err != nil || string(published) != `{"library":{"skills":{"required":["skills/ship"]}},"schemaVersion":2,"sources":{}}`+"\n" {
+		t.Fatalf("got %s, %v; want the skill levels published", published, err)
+	}
+	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {required: skills/ship}\n"), "config.yaml"); err == nil {
+		t.Fatal("published invalid skill levels")
+	}
+}
+
+// TestLicenseDeclaredInTheLegacyDirectory reads a license file declared in .code-rules/assets/, as a library release
+// from before Code Rules was renamed Syllabus declares it, as the shared asset it is.
+func TestLicenseDeclaredInTheLegacyDirectory(t *testing.T) {
+	text := "schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: .code-rules/assets/LICENSE.md\n    notices: [.code-rules/assets/NOTICE.md]\n"
+	library, err := rules.ParseLibraryManifest([]byte(text), "config.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := library.License; !reflect.DeepEqual(got.Files, []string{"assets/LICENSE.md"}) || !reflect.DeepEqual(got.AttributionFiles, []string{"assets/NOTICE.md"}) {
+		t.Fatalf("got %+v; want the shared assets", got)
 	}
 }

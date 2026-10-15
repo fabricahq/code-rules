@@ -47,9 +47,14 @@ type Source struct {
 	// with Exclusion, which also finds the selectors that match it.
 	Exclude map[string]Exclusion `json:"exclude"`
 	// Skills lists the skills.include selectors, sorted: skill IDs, each a folder path in the source's repository,
-	// such as skills/build-feature, or only skills.Wildcard. It is empty, never nil, when the source includes no
-	// skills. Whether each ID names a skill the source has is checked when sync reads the source.
+	// such as skills/build-feature, and skills.Recommended, or only skills.Wildcard. It is empty, never nil, when the
+	// source includes no skills, though it still installs its library's required skills. Whether each ID names a
+	// skill the source has is checked when sync reads the source.
 	Skills []string `json:"skills"`
+	// SkillUses maps a skill ID to the IDs of the skills it uses that its own syllabus-skills-used doesn't declare, each a
+	// folder path in the source's repository, sorted; it is empty, never nil, when skills.uses declares none. Whether
+	// each key is a skill the source installs, and each value a skill it has, is checked when sync reads the source.
+	SkillUses map[string][]string `json:"skillUses,omitempty"`
 	// SkillExclude maps the ID of each skill that skills.exclude leaves out to its exclusion; it is empty, never nil,
 	// when there are none. An excluded skill is still imported, so updates can compare it with its replacement.
 	SkillExclude map[string]SkillExclusion `json:"skillExclude,omitempty"`
@@ -270,11 +275,8 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
+	// A source that includes nothing still installs its library's required skills.
 	_, hasRules := fields["rules"]
-	_, hasSkills := fields["skills"]
-	if !hasRules && !hasSkills {
-		return Source{}, invalid(where, "include rules or skills from the source, such as rules: {include: [techs/go/*]} or skills: {include: [skills/build-feature]}")
-	}
 	result.Groups, result.Rules, result.Pins, result.Exclude = GroupSelection{}, []string{}, map[string]Pin{}, map[string]Exclusion{}
 	if hasRules {
 		if err := parseRuleFields(fields["rules"], where, &result); err != nil {
@@ -287,11 +289,12 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 	return result, nil
 }
 
-// parseSkillFields reads a source's skills object into source: include, a list of skill IDs or only "*", exclude, as
-// parseSkillExclusions reads it, and rename, as parseSkillRenames reads it. A missing object includes no skills,
-// excludes none, and renames none. A skill can't be both excluded and renamed.
+// parseSkillFields reads a source's skills object into source: include, a list of skill IDs or only "*"; uses, the
+// skills each skill uses beyond what it declares; exclude, as parseSkillExclusions reads it; and rename, as
+// parseSkillRenames reads it. A missing object includes no skills, declares no uses, excludes none, and renames
+// none. A skill can't be both excluded and renamed.
 func parseSkillFields(input json.RawMessage, location string, source *Source) error {
-	source.Skills, source.SkillExclude = []string{}, map[string]SkillExclusion{}
+	source.Skills, source.SkillUses, source.SkillExclude = []string{}, map[string][]string{}, map[string]SkillExclusion{}
 	if input == nil {
 		return nil
 	}
@@ -299,10 +302,13 @@ func parseSkillFields(input json.RawMessage, location string, source *Source) er
 	if err != nil {
 		return err
 	}
-	if err := decode.KnownFields(fields, []string{"include", "exclude", "rename"}, location); err != nil {
+	if err := decode.KnownFields(fields, []string{"include", "uses", "exclude", "rename"}, location); err != nil {
 		return err
 	}
 	if source.Skills, err = ParseSkillSelection(fields["include"], location+".include"); err != nil {
+		return err
+	}
+	if source.SkillUses, err = parseSkillUses(fields["uses"], location+".uses"); err != nil {
 		return err
 	}
 	if source.SkillExclude, err = parseSkillExclusions(fields["exclude"], location+".exclude"); err != nil {
@@ -319,13 +325,57 @@ func parseSkillFields(input json.RawMessage, location string, source *Source) er
 	return nil
 }
 
+// parseSkillUses validates skills.uses, a mapping of skill IDs to lists of the skill IDs each uses, each list
+// non-empty, without repeats or the skill itself, and returns each list sorted. A missing field declares none.
+func parseSkillUses(input json.RawMessage, location string) (map[string][]string, error) {
+	uses := map[string][]string{}
+	if input == nil {
+		return uses, nil
+	}
+	fields, err := decode.Object(input, location)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range slices.Sorted(maps.Keys(fields)) {
+		where := location + "." + id
+		if err := skills.ValidateID(id, where); err != nil {
+			return nil, err
+		}
+		var items []json.RawMessage
+		if json.Unmarshal(fields[id], &items) != nil || len(items) == 0 {
+			return nil, invalid(where, "list the skills "+id+" uses, such as [skills/tdd]")
+		}
+		used := []string{}
+		for i, item := range items {
+			at := fmt.Sprintf("%s[%d]", where, i)
+			other, err := decode.Text(item, at)
+			if err != nil {
+				return nil, err
+			}
+			if err := skills.ValidateID(other, at); err != nil {
+				return nil, err
+			}
+			switch {
+			case other == id:
+				return nil, invalid(at, "a skill can't use itself")
+			case slices.Contains(used, other):
+				return nil, invalid(at, other+" is listed more than once; list each skill once")
+			}
+			used = append(used, other)
+		}
+		slices.Sort(used)
+		uses[id] = used
+	}
+	return uses, nil
+}
+
 // ParseSkillSelection validates a source's skill selectors, a JSON list at location of distinct skill IDs, such as
-// skills/build-feature, or only "*", and returns them sorted. An empty or missing list fails.
+// skills/build-feature, and recommended, or only "*", and returns them sorted. An empty or missing list fails.
 func ParseSkillSelection(input json.RawMessage, location string) ([]string, error) {
 	selected := []string{}
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || len(items) == 0 {
-		return nil, invalid(location, `select skills in include, a list of skill IDs such as skills/build-feature, or "*" for every skill the source offers`)
+		return nil, invalid(location, `select skills in include, a list of skill IDs such as skills/build-feature, recommended for the skills the source's library recommends, or "*" for every skill the source offers`)
 	}
 	for i, item := range items {
 		where := fmt.Sprintf("%s[%d]", location, i)
@@ -334,11 +384,11 @@ func ParseSkillSelection(input json.RawMessage, location string) ([]string, erro
 			return nil, err
 		}
 		switch {
-		case id == "recommended":
-			return nil, invalid(where, `skill levels aren't supported yet in this version of Syllabus; name skills by ID, such as skills/build-feature, or include "*"`)
+		case id == skills.Recommended+"/*":
+			return nil, invalid(where, `recommended is one selector, without /*; it includes the skills the source's library recommends, so write recommended`)
 		case id != skills.Wildcard && strings.HasSuffix(id, "/*"):
 			return nil, invalid(where, `skill selectors have no prefixes; name each skill by ID, such as skills/build-feature, or include "*" for every skill the source offers`)
-		case id != skills.Wildcard:
+		case id != skills.Wildcard && id != skills.Recommended:
 			if err := skills.ValidateID(id, where); err != nil {
 				return nil, err
 			}

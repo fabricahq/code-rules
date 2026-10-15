@@ -4,6 +4,7 @@ package skills_test
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/errs"
@@ -49,11 +50,13 @@ func TestReadMetadataReadsTheFieldsGuidanceShows(t *testing.T) {
 		"no frontmatter":         {"# A skill\n\nSteps.\n", skills.Metadata{}},
 		"unknown fields kept":    {"---\nname: x\nallowed-tools: Bash\nlicense: MIT\n---\n", skills.Metadata{Name: "x", Frontmatter: true}},
 		"closing at end of file": {"---\nname: x\n---", skills.Metadata{Name: "x", Frontmatter: true}},
+		"cited rules and skills": {"---\nname: x\nmetadata:\n  syllabus-rules-used: |\n    techs/go/errors\n\n      fabrica:practices/testing/verify  \n  syllabus-skills-used: skills/tdd\n  syllabus-groups: x\n  syllabus-skill-type: review\n---\n", skills.Metadata{Name: "x", Type: "review", RulesUsed: []string{"techs/go/errors", "fabrica:practices/testing/verify"}, SkillsUsed: []string{"skills/tdd"}, ReservedKeys: []string{"syllabus-groups"}, Frontmatter: true}},
+		"empty cited rules":      {"---\nname: x\nmetadata:\n  syllabus-rules-used: \"\"\n---\n", skills.Metadata{Name: "x", RulesUsed: []string{}, Frontmatter: true}},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := skills.ReadMetadata([]byte(test.input), "skills/x/SKILL.md")
-			if err != nil || got != test.want {
+			if err != nil || !reflect.DeepEqual(got, test.want) {
 				t.Fatalf("ReadMetadata = %#v, %v; want %#v", got, err, test.want)
 			}
 		})
@@ -68,6 +71,8 @@ func TestReadMetadataRejectsUnreadableFrontmatter(t *testing.T) {
 		"list description": "---\nname: x\ndescription: [a]\n---\n",
 		"scalar metadata":  "---\nname: x\nmetadata: text\n---\n",
 		"boolean type":     "---\nname: x\nmetadata:\n  syllabus-skill-type: true\n---\n",
+		"list rules used":  "---\nname: x\nmetadata:\n  syllabus-rules-used: [techs/go/errors]\n---\n",
+		"number skills":    "---\nname: x\nmetadata:\n  syllabus-skills-used: 3\n---\n",
 		"duplicate key":    "---\nname: x\nname: y\n---\n",
 	} {
 		t.Run(name, func(t *testing.T) {

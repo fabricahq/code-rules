@@ -20,17 +20,17 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		&cobra.Group{ID: "utility", Title: "Utility commands:"},
 	)
 	for _, name := range []string{"sync", "build", "check"} {
-		descriptions := map[string]string{"sync": "Fetch configured sources, build guidance, and install skills", "build": "Rebuild guidance and installed skills using local snapshots", "check": "Check configuration and generated guidance"}
+		descriptions := map[string]string{"sync": "Fetch configured sources, build guidance, and install skills", "build": "Rebuild guidance and installed skills using local snapshots", "check": "Check configuration, generated guidance, and installed skills"}
 		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
 		if name == "check" {
-			cmd.Long = "Check project configuration, generated guidance, and the Syllabus guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
+			cmd.Long = "Check project configuration, generated guidance, installed skills, and the Syllabus guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
 		}
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 			directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)
 			if err != nil {
 				return err
 			}
-			projectOptions := project.Options{Directory: directory, ToolVersion: options.Version}
+			projectOptions := project.Options{Directory: directory, ToolVersion: options.Version, Home: options.home()}
 			var changes project.FileChanges
 			switch name {
 			case "sync":
@@ -55,7 +55,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 	command.AddCommand(projectInitCommand(options, output), projectUpdateCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or source, or fork a skill"}
 	add.AddCommand(projectSourceCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output), projectSkillCommand(options, output))
-	command.AddCommand(add)
+	command.AddCommand(add, projectListCommand(options, output))
 	for _, child := range command.Commands() {
 		child.GroupID = "main"
 		if child.Name() == "build" || child.Name() == "check" {
@@ -122,7 +122,7 @@ func projectSourceCommand(options Options, output *commandOutput) *cobra.Command
 	sf.prompts = map[string]string{"repository": "Git repository URL"}
 	var ruleSelectors, skillSelectors []string
 	source.Flags().StringArrayVar(&ruleSelectors, "rules", nil, "Rule `selector` for rules.include (repeat): a rule ID, a group prefix such as techs/go/*, or *")
-	source.Flags().StringArrayVar(&skillSelectors, "skills", nil, "Skill `selector` for skills.include (repeat): a skill ID such as skills/build-feature, or *")
+	source.Flags().StringArrayVar(&skillSelectors, "skills", nil, "Skill `selector` for skills.include (repeat): a skill ID such as skills/build-feature, recommended, or *")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		target, err := sf.options(cmd.Context(), false)
 		if err != nil {

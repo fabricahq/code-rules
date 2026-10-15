@@ -21,6 +21,8 @@ import (
 type Library struct {
 	// License is nil when the library declares no license.
 	License *LicenseDeclaration `json:"license"`
+	// Skills holds the levels the library gives its skills.
+	Skills SkillLevels `json:"skills"`
 }
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -32,9 +34,6 @@ type LicenseDeclaration struct {
 	Files            []string `json:"files"`
 	AttributionFiles []string `json:"attributionFiles"`
 }
-
-// skillLevelsProblem rejects library.skills, which a later version of Syllabus reads.
-const skillLevelsProblem = "skill levels aren't supported yet in this version of Syllabus; remove library.skills"
 
 // ParseLibraryManifest validates text, a library's whole .syllabus/config.yaml, and returns its library section,
 // or nil when the configuration has none, which means the repository isn't a library. Errors prefix their location
@@ -92,17 +91,13 @@ func PublishedManifestOf(section json.RawMessage) ([]byte, error) {
 	return append(encoded, '\n'), nil
 }
 
-// parseLibrary validates a configuration's library section. Its only field is license; skill levels are rejected
-// until Syllabus supports them.
+// parseLibrary validates a configuration's library section: its license and the levels of its skills.
 func parseLibrary(input json.RawMessage) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := fields["skills"]; ok {
-		return nil, invalid("library.skills", skillLevelsProblem)
-	}
-	if err := decode.KnownFields(fields, []string{"license"}, "library"); err != nil {
+	if err := decode.KnownFields(fields, []string{"license", "skills"}, "library"); err != nil {
 		return nil, err
 	}
 	result := &Library{}
@@ -110,6 +105,9 @@ func parseLibrary(input json.RawMessage) (*Library, error) {
 		if result.License, err = parseLicense(raw, "library.license"); err != nil {
 			return nil, err
 		}
+	}
+	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills"); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -169,13 +167,14 @@ func parseLicense(input json.RawMessage, location string) (*LicenseDeclaration, 
 // termsPath reads a declared license or notice path, relative to the repository root, and returns its library path.
 // The file must be library-wide: outside .syllabus/, or in its assets/ or a group in its rules/. A rule's Markdown
 // file or a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a
-// library release replace a rule version's content.
+// library release replace a rule version's content. A path in .code-rules/, which a library declared before Code
+// Rules was renamed Syllabus, reads as the same path in .syllabus/, where tree upgrades and git mv put its file.
 func termsPath(input json.RawMessage, location string) (string, error) {
 	declared, err := decode.Path(input, location)
 	if err != nil {
 		return "", err
 	}
-	path, ok := librarytree.LibraryPath(declared)
+	path, ok := librarytree.LibraryPath(librarytree.Upgrade(declared))
 	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") {
 		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files")
 	}

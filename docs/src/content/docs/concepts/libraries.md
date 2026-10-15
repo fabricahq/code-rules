@@ -13,7 +13,7 @@ A library lives in a Git repository, in the same Syllabus directory, `.syllabus/
 
 - **A manifest**, the `library` section of `.syllabus/config.yaml`, which makes the repository a library and declares any license information.
 - **Groups** under `.syllabus/rules/techs/` and `.syllabus/rules/practices/`, each with group metadata and Markdown rule files.
-- **Skills**, optionally, under `.syllabus/skills/`, one folder per [skill](/concepts/skill/). Projects install the ones they include, from the same library release as the library's rules. Skills come in the next Syllabus release.
+- **Skills**, optionally, under `.syllabus/skills/`, one folder per [skill](/concepts/skill/). The library marks each one required, recommended, or offered: projects that use the library always install its required skills, and install the others when they include them, from the same library release as the library's rules. Skills come in the next Syllabus release.
 
 For example, a repository named "engineering-rules" might contain:
 

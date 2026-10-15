@@ -40,31 +40,52 @@ sources:
 	}
 }
 
-func TestParseConfigurationReadsSkillRenames(t *testing.T) {
+func TestParseConfigurationReadsTheSkillsEachSkillUses(t *testing.T) {
 	config, err := rules.ParseConfigurationYAML([]byte(`schemaVersion: 2
 sources:
+  pstack:
+    repository: https://example.invalid/pstack.git
+    ref: v1.0.0
+    skills:
+      include: [skills/architect]
+      uses:
+        skills/architect: [skills/how, skills/engineering/to-spec]
+        skills/how: [skills/tdd]
   team:
     repository: https://example.invalid/team.git
-    ref: main
-    skills:
-      include: ["*"]
-      rename:
-        skills/review: team-review
-        skills/engineering/to-spec: spec
-  other:
-    repository: https://example.invalid/other.git
-    ref: main
     skills:
       include: ["*"]
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := config.Sources[1].SkillRename; !reflect.DeepEqual(got, map[string]string{"skills/review": "team-review", "skills/engineering/to-spec": "spec"}) {
-		t.Fatalf("team renames = %v", got)
+	want := map[string][]string{"skills/architect": {"skills/engineering/to-spec", "skills/how"}, "skills/how": {"skills/tdd"}}
+	if got := config.Sources[0].SkillUses; !reflect.DeepEqual(got, want) {
+		t.Fatalf("pstack uses = %v, want %v", got, want)
 	}
-	if got := config.Sources[0].SkillRename; got != nil {
-		t.Fatalf("other renames = %v, want none", got)
+	if got := config.Sources[1].SkillUses; got == nil || len(got) != 0 {
+		t.Fatalf("team uses = %#v, want empty", got)
+	}
+}
+
+func TestParseConfigurationReadsLevelSelectorsAndSourcesThatIncludeNothing(t *testing.T) {
+	config, err := rules.ParseConfigurationYAML([]byte(`schemaVersion: 2
+sources:
+  fabrica:
+    repository: https://example.invalid/fabrica.git
+    skills:
+      include: [skills/deploy, recommended]
+  team:
+    repository: https://example.invalid/team.git
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := config.Sources[0].Skills; !reflect.DeepEqual(got, []string{"recommended", "skills/deploy"}) {
+		t.Fatalf("fabrica includes %v", got)
+	}
+	if got := config.Sources[1]; got.HasRules() || got.Skills == nil || len(got.Skills) != 0 {
+		t.Fatalf("team = %+v; want a source that includes nothing, which still installs its required skills", got)
 	}
 }
 
@@ -85,23 +106,30 @@ func TestParseConfigurationTreatsMissingSkillTargetsAsNone(t *testing.T) {
 func TestParseConfigurationRejectsInvalidSkillFields(t *testing.T) {
 	const source = "schemaVersion: 2\nsources:\n  team:\n    repository: https://example.invalid/team.git\n"
 	tests := map[string]struct{ input, location, problem string }{
-		"unknown target":     {"schemaVersion: 2\nskillTargets: [cursor]\nsources: {}\n", "skillTargets[0]", "expected claude"},
-		"repeated target":    {"schemaVersion: 2\nskillTargets: [claude, claude]\nsources: {}\n", "skillTargets[1]", "more than once"},
-		"targets not a list": {"schemaVersion: 2\nskillTargets: claude\nsources: {}\n", "skillTargets", "expected a list"},
-		"nothing included":   {source, "sources.team", "include rules or skills"},
-		"empty include":      {source + "    skills:\n      include: []\n", "sources.team.skills.include", "select skills"},
-		"missing include":    {source + "    skills: {}\n", "sources.team.skills.include", "select skills"},
-		"unknown field":      {source + "    skills:\n      include: [skills/x]\n      pins: {}\n", "sources.team.skills", "pins"},
-		"rename not a map":   {source + "    skills:\n      include: [\"*\"]\n      rename: [skills/x]\n", "sources.team.skills.rename", "expected a mapping"},
-		"rename wildcard":    {source + "    skills:\n      include: [\"*\"]\n      rename: {\"*\": x}\n", "sources.team.skills.rename.*", "names one skill"},
-		"rename invalid ID":  {source + "    skills:\n      include: [\"*\"]\n      rename: {skills/../x: y}\n", "sources.team.skills.rename.skills/../x", "expected a skill ID"},
-		"rename bad name":    {source + "    skills:\n      include: [\"*\"]\n      rename: {skills/x: Team_Review}\n", "sources.team.skills.rename.skills/x", "name grammar"},
-		"rename excluded":    {source + "    skills:\n      include: [\"*\"]\n      exclude: [{id: skills/x, reason: No.}]\n      rename: {skills/x: y}\n", "sources.team.skills.rename.skills/x", "excludes this skill"},
-		"levels":             {source + "    skills:\n      include: [recommended]\n", "sources.team.skills.include[0]", "skill levels aren't supported yet"},
-		"prefix":             {source + "    skills:\n      include: [skills/*]\n", "sources.team.skills.include[0]", "no prefixes"},
-		"wildcard and IDs":   {source + "    skills:\n      include: [\"*\", skills/x]\n", "sources.team.skills.include", "already includes every skill"},
-		"repeated ID":        {source + "    skills:\n      include: [skills/x, skills/x]\n", "sources.team.skills.include[1]", "more than once"},
-		"invalid ID":         {source + "    skills:\n      include: [skills/../x]\n", "sources.team.skills.include[0]", "expected a skill ID"},
+		"unknown target":       {"schemaVersion: 2\nskillTargets: [cursor]\nsources: {}\n", "skillTargets[0]", "expected claude"},
+		"repeated target":      {"schemaVersion: 2\nskillTargets: [claude, claude]\nsources: {}\n", "skillTargets[1]", "more than once"},
+		"targets not a list":   {"schemaVersion: 2\nskillTargets: claude\nsources: {}\n", "skillTargets", "expected a list"},
+		"empty include":        {source + "    skills:\n      include: []\n", "sources.team.skills.include", "select skills"},
+		"missing include":      {source + "    skills: {}\n", "sources.team.skills.include", "select skills"},
+		"unknown field":        {source + "    skills:\n      include: [skills/x]\n      pins: {}\n", "sources.team.skills", "pins"},
+		"rename not a map":     {source + "    skills:\n      include: [\"*\"]\n      rename: [skills/x]\n", "sources.team.skills.rename", "expected a mapping"},
+		"rename wildcard":      {source + "    skills:\n      include: [\"*\"]\n      rename: {\"*\": x}\n", "sources.team.skills.rename.*", "names one skill"},
+		"rename invalid ID":    {source + "    skills:\n      include: [\"*\"]\n      rename: {skills/../x: y}\n", "sources.team.skills.rename.skills/../x", "expected a skill ID"},
+		"rename bad name":      {source + "    skills:\n      include: [\"*\"]\n      rename: {skills/x: Team_Review}\n", "sources.team.skills.rename.skills/x", "name grammar"},
+		"rename excluded":      {source + "    skills:\n      include: [\"*\"]\n      exclude: [{id: skills/x, reason: No.}]\n      rename: {skills/x: y}\n", "sources.team.skills.rename.skills/x", "excludes this skill"},
+		"prefix":               {source + "    skills:\n      include: [skills/*]\n", "sources.team.skills.include[0]", "no prefixes"},
+		"wildcard and IDs":     {source + "    skills:\n      include: [\"*\", skills/x]\n", "sources.team.skills.include", "already includes every skill"},
+		"repeated ID":          {source + "    skills:\n      include: [skills/x, skills/x]\n", "sources.team.skills.include[1]", "more than once"},
+		"invalid ID":           {source + "    skills:\n      include: [skills/../x]\n", "sources.team.skills.include[0]", "expected a skill ID"},
+		"uses not a map":       {source + "    skills:\n      include: [skills/x]\n      uses: [skills/y]\n", "sources.team.skills.uses", "object"},
+		"uses invalid key":     {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x/: [skills/y]\n", "sources.team.skills.uses.skills/x/", "expected a skill ID"},
+		"uses empty list":      {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: []\n", "sources.team.skills.uses.skills/x", "list the skills skills/x uses"},
+		"uses not a list":      {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: skills/y\n", "sources.team.skills.uses.skills/x", "list the skills skills/x uses"},
+		"uses invalid value":   {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: [\"*\"]\n", "sources.team.skills.uses.skills/x[0]", "expected a skill ID"},
+		"uses itself":          {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: [skills/x]\n", "sources.team.skills.uses.skills/x[0]", "can't use itself"},
+		"uses repeated":        {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: [skills/y, skills/y]\n", "sources.team.skills.uses.skills/x[1]", "more than once"},
+		"levels with a prefix": {source + "    skills:\n      include: [recommended/*]\n", "sources.team.skills.include[0]", "recommended is one selector, without /*"},
+		"wildcard and levels":  {source + "    skills:\n      include: [\"*\", recommended]\n", "sources.team.skills.include", "already includes every skill"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -163,4 +191,32 @@ func mustRef(t *testing.T, text string) rules.GitRef {
 		t.Fatal(err)
 	}
 	return ref
+}
+
+func TestParseConfigurationReadsSkillRenames(t *testing.T) {
+	config, err := rules.ParseConfigurationYAML([]byte(`schemaVersion: 2
+sources:
+  team:
+    repository: https://example.invalid/team.git
+    ref: main
+    skills:
+      include: ["*"]
+      rename:
+        skills/review: team-review
+        skills/engineering/to-spec: spec
+  other:
+    repository: https://example.invalid/other.git
+    ref: main
+    skills:
+      include: ["*"]
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := config.Sources[1].SkillRename; !reflect.DeepEqual(got, map[string]string{"skills/review": "team-review", "skills/engineering/to-spec": "spec"}) {
+		t.Fatalf("team renames = %v", got)
+	}
+	if got := config.Sources[0].SkillRename; got != nil {
+		t.Fatalf("other renames = %v, want none", got)
+	}
 }
