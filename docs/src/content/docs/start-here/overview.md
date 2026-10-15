@@ -44,7 +44,7 @@ The bigger payoff comes after an agent session. When an agent misses something y
 1. Run `code-rules project init` to create a `.code-rules` directory in your repo.
 2. In `.code-rules/config.yaml`, choose the skills and rules you want from libraries, and add any of your own.
 3. Run `code-rules project sync`. Code Rules copies in the rules, writes `RULES.md` to index them, and installs the skills where your agents look for them.
-4. Add the **Engineering rules** section to your `AGENTS.md`, so your agents read the rules and use the skills that fit each task.
+4. Copy the **Skills and Rules** section from `.code-rules/README.md` into your `AGENTS.md`, so your agents read the rules and use the skills that fit each task.
 5. Commit the results. When a library publishes new versions, run `code-rules project update` to adopt them.
 
 [Set up your first project](/start-here/set-up-project/) walks through these steps.
@@ -99,6 +99,6 @@ Code Rules assembles rules and skills from multiple sources into a cohesive, age
 
 Code Rules installs skills into your repository, not on your computer. It doesn't manage the personal skills a person installs for all of their repositories, though it warns when one has the same name as a skill your project installs.
 
-Code Rules also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: an **Engineering rules** section for your `AGENTS.md`, which tells them to read `RULES.md` and apply the rules that fit the task, and to use any installed skill listed in `SKILLS.md` that fits it. `code-rules project init` writes the section into `.code-rules/README.md` for you, or your agent, to add to `AGENTS.md`; Code Rules doesn't edit `AGENTS.md` itself. See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
+Code Rules also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: a **Skills and Rules** section, which tells them to read `RULES.md` and apply the rules that fit the task, and to use any installed skill listed in `SKILLS.md` that fits it. `code-rules project init` puts the section in `.code-rules/README.md`, and you, or your agent, copy it into `AGENTS.md`. Code Rules doesn't edit `AGENTS.md` itself. See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
 
 That is where Code Rules' work ends. It can't guarantee that your agents followed your rules or used your skills. You can add your own guidance on how agents should apply them, in other procedures, in skills, or elsewhere in `AGENTS.md`.
