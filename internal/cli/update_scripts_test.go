@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // newScriptUpdateFixture syncs a project that installs the skill build-feature from a library's release/1, then

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // TestRepositoryPath_PlacesLibraryFilesInTheSyllabusDirectory covers rules, shared assets, change notes, the

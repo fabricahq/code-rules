@@ -128,7 +128,7 @@ async function preview(
       notice: () => {},
     },
     context: {
-      repo: { owner: 'fabricahq', repo: 'code-rules' },
+      repo: { owner: 'fabricahq', repo: 'syllabus' },
       serverUrl: 'https://github.com',
       actor: 'maintainer',
       eventName: options.trigger ?? 'workflow_dispatch',
@@ -157,7 +157,7 @@ test('advertises a maintainer-approved commit for an open fork PR', async () => 
     'Linux Intel/AMD',
   ].entries()) {
     expect(writes[0]!.body).toContain(
-      `[${label}](https://github.com/fabricahq/code-rules/actions/runs/500/artifacts/${70 + index})`,
+      `[${label}](https://github.com/fabricahq/syllabus/actions/runs/500/artifacts/${70 + index})`,
     );
   }
   expect(writes[0]!.body).toContain('### CLI preview ready');
@@ -172,7 +172,7 @@ test('advertises a maintainer-approved commit for an open fork PR', async () => 
   expect(writes[0]!.body).toContain('Then run `./syllabus --help`.');
   expect(writes[0]!.body).toContain('It replaces any existing `./syllabus`');
   expect(writes[0]!.body).toContain(
-    `[\`aaaaaaa\`](https://github.com/fabricahq/code-rules/commit/${'a'.repeat(40)})`,
+    `[\`aaaaaaa\`](https://github.com/fabricahq/syllabus/commit/${'a'.repeat(40)})`,
   );
   expect(writes[0]!.body).toMatch(
     /Downloads expire Sep 24, 2026(?:,| at) 12:00\sPM UTC\./,
@@ -459,13 +459,13 @@ for (const shell of ['sh', 'bash']) {
           'github.com',
           '-H',
           'Accept: application/vnd.github.raw+json',
-          `/repos/fabricahq/code-rules/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}`,
+          `/repos/fabricahq/syllabus/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}`,
         ];
         const binaryRequest = [
           'api',
           '--hostname',
           'github.com',
-          '/repos/fabricahq/code-rules/actions/artifacts/70/zip',
+          '/repos/fabricahq/syllabus/actions/artifacts/70/zip',
         ];
         // Replace network responses only; the generated command runs the real installer.
         const ghCalls = fakeGitHubCLI(bin, [

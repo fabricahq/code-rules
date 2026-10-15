@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestLicenseFixtures checks the license declarations of complete configurations against independent expectations.

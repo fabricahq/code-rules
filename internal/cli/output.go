@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/gitexec"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // TestLibraryCommands_RefuseTheLayoutBeforeVersion2 refuses rule-library.yaml and rule folders at the repository
@@ -34,7 +34,7 @@ func TestLibraryCommands_RefuseTheLayoutBeforeVersion2(t *testing.T) {
 			"init":  func(options Options) error { _, err := Initialize(ctx, options, nil, "1.2.3"); return err },
 			"check": func(options Options) error { _, err := Check(ctx, options); return err },
 			"group": func(options Options) error {
-				_, err := AddGroup(ctx, "techs/rust", coderules.GroupMetadata{Name: "Rust", Description: "Rust guidance.", WhenToRead: "When editing Rust."}, options)
+				_, err := AddGroup(ctx, "techs/rust", syllabus.GroupMetadata{Name: "Rust", Description: "Rust guidance.", WhenToRead: "When editing Rust."}, options)
 				return err
 			},
 			"rule": func(options Options) error {
@@ -207,13 +207,13 @@ func TestLibraryCommands_ShareTheWriterOfTheSyllabusDirectory(t *testing.T) {
 	if _, err := Check(ctx, options); errorCode(err) != "busy" {
 		t.Fatalf("check while a writer holds the directory: %v", err)
 	}
-	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: coderules.ChangePatch, Summary: "Fix a."}, options)
+	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: syllabus.ChangePatch, Summary: "Fix a."}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	waiting, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
-	if _, err := plan.Commit(waiting, coderules.ChangePatch, "Fix a.", noteDay); err == nil {
+	if _, err := plan.Commit(waiting, syllabus.ChangePatch, "Fix a.", noteDay); err == nil {
 		t.Fatal("recorded a change note while a project command held the writer")
 	}
 	if notes, err := os.ReadDir(filepath.Join(options.Directory, ".syllabus", "changes")); err == nil && len(notes) != 0 {

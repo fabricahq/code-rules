@@ -11,11 +11,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // librarySkillsFolder is where a library keeps the skills it publishes, relative to its repository root.

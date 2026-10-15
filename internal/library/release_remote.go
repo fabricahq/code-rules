@@ -15,12 +15,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // maxRemoteListing bounds the output of listing the remote's default branch and release tags.
@@ -210,7 +210,7 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 			}
 		}
 		// Syllabus ignores other tags under release/, such as release/01, and peeled ^{} entries.
-		if number, err := coderules.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
+		if number, err := syllabus.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
 			state.tags[number] = value
 		}
 	}

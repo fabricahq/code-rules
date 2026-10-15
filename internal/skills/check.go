@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // The metadata keys Syllabus defines. Every other key that starts with syllabus- is reserved.

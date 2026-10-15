@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 func TestCheckReportsEachProblemInAnAuthoredSkillsFrontmatter(t *testing.T) {

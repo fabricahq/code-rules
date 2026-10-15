@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/project"
 	"github.com/spf13/cobra"
 )
 

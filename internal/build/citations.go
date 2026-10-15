@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // citedRule is one rule a skill cites, as the project resolves it. Exactly one of Active, Excluded, Retired, and

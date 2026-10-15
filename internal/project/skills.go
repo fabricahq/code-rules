@@ -13,9 +13,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // authoredSkills returns the authored skills in tree, the project's skills/ folder, by ID, skills/<name>, each with

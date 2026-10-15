@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	coderules "github.com/fabricahq/code-rules"
-	"github.com/fabricahq/code-rules/internal/imports"
+	license "github.com/fabricahq/syllabus"
+	"github.com/fabricahq/syllabus/internal/imports"
 	"github.com/spf13/cobra"
 )
 
@@ -76,7 +76,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.Flags().BoolVar(&showLicense, "license", false, "Print the Syllabus license and copyright notice")
 	root.RunE = func(cmd *cobra.Command, _ []string) error {
 		if showLicense {
-			_, err := io.WriteString(cmd.OutOrStdout(), coderules.License())
+			_, err := io.WriteString(cmd.OutOrStdout(), license.License())
 			return err
 		}
 		return cmd.Help()

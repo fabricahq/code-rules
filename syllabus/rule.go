@@ -1,6 +1,6 @@
 // Parse complete rule documents while retaining their authored text.
 
-package coderules
+package syllabus
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 	"github.com/nlnwa/whatwg-url/url"
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // Impact is the rule's declared consequence level. ParseRule and ParseImpact accept only the six constants.

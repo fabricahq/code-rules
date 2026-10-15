@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // invocation runs one CLI command in dir with env and requires exit status want.

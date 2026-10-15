@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // legacyLayoutMoves is how many of a library's files the refusal of the layout before version 2 lists before it

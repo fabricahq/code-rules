@@ -19,12 +19,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // maxReleaseTags bounds the release tags one check reads, matching the tag-listing limit for imports.
@@ -74,7 +74,7 @@ type publishedRelease struct {
 	object, commit string
 	// notes are the release notes before the tag message's record, which a GitHub Release page repeats.
 	notes  string
-	record coderules.ReleaseRecord
+	record syllabus.ReleaseRecord
 	// files maps the library path of each file under practices/, techs/, and changes/ at the release's commit to its
 	// blob ID.
 	files map[string]string
@@ -197,7 +197,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 		return nil
 	})
 	var invalid *releasetag.RecordError
-	var unsupported *coderules.UnsupportedReleaseRecordError
+	var unsupported *syllabus.UnsupportedReleaseRecordError
 	switch {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, unsupportedRecord(invalid.Tag, unsupported.FormatVersion)

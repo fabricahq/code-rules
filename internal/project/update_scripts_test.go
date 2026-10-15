@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // The warnings an update gives when its skill rows flag a script, before and after it is applied.

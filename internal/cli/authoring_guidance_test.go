@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 func TestRuleAuthoringGuidance(t *testing.T) {

@@ -81,7 +81,7 @@ brew uninstall syllabus
 <details id="choose-a-version-or-installation-directory">
 <summary>Choose a version or installation directory</summary>
 
-Add `--version` to install an older or specific [release](https://github.com/fabricahq/code-rules/releases), or `--install-dir` to choose an absolute, writable directory:
+Add `--version` to install an older or specific [release](https://github.com/fabricahq/syllabus/releases), or `--install-dir` to choose an absolute, writable directory:
 
 ```sh
 curl -fsSL https://code-rules.fabricahq.com/install.sh |
@@ -95,20 +95,22 @@ Use the same custom directory when upgrading. Pass `--no-update-path` if you pre
 <details id="download-a-release-manually">
 <summary>Download a release manually</summary>
 
-Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub Releases](https://github.com/fabricahq/code-rules/releases). If you have the GitHub CLI, first verify the checksum manifest came from our release workflow:
+Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub Releases](https://github.com/fabricahq/syllabus/releases). If you have the GitHub CLI, first verify the checksum manifest came from our release workflow:
 
 ```sh
-gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
+gh attestation verify SHA256SUMS --repo fabricahq/syllabus \
   --signer-workflow \
-    fabricahq/code-rules/.github/workflows/release-planner.yml \
+    fabricahq/syllabus/.github/workflows/release-planner.yml \
   --source-ref refs/heads/main
 ```
+
+Releases 0.3.0 and earlier were published as Code Rules, before the repository was renamed, so their attestations name the old repository. To verify one of them, use `fabricahq/code-rules` in place of `fabricahq/syllabus` in both places in the command above.
 
 Stop if verification fails. Before extracting, compare the archive checksum with the matching entry using `shasum -a 256 <archive>` on macOS or `sha256sum <archive>` on Linux.
 
 Extract the archive and move the executable into a directory on your `PATH`.
 
-To build from source instead, follow the contributing guide in the [Syllabus repository](https://github.com/fabricahq/code-rules).
+To build from source instead, follow the contributing guide in the [Syllabus repository](https://github.com/fabricahq/syllabus).
 
 </details>
 
@@ -130,4 +132,4 @@ Adjust the path if you chose a custom installation directory. Your project's rul
 
 </details>
 
-For version compatibility and managed guide changes, see the [release version policy](https://github.com/fabricahq/code-rules/blob/main/.release-planner/policy.md#choosing-a-version).
+For version compatibility and managed guide changes, see the [release version policy](https://github.com/fabricahq/syllabus/blob/main/.release-planner/policy.md#choosing-a-version).

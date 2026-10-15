@@ -16,11 +16,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // AuthoringResult lists the absolute paths of the library files an operation created and changed, and any
@@ -73,7 +73,7 @@ const checkWorkflowVersion = "SYLLABUS_VERSION"
 
 // latestVersion is the shell command that the install step of a development build's workflow runs to find the
 // version of the latest Syllabus release, without its v prefix.
-const latestVersion = `$(gh release view --repo fabricahq/code-rules --json tagName --jq '.tagName | ltrimstr("v")')`
+const latestVersion = `$(gh release view --repo fabricahq/syllabus --json tagName --jq '.tagName | ltrimstr("v")')`
 
 // developmentVersion prefixes the versions of builds that no release published: development builds and
 // unpublished candidates, such as 0.0.0-development and 0.0.0-dev.g0123456789ab.
@@ -331,7 +331,7 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 }
 
 // AddGroup creates complete metadata without changing existing library content.
-func AddGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
+func AddGroup(ctx context.Context, id string, metadata syllabus.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
@@ -360,7 +360,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 	if err != nil || data == nil {
 		return false, err
 	}
-	_, err = coderules.ParseGroupMetadata(data, id)
+	_, err = syllabus.ParseGroupMetadata(data, id)
 	return err == nil, err
 }
 

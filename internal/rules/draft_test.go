@@ -5,7 +5,7 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestHasDraftMarker_RecognizesTheCodeRulesMarker that authoring wrote before Code Rules was renamed Syllabus.

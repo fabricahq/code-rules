@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // sourcePlan is what one source imports: the revision that supplies its library-wide files, and each imported
@@ -420,7 +420,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 // library release tag. A missing tag or commit fails with code version-not-found.
 func (p *planner) resolveRef() (int, string, error) {
 	if ref := p.source.Ref; ref.Kind() == rules.GitRefTag {
-		if number, err := coderules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
+		if number, err := syllabus.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
 			history, err := p.releases()
 			if err != nil {
 				return 0, "", err
@@ -493,7 +493,7 @@ func (p *planner) newestVersion(id string) (library.ImportedRule, error) {
 }
 
 // publishedVersion returns version of rule id with the library release that published it.
-func (p *planner) publishedVersion(id string, version coderules.RuleVersion) (library.ImportedRule, error) {
+func (p *planner) publishedVersion(id string, version syllabus.RuleVersion) (library.ImportedRule, error) {
 	history, err := p.releases()
 	if err != nil {
 		return library.ImportedRule{}, err

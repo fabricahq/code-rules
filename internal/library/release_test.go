@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/test/ghfixture"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/ghfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // gitHubRepositoryURL points a clone's origin at GitHub.com; the fixture's transport still serves it.

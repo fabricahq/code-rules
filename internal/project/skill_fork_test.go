@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/skills"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // skillConfig is a project configuration that installs every skill of the fixture's library into .claude/skills/,

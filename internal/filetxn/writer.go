@@ -17,7 +17,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 const transactionName = ".syllabus-transaction"

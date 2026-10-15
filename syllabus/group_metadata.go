@@ -1,6 +1,6 @@
 // Parse a group's display text and reading guidance without accessing files.
 
-package coderules
+package syllabus
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/syllabus/internal/decode"
 )
 
 // GroupMetadata describes a group for selection, as its _group.yaml file declares it. Text has no surrounding

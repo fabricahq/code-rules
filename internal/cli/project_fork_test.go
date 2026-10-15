@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // forkFixture is a project synced at a library's release/1, which publishes techs/go/errors, linking to a shared

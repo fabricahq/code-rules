@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // Fixture owns a local repository and a private SSH transport that runs Git upload-pack or receive-pack over stdio,

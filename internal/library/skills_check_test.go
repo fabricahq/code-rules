@@ -8,17 +8,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 	current := []string{"practices/testing/a", "practices/testing/c"}
 	changes := libraryChanges{
 		history: releaseHistory{retired: map[string]int{"practices/testing/old": 2, "practices/testing/b": 3}, replacedBy: map[string]string{"practices/testing/b": "practices/testing/a"}},
-		pending: []pendingNote{{path: "changes/retire.yaml", note: rules.ChangeNote{Rules: map[string]rules.NoteChange{"practices/testing/d": {Change: coderules.ChangeRetired, ReplacedBy: "practices/testing/c"}}}}},
+		pending: []pendingNote{{path: "changes/retire.yaml", note: rules.ChangeNote{Rules: map[string]rules.NoteChange{"practices/testing/d": {Change: syllabus.ChangeRetired, ReplacedBy: "practices/testing/c"}}}}},
 	}
 	skill := func(metadata string) string {
 		return "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n" + metadata + "---\n# Fix\n"

@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // SkillExclusion leaves one skill a source would install out of the installed skills, with the project's reason.

@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 func TestValidNameFollowsTheAgentSkillsGrammar(t *testing.T) {

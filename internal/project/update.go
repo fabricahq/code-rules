@@ -13,12 +13,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // UpdatePlan is a previewed update. Planning reads the project and the libraries' release histories without
@@ -313,7 +313,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			version := *row.ReviewedVersion()
 			row.Decision = string(DecisionUpdateFork)
 			if edit.BasedOn == nil {
-				edit.BasedOn = map[string]coderules.RuleVersion{}
+				edit.BasedOn = map[string]syllabus.RuleVersion{}
 			}
 			edit.BasedOn[decision.Rule] = version
 			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "rules/")})
@@ -413,7 +413,7 @@ func invalidArguments(problem string) error { return failure("invalid-arguments"
 // source, becomes a fork of version. read fills files.
 type forkUpdate struct {
 	source, id, file string
-	version          coderules.RuleVersion
+	version          syllabus.RuleVersion
 	// files holds the new fork's files by path relative to rules/: the rule at file and its asset directory.
 	files map[string][]byte
 }

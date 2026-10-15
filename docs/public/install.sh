@@ -8,7 +8,7 @@ main() (
     version=latest
     update_path=true
     install_dir=${HOME:?HOME must be set}/.local/bin
-    repository=https://github.com/fabricahq/code-rules
+    repository=https://github.com/fabricahq/syllabus
     temporary=
     staging=
     trap 'rm -rf "$temporary" "$staging"' EXIT

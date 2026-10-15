@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fabricahq/code-rules/actions/workflows/go.yml"><img alt="Go checks" src="https://github.com/fabricahq/code-rules/actions/workflows/go.yml/badge.svg"></a>
+  <a href="https://github.com/fabricahq/syllabus/actions/workflows/go.yml"><img alt="Go checks" src="https://github.com/fabricahq/syllabus/actions/workflows/go.yml/badge.svg"></a>
   <a href="LICENSE.md"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="Platform: macOS | Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
 </p>
