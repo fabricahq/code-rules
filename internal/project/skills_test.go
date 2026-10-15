@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	buildSkill  = "---\nname: build-feature\ndescription: Build a feature from a spec.\nmetadata:\n  fg-skill-type: playbook\n---\n# Build a feature\n\n1. Run scripts/run.sh.\n"
+	buildSkill  = "---\nname: build-feature\ndescription: Build a feature from a spec.\nmetadata:\n  syllabus-skill-type: playbook\n---\n# Build a feature\n\n1. Run scripts/run.sh.\n"
 	reviewSkill = "---\nname: review\ndescription: Review a change.\n---\n# Review\n"
 )
 
