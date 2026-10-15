@@ -32,7 +32,7 @@ With Code Rules, you can:
 
 - Start every new repo with exactly the right skills and rules in place.
 - Update a skill once in your organization's library, and have every repo pick up the change on its next update.
-- Document which third-party skills your organization requires, recommends, or makes available for consideration, and have projects install them from there.
+- Document which third-party skills your organization requires, recommends, or makes available for consideration, and have projects automatically install them.
 - Override skills and rules on a per-project basis as needed.
 
 ### Turn retros into rules
