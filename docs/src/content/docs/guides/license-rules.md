@@ -72,7 +72,7 @@ The consuming workspace retains them alongside the imported rules:
       LICENSE.md
       config.yaml
       _source.json
-      practices/testing/...
+      rules/practices/testing/...
   generated/
     RULES.md
     provenance.json

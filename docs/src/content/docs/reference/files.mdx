@@ -27,7 +27,10 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
     - fabrica/
       - _source.json
       - config.yaml
-      - practices/testing/
+      - rules/
+        - practices/testing/
+          - ...
+      - assets/
         - ...
   - generated/
     - RULES.md
@@ -56,7 +59,7 @@ The directories serve different purposes:
 Think of `rules/`, `assets/`, and `vendor/` as inputs, and `generated/` as the output for your agent.
 For example, when you replace a library rule, its imported source stays in `vendor/`, your replacement lives in `rules/`, and `generated/` presents the replacement to your agent.
 
-The same layout serves a library: a library repository keeps its manifest in the `library` section of `config.yaml`, the rules it publishes in `rules/`, their shared assets in `assets/`, and its change notes in `changes/`, so one repository can be both a project and a library. A library never publishes `vendor/` or `generated/`. See [Library format](/reference/library-format/). An imported library's `vendor/<source-name>/config.yaml` holds only that library's `library` section.
+The same layout serves a library: a library repository keeps its manifest in the `library` section of `config.yaml`, the rules it publishes in `rules/`, their shared assets in `assets/`, and its change notes in `changes/`, so one repository can be both a project and a library. A library never publishes `vendor/` or `generated/`. See [Library format](/reference/library-format/). An imported library's snapshot in `vendor/<source-name>/` mirrors the library's Code Rules directory, so a rule's relative links to its shared assets work in the copy too: its rules sit in `rules/` beside `assets/`, and its `config.yaml` holds only the library's `library` section. License and notice files from outside the library's `.code-rules/` keep their paths from its repository root.
 
 Code Rules doesn't read a `local/` directory, where earlier versions kept authored rules. Every project command fails while `.code-rules/local/` exists, and its message shows where each file moves: groups and rules to `rules/`, and `local/assets/` to `assets/`. Rule IDs don't change. A moved rule sits one directory deeper, so add one `../` to its links to shared assets.
 

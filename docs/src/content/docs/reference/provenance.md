@@ -151,7 +151,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `groupSelection` | The groups your `rules.include` selects in full: `"*"`, `"practices/*"`, or `"techs/*"` alone, or a list of group IDs, such as `techs/go` for `techs/go/*`, with any of those selectors. |
 | `ruleSelection` | The rule IDs your `rules.include` lists individually. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
-| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. |
+| `files` | Each retained file's path in the library, such as `practices/testing/verify-retry-limits.md`, and its SHA-256 checksum, written as lowercase hexadecimal text. It lists the files of rules from a library release other than `release` too, because the snapshot holds one version of each rule. Each file is stored where it sits in the library's Code Rules directory, such as `vendor/<source-name>/rules/practices/testing/verify-retry-limits.md`, so a rule's relative links to shared assets work in the stored copy. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
