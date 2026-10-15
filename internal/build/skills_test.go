@@ -78,10 +78,10 @@ func TestGenerateRejectsASourceSkillAndAnAuthoredSkillWithOneInstallName(t *test
 	}
 }
 
-func TestInstalledSkillsNamesTheSkillInEachFolder(t *testing.T) {
+func TestInstalledSkillIDsNamesTheSkillInEachFolder(t *testing.T) {
 	record := `{"formatVersion":1,"skills":[{"id":"skills/tidy","targets":[".agents/skills/tidy",".claude/skills/tidy"]},{"id":"team:skills/review","targets":[".claude/skills/review"]}]}`
 	want := map[string]string{".agents/skills/tidy": "skills/tidy", ".claude/skills/tidy": "skills/tidy", ".claude/skills/review": "team:skills/review"}
-	if got := build.InstalledSkills([]byte(record)); !maps.Equal(got, want) {
+	if got := build.InstalledSkillIDs([]byte(record)); !maps.Equal(got, want) {
 		t.Fatalf("installed skills = %v, want %v", got, want)
 	}
 }

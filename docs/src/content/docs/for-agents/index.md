@@ -74,6 +74,8 @@ Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review cr
 Keep the recorded ruleset during ordinary work. Adopting upstream changes is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.
 When asked to keep an imported rule at its current version, read the rule's version from `.code-rules/vendor/<source-name>/_source.json` and add a pin to that source's `rules.pins`, with the version and the reason you were given, such as `- {id: practices/testing/verify-retry-limits, version: "1.3.0", reason: "…"}`. Then run `code-rules project sync`.
 
+When `code-rules project sync`, `update`, or `check` warns that a personal skill has the same name as one the project installs, tell the user: some agents use the personal skill instead of the project's. Don't rename or remove the user's personal skills yourself.
+
 ## Write or review rules themselves
 
 When the task changes a rule, use the [authoring rubric and template](/reference/rule-authoring/).

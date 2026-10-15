@@ -120,6 +120,24 @@ Build works offline and installs authored skills alongside your sources' skills.
 
 Remove the skill's ID from `skills.include`, or delete an authored skill's folder, and run `code-rules project sync` or `code-rules project build`. Code Rules removes the installed copies, and a skill target's folder once nothing is left in it.
 
+## Personal skills with the same name
+
+:::note[Preview]
+The personal skill warning comes in the next Code Rules release, with skills.
+:::
+
+People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which one to use, and some use the personal one without saying so. `code-rules project sync`, `update`, and `check` look in your personal skill folders and warn about each pair, naming both paths and what each agent does:
+
+```text
+Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .claude/skills/build-feature).
+  Claude Code uses your personal skill.
+  Codex shows both.
+  VS Code uses this project's skill.
+Rename or remove your personal skill to use the project's.
+```
+
+Code Rules never writes to your home directory, and the warning doesn't fail the command. See [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+
 ## When install fails
 
 | Failure | What to do |

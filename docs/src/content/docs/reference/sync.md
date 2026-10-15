@@ -65,7 +65,7 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 
 `code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, installed skills, and the managed Code Rules guide without writing any of them.
+Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, installed skills, and the managed Code Rules guide without writing any of them. It also reports `warnings`, such as for a [personal skill with the same name](#personal-skills-with-the-same-name) as an installed skill, which never change the status or exit code.
 
 | Check exit code | Meaning |
 | --- | --- |
@@ -122,6 +122,39 @@ When a skill cites rules in `syllabus-rules-used`, its installed `SKILL.md` ends
 | `unexpected-skill` | The record lists the folder, but the project no longer installs the skill. |
 
 Run `code-rules project build` to repair them. It replaces the installed copies, including any edits to them, so move edits you want to keep into the skill's source first.
+
+## Personal skills with the same name
+
+:::note[Preview]
+The personal skill warning comes in the next Code Rules release, with skills.
+:::
+
+People also install **personal skills** for themselves, outside any repository, which their agents load in every repository they work in. When a personal skill has the same name as a skill the project installs, each agent decides which one to use, and some use the personal skill without saying so:
+
+| Agent | What it does with the pair |
+| --- | --- |
+| Claude Code | Uses the personal skill. |
+| Codex | Shows both. |
+| VS Code | Uses the project's skill. |
+
+`code-rules project sync`, `code-rules project update`, and `code-rules project check` look in the personal skill folders of your home directory, `~/.claude/skills/`, `~/.agents/skills/`, and `~/.codex/skills/`, and warn about each personal skill with the same name as a skill the project installs, naming both paths and what each agent does:
+
+```text
+Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .agents/skills/build-feature and .claude/skills/build-feature).
+  Claude Code uses your personal skill.
+  Codex shows both.
+  VS Code uses this project's skill.
+Rename or remove your personal skill to use the project's.
+```
+
+In JSON output, each warning is one string in `value.warnings`, with the same line breaks.
+
+- A personal skill is a folder in one of those folders that holds a `SKILL.md` file, including a folder linked from elsewhere. It matches when its folder name is the install name of a skill the project installs into at least one skill target, which is also its installed folder's name. Code Rules compares names only, never contents, and doesn't read the personal `SKILL.md`.
+- Sync and update compare against the skills they just installed. Check and an update's preview compare against the skills `generated/installed-skills.json` records, which are what agents find in the repository now.
+- A personal folder linked to another, such as `~/.agents/skills` linked to `~/.claude/skills`, is reported once. When the project's root is your home directory, its own installed folders aren't reported as personal skills.
+- A home directory or personal skill folder that is missing or can't be read is skipped without a message.
+
+The warning applies to every skill the project installs: in the agents that prefer personal skills, a personal skill wins over the project's, and Code Rules only warns. It only reads your home directory and never writes to it, and the warning never fails a command, so `code-rules project check` in CI, which has no personal skills, passes as before. With no personal skill of the same name, nothing is printed.
 
 ## Keep an authored rule's group
 

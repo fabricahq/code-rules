@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -32,6 +34,9 @@ type UpdatePlan struct {
 	recovered bool
 	// forks holds each fork Preview or Apply read, by forkKey, so a fork is read from the library once.
 	forks map[string]forkUpdate
+	// personal holds the personal skill warnings for the skills the planned project installs, which Preview adds
+	// after the update's own.
+	personal []string
 }
 
 // Recovered reports whether planning first recovered an interrupted earlier command, restoring or finishing its
@@ -93,7 +98,8 @@ func (r UpdateResult) Moves() bool {
 // no targets, to their newest versions. It reads the project under the writer, first recovering an interrupted
 // operation as sync does, and releases the writer before planning, so prompts never hold it. It refuses a project
 // another writer is changing. Before reading any library, it refuses with invalid-arguments a fork update among
-// decisions that the configuration rules out; Preview and Apply check every decision against the preview.
+// decisions that the configuration rules out; Preview and Apply check every decision against the preview. It reads
+// options.Home for the personal skills Preview warns about.
 func PlanUpdate(ctx context.Context, options Options, git imports.Options, targets []imports.UpdateTarget, decisions []UpdateDecision) (*UpdatePlan, error) {
 	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
 	recovered := false
@@ -136,13 +142,15 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	if err != nil {
 		return nil, unchanged(err, recovered)
 	}
-	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered}, nil
+	personal := personalSkillWarnings(options.Home, filepath.Dir(root.Name()), treeFiles(state.generated)[build.InstalledSkillsFile])
+	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered, personal: personal}, nil
 }
 
 // Preview returns the planned update with each decided row marked, without writing anything. It fails with
 // invalid-arguments, naming the decision's flag and rule, when a decision names a rule twice, keeps a rule the
 // update doesn't move or retire, excludes a rule the update doesn't add, or updates a fork the preview doesn't list
-// as replaced, or when a pin or exclusion has no reason or a fork update has one.
+// as replaced, or when a pin or exclusion has no reason or a fork update has one. Its warnings are the update's,
+// then one for each personal skill with the name of a skill the project installed when it was planned.
 //
 // Preview reads the version each fork update forks, as Apply then installs it, to list the local files the fork
 // overwrites and removes; it fails with invalid-release-tag when that version's library release tag moved after
@@ -155,7 +163,7 @@ func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (U
 	if err := p.readForks(ctx, sources, forks); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered)
 	}
-	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: p.update.Warnings, Recovered: p.recovered}}, nil
+	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: append(append([]string{}, p.update.Warnings...), p.personal...), Recovered: p.recovered}}, nil
 }
 
 // Apply installs the planned versions under the writer, adding to config.yaml a pin for each kept rule, an

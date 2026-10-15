@@ -8,6 +8,7 @@ import (
 	"errors"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -27,6 +28,9 @@ type Options struct {
 	IndexMaxLines int
 	// GroupInlineMaxBytes uses the renderer's 8 KiB default when nil; zero forces summaries.
 	GroupInlineMaxBytes *int
+	// Home is the home directory whose personal skill folders sync, update, and check read, never write, to warn
+	// about personal skills with the name of a skill the project installs. Empty reads none.
+	Home string
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
@@ -40,8 +44,9 @@ type FileChanges struct {
 	Guide   *GuideChange `json:"guide,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
-	// they wrote, then skills installed nowhere for want of skill targets. Last, for build too, each rule an authored
-	// skill cites that its library retired, which check rejects.
+	// they wrote, then skills installed nowhere for want of skill targets, then, for build too, each rule an
+	// authored skill cites that its library retired, which check rejects. Last, one for each personal skill in
+	// Options.Home with the name of a skill the project installs, which build doesn't report.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
 	// that command's files, which the lists above don't include.
@@ -110,7 +115,8 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 }
 
 // checkedProject is what a check found: how generated output and the requested files differ from what build would
-// write, and each installed skill folder build would add, replace, or remove.
+// write, and each installed skill folder build would add, replace, or remove. The generated changes' warnings are the
+// personal skill warnings for the skills generated/ records as installed.
 type checkedProject struct {
 	generated, files FileChanges
 	skills           []skillFolderChange
@@ -160,7 +166,9 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
 		return checkedProject{}, err
 	}
-	return checkedProject{generated: compareFiles(treeFiles(before.generated), output.Files), files: compareFiles(files, expected), skills: installs.folders}, nil
+	generated := compareFiles(treeFiles(before.generated), output.Files)
+	generated.Warnings = personalSkillWarnings(options.Home, filepath.Dir(root.Name()), treeFiles(before.generated)[build.InstalledSkillsFile])
+	return checkedProject{generated: generated, files: compareFiles(files, expected), skills: installs.folders}, nil
 }
 
 // readCheckFiles retains only requested files, preserving absence as a missing map entry.

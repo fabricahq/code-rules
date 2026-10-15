@@ -12,6 +12,8 @@ import (
 type projectCheckResult struct {
 	Status   string         `json:"status"`
 	Problems []checkProblem `json:"problems"`
+	// Warnings never change Status.
+	Warnings []string `json:"warnings"`
 }
 
 // checkProblem identifies an observed mismatch and the steps that can repair it, in the same form as authoring
@@ -41,7 +43,7 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 	if err != nil {
 		return projectCheckResult{}, err
 	}
-	result := projectCheckResult{Status: "up-to-date", Problems: []checkProblem{}}
+	result := projectCheckResult{Status: "up-to-date", Problems: []checkProblem{}, Warnings: nonNil(report.Warnings)}
 	for _, problem := range report.Problems {
 		message := ""
 		repair := rebuild
