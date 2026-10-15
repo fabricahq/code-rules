@@ -235,7 +235,7 @@ func TestReadSkillsFetchesOnlyTheSkillsTheSourceInstalls(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer repo.Close()
-	imported, err := repo.readSkills(ctx, source, sourcePlan{commit: commit}, false)
+	imported, err := repo.readSkills(ctx, source, sourcePlan{commit: commit}, false, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
