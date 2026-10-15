@@ -208,7 +208,7 @@ The preview and the update cover only that rule. The library's new rules, its ot
 
 You can't update one skill on its own: a library's skills all come from one library release, and a non-library source's from one commit. Update the whole source instead.
 
-A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first.
+A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first. A source that uses `ref` moves only as a whole; see [Refs](/reference/configuration/#refs).
 
 ## Keep a rule at its current version
 

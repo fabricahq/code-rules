@@ -232,7 +232,7 @@ A source's `ref` names where to take it from. Each project resolves the ref to a
 | A tag, such as `release/5` or `v1.2` | The recorded commit. | The commit the tag names now, warning when the tag moved since the last update. |
 | A full 40-character commit SHA | That commit. | Nowhere; it never moves. |
 
-When a name is both a branch and a tag, write `refs/heads/<name>` or `refs/tags/<name>`. Abbreviated SHAs aren't accepted.
+When a bare name is both a branch and a tag, sync and update fail with `ambiguous-ref`; write `refs/heads/<name>` or `refs/tags/<name>` to say which one you mean. Abbreviated SHAs aren't accepted.
 
 Sources have no declared type. Code Rules decides when it fetches a source:
 
@@ -243,7 +243,7 @@ All of a source's skills come from its one recorded revision, so skills that cal
 
 ### Take one revision
 
-Taking a library at a revision other than a library release, such as a branch with unreleased changes, opts that source out of versions for what changed: rules and skills whose files match a published version record that version, and the rest record `null`, have no version to cite, and no update preview reviews their changes. `code-rules project sync` and `code-rules project update` warn about such a source, naming its unreleased rules and skills, and the generated library summary in `generated/libraries/<source-name>/README.md` says so. `code-rules project check` still passes.
+Taking a library at a revision other than a library release, such as a branch with unreleased changes, opts that source out of versions for what changed: rules and skills whose files match a published version record that version, and the rest record `null`, have no version to cite, and update previews list the files that changed but no summaries of the changes. `code-rules project sync` and `code-rules project update` warn about such a source, naming its unreleased rules and skills, and the generated library summary in `generated/libraries/<source-name>/README.md` says so. `code-rules project check` still passes.
 
 A source can use `rules.pins` or `ref`, not both.
 
