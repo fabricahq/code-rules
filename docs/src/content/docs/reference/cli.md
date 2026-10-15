@@ -162,32 +162,11 @@ Copy a skill the project installs into `.code-rules/skills/` so the project cont
 2. Rewrites the fork's `syllabus-rules-used` and `syllabus-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `syllabus-skills-used`.
 3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
 
-Links in a skill stay inside its folder, so the fork needs no link changes. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
-
-### project add skill
-
-```sh
-code-rules project add skill --from SOURCE:SKILL [options]
-```
-
-Fork a skill the project installs: copy it into `.code-rules/skills/` so the project controls its steps, and install the copy in its place. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so the command takes no `NAME`. To write a new skill instead, create its folder in `.code-rules/skills/`; see [Write your own skill](/guides/install-skills/#write-your-own-skill).
-
-| Option | Meaning |
-| --- | --- |
-| `--from SOURCE:SKILL` | Required. A skill that the source's `skills.include` selects and its last sync installed. |
-| `--reason TEXT` | Required. Why the project uses the fork instead of the source's skill, recorded with the exclusion. A terminal asks for it when it's missing. |
-| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
-
-The command:
-
-1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.code-rules/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use. In the copy's `SKILL.md`, it adds the source's name to each skill ID in `syllabus-skills-used`, and, for a library's skill, each rule ID in `syllabus-rules-used`, such as `fabrica:skills/tdd` for `skills/tdd`, because in your project a bare ID names a skill or rule you author. It also adds to `syllabus-skills-used` each skill that the source's [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-uses) adds for the skill, which applies only to the source's own skill, and gives a `SKILL.md` without frontmatter, which a repository that isn't a library can supply, frontmatter with the skill's name. Each list it changes becomes a block string.
-2. Adds a `skills.exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the commit the source record locks as [`basedOn`](/reference/configuration/#exclude-or-replace-a-skill), so the fork installs in place of the skill, and updates list the source's later changes to it. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
-
 :::note[Preview]
 Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
 :::
 
-It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. It also refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/sync/#skills); fork such a skill by hand. When an update moves the source while the command waits for your reason, it writes nothing; run it again. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward to install it. The source's license still applies to the copied files.
+Links in a skill stay inside its folder, so the fork needs no link changes. A `SKILL.md` without frontmatter, which a repository that isn't a library can supply, gets frontmatter with the skill's name, and each list the fork changes becomes a block string. The command refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/skill-format/#validation); fork such a skill by hand. It also refuses a fork whose folder exists or that another exclusion already names as its `replacedBy`. When an update moves the source while the command waits for your reason, it writes nothing; run it again. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
 
 ### project sync
 
