@@ -28,11 +28,16 @@ Code Rules records each skill's and rule's source and version, updates them only
 
 ## Use cases
 
-- **Standardize your organization.** Declare the skills and rules every project in your organization uses.
-- **Customize a project.** Add project-specific skills and rules, or exclude and replace shared ones.
-- **Share with others.** Publish your skills and rules in a public library.
-- **Update on your schedule.** Move to the latest version of a skill or rule when you're ready.
-- **Turn lessons into guidance.** Say an agent session shows that the agent missed something you expected. You turn that insight into a rule, add it to your project or your organization's library, and from then on every agent gets that guidance when the work calls for it. The same loop lets you refine rules and skills over time when they don't do what you wanted, and it opens the door to tools that review agent sessions and propose rules automatically.
+With your skills and rules in one place, you can:
+
+- Give every project in your organization the same skills and rules.
+- Add skills and rules that only one project needs.
+- Publish your skills and rules for others to use.
+- Adopt new versions of a skill or rule when you're ready, not when someone else changes it.
+
+### Turn retros into rules
+
+The bigger payoff comes after an agent session. When an agent misses something you expected, run a quick retro: capture the lesson as a rule, and add it to your project or your organization's library. From then on, every agent gets that guidance when the work calls for it, so the same mistake doesn't come back. Retros also show where an existing rule or skill falls short, so you can refine it. And because each lesson is one small rule, this loop could eventually run on its own, with tools that review agent sessions and propose rules.
 
 ## How it works
 
