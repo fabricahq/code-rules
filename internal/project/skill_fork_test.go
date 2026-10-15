@@ -233,6 +233,39 @@ func TestPlanSkillFork_CommitRefusesABlankReasonAndAConcurrentChange(t *testing.
 	}
 }
 
+// TestPlanSkillFork_CommitRefusesASourceAnUpdateMovedAfterPlanning writes nothing when an update, which leaves the
+// configuration as it was, moves the source to a commit with another copy of the skill between plan and commit.
+func TestPlanSkillFork_CommitRefusesASourceAnUpdateMovedAfterPlanning(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, skillConfig(""))
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	source, _ := ParseSkillForkSource("team:skills/build-feature")
+	plan, err := PlanSkillFork(ctx, source, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondSkillRelease(t, f)
+	config := readRepositoryFile(t, options, ".code-rules/config.yaml")
+	update, err := PlanUpdate(ctx, options, git, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := update.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if readRepositoryFile(t, options, ".code-rules/config.yaml") != config {
+		t.Fatal("the update changed the configuration, so the test doesn't isolate the source record")
+	}
+	_, err = plan.Commit(ctx, "We build with make.")
+	projectCode(t, err, "concurrent-change")
+	if exists(t, options, ".code-rules/skills/build-feature") || readRepositoryFile(t, options, ".code-rules/config.yaml") != config {
+		t.Fatal("a refused fork wrote files")
+	}
+}
+
 // secondSkillRelease publishes release/2, which changes build-feature's SKILL.md and adds a script to it.
 func secondSkillRelease(t *testing.T, f *gitfixture.Fixture) string {
 	t.Helper()

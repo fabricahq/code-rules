@@ -44,8 +44,9 @@ func ParseSkillForkSource(value string) (SkillForkSource, error) {
 type SkillForkPlan struct {
 	from    SkillForkSource
 	options Options
-	// configBytes is the configuration planning read; Commit refuses to write when it changed.
-	configBytes []byte
+	// configBytes is the configuration planning read, and record the source record it copied the skill as, which
+	// digests every vendored file; Commit refuses to write when either changed.
+	configBytes, record []byte
 	// name is the skill's install name, which names the fork's folder, and commit the commit of the source's
 	// repository that the source record locks, which the exclusion records as basedOn.
 	name, commit string
@@ -87,6 +88,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 			return err
 		}
 		snapshot := snapshots[source.Name]
+		plan.record = treeFiles(vendor)[source.Name+"/_source.json"]
 		if _, installed := snapshot.Skills[from.Skill]; !installed {
 			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run code-rules project sync first", source.Name, from.Skill)}
 		}
@@ -143,7 +145,8 @@ func (p *SkillForkPlan) BasedOn() string { return p.commit }
 // Commit writes the fork under writer ownership, and, in the same edit, adds the source's exclusion of the skill
 // with reason, the fork as replacedBy, and the commit it copied as basedOn, so the fork installs in place of the
 // source's skill and updates list the source's later changes to it. It writes nothing when reason is blank, when the
-// configuration changed after planning, or when any of the fork's files exists.
+// configuration or the source record changed after planning, such as when an update moved the source to another
+// commit, or when any of the fork's files exists.
 func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, error) {
 	if p == nil || p.name == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned skill fork", nil)
@@ -159,6 +162,13 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 	return editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if !bytes.Equal(original, p.configBytes) {
 			return nil, failure("concurrent-change", "the project's configuration changed after the fork was planned; run the command again", nil)
+		}
+		record, err := filetxn.ReadOptional(ctx, root, "vendor/"+p.from.Source+"/_source.json")
+		if err != nil {
+			return nil, err
+		}
+		if !bytes.Equal(record, p.record) {
+			return nil, failure("concurrent-change", "the source's imported files changed after the fork was planned; run the command again", nil)
 		}
 		if err := requireSkillForkTarget(ctx, root, config, folder); err != nil {
 			return nil, err
