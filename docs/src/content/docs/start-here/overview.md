@@ -31,9 +31,9 @@ Code Rules records each skill's and rule's source and version, updates them only
 With Code Rules, you can:
 
 - Start every new repo with exactly the right skills and rules in place.
-- Fix a skill once in your organization's library, and have every repo pick up the fix on its next update.
-- Use a skill from someone else's GitHub repo, know exactly which commit you have, and see what changed before you take an update.
-- Turn off one shared rule that doesn't fit a repo, such as a web logging rule in a CLI, without forking the whole library.
+- Update a skill once in your organization's library, and have every repo pick up the change on its next update.
+- Document which third-party skills your organization requires, recommends, or makes available for consideration, and have projects install them from there.
+- Override skills and rules on a per-project basis as needed.
 
 ### Turn retros into rules
 
