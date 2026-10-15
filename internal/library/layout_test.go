@@ -179,6 +179,33 @@ func TestCheck_ListsTheMovesOfALibrarysOwnFiles(t *testing.T) {
 	}
 }
 
+// TestRequireLibraryLayout_LeavesTheRepositorysOwnFoldersUnread doesn't read a repository root's own assets/ and
+// changes/ folders when nothing at the root marks the layout before version 2, so a folder there that can't be read
+// doesn't stop library commands. A context that has already ended makes any walk of a folder fail, so it shows
+// that neither folder is read.
+func TestRequireLibraryLayout_LeavesTheRepositorysOwnFoldersUnread(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"assets/logo.svg", "changes/2026-10-01.md"} {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("project file\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	ended, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := requireLibraryLayout(ended, root); err != nil {
+		t.Fatalf("got %v; want the repository's own folders left unread", err)
+	}
+}
+
 // tree lists every file and directory under dir, relative to it.
 func tree(t *testing.T, dir string) []string {
 	t.Helper()

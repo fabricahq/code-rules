@@ -23,11 +23,11 @@ func (s inventoryMapSource) ReadDir(name string) ([]fs.DirEntry, error) {
 	return fs.ReadDir(s.FS, name)
 }
 
-// TestInventoryAbsentOptionalRoot does not invent a collision between declared terms and an absent assets tree.
+// TestInventoryAbsentOptionalRoot does not invent a collision between declared terms and an absent practices tree.
 func TestInventoryAbsentOptionalRoot(t *testing.T) {
-	source := inventoryMapSource{fstest.MapFS{".code-rules/config.yaml": {Data: []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"Assets/LICENSE","notices":[]}}}`)}, "Assets/LICENSE": {Data: []byte("Terms")}}}
+	source := inventoryMapSource{fstest.MapFS{".code-rules/config.yaml": {Data: []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"Practices/LICENSE","notices":[]}}}`)}, "Practices/LICENSE": {Data: []byte("Terms")}}}
 	inventory, err := readInventory(context.Background(), source)
-	if err != nil || string(inventory.Files["Assets/LICENSE"]) != "Terms" {
+	if err != nil || string(inventory.Files["Practices/LICENSE"]) != "Terms" {
 		t.Fatal(inventory, err)
 	}
 }
