@@ -3,13 +3,29 @@ title: "What is Code Rules?"
 description: "The package manager for the agent skills and engineering rules agents follow when they write and review code."
 ---
 
-Code Rules is the package manager for your agent skills and rules. Skills are clumsy to manage today: it's hard to tell where one came from or which version you have, keep it updated, or share it across your organization's projects and agents. And skills aren't always the best format. They're coarse-grained, bundling many practices that don't all apply every time. Code Rules manages your skills, and lets you write and share **rules**: granular engineering practices that your agents and skills apply.
+Code Rules is the package manager for your agent skills and rules.
+
+Most teams today use skills to guide their agents, but skills aren't always the ideal package for delivering guidance, and managing skills across repos, organizations, and your local environment can be tricky.
+
+Code Rules solves these problems by first recognizing that we need a second format beyond skills. Skills are coarse-grained guidance. A single skill often contains many different insights, which makes updating, versioning, and understanding skills difficult.
+
+Code Rules introduces the concept of a **rule**, which is fine-grained guidance. A single directive, such as "never write secrets to logs," is written in its own Markdown file dedicated to that insight, known as a rule.
+
+Code Rules then manages skills and rules the way a package manager manages code. Each project declares the skills and rules it uses and where they come from: a public library, your organization's shared library, or your own repo. Code Rules records each one's source and version, updates it only when you choose, and installs skills for Claude Code, Codex, Cursor, and other agents at once.
 
 :::caution[Preview]
 Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
 :::
 
-Create a `.code-rules` directory in your repo, then take skills and rules from a library, or write your own. Code Rules installs the skills where your agents look for them, and agents configured to read your project guidance follow the same rules.
+## How it works
+
+1. Run `code-rules project init` to create a `.code-rules` directory in your repo.
+2. In `.code-rules/config.yaml`, choose the skills and rules you want from libraries, and add any of your own.
+3. Run `code-rules project sync`. Code Rules copies in the rules, writes `RULES.md` to index them, and installs the skills where your agents look for them.
+4. Add the **Engineering rules** section to your `AGENTS.md`, so your agents read the rules and use the skills that fit each task.
+5. Commit the results. When a library publishes new versions, run `code-rules project update` to adopt them.
+
+[Set up your first project](/start-here/set-up-project/) walks through these steps.
 
 ## Why we built Code Rules
 
@@ -38,7 +54,7 @@ So Code Rules adds [rules](/concepts/rule/). A rule is one engineering practice 
 
 Code Rules manages rules and skills together: for libraries that publish them, organizations that standardize on them, and projects that use them. For the longer story, read [Announcing Code Rules](https://fabricahq.com/blog/code-rules/).
 
-## How Code Rules works
+## Core concepts
 
 Code Rules is built around just a few simple concepts.
 
