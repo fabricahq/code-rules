@@ -105,14 +105,12 @@ See [project list skills](/reference/cli/#project-list-skills) for every option.
 
 ## What lands where
 
-After sync, each installed skill appears in several places:
+After sync, each installed skill appears in several places. Code Rules writes all of them, so don't edit them by hand:
 
-| Path | What it is | Who edits it |
-| --- | --- | --- |
-| `.claude/skills/build-feature/` and `.agents/skills/build-feature/` | The installed copies your agents load, one folder per target. | Code Rules |
-| `.code-rules/vendor/fabrica/skills/build-feature/` | The original files, as the library published that version. | Code Rules |
-| `.code-rules/generated/SKILLS.md` | One entry per installed skill: its description, ID and version, level and the library that set it, type, installed paths, how many rules it applies, the skills it calls, and why it's installed. | Code Rules |
-| `.code-rules/generated/installed-skills.json` | Which folders in the targets Code Rules installed. | Code Rules |
+- **`.claude/skills/build-feature/`** and **`.agents/skills/build-feature/`**: the installed copies your agents load, one folder per target.
+- **`.code-rules/vendor/fabrica/skills/build-feature/`**: the original files, as the library published that version.
+- **`.code-rules/generated/SKILLS.md`**: one entry per installed skill, with its description, ID and version, level and the library that set it, type, installed paths, how many rules it applies, the skills it calls, and why it's installed.
+- **`.code-rules/generated/installed-skills.json`**: which folders in the targets Code Rules installed.
 
 An installed copy matches the library's folder, scripts and their executable bits included, with two additions to `SKILL.md`:
 
