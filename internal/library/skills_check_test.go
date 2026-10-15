@@ -52,6 +52,17 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 			"skills/fix/SKILL.md: syllabus-skills-used names the skill itself",
 			`skills/fix/SKILL.md: syllabus-skills-used names "mattpocock:skills/tdd"; name a skill in this library by its ID, without a source name, such as skills/tdd`,
 		}},
+		"skills it uses that the library doesn't have": {map[string]string{
+			"fix/SKILL.md":      skill("  syllabus-skills-used: |\n    skills/review\n    skills/tdd\n    skills/notes\n"),
+			"review/SKILL.md":   "---\nname: review\n---\n",
+			"notes/README.md":   "x",
+			"Bad_Name/SKILL.md": "x",
+		}, nil, []string{
+			"skills/Bad_Name: a skill name uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen",
+			"skills/fix/SKILL.md: syllabus-skills-used names skills/tdd, which isn't a skill in this library",
+			"skills/fix/SKILL.md: syllabus-skills-used names skills/notes, which isn't a skill in this library",
+			"skills/notes: expected SKILL.md in the skill folder",
+		}},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -82,5 +93,22 @@ func TestCheck_RejectsASkillThatCitesARuleTheLibraryRetired(t *testing.T) {
 	_, err := Check(ctx, options)
 	if errorCode(err) != "invalid-skill" || !strings.HasSuffix(err.Error(), "skills don't pass library check:\n  - skills/fix/SKILL.md: syllabus-rules-used names practices/testing/b, which is retired and replaced by practices/testing/a; cite the replacement") {
 		t.Fatalf("got %v; want invalid-skill naming the retired rule", err)
+	}
+}
+
+func TestCheck_RejectsASkillThatUsesASkillTheLibraryDoesntHave(t *testing.T) {
+	ctx := context.Background()
+	_, options := authorClone(t, libraryFiles(), releaseOne)
+	edit(t, options.Directory, map[string]string{
+		".code-rules/skills/fix/SKILL.md":    "---\nname: fix\nmetadata:\n  syllabus-skills-used: |\n    skills/review\n    skills/tdd\n---\n# Fix\n",
+		".code-rules/skills/review/SKILL.md": "---\nname: review\n---\n# Review\n",
+	})
+	_, err := Check(ctx, options)
+	if errorCode(err) != "invalid-skill" || !strings.HasSuffix(err.Error(), "skills don't pass library check:\n  - skills/fix/SKILL.md: syllabus-skills-used names skills/tdd, which isn't a skill in this library") {
+		t.Fatalf("got %v; want invalid-skill naming the skill and the skill it uses", err)
+	}
+	edit(t, options.Directory, map[string]string{".code-rules/skills/tdd/SKILL.md": "---\nname: tdd\n---\n# TDD\n"})
+	if _, err := Check(ctx, options); err != nil {
+		t.Fatalf("check rejected a skill that uses skills the library has: %v", err)
 	}
 }
