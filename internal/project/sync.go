@@ -81,8 +81,8 @@ type installation struct {
 // replaces, in one transaction of w. When authored rules would lose the only imported copy of their group's metadata,
 // the transaction also writes that copy to rules/<group>/_group.yaml, with a warning. before is the project as read
 // under w; any change to it before replacement fails with concurrent-change. The report lists vendor and generated
-// paths, config.yaml when edited, authored group metadata it adds, and the authored files of each replaced fork. After
-// the transaction, it refreshes the Syllabus section of the repository's AGENTS.md and reports that separately.
+// paths, config.yaml when edited, authored group metadata it adds, and the authored files of each replaced fork. The
+// transaction also refreshes the Syllabus section of the repository's AGENTS.md, which the report lists separately.
 func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before projectState, in installation) (FileChanges, error) {
 	snapshots := map[string]snapshot{}
 	libraries := map[string]build.Library{}
@@ -177,8 +177,12 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		slices.Sort(changes.Changed)
 	}
 	includeProjectGuide(targets, in.guide, &changes)
+	agents.include(targets, &changes)
 	err = w.ApplyModes(targets, executable, func() error {
 		if err := requireUnchanged(ctx, root, before); err != nil {
+			return err
+		}
+		if err := agents.requireUnchanged(ctx); err != nil {
 			return err
 		}
 		if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
@@ -187,9 +191,6 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		return requireGuideUnchanged(ctx, root, in.guide)
 	})
 	if err != nil {
-		return FileChanges{}, err
-	}
-	if err := includeAgents(w, agents, &changes); err != nil {
 		return FileChanges{}, err
 	}
 	return changes, nil

@@ -126,7 +126,12 @@ func TestParseConfiguration_ManageAgentsFile(t *testing.T) {
 			t.Errorf("%s: %+v %v", input, config, err)
 		}
 	}
-	if _, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"manageAgentsFile":"no","sources":{}}`)); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+	for _, value := range []string{`"no"`, `null`} {
+		if _, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"manageAgentsFile":` + value + `,"sources":{}}`)); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+			t.Fatal(value, err)
+		}
+	}
+	if _, err := rules.ParseConfigurationYAML([]byte("schemaVersion: 2\nmanageAgentsFile: null\nsources: {}\n")); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
 		t.Fatal(err)
 	}
 }

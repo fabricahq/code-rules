@@ -50,17 +50,18 @@ func (r CheckResult) Current() bool { return len(r.Problems) == 0 }
 // error; an edited section or broken markers in AGENTS.md are errors, as they are for build.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
 	guideName, guideBytes := projectGuide()
-	agentsStale := false
+	var agents agentsPlan
+	defer func() { agents.close() }()
 	changes, guideChanges, err := checkProjectFiles(ctx, options, map[string][]byte{guideName: guideBytes}, func(root *os.Root, config rules.Configuration) error {
-		plan, err := planAgentsSection(ctx, root, config, options)
-		if err != nil {
-			return err
-		}
-		defer plan.close()
-		agentsStale = plan.file != nil
-		return nil
+		var err error
+		agents, err = planAgentsSection(ctx, root, config, options)
+		return err
 	})
 	if err != nil {
+		return CheckResult{}, err
+	}
+	// The snapshot covers the Syllabus directory; AGENTS.md, outside it, must also be as planned when it ends.
+	if err := agents.requireUnchanged(ctx); err != nil {
 		return CheckResult{}, err
 	}
 	result := CheckResult{Problems: []Problem{}}
@@ -77,7 +78,7 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	if len(guideChanges.Added)+len(guideChanges.Changed) > 0 {
 		result.Problems = append(result.Problems, Problem{Kind: OutdatedGuide, Path: guideName, Repair: RefreshGuide})
 	}
-	if agentsStale {
+	if agents.content != nil {
 		result.Problems = append(result.Problems, Problem{Kind: OutdatedAgents, Path: path.Join("..", agentsFile), Repair: Rebuild})
 	}
 	return result, nil

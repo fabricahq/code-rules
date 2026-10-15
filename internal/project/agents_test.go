@@ -62,13 +62,13 @@ func TestPlanAgentsSection(t *testing.T) {
 			}
 			defer plan.close()
 			if test.action == "" {
-				if plan.file != nil {
-					t.Fatalf("planned a change:\n%s", plan.file.Content)
+				if plan.content != nil {
+					t.Fatalf("planned a change:\n%s", plan.content)
 				}
 				return
 			}
-			if plan.file == nil || string(plan.file.Content) != test.want || plan.change.Action != test.action || plan.change.Path != "AGENTS.md" {
-				t.Fatalf("got %+v:\n%s", plan.change, plan.file.Content)
+			if plan.content == nil || string(plan.content) != test.want || plan.change.Action != test.action || plan.change.Path != "AGENTS.md" {
+				t.Fatalf("got %+v:\n%s", plan.change, plan.content)
 			}
 		})
 	}
@@ -84,6 +84,7 @@ func TestPlanAgentsSectionRefuses(t *testing.T) {
 		"two begins": {"<!-- syllabus:begin 1.2.3 sha256:0123456789abcdef -->\n" + current, "agents-section-invalid"},
 		"two ends":   {current + "<!-- syllabus:end -->\n", "agents-section-invalid"},
 		"link":       {current, "unsafe-file"},
+		"malformed":  {strings.NewReplacer("syllabus:begin 1.2.3", "syllabus:begin", "syllabus:end", "syllabus:end-x").Replace(current), "agents-section-invalid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := agentsProject(t, &test.existing)
@@ -214,3 +215,58 @@ func agentsProject(t *testing.T, existing *string) *os.Root {
 }
 
 func ptr(s string) *string { return &s }
+
+// TestAgentsPlanNoticesAChange fails with concurrent-change when AGENTS.md changes, appears, or disappears after
+// planning, so no command replaces text written meanwhile and check reports what the file holds.
+func TestAgentsPlanNoticesAChange(t *testing.T) {
+	for name, test := range map[string]struct {
+		existing *string
+		change   func(string) error
+	}{
+		"edited":    {ptr("# Guide\n"), func(file string) error { return os.WriteFile(file, []byte("# Other\n"), 0644) }},
+		"created":   {nil, func(file string) error { return os.WriteFile(file, nil, 0644) }},
+		"removed":   {ptr("# Guide\n"), os.Remove},
+		"unchanged": {ptr("# Guide\n"), func(string) error { return nil }},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			root := agentsProject(t, test.existing)
+			plan, err := planAgentsSection(ctx, root, rules.Configuration{}, Options{ToolVersion: "1.2.3"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer plan.close()
+			if err := test.change(filepath.Join(filepath.Dir(root.Name()), "AGENTS.md")); err != nil {
+				t.Fatal(err)
+			}
+			err = plan.requireUnchanged(ctx)
+			if name == "unchanged" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			var failure *filetxn.Error
+			if !errors.As(err, &failure) || failure.Code != "concurrent-change" {
+				t.Fatalf("got %v, want concurrent-change", err)
+			}
+		})
+	}
+}
+
+// TestInitRefusesAnEditedSectionFirst fails before writing any scaffolding when AGENTS.md holds an edited section.
+func TestInitRefusesAnEditedSectionFirst(t *testing.T) {
+	repository := t.TempDir()
+	edited := strings.Replace(renderAgentsSection(".syllabus", "1.2.3"), "Briefly report", "Always report", 1)
+	if err := os.WriteFile(filepath.Join(repository, "AGENTS.md"), []byte(edited), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Initialize(context.Background(), Options{Directory: repository})
+	var failure *filetxn.Error
+	if !errors.As(err, &failure) || failure.Code != "agents-section-edited" {
+		t.Fatalf("got %v, want agents-section-edited", err)
+	}
+	if _, err := os.Lstat(filepath.Join(repository, ".syllabus", "config.yaml")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("init wrote config.yaml: %v", err)
+	}
+}

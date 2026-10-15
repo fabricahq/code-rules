@@ -175,11 +175,12 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	}
 	result := Configuration{Sources: make([]Source, 0, len(sources)), SkillTargets: targets}
 	if raw, ok := fields["manageAgentsFile"]; ok {
-		var manage bool
-		if json.Unmarshal(raw, &manage) != nil {
+		// A pointer tells null, which would otherwise leave manage false, from a boolean.
+		var manage *bool
+		if json.Unmarshal(raw, &manage) != nil || manage == nil {
 			return Configuration{}, invalid("manageAgentsFile", "expected true or false")
 		}
-		result.SkipAgentsFile = !manage
+		result.SkipAgentsFile = !*manage
 	}
 	// repositories maps each repository identity to the first source, in name order, that imports it.
 	repositories := make(map[string]string)

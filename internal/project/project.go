@@ -55,10 +55,9 @@ type GuideChange struct {
 	Created bool   `json:"created"`
 }
 
-// Build generates rules offline and refreshes the managed project guide in one recoverable transaction, then
-// refreshes the Syllabus section of the repository's AGENTS.md. Cancellation, validation failure, or detected edits
-// preserve existing output; errors return no changes, except that a failure to write AGENTS.md comes after the
-// transaction committed.
+// Build generates rules offline and refreshes the managed project guide and the Syllabus section of the repository's
+// AGENTS.md in one recoverable transaction. Cancellation, validation failure, or detected edits preserve existing
+// output; errors return no changes.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
@@ -99,8 +98,12 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
 		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)
-		err = w.ApplyModes(targets, installs.executable, func() error {
+		agents.include(targets, &changes)
+		return w.ApplyModes(targets, installs.executable, func() error {
 			if err := requireUnchanged(ctx, root, before); err != nil {
+				return err
+			}
+			if err := agents.requireUnchanged(ctx); err != nil {
 				return err
 			}
 			if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
@@ -108,10 +111,6 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 			}
 			return requireGuideUnchanged(ctx, root, guide)
 		})
-		if err != nil {
-			return err
-		}
-		return includeAgents(w, agents, &changes)
 	})
 	if err != nil {
 		return FileChanges{}, err

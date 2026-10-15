@@ -3,6 +3,7 @@
 package project
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	_ "embed"
@@ -73,7 +74,7 @@ type agentsSection struct {
 }
 
 // inspectAgentsSection finds the section in existing, failing with agents-section-invalid when its markers are
-// unpaired, out of order, or repeated.
+// malformed, unpaired, out of order, or repeated.
 func inspectAgentsSection(existing string) (agentsSection, error) {
 	s := agentsSection{lines: strings.SplitAfter(existing, "\n"), begin: -1, end: -1}
 	invalid := func(problem string) error {
@@ -92,6 +93,9 @@ func inspectAgentsSection(existing string) (agentsSection, error) {
 				return s, invalid("found more than one syllabus:end marker")
 			}
 			s.end = i
+		case strings.HasPrefix(strings.TrimSpace(trimmed), "<!-- syllabus:"):
+			// A damaged marker would otherwise hide the section, and the command would add a second one.
+			return s, invalid("found a malformed syllabus marker")
 		}
 	}
 	if (s.begin == -1) != (s.end == -1) || s.end < s.begin {
@@ -135,21 +139,22 @@ func appendAgentsSection(existing, section string) string {
 	return existing + section
 }
 
-// agentsPlan is the AGENTS.md publication a command makes, in the repository root: file is nil when AGENTS.md needs
-// no change. close releases the repository root.
+// agentsPlan is the AGENTS.md change a command makes, in the same transaction as its other output. previous is the
+// file as planned, nil when absent, and content is nil when the file needs no change. close releases the repository
+// root.
 type agentsPlan struct {
 	repository *os.Root
-	file       *filetxn.File
+	previous   []byte
+	content    []byte
 	change     *AgentsChange
 }
 
 // planAgentsSection plans the AGENTS.md beside the Syllabus directory at root so it holds the current section for
 // options' version. It plans no change, without reading the file, when config turns off manageAgentsFile, and when
-// the section is current, or when
-// the file has no section but already points to the project's generated/RULES.md, as the block Syllabus once asked
-// users to paste does: that file stays the project's until its pointer is removed. It fails with
-// agents-section-edited when the section's lines changed since Syllabus wrote them, and with agents-section-invalid
-// when its markers are broken.
+// the section is current, or when the file has no section but already points to the project's generated/RULES.md, as
+// the block Syllabus once asked users to paste does: that file stays the project's until its pointer is removed. It
+// fails with agents-section-edited when the section's lines changed since Syllabus wrote them, and with
+// agents-section-invalid when its markers are broken.
 func planAgentsSection(ctx context.Context, root *os.Root, config rules.Configuration, options Options) (plan agentsPlan, err error) {
 	if config.SkipAgentsFile {
 		return agentsPlan{}, nil
@@ -164,14 +169,11 @@ func planAgentsSection(ctx context.Context, root *os.Root, config rules.Configur
 			plan = agentsPlan{}
 		}
 	}()
-	data, err := filetxn.ReadOptional(ctx, plan.repository, agentsFile)
-	var unsafe *filetxn.Error
-	if errors.As(err, &unsafe) && unsafe.Code == "unsafe-file" {
-		return plan, failure("unsafe-file", agentsFile+": Syllabus keeps a section in this file and doesn't write through a link; make AGENTS.md the file, and link or import it from the file your agent reads, such as CLAUDE.md, then run the command again", err)
-	}
+	data, err := readAgentsFile(ctx, plan.repository)
 	if err != nil {
 		return plan, err
 	}
+	plan.previous = data
 	directory := filepath.Base(root.Name())
 	want := renderAgentsSection(directory, toolVersion(options))
 	existing := string(data)
@@ -195,39 +197,48 @@ func planAgentsSection(ctx context.Context, root *os.Root, config rules.Configur
 	default:
 		content, action = s.replace(want), "updated"
 	}
-	plan.file = &filetxn.File{Path: agentsFile, Content: []byte(content), Previous: data}
+	plan.content = []byte(content)
 	plan.change = &AgentsChange{Path: agentsFile, Action: action}
 	return plan, nil
 }
 
-// publish writes the planned AGENTS.md under w, refusing with concurrent-change when the file changed since
-// planning, and returns the change and any cleanup warnings. It runs after the command's own transaction, which its
-// publication isn't part of: the section depends only on the version and the directory's name, so a failure here
-// leaves the project's other files consistent, and running the command again finishes it.
-func (p agentsPlan) publish(w *filetxn.Writer) (*AgentsChange, []string, error) {
-	if p.file == nil {
-		return nil, nil, nil
+// readAgentsFile reads AGENTS.md from the repository root, returning nil when it's absent, and refuses a link.
+func readAgentsFile(ctx context.Context, repository *os.Root) ([]byte, error) {
+	data, err := filetxn.ReadOptional(ctx, repository, agentsFile)
+	var unsafe *filetxn.Error
+	if errors.As(err, &unsafe) && unsafe.Code == "unsafe-file" {
+		return nil, failure("unsafe-file", agentsFile+": Syllabus keeps a section in this file and doesn't write through a link; make AGENTS.md the file, and link or import it from the file your agent reads, such as CLAUDE.md, then run the command again", err)
 	}
-	changes, err := w.Publish(p.repository, []filetxn.File{*p.file})
+	return data, err
+}
+
+// include adds the planned AGENTS.md to a transaction's targets and reports it in changes.
+func (p agentsPlan) include(targets map[filetxn.Target]map[string][]byte, changes *FileChanges) {
+	if p.content == nil {
+		return
+	}
+	targets[filetxn.AgentsFile] = map[string][]byte{string(filetxn.AgentsFile): p.content}
+	changes.Agents = p.change
+}
+
+// requireUnchanged fails with concurrent-change when AGENTS.md changed since planning, so a transaction never
+// replaces text written meanwhile and check never reports a section it no longer holds.
+func (p agentsPlan) requireUnchanged(ctx context.Context) error {
+	if p.repository == nil {
+		return nil
+	}
+	data, err := readAgentsFile(ctx, p.repository)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	return p.change, changes.Warnings, nil
+	if (data == nil) != (p.previous == nil) || !bytes.Equal(data, p.previous) {
+		return failure("concurrent-change", agentsFile+": changed while the command ran; run the command again", nil)
+	}
+	return nil
 }
 
 func (p agentsPlan) close() {
 	if p.repository != nil {
 		p.repository.Close()
 	}
-}
-
-// includeAgents publishes plan under w and reports it in changes.
-func includeAgents(w *filetxn.Writer, plan agentsPlan, changes *FileChanges) error {
-	change, warnings, err := plan.publish(w)
-	if err != nil {
-		return err
-	}
-	changes.Agents = change
-	changes.Warnings = append(nonNil(changes.Warnings), warnings...)
-	return nil
 }
