@@ -128,7 +128,7 @@ async function preview(
       notice: () => {},
     },
     context: {
-      repo: { owner: 'fabricahq', repo: 'syllabus' },
+      repo: { owner: 'fabricahq', repo: 'code-rules' },
       serverUrl: 'https://github.com',
       actor: 'maintainer',
       eventName: options.trigger ?? 'workflow_dispatch',
@@ -347,9 +347,7 @@ function extractPackaged(packaged: string[]) {
       result.status === 0
         ? targets.map((target) => [
             target,
-            readFileSync(
-              join(directory, `native-previews/syllabus-${target}`),
-            ),
+            readFileSync(join(directory, `native-previews/syllabus-${target}`)),
           ])
         : [],
     );
