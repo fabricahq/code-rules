@@ -121,7 +121,7 @@ func (r *reader) supportingLinks(terms []string) error {
 			if !utf8.Valid(data) {
 				return bad(file, "expected UTF-8 Markdown")
 			}
-			targets, err := rules.MarkdownTargets(string(data), file)
+			targets, err := rules.LibraryTargets(string(data), file)
 			if cancelErr := r.ctx.Err(); cancelErr != nil {
 				return cancelErr
 			}

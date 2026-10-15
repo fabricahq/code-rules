@@ -265,6 +265,17 @@ A project receives library-wide files from one library release at a time. `code-
 
 Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release that supplies the project's library-wide files, so shared files should only explain and illustrate.
 
+### Move a library from the earlier layout
+
+Earlier versions of Code Rules kept a library's files at the repository root. Library commands now fail, writing nothing, until you move them into `.code-rules/`, and their message lists each move. In one pull request:
+
+1. Move `techs/` and `practices/` to `.code-rules/rules/`, `assets/` to `.code-rules/assets/`, and `changes/` to `.code-rules/changes/`, such as with `git mv`.
+2. Delete `rule-library.yaml`, and write its `license` fields in the `library` section of `.code-rules/config.yaml`.
+3. Add one `../` to each relative link from a rule to a shared asset, and two to each link to a license file at the repository root. Links that start with `/assets/` keep working.
+4. Record each rule whose links changed with `code-rules library change RULE_ID --bump patch --summary '...'`.
+
+Rule IDs and versions don't change, and rules you didn't edit need no note. Publish a library release once the pull request merges: projects can't import a library release made in the earlier layout, so they need one from the new layout. See [Libraries in the earlier layout](/reference/library-format/#libraries-in-the-earlier-layout).
+
 ### Check your changes
 
 Whatever you changed, check the library before opening your pull request:

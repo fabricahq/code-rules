@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -37,7 +38,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 		t.Fatal(err)
 	}
 	rule := rules.RuleMetadata{Title: "Return errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.yaml")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/_group.yaml"))); err != nil {
 		t.Fatal(err)
 	}
 	_, commitErr = plan.Commit(ctx, rule, nil)
@@ -49,7 +50,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if !strings.Contains(commitErr.Error(), quoted) {
 		t.Fatal("repair lost library location", commitErr)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, "techs/go/errors.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/errors.md"))); !os.IsNotExist(err) {
 		t.Fatal("wrote rule after group disappeared", err)
 	}
 }

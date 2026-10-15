@@ -403,12 +403,19 @@ func (c Changes) Written() []string { return append(slices.Clone(c.Added), c.Cha
 // Edit acquires writer ownership, prepares files against current state, and publishes them safely.
 // Preparation must not write; the owned callback revalidates input before file creation or replacement.
 func Edit(ctx context.Context, root *os.Root, prepare func() ([]File, error)) (Changes, error) {
+	return EditIn(ctx, root, root, prepare)
+}
+
+// EditIn is Edit with writer ownership taken in writer, which may differ from root, where files publish: a library
+// takes the writer of its Code Rules directory, which the repository's project commands share, and publishes files
+// relative to the repository root.
+func EditIn(ctx context.Context, writer, root *os.Root, prepare func() ([]File, error)) (Changes, error) {
 	if prepare == nil {
 		return Changes{}, failure("invalid-operation", "expected an edit preparation operation", nil)
 	}
 	var files []File
 	committed := false
-	err := WithWriter(ctx, root, func(_ *Writer) error {
+	err := WithWriter(ctx, writer, func(_ *Writer) error {
 		var err error
 		files, err = prepare()
 		if err != nil {

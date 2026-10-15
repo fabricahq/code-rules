@@ -1,4 +1,4 @@
-// Record rule changes as new change notes in changes/, and read the notes library check compares.
+// Record rule changes as new change notes in .code-rules/changes/, and read the notes library check compares.
 
 package library
 
@@ -26,7 +26,8 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// changesDirectory holds change notes at the library root; projects never import it.
+// changesDirectory holds change notes, by their library paths; projects never import it. The repository keeps it
+// in .code-rules/changes/.
 const changesDirectory = "changes"
 
 // maxNoteNameAttempts bounds the random suffixes tried for a note name that isn't taken.
@@ -76,7 +77,7 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 	return &ChangePlan{request: request, options: options, Versioned: versioned}, nil
 }
 
-// Commit writes a new, uniquely named note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
+// Commit writes a new, uniquely named note, such as .code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
 // by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
 // collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
 // A retirement whose replacement isn't a rule yet succeeds with a warning.
@@ -94,8 +95,13 @@ func (p *ChangePlan) Commit(ctx context.Context, bump coderules.Change, summary 
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
+	dir, err := openCodeRulesDirectory(ctx, root, false)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	defer dir.Close()
 	missingReplacement := false
-	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
+	changes, err := filetxn.EditIn(ctx, dir, root, func() ([]filetxn.File, error) {
 		versioned, published, err := checkChange(ctx, root, p.options, request)
 		if err != nil {
 			return nil, err
@@ -114,7 +120,7 @@ func (p *ChangePlan) Commit(ctx context.Context, bump coderules.Change, summary 
 		if missingReplacement, err = replacementMissing(root, request.ReplacedBy); err != nil {
 			return nil, err
 		}
-		return []filetxn.File{{Path: name, Content: note}}, nil
+		return []filetxn.File{{Path: librarytree.RepositoryPath(name), Content: note}}, nil
 	})
 	result, err := authoringResult(changes, err)
 	if err == nil && missingReplacement {
@@ -222,17 +228,18 @@ func requireChanged(ctx context.Context, root *os.Root, git *libraryGit, latest 
 	return nil
 }
 
-// ruleWorkingFiles returns the sorted working-tree paths of a rule's versioned files: its Markdown file and the
-// files in its asset directory, which may be absent.
+// ruleWorkingFiles returns the sorted library paths of a rule's versioned files in the working tree: its Markdown
+// file and the files in its asset directory, which may be absent.
 func ruleWorkingFiles(root *os.Root, id string) ([]string, error) {
 	files := []string{id + ".md"}
-	assets := strings.TrimSuffix(rules.RuleAssetDirectory(id+".md"), "/")
+	assets := librarytree.RepositoryPath(strings.TrimSuffix(rules.RuleAssetDirectory(id+".md"), "/"))
 	if _, err := root.Lstat(assets); errors.Is(err, fs.ErrNotExist) {
 		return files, nil
 	}
 	err := fs.WalkDir(root.FS(), assets, func(name string, entry fs.DirEntry, err error) error {
 		if err == nil && !entry.IsDir() {
-			files = append(files, name)
+			library, _ := librarytree.LibraryPath(name)
+			files = append(files, library)
 		}
 		return err
 	})
@@ -288,7 +295,7 @@ func requireComplete(request ChangeRequest, versioned bool) error {
 
 // ruleExists reports whether id's Markdown file is an ordinary file in the library.
 func ruleExists(root *os.Root, id string) (bool, error) {
-	info, err := root.Lstat(id + ".md")
+	info, err := root.Lstat(librarytree.RepositoryPath(id + ".md"))
 	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 		return false, nil
 	}
@@ -300,7 +307,7 @@ func ruleExists(root *os.Root, id string) (bool, error) {
 
 // assetDirectoryExists reports whether id's own asset directory, assets/<rule-name>/ beside its Markdown file, exists.
 func assetDirectoryExists(root *os.Root, id string) (bool, error) {
-	_, err := root.Lstat(strings.TrimSuffix(rules.RuleAssetDirectory(id+".md"), "/"))
+	_, err := root.Lstat(librarytree.RepositoryPath(strings.TrimSuffix(rules.RuleAssetDirectory(id+".md"), "/")))
 	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 		return false, nil
 	}
@@ -318,8 +325,8 @@ func unknownRule(id string, published bool) string {
 	return message
 }
 
-// noteName returns changes/<date>-<rule name>-<suffix>.yaml, drawing another suffix when that name exists in
-// the working tree or was published by the latest library release.
+// noteName returns the library path changes/<date>-<rule name>-<suffix>.yaml, drawing another suffix when that name
+// exists in the working tree or was published by the latest library release.
 func noteName(root *os.Root, id string, date time.Time, published map[string]string, suffix func() (string, error)) (string, error) {
 	base := changesDirectory + "/" + date.Format(time.DateOnly) + "-" + path.Base(id)
 	for range maxNoteNameAttempts {
@@ -331,7 +338,7 @@ func noteName(root *os.Root, id string, date time.Time, published map[string]str
 		if _, ok := published[name]; ok {
 			continue
 		}
-		if _, err := root.Lstat(name); errors.Is(err, fs.ErrNotExist) {
+		if _, err := root.Lstat(librarytree.RepositoryPath(name)); errors.Is(err, fs.ErrNotExist) {
 			return name, nil
 		} else if err != nil {
 			return "", err
@@ -380,8 +387,8 @@ func renderNote(request ChangeRequest, versioned bool, name string) ([]byte, err
 	return out, nil
 }
 
-// readChangeNotes captures every note under changes/, which may be absent. It holds only .yaml files;
-// subdirectories, links, and other files fail.
+// readChangeNotes captures every note under changes/, which may be absent, from input, which lends files by library
+// path. It holds only .yaml files; subdirectories, links, and other files fail.
 func readChangeNotes(ctx context.Context, input FileSource) (map[string][]byte, error) {
 	r := reader{ctx: ctx, input: portableInventorySource{input}, files: map[string][]byte{}}
 	entries, err := r.entries(changesDirectory, true)
@@ -391,7 +398,7 @@ func readChangeNotes(ctx context.Context, input FileSource) (map[string][]byte, 
 	for _, entry := range entries {
 		name := changesDirectory + "/" + entry.Name()
 		if entry.Type()&fs.ModeType != 0 || !strings.HasSuffix(name, ".yaml") {
-			return nil, bad(name, "expected only change notes, as .yaml files, in changes/")
+			return nil, bad(name, "expected only change notes, as .yaml files, in .code-rules/changes/")
 		}
 		if _, err := r.read(name); err != nil {
 			return nil, err

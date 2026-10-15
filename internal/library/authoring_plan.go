@@ -102,7 +102,7 @@ func checkNewGroup(ctx context.Context, root *os.Root, id string) error {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
-	return filetxn.RequireAbsent(ctx, root, id+"/_group.yaml", id+"/README.md")
+	return filetxn.RequireAbsent(ctx, root, librarytree.RepositoryPath(id+"/_group.yaml"), librarytree.RepositoryPath(id+"/README.md"))
 }
 
 func checkNewRule(ctx context.Context, root *os.Root, id string, options Options) error {
@@ -125,5 +125,5 @@ func checkNewRule(ctx context.Context, root *os.Root, id string, options Options
 		command := "code-rules library add group " + group + " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
 		return failure("missing-group", "group "+group+" does not exist; create it first with "+command+", then retry adding the rule", nil)
 	}
-	return filetxn.RequireAbsent(ctx, root, id+".md")
+	return filetxn.RequireAbsent(ctx, root, librarytree.RepositoryPath(id+".md"))
 }

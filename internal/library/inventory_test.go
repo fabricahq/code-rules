@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // TestInventoryLimits checks exact bounds, aggregate bytes, entry counts, and cancellation.
@@ -57,14 +59,14 @@ func (s *countedInventorySource) ReadFile(name string) ([]byte, error) {
 func TestInventoryStopsAtOversizedAsset(t *testing.T) {
 	directory := t.TempDir()
 	for _, name := range []string{"assets", "techs"} {
-		if err := os.Mkdir(filepath.Join(directory, name), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Join(directory, librarytree.RepositoryPath(name)), 0700); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(directory, "rule-library.yaml"), []byte(`{"formatVersion":1}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, librarytree.RepositoryPath(librarytree.Manifest)), []byte(`{"schemaVersion":2,"sources":{},"library":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	file, err := os.Create(filepath.Join(directory, "assets/large.bin"))
+	file, err := os.Create(filepath.Join(directory, librarytree.RepositoryPath("assets/large.bin")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +76,7 @@ func TestInventoryStopsAtOversizedAsset(t *testing.T) {
 	if err := file.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(directory, "techs/later"), []byte("must not be read"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, librarytree.RepositoryPath("techs/later")), []byte("must not be read"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	root, err := os.OpenRoot(directory)
@@ -87,7 +89,7 @@ func TestInventoryStopsAtOversizedAsset(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "limits") || inventory.Files != nil {
 		t.Fatal(inventory, err)
 	}
-	if len(source.reads) != 2 || source.reads[1] != "assets/large.bin" {
+	if len(source.reads) != 2 || source.reads[1] != librarytree.RepositoryPath("assets/large.bin") {
 		t.Fatal("capture continued past limit", source.reads)
 	}
 }
@@ -98,13 +100,16 @@ func TestInventoryPreservesPortablePaths(t *testing.T) {
 		for _, isDir := range []bool{true, false} {
 			t.Run(name, func(t *testing.T) {
 				directory := t.TempDir()
-				if err := os.WriteFile(filepath.Join(directory, "rule-library.yaml"), []byte(`{"formatVersion":1}`), 0600); err != nil {
+				if err := os.Mkdir(filepath.Join(directory, librarytree.Directory), 0700); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.Mkdir(filepath.Join(directory, "assets"), 0700); err != nil {
+				if err := os.WriteFile(filepath.Join(directory, librarytree.RepositoryPath(librarytree.Manifest)), []byte(`{"schemaVersion":2,"sources":{},"library":{}}`), 0600); err != nil {
 					t.Fatal(err)
 				}
-				target := filepath.Join(directory, "assets", name)
+				if err := os.Mkdir(filepath.Join(directory, librarytree.RepositoryPath("assets")), 0700); err != nil {
+					t.Fatal(err)
+				}
+				target := filepath.Join(directory, librarytree.RepositoryPath("assets"), name)
 				var err error
 				if isDir {
 					err = os.Mkdir(target, 0700)

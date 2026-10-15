@@ -13,6 +13,10 @@ A **library** is a repository whose manifest publishes its authored **rule group
 
 Libraries live in Git repositories. This page covers what makes a repository a library. For the rule and rule group files inside it, see [Rule and rule group format](/reference/rule-format/); for skill folders, see [Skill format](/reference/skill-format/). For how each rule and skill is versioned, see [Rule and skill versions](/reference/rule-versions/).
 
+:::note[Preview]
+This page describes the library layout of the next Code Rules release, which keeps a library's files in `.code-rules/`, the same directory a project uses. Released versions read `rule-library.yaml` and rule folders at the repository root; see [Libraries in the earlier layout](#libraries-in-the-earlier-layout).
+:::
+
 ## Library layout
 
 A library uses the same Code Rules directory as every other repository. The tree below shows a library repository named **`engineering-rules/`**; the name is an example. A project that uses it stores a vendor snapshot of this content under `.code-rules/vendor/<source-name>/`; see [Project files](/reference/files/).
@@ -152,6 +156,7 @@ The optional `library.license` object declares the library-wide terms. Authors s
 
 When `license` is present, all three fields are required and all declared files must exist within the repository.
 Declared license and notice files are [library-wide files](/reference/rule-versions/#what-a-version-covers), so they can't be part of a rule's or skill's version: a declared path can't be a rule's Markdown file, lie in a rule's asset directory, such as `.code-rules/rules/practices/testing/assets/verify-retry-limits/LICENSE`, or lie in a skill folder, such as `.code-rules/skills/build-feature/LICENSE`. Otherwise a later library release could replace a file that a project's pinned rule version covers. `code-rules library check` rejects such a declaration, and projects refuse to take a library release whose manifest has one.
+A project's [vendor snapshot](/reference/files/) of the library stores a declared file from outside `.code-rules/` at its path from the repository root, beside the files from `.code-rules/`, so that path can't start with a name the snapshot uses for those files or its records, in any letter case: `_source.json`, `config.yaml`, `assets/`, `borrowed/`, `changes/`, `rules/`, or `skills/`.
 Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
 Code Rules retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
 If the declaration is absent, provenance records `license: null`. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text.
@@ -171,6 +176,23 @@ generated/libraries/<source-name>/licenses/notices/002.md
 One library-wide license declaration covers every rule group, rule, and skill the library authors. A `license` or `licenses` field on a rule or rule group is rejected. A skill's `SKILL.md` can carry the Agent Skills `license` field, but it's informational: `code-rules library check` warns when it differs from the library's SPDX expression; see [Skill format](/reference/skill-format/#licenses). A borrowed skill keeps its own repository's terms, which Code Rules finds as it does for any [non-library source](/reference/imports/#non-library-sources).
 Keep original attribution with each rule and include required notices in the manifest. Material requiring a different declaration belongs in a separate library.
 See [License rules](/guides/license-rules/) for publisher guidance and the boundary with the consuming project's license.
+
+## Libraries in the earlier layout
+
+Earlier versions of Code Rules read a library's manifest from `rule-library.yaml`, and its groups, shared assets, and change notes from `techs/`, `practices/`, `assets/`, and `changes/` at the repository root. This version doesn't read that layout and doesn't move it. Every library command fails, writing nothing, while `rule-library.yaml`, `techs`, or `practices` exists at the repository root, with a message that shows where each file moves:
+
+| Earlier layout | This layout |
+| --- | --- |
+| `rule-library.yaml` | The `library` section of `.code-rules/config.yaml` |
+| `techs/<group>/`, `practices/<group>/` | `.code-rules/rules/techs/<group>/`, `.code-rules/rules/practices/<group>/` |
+| `assets/` | `.code-rules/assets/` |
+| `changes/` | `.code-rules/changes/` |
+
+Move the files with `git mv`, then delete `rule-library.yaml` and write its `license` fields, without `formatVersion`, in the `library` section of `.code-rules/config.yaml`, beside the `sources` the repository uses as a project, if any. License and notice paths stay relative to the repository root, so they don't change.
+
+Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more `../`, such as `../../../assets/retry-lifecycle.svg`, and its links to license files at the repository root need two more. Links that start with `/assets/` still work, because a link that starts with `/` resolves from `.code-rules/`. Once the library has a library release, record each rule whose links changed with `code-rules library change RULE_ID --bump patch`, then run `code-rules library check`. A rule whose bytes didn't change needs no note, and moving the manifest isn't a library-wide change unless its license fields changed.
+
+Projects can't import a library release in the earlier layout; sync and update fail with [`unsupported-library-layout`](/reference/imports/#source-limits-and-version-errors) until the library publishes a library release from the new layout and the project selects it. Rule versions that a library release in the earlier layout published still import when a later library release keeps them, unless one of their links resolves to another file in the new layout. A project that imported the library before it moved keeps a `vendor/<source-name>/rule-library.yaml`, which this version can't read either: once the library has published a library release from the new layout, delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`.
 
 ## Read libraries from other tools
 

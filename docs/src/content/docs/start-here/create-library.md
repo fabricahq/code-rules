@@ -18,6 +18,10 @@ In this walkthrough, you'll:
 
 You need [Code Rules installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can live [in that project](/start-here/set-up-project/).
 
+:::note[Preview]
+This walkthrough uses the library layout of the next Code Rules release, which keeps a library's files in `.code-rules/`. Released versions keep `rule-library.yaml` and rule folders at the repository root.
+:::
+
 ## 1. Create a repository for your library
 
 Give your library its own Git repository so you can publish its rules independently of the projects that use them. Start in the directory where you keep your repositories:

@@ -820,7 +820,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.license: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.license: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.license"
       }
     }
@@ -834,7 +834,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.license: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.license: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.license"
       }
     }
@@ -848,7 +848,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.license: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.license: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.license"
       }
     }
@@ -862,7 +862,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.licenses: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.licenses: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.licenses"
       }
     }
@@ -876,7 +876,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.licenses: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.licenses: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.licenses"
       }
     }
@@ -890,7 +890,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.licenses: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.licenses: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.licenses"
       }
     }
@@ -904,7 +904,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.license: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.license: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.license"
       }
     }
@@ -918,7 +918,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.license: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.license: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.license"
       }
     }
@@ -1508,7 +1508,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.yaml.license: declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported",
+        "message": "techs/go/_group.yaml.license: declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported",
         "location": "techs/go/_group.yaml.license"
       }
     }

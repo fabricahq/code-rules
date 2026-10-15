@@ -28,7 +28,7 @@ func thirdRelease(t *testing.T, f *gitfixture.Fixture, retire bool) {
 	t.Helper()
 	ctx := context.Background()
 	files := map[string][]byte{
-		"techs/go/errors.md":              []byte(forkedRule("Read [the table](assets/errors/table.md) and [the diagram](../../assets/diagrams/new.svg).")),
+		"techs/go/errors.md":              []byte(forkedRule("Read [the table](assets/errors/table.md) and [the diagram](../../../assets/diagrams/new.svg).")),
 		"techs/go/assets/errors/table.md": []byte("| Wrap |\n"),
 		"techs/go/assets/errors/notes.md": nil,
 		"techs/go/assets/errors/data.bin": nil,
@@ -39,7 +39,7 @@ func thirdRelease(t *testing.T, f *gitfixture.Fixture, retire bool) {
 		files = map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil}
 		record = "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nchanges: {}\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [No longer needed.]}\n"
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Third release", files); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Third release", gitfixture.Library(files)); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, record); err != nil {
@@ -409,7 +409,7 @@ func moveReleaseTagTo(t *testing.T, f *gitfixture.Fixture, name string, files ma
 		t.Fatal(err)
 	}
 	_, message, _ := strings.Cut(object, "\n\n")
-	if _, err := f.Commit(ctx, f.Worktree(), "Move "+name, files); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Move "+name, gitfixture.Library(files)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", name); err != nil {

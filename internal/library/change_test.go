@@ -15,13 +15,15 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // noteDay is the calendar day tests record notes on.
 var noteDay = time.Date(2026, time.September, 29, 23, 30, 0, 0, time.UTC)
 
-// recordChange plans and commits a note, returning its path relative to the library and its contents.
+// recordChange plans and commits a note, returning its library path and its contents.
 func recordChange(t *testing.T, options Options, request ChangeRequest) (string, string, error) {
 	t.Helper()
 	plan, err := PlanChange(context.Background(), request, options)
@@ -35,9 +37,13 @@ func recordChange(t *testing.T, options Options, request ChangeRequest) (string,
 	if len(result.Written()) != 1 {
 		t.Fatalf("wrote %q, want one note", result.Written())
 	}
-	name, err := filepath.Rel(options.Directory, result.Written()[0])
+	relative, err := filepath.Rel(options.Directory, result.Written()[0])
 	if err != nil {
 		t.Fatal(err)
+	}
+	name, ok := librarytree.LibraryPath(filepath.ToSlash(relative))
+	if !ok {
+		t.Fatalf("wrote %s, outside the library", relative)
 	}
 	data, err := os.ReadFile(result.Written()[0])
 	if err != nil {
@@ -107,7 +113,7 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
 	published := "summary: Published.\nrules:\n  practices/testing/a: patch\n"
-	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/2026-09-29-a-aaaaaa.yaml": []byte(published)}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", gitfixture.Library(map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/2026-09-29-a-aaaaaa.yaml": []byte(published)})); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summaries:\n      - Published.\n"
@@ -148,7 +154,7 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 	if err != nil || second == first {
 		t.Fatalf("wrote %s after %s: %v", second, first, err)
 	}
-	if data, err := os.ReadFile(filepath.Join(options.Directory, "changes/2026-09-29-a-bbbbbb.yaml")); err != nil || string(data) != pending {
+	if data, err := os.ReadFile(filepath.Join(options.Directory, librarytree.RepositoryPath("changes/2026-09-29-a-bbbbbb.yaml"))); err != nil || string(data) != pending {
 		t.Fatalf("changed an existing note: %q %v", data, err)
 	}
 }
@@ -186,7 +192,7 @@ func TestChange_NotesFromParallelBranchesMergeWithoutConflict(t *testing.T) {
 	if err != nil || !slices.Equal(previewRows(result.PendingRelease), []string{"practices/testing/a minor 1.0.0 1.1.0"}) {
 		t.Fatal(result, err)
 	}
-	if notes, err := os.ReadDir(filepath.Join(second.Directory, "changes")); err != nil || len(notes) != 2 {
+	if notes, err := os.ReadDir(filepath.Join(second.Directory, librarytree.RepositoryPath("changes"))); err != nil || len(notes) != 2 {
 		t.Fatalf("expected both notes after the merge: %v %v", notes, err)
 	}
 }
@@ -222,7 +228,7 @@ func TestChange_RejectsNotesThatDontMatchTheLibrary(t *testing.T) {
 			if errorCode(err) != test.code || !strings.Contains(err.Error(), test.message) {
 				t.Fatalf("got %v, want %s: %s", err, test.code, test.message)
 			}
-			if _, err := os.Stat(filepath.Join(options.Directory, "changes")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(options.Directory, librarytree.RepositoryPath("changes"))); !os.IsNotExist(err) {
 				t.Fatal("wrote changes/", err)
 			}
 		})
@@ -240,7 +246,7 @@ func TestChange_RefusesAnUnchangedPublishedRule(t *testing.T) {
 	if _, err := PlanChange(ctx, request, options); errorCode(err) != "unchanged-rule" || !strings.Contains(err.Error(), "practices/testing/a hasn't changed since release/1. Edit the rule first, then record the change.") {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, "changes")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Directory, librarytree.RepositoryPath("changes"))); !os.IsNotExist(err) {
 		t.Fatal("wrote changes/", err)
 	}
 	// Any versioned file counts: here, a new file in the rule's asset directory.
@@ -295,7 +301,7 @@ func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 	if _, err := plan.Commit(ctx, coderules.ChangePatch, "One.\nTwo.", noteDay); !errors.As(err, &validation) || !strings.HasSuffix(validation.ValidationLocation(), ".summary") {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, "changes")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Directory, librarytree.RepositoryPath("changes"))); !os.IsNotExist(err) {
 		t.Fatal("wrote a note with a multi-line summary", err)
 	}
 	if _, err := plan.Commit(ctx, coderules.ChangePatch, "Fix a.", noteDay); err != nil {
@@ -307,7 +313,7 @@ func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 func TestChange_RetiredRules(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	if _, err := fixture.Commit(ctx, options.Directory, "Retire b", map[string][]byte{"practices/testing/b.md": nil}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Retire b", gitfixture.Library(map[string][]byte{"practices/testing/b.md": nil})); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summaries:\n      - Retire b.\n"

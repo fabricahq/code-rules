@@ -317,7 +317,11 @@ func forkAttribution(repository, id string, version coderules.RuleVersion, publi
 	if err != nil {
 		return nil, err
 	}
-	url, ok := parsed.FileURL(published.Commit, id+".md", false)
+	file := librarytree.RepositoryPath(id + ".md")
+	if published.LegacyLayout {
+		file = id + ".md"
+	}
+	url, ok := parsed.FileURL(published.Commit, file, false)
 	if !ok {
 		if !strings.HasPrefix(repository, "https://") {
 			return nil, nil
@@ -382,7 +386,8 @@ func forkFiles(id, rulePath string, published imports.PublishedRule, attribution
 	return result, requireSelfContained(result)
 }
 
-// relocateLinks returns the Markdown text of the file moving from from to to, with each local link rewritten as a
+// relocateLinks returns the Markdown text of the file moving from from, a library path, to to, with each local link,
+// which resolves as rules.LibraryTarget resolves it, rewritten as a
 // relative link when its destination moves or the file itself moves, including links that name the file itself.
 // Pathless links, such as #top, external links, and other links keep their original text.
 func relocateLinks(text, from, to string, moved map[string]string) (string, error) {
@@ -393,7 +398,7 @@ func relocateLinks(text, from, to string, moved map[string]string) (string, erro
 	}
 	result := text
 	for _, destination := range slices.Backward(destinations) {
-		target, suffix, local, err := rules.RelativeTarget(destination.Value, from)
+		target, suffix, local, err := rules.LibraryTarget(destination.Value, from)
 		if err != nil {
 			return "", err
 		}
@@ -430,7 +435,8 @@ func requireSelfContained(files map[string][]byte) error {
 				return &ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
 			}
 		}
-		targets, err := rules.MarkdownTargets(string(files[file]), file)
+		// A fork's files sit in .code-rules/rules/ as the library's rule files do, so its links resolve as theirs do.
+		targets, err := rules.LibraryTargets(string(files[file]), file)
 		if err != nil {
 			return fmt.Errorf("%s: %w", file, err)
 		}

@@ -5,6 +5,7 @@ package imports
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/fs"
 	"maps"
 	"path"
@@ -15,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -137,6 +139,98 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 	return entries, nil
 }
 
+// libraryTree places a commit's files, given by repository path, at their library paths, as librarytree.LibraryPath
+// does, leaving out the files outside the library, such as the repository's vendor/ and generated/ folders. It also
+// reports whether the commit keeps its library in the layout before version 2, with rule-library.yaml at the
+// repository root: such a commit's files keep their paths, including rule-library.yaml, which is read only for the
+// license and notice files it declares, except its .code-rules/, which held only a project's files.
+func libraryTree(files map[string]treeEntry) (map[string]treeEntry, bool) {
+	_, legacy := files[librarytree.LegacyManifest]
+	result := map[string]treeEntry{}
+	for name, entry := range files {
+		library, ok := librarytree.LibraryPath(name)
+		if legacy {
+			library = name
+			ok = name != librarytree.Manifest && !strings.HasPrefix(name, librarytree.Directory+"/")
+		}
+		if ok {
+			entry.name = library
+			result[library] = entry
+		}
+	}
+	return result, legacy
+}
+
+// legacyLayoutProblem explains why a source can't import revision, a library release or commit that keeps the
+// library in the layout before version 2.
+func legacyLayoutProblem(source, revision string) string {
+	return fmt.Sprintf("sources.%s: the library's %s keeps its files in the layout from before this version of Code Rules, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .code-rules/config.yaml and its rules from .code-rules/rules/, so it can't import %s. Ask the library's maintainer to move the library's files into .code-rules/ and publish a library release, then select that release, such as with code-rules project update %s.", source, revision, revision, source)
+}
+
+// revisionName names a library release by its tag, such as release/4, or another revision by its commit, when
+// release is 0.
+func revisionName(release int, commit string) string {
+	if release != 0 {
+		return "release/" + strconv.Itoa(release)
+	}
+	return "commit " + commit
+}
+
+// requireLibraryLayout fails with unsupported-library-layout when commit, a fetched commit whose tree was listed,
+// which supplies a source's manifest and library-wide files, keeps the library in the layout before version 2.
+// release is the commit's library release number, or 0 for another revision.
+func (r *repository) requireLibraryLayout(source string, release int, commit string) error {
+	if r.legacy[commit] {
+		return fail("unsupported-library-layout", legacyLayoutProblem(source, revisionName(release, commit)), nil)
+	}
+	return nil
+}
+
+// requireLegacyRuleLinks fails with unsupported-library-layout when rule id, imported from a fetched commit in the
+// layout before version 2, has a link that resolved to another file then than it does now: a relative link out of
+// the rule folders, such as to a shared asset or a license file, in its Markdown file or a Markdown file in its asset
+// directory. Such links resolved from the repository root then, and resolve from .code-rules/rules/ now, so the
+// rule's version would import with broken links. owned holds the rule's files by library path.
+func (r *repository) requireLegacyRuleLinks(ctx context.Context, source, id string, rule library.ImportedRule, owned map[string]treeEntry) error {
+	if !r.legacy[rule.Commit] {
+		return nil
+	}
+	documents := map[string]treeEntry{}
+	for file, entry := range owned {
+		if strings.HasSuffix(file, ".md") {
+			documents[file] = entry
+		}
+	}
+	if err := r.prefetch(ctx, slices.Collect(maps.Values(documents))); err != nil {
+		return err
+	}
+	reader := newGitFiles(ctx, r, documents)
+	for _, file := range slices.Sorted(maps.Keys(documents)) {
+		data, err := reader.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		before, err := rules.MarkdownTargets(string(data), file)
+		if err != nil {
+			return err
+		}
+		now, err := rules.LibraryTargets(string(data), file)
+		if err == nil && slices.Equal(before, now) {
+			continue
+		}
+		if len(before) == 0 {
+			return err
+		}
+		index := max(slices.IndexFunc(before, func(target string) bool { return !slices.Contains(now, target) }), 0)
+		version := ""
+		if rule.Version != nil {
+			version = " version " + rule.Version.String()
+		}
+		return fail("unsupported-library-layout", fmt.Sprintf("sources.%s: rule %s%s comes from the library's %s, which keeps its files in the layout from before this version of Code Rules, and its link to %s resolves differently in the current layout, so this version of Code Rules can't import the rule's version. Select a version of %s that the library published after moving its files into .code-rules/, such as with code-rules project update %s:%s, or ask the library's maintainer to publish one.", source, id, version, revisionName(rule.Release, rule.Commit), before[index], id, source, id), nil)
+	}
+	return nil
+}
+
 // ruleFiles returns the files of rule id at a fetched commit, its Markdown file and its asset directory's files,
 // by path. The map is empty when the commit doesn't have the rule.
 func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[string]treeEntry, error) {
@@ -160,21 +254,30 @@ func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[stri
 	return maps.Clone(index[id]), nil
 }
 
-// terms returns the license and notice paths that tree's library manifest declares, or none without a manifest.
+// terms returns the library paths of the license and notice files that tree's library manifest declares, or none
+// without a manifest or a library section, which the catalog loader reports. A tree in the layout before version 2
+// declares them in its rule-library.yaml, which a library release already validated.
 func (r *repository) terms(ctx context.Context, source string, tree map[string]treeEntry) ([]string, error) {
-	entry, ok := tree["rule-library.yaml"]
+	if entry, ok := tree[librarytree.LegacyManifest]; ok {
+		data, err := newGitFiles(ctx, r, map[string]treeEntry{librarytree.LegacyManifest: entry}).ReadFile(librarytree.LegacyManifest)
+		if err != nil {
+			return nil, err
+		}
+		return library.LegacyTerms(data), nil
+	}
+	entry, ok := tree[librarytree.Manifest]
 	if !ok {
 		return nil, nil
 	}
-	data, err := newGitFiles(ctx, r, map[string]treeEntry{"rule-library.yaml": entry}).ReadFile("rule-library.yaml")
+	data, err := newGitFiles(ctx, r, map[string]treeEntry{librarytree.Manifest: entry}).ReadFile(librarytree.Manifest)
 	if err != nil {
 		return nil, err
 	}
-	declaration, err := rules.ParseLibraryLicense(data, source)
-	if err != nil {
+	declaration, err := rules.ParseLibraryManifest(data, source+"/"+librarytree.RepositoryPath(librarytree.Manifest))
+	if err != nil || declaration == nil {
 		return nil, err
 	}
-	return rules.LicensePaths(declaration), nil
+	return rules.LicensePaths(declaration.License), nil
 }
 
 // Lstat returns immutable object metadata, preserving links as links rather than following them.

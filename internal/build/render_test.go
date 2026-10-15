@@ -62,7 +62,7 @@ func TestRenderRejectsLinksOutsideAuthoredFolders(t *testing.T) {
 	for _, test := range []struct{ body, target string }{
 		{"[diagram](../../assets/diagram.svg)", "rules/assets/diagram.svg"},
 		{"[config](../../../config.yaml)", "config.yaml"},
-		{"[vendored](../../../vendor/team/techs/go/errors.md)", "vendor/team/techs/go/errors.md"},
+		{"[vendored](../../../vendor/team/rules/techs/go/errors.md)", "vendor/team/rules/techs/go/errors.md"},
 	} {
 		t.Run(test.target, func(t *testing.T) {
 			output, err := renderFixture(t, test.body, map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
@@ -116,7 +116,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 				}
 				supplied.Catalog.Groups[0].Rules = append(supplied.Catalog.Groups[0].Rules, other)
 			}
-			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/" + target + "#details)\n"
+			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/rules/" + target + "#details)\n"
 			libraries["team"] = versioned(supplied.Catalog)
 			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
@@ -206,6 +206,27 @@ func TestRenderReferenceImages(t *testing.T) {
 		if !strings.Contains(output["rules/team/techs/go/errors.md"], "../../../../../vendor/team/assets/diagram.png") {
 			t.Fatal(output)
 		}
+	}
+}
+
+// TestRenderLinksImportedRuleAssetsToTheirVendoredCopy links an imported rule's own asset to where the source's
+// snapshot stores it, under vendor/team/rules/.
+func TestRenderLinksImportedRuleAssetsToTheirVendoredCopy(t *testing.T) {
+	config, libraries := fixture(t, `[]`)
+	lib := libraries["team"]
+	lib.Catalog.Groups[0].Rules[0].Document = document + "\n![diagram](assets/errors/diagram.png)"
+	lib.Catalog.SupportingFiles["techs/go/assets/errors/diagram.png"] = []byte("image bytes")
+	libraries["team"] = lib
+	resolved, err := resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := renderRules(resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := output["rules/team/techs/go/errors.md"]; !strings.Contains(got, "](../../../../../vendor/team/rules/techs/go/assets/errors/diagram.png)") {
+		t.Fatal(got)
 	}
 }
 

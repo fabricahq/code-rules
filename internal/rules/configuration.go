@@ -18,6 +18,8 @@ import (
 // Configuration contains sources in alias order; an empty list is a local-only project.
 type Configuration struct {
 	Sources []Source `json:"sources"`
+	// Library is the library section, the manifest, or nil when the repository isn't a library.
+	Library *Library `json:"library,omitempty"`
 }
 
 // Source declares one remote library, the rules it selects, and the project's pins and exceptions.
@@ -110,8 +112,9 @@ sources:
 After rewriting it, run code-rules project check.`
 
 // ParseConfiguration validates schema version 2, rejecting unknown fields and contradictory source declarations,
-// and a version 1 configuration with an example of the version 2 shape. Errors return no partial configuration.
-// Strings retain authored spacing. Source aliases, group IDs, and rule IDs are sorted.
+// and a version 1 configuration with an example of the version 2 shape. A library section is the manifest, which
+// makes the repository a library too. Errors return no partial configuration. Strings retain authored spacing.
+// Source aliases, group IDs, and rule IDs are sorted.
 func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	fields, err := decode.Object(input, "configuration")
 	if err != nil {
@@ -125,7 +128,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if versioned && schema == 1 {
 		return Configuration{}, invalid("schemaVersion", versionOneProblem)
 	}
-	if err := decode.KnownFields(fields, []string{"schemaVersion", "sources"}, "configuration"); err != nil {
+	if err := decode.KnownFields(fields, []string{"schemaVersion", "sources", "library"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
 	if !versioned || schema != 2 {
@@ -144,6 +147,11 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 			return Configuration{}, err
 		}
 		result.Sources = append(result.Sources, source)
+	}
+	if raw, ok := fields["library"]; ok {
+		if result.Library, err = parseLibrary(raw); err != nil {
+			return Configuration{}, err
+		}
 	}
 	return result, nil
 }

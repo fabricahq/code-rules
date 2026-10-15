@@ -87,11 +87,8 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 					t.Fatal("example must precede prompts once", result.Transcript)
 				}
 				root := filepath.Join(directory, ".code-rules", "rules")
-				if scope == "library" {
-					root = directory
-				}
 				if custom {
-					root = filepath.Join(directory, "shared 'rules'")
+					root = filepath.Join(directory, "shared 'rules'", ".code-rules", "rules")
 				}
 				file := filepath.Join(root, "techs/go/return-errors.md")
 				data, err := os.ReadFile(file)

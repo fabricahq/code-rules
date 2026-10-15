@@ -38,8 +38,9 @@ type Snapshot struct {
 	RuleSelection []string `json:"ruleSelection"`
 	// Rules maps each imported rule's library rule ID, however it was selected, to its version record.
 	Rules map[string]ImportedRule `json:"rules"`
-	// Files maps each library path to its original bytes, excluding _source.json. The snapshot holds one version of
-	// each imported rule, so every file is stored at its library path.
+	// Files maps each library path to its original bytes, excluding _source.json, except config.yaml, which holds
+	// what the library publishes of its manifest, as rules.PublishedManifest gives it. The snapshot holds one version
+	// of each imported rule, so every file is stored at its library path.
 	Files map[string][]byte `json:"files"`
 }
 
@@ -51,6 +52,9 @@ type ImportedRule struct {
 	Release int                    `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
+	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
+	// their library paths from the repository root rather than in .code-rules/rules/.
+	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
 
 // Source returns the snapshot's files for the catalog loader to read.

@@ -22,7 +22,7 @@ type projectedSource struct {
 }
 
 // configurationProjection returns config with each source's canonical ref, for comparison with a fixture's expected value.
-func configurationProjection(config rules.Configuration) map[string][]projectedSource {
+func configurationProjection(config rules.Configuration) map[string]any {
 	sources := make([]projectedSource, 0, len(config.Sources))
 	for _, source := range config.Sources {
 		projected := projectedSource{Source: source}
@@ -32,7 +32,11 @@ func configurationProjection(config rules.Configuration) map[string][]projectedS
 		}
 		sources = append(sources, projected)
 	}
-	return map[string][]projectedSource{"sources": sources}
+	result := map[string]any{"sources": sources}
+	if config.Library != nil {
+		result["library"] = config.Library
+	}
+	return result
 }
 
 // TestConfigurationFixtures checks successful projections and precise error locations.

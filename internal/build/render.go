@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -116,12 +117,13 @@ func escapeText(value string) string {
 	return result.String()
 }
 
-// workspaceLink links from generated output back to authored or retained vendor input.
+// workspaceLink links from generated output back to authored input, or to an imported source's file at library path
+// file, where the source's snapshot in vendor/ stores it.
 func workspaceLink(outputPath, source, file string) string {
 	if source == "local" {
 		return rules.RelativeLink("generated/"+outputPath, authoredLocation(file))
 	}
-	return rules.RelativeLink("generated/"+outputPath, "vendor/"+source+"/"+file)
+	return rules.RelativeLink("generated/"+outputPath, "vendor/"+source+"/"+librarytree.SnapshotPath(file))
 }
 
 // sourceLink prefers a recognized repository's immutable commit URL and falls back to retained source.
@@ -132,7 +134,11 @@ func sourceLink(origin ruleOrigin, outputPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if link, ok := repository.FileURL(origin.Commit, origin.File, false); ok {
+		file := librarytree.RepositoryPath(origin.File)
+		if origin.legacyLayout {
+			file = origin.File
+		}
+		if link, ok := repository.FileURL(origin.Commit, file, false); ok {
 			return link, nil
 		}
 	}
@@ -147,7 +153,7 @@ func relocatedURL(destination string, active resolvedRule, paths []string, outpu
 		}
 		return destination, nil
 	}
-	resolveTarget := rules.RelativeTarget
+	resolveTarget := rules.LibraryTarget
 	if active.Origin.Source == "local" {
 		resolveTarget = authoredTarget
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -21,6 +22,9 @@ type PublishedRule struct {
 	// Release is the number of the library release that published the version, and Commit the commit its tag names.
 	Release int
 	Commit  string
+	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
+	// their library paths from the repository root rather than in .code-rules/rules/.
+	LegacyLayout bool
 	// Files holds original bytes by library path: the rule's Markdown file, its asset directory's files, and each
 	// file in the shared assets/ directory that those files link to, directly or through other shared assets.
 	// Declared license and notice files are left out, even when they link to them.
@@ -83,6 +87,9 @@ func readPublishedRule(ctx context.Context, source rules.Source, id string, vers
 	if _, ok := owned[id+".md"]; !ok {
 		return PublishedRule{}, fail("unsupported-content", fmt.Sprintf("Library release release/%d has no rule %s, although its release record publishes it. Don't create or move release tags by hand.", release.number, id), nil)
 	}
+	if err := repo.requireLegacyRuleLinks(ctx, source.Name, id, library.ImportedRule{Version: &version, Release: release.number, Commit: release.commit}, owned); err != nil {
+		return PublishedRule{}, err
+	}
 	reader := newGitFiles(ctx, repo, tree)
 	files, err := readEntries(ctx, repo, reader, owned)
 	if err != nil {
@@ -91,7 +98,7 @@ func readPublishedRule(ctx context.Context, source rules.Source, id string, vers
 	if err := readLinkedSharedAssets(ctx, repo, reader, tree, terms, files); err != nil {
 		return PublishedRule{}, err
 	}
-	result := PublishedRule{Release: release.number, Commit: release.commit, Files: files}
+	result := PublishedRule{Release: release.number, Commit: release.commit, LegacyLayout: repo.legacy[release.commit], Files: files}
 	if entry, ok := tree[ruleGroup(id)+"/_group.yaml"]; ok {
 		metadata, err := readEntries(ctx, repo, reader, map[string]treeEntry{entry.name: entry})
 		if err != nil {
@@ -152,7 +159,7 @@ func readLinkedSharedAssets(ctx context.Context, repo *repository, reader *gitFi
 			if !utf8.Valid(files[file]) {
 				return fail("unsupported-content", file+": expected UTF-8 Markdown.", nil)
 			}
-			targets, err := rules.MarkdownTargets(string(files[file]), file)
+			targets, err := rules.LibraryTargets(string(files[file]), file)
 			if err != nil {
 				return err
 			}

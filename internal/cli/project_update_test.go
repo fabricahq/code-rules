@@ -45,7 +45,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 	t.Helper()
 	ctx := context.Background()
 	files := map[string][]byte{
-		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
 	}
 	names := []string{"backoff", "errors", "format", "loaders", "naming", "retry"}
@@ -56,7 +56,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 		record += "  techs/go/" + name + ": 1.0.0\n"
 		changes += "  techs/go/" + name + ": {change: new, summaries: [Add the rule.]}\n"
 	}
-	f, err := gitfixture.New(ctx, files)
+	f, err := gitfixture.New(ctx, gitfixture.Library(files))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 	for name, version := range map[string]string{"backoff": "2.0.0", "errors": "2.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0"} {
 		second["techs/go/"+name+".md"] = updateRule(name + " " + version)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", second); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(second)); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.1.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\n"+

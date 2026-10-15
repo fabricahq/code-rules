@@ -54,11 +54,11 @@ func catTag(t *testing.T, fixture *gitfixture.Fixture, dir, name string) string 
 	return object + "\n"
 }
 
-// commitAndPush commits files in the author's clone and pushes them to the fixture.
+// commitAndPush commits files, keyed by library path, in the author's clone and pushes them to the fixture.
 func commitAndPush(t *testing.T, fixture *gitfixture.Fixture, dir string, files map[string][]byte) string {
 	t.Helper()
 	ctx := context.Background()
-	commit, err := fixture.Commit(ctx, dir, "Change the library", files)
+	commit, err := fixture.Commit(ctx, dir, "Change the library", gitfixture.Library(files))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag(t *test
 		t.Fatal(err)
 	}
 	notes := "Library release 1 publishes 2 rules.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n- **practices/testing/b** `1.0.0`\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
-	record := "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summaries:\n      - Add the rule.\n  practices/testing/b:\n    change: new\n    summaries:\n      - Add the rule.\nlibraryFiles:\n  - practices/testing/_group.yaml\n  - rule-library.yaml\n"
+	record := "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summaries:\n      - Add the rule.\n  practices/testing/b:\n    change: new\n    summaries:\n      - Add the rule.\nlibraryFiles:\n  - config.yaml\n  - practices/testing/_group.yaml\n"
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/1"); message != notes+"\n---\n"+record {
 		t.Fatalf("tag message:\n%s\nwant:\n%s\n---\n%s", message, notes, record)
 	}
@@ -151,7 +151,7 @@ func TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag(t *test
 	if remote, err := fixture.Command(ctx, "rev-parse", "refs/tags/release/1"); err != nil || remote != local {
 		t.Fatalf("the clone's release/1 is %s, the remote's %s: %v", local, remote, err)
 	}
-	want := ReleaseResult{Repository: fixture.Repository, Remote: "origin", Branch: "main", Commit: fixture.LatestCommit, Release: 1, Tag: "release/1", Rules: result.Rules, LibraryFiles: []string{"practices/testing/_group.yaml", "rule-library.yaml"}, Notes: notes, TagCreated: true, Warnings: []string{"License is undeclared. Decide terms before sharing this library."}}
+	want := ReleaseResult{Repository: fixture.Repository, Remote: "origin", Branch: "main", Commit: fixture.LatestCommit, Release: 1, Tag: "release/1", Rules: result.Rules, LibraryFiles: []string{"config.yaml", "practices/testing/_group.yaml"}, Notes: notes, TagCreated: true, Warnings: []string{"License is undeclared. Decide terms before sharing this library."}}
 	if !reflect.DeepEqual(result, want) || !slices.Equal(previewRows(PendingRelease{Rules: result.Rules}), []string{"practices/testing/a new - 1.0.0", "practices/testing/b new - 1.0.0"}) {
 		t.Fatalf("result %+v\nwant %+v", result, want)
 	}
@@ -210,18 +210,18 @@ func TestRelease_PublishesLibraryWideChangesWithoutRuleChanges(t *testing.T) {
 // declare, so a renamed license and a removed notice are listed under their old paths too.
 func TestRelease_ListsRenamedAndRemovedLicenseFiles(t *testing.T) {
 	files := libraryFiles()
-	files["rule-library.yaml"] = []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices:\n    - NOTICE.md\n")
+	files["config.yaml"] = []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.md\n    notices:\n      - NOTICE.md\n")
 	files["LICENSE.md"] = []byte("MIT License\n")
 	files["NOTICE.md"] = []byte("Notice\n")
 	fixture, options := authorClone(t, files, releaseOne)
 	commitAndPush(t, fixture, options.Directory, map[string][]byte{
-		"rule-library.yaml": []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.txt\n  notices: []\n"),
-		"LICENSE.md":        nil,
-		"LICENSE.txt":       []byte("MIT License\n"),
-		"NOTICE.md":         nil,
+		"config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.txt\n    notices: []\n"),
+		"LICENSE.md":  nil,
+		"LICENSE.txt": []byte("MIT License\n"),
+		"NOTICE.md":   nil,
 	})
 	result, err := Release(context.Background(), ReleaseRequest{Options: options})
-	if want := []string{"LICENSE.md", "LICENSE.txt", "NOTICE.md", "rule-library.yaml"}; err != nil || !slices.Equal(result.LibraryFiles, want) {
+	if want := []string{"LICENSE.md", "LICENSE.txt", "NOTICE.md", "config.yaml"}; err != nil || !slices.Equal(result.LibraryFiles, want) {
 		t.Fatalf("library-wide files %q, want %q: %v", result.LibraryFiles, want, err)
 	}
 }
@@ -264,7 +264,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			}},
 		{name: "unpushed commit", code: "branch-differs", message: "main has 1 commit that origin/main doesn't. A library release publishes only pushed commits",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
-				if _, err := fixture.Commit(context.Background(), options.Directory, "Change a", changedA); err != nil {
+				if _, err := fixture.Commit(context.Background(), options.Directory, "Change a", gitfixture.Library(changedA)); err != nil {
 					t.Fatal(err)
 				}
 			}},
@@ -281,7 +281,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 				if _, err := fixture.Commit(context.Background(), remoteDir(fixture), "Elsewhere", map[string][]byte{"README.md": []byte("remote\n")}); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := fixture.Commit(context.Background(), options.Directory, "Change a", changedA); err != nil {
+				if _, err := fixture.Commit(context.Background(), options.Directory, "Change a", gitfixture.Library(changedA)); err != nil {
 					t.Fatal(err)
 				}
 			}},
@@ -289,20 +289,20 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})
 			}},
-		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
+		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - .code-rules/changes/a.yaml isn't committed\n  - .code-rules/rules/practices/testing/a.md differs from its committed copy\n  - .code-rules/rules/practices/testing/b.md was deleted, and the deletion isn't committed\n  - .code-rules/rules/practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
 			}},
-		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - assets/note.txt differs from its committed copy\n",
+		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - .code-rules/assets/note.txt differs from its committed copy\n",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				// Like Git LFS, the clean filter commits other content than the checkout holds, so Git sees no change.
 				run(t, fixture, options.Directory, "config", "filter.upper.clean", "/usr/bin/tr a-z A-Z")
-				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitattributes": []byte("assets/*.txt filter=upper\n"), "assets/note.txt": []byte("checked content\n")})
+				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitattributes": []byte(".code-rules/assets/*.txt filter=upper\n"), "assets/note.txt": []byte("checked content\n")})
 				if status, err := fixture.CommandIn(context.Background(), options.Directory, "-c", "filter.upper.clean=/usr/bin/tr a-z A-Z", "status", "--porcelain"); err != nil || status != "" {
 					t.Fatalf("the filtered file looks changed to Git: %q %v", status, err)
 				}
 			}},
-		{name: "ignored library file", code: "uncommitted-changes", message: "practices/testing/c.md isn't committed",
+		{name: "ignored library file", code: "uncommitted-changes", message: ".code-rules/rules/practices/testing/c.md isn't committed",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitignore": []byte("c.md\n")})
 				edit(t, options.Directory, map[string]string{"practices/testing/c.md": ruleText("New."), "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n"})
@@ -958,7 +958,7 @@ func TestRelease_RefusesALibraryOutsideGit(t *testing.T) {
 // group READMEs.
 func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *testing.T) {
 	released := map[string]string{
-		"rule-library.yaml":             "1",
+		"config.yaml":                   "1",
 		"LICENSE.md":                    "1",
 		"assets/old.svg":                "1",
 		"practices/testing/_group.yaml": "1",
@@ -968,7 +968,7 @@ func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *test
 		"changes/a.yaml":                "1",
 	}
 	head := map[string]string{
-		"rule-library.yaml":             "1",
+		"config.yaml":                   "1",
 		"LICENSE.md":                    "2",
 		"assets/new.svg":                "1",
 		"practices/testing/_group.yaml": "1",
@@ -982,7 +982,7 @@ func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *test
 	if files := diffLibraryFiles(head, released, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("got %q, want %q", files, want)
 	}
-	want = []string{"LICENSE.md", "assets/new.svg", "practices/testing/_group.yaml", "rule-library.yaml", "techs/go/_group.yaml"}
+	want = []string{"LICENSE.md", "assets/new.svg", "config.yaml", "practices/testing/_group.yaml", "techs/go/_group.yaml"}
 	if files := diffLibraryFiles(head, map[string]string{}, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("first library release: got %q, want %q", files, want)
 	}

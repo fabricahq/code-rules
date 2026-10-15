@@ -172,7 +172,7 @@ Commit `.code-rules/` and you're done. Now ask your agent for a change as you no
 
 ## Share rules across projects
 
-Once a rule proves itself, you may want to move it into a **library**: a Git repository of rule groups that any project can import.
+Once a rule proves itself, you may want to move it into a **library**: a Git repository of rule groups that any project can import. A library keeps its rules in `.code-rules/rules/`, the same layout a project uses, with its manifest in the `library` section of `.code-rules/config.yaml`, so one repository can be both.
 
 We recommend publishing your team's default rules in a repository such as `acme/.code-rules`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
 

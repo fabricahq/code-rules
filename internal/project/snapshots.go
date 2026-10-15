@@ -51,6 +51,8 @@ type recordRule struct {
 	Version *coderules.RuleVersion `json:"version"`
 	Release *int                   `json:"release"`
 	Commit  string                 `json:"commit"`
+	// LegacyLayout is library.ImportedRule's.
+	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
@@ -86,9 +88,10 @@ func recordChecksum(record sourceRecord) string {
 	return digest(encoded)
 }
 
-// encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files. Each snapshot
-// must satisfy the same checks offline builds apply. Inputs stay unchanged; returned maps and byte slices belong
-// to the caller. Errors return nil.
+// encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files. Each source's
+// record lists its files by library path, and each file is stored where librarytree.SnapshotPath places it, so the
+// snapshot mirrors the library's Code Rules directory. Each snapshot must satisfy the same checks offline builds
+// apply. Inputs stay unchanged; returned maps and byte slices belong to the caller. Errors return nil.
 func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) (map[string][]byte, error) {
 	output := map[string][]byte{}
 	if len(snapshots) != len(config.Sources) {
@@ -109,7 +112,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 			record.RetiredRules = []string{}
 		}
 		for id, rule := range snapshot.Rules {
-			entry := recordRule{Version: rule.Version, Commit: rule.Commit}
+			entry := recordRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
 			if rule.Version != nil {
 				entry.Release = &rule.Release
 			}
@@ -118,12 +121,18 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		if err := rules.ValidatePaths(snapshot.Files, nil); err != nil {
 			return nil, err
 		}
+		placed := map[string]string{}
 		for _, file := range slices.Sorted(maps.Keys(snapshot.Files)) {
 			if file == "_source.json" {
 				return nil, invalidSnapshot("vendor/"+source.Name, "_source.json is reserved for the source record")
 			}
+			stored := source.Name + "/" + librarytree.SnapshotPath(file)
+			if other, taken := placed[stored]; taken {
+				return nil, invalidSnapshot("vendor/"+stored, "the library files "+other+" and "+file+" would both be stored here")
+			}
+			placed[stored] = file
 			record.Files[file] = digest(snapshot.Files[file])
-			output[source.Name+"/"+file] = bytes.Clone(snapshot.Files[file])
+			output[stored] = bytes.Clone(snapshot.Files[file])
 		}
 		record.Checksum = recordChecksum(record)
 		var encoded bytes.Buffer
@@ -175,7 +184,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		expected[recordPath] = true
 		record.Files = map[string][]byte{}
 		for _, file := range slices.Sorted(maps.Keys(record.digests)) {
-			full := source.Name + "/" + file
+			full := source.Name + "/" + librarytree.SnapshotPath(file)
 			data, ok := vendor[full]
 			if !ok || digest(data) != record.digests[file] {
 				return nil, invalidSnapshot("vendor/"+full, "missing or modified imported content; run code-rules project sync")
@@ -315,7 +324,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 		if (rule.Version == nil) != (rule.Release == nil) || (rule.Release != nil && *rule.Release < 1) || !fullCommit(rule.Commit) {
 			return parsedRecord{}, invalidSnapshot(location, "expected a version, the library release that published it, and its commit, or a null version and release")
 		}
-		imported := library.ImportedRule{Version: rule.Version, Commit: rule.Commit}
+		imported := library.ImportedRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
 		if rule.Release != nil {
 			imported.Release = *rule.Release
 		}
@@ -332,7 +341,10 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if err := rules.ValidatePaths(paths, nil); err != nil {
 		return parsedRecord{}, fmt.Errorf("%s: %w", where, err)
 	}
-	if _, ok := paths["rule-library.yaml"]; !ok {
+	if _, ok := paths[librarytree.Manifest]; !ok {
+		if _, legacy := paths[librarytree.LegacyManifest]; legacy {
+			return parsedRecord{}, invalidSnapshot(where, "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, "+reimport(name))
+		}
 		return parsedRecord{}, invalidSnapshot(where, "missing library manifest from inventory")
 	}
 	for _, group := range result.Groups {

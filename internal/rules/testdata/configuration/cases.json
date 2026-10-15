@@ -1288,7 +1288,8 @@
         "location": "sources.team.rules.exclude.techs/go/a.replacedBy"
       }
     }
-  },  {
+  },
+  {
     "id": "configuration-replaced-by-rules-file",
     "operation": "configuration",
     "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"techs/go/*\"], \"exclude\": [{\"id\": \"techs/go/a\", \"reason\": \"x\", \"replacedBy\": \"rules/techs/go/b.md\"}]}}}}",
@@ -1760,6 +1761,86 @@
         "name": "ValidationError",
         "message": "sources.team.rules.pins.techs/go/a: listed more than once; keep one entry",
         "location": "sources.team.rules.pins.techs/go/a"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-empty",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [],
+        "library": {
+          "license": null
+        }
+      }
+    }
+  },
+  {
+    "id": "configuration-library-license",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"spdxExpression\": \"MIT\", \"file\": \"LICENSE.md\", \"notices\": [\".code-rules/assets/NOTICE.md\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [],
+        "library": {
+          "license": {
+            "spdxExpression": "MIT",
+            "files": [
+              "LICENSE.md"
+            ],
+            "attributionFiles": [
+              "assets/NOTICE.md"
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "configuration-library-null",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": null}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library: expected an object",
+        "location": "library"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"review\": \"required\"}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills: skill levels aren't supported yet in this version of Code Rules; remove library.skills",
+        "location": "library.skills"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-unknown",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"rules\": \"rules/\"}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library: unknown field rules",
+        "location": "library"
       }
     }
   }

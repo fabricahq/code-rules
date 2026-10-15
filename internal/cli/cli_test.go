@@ -10,7 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
+
+// libraryFile returns where the library repository at dir keeps the file at library path name.
+func libraryFile(dir, name string) string {
+	return filepath.Join(dir, filepath.FromSlash(librarytree.RepositoryPath(name)))
+}
 
 // buildCLI compiles the real entry point so tests cover process exit and standard streams.
 func buildCLI(t *testing.T) string {

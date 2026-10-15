@@ -50,7 +50,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 	commit := strings.Repeat("a", 40)
 	imported := snapshot{Repository: config.Sources[0].Repository, Ref: gitRef(t, "v1.0.0"), Commit: commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Commit: commit}},
-		Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
+		Files: map[string][]byte{"config.yaml": []byte(`{"schemaVersion":2,"sources":{},"library":{}}`), "techs/go/_group.yaml": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
 	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": imported})
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 			case "local":
 				writeFixture(t, root, "rules/techs/go/bad.md", "invalid rule")
 			case "vendor":
-				writeFixture(t, root, "vendor/team/techs/go/errors.md", "modified imported rule")
+				writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "modified imported rule")
 			case "recovery":
 				writeFixture(t, root, ".code-rules-transaction"+"/journal.json", `{"formatVersion":99}`)
 			case "cancel":
@@ -181,7 +181,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 // TestOfflineRejectsSemanticCorruptionBeyondDigests validates catalog content even with self-consistent hashes.
 func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 	root, options := importedProject(t)
-	writeFixture(t, root, "vendor/team/techs/go/errors.md", "invalid but rehashed")
+	writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "invalid but rehashed")
 	data, err := root.ReadFile("vendor/team/_source.json")
 	if err != nil {
 		t.Fatal(err)
@@ -220,12 +220,12 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 			files := record["files"].(map[string]any)
 			if move[0] != "" {
 				delete(files, move[0])
-				if err := root.Remove("vendor/team/" + move[0]); err != nil {
+				if err := root.Remove("vendor/team/rules/" + move[0]); err != nil {
 					t.Fatal(err)
 				}
 			}
 			files[move[1]] = digest([]byte(projectRule))
-			writeFixture(t, root, "vendor/team/"+move[1], projectRule)
+			writeFixture(t, root, "vendor/team/rules/"+move[1], projectRule)
 			encoded, err := json.Marshal(record)
 			if err != nil {
 				t.Fatal(err)

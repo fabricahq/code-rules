@@ -66,11 +66,11 @@ func TestProjectGuideExamples(t *testing.T) {
 	for _, projectName := range []string{"project", "project 'quoted'"} {
 		t.Run(projectName, func(t *testing.T) {
 			ctx := context.Background()
-			fixture, err := gitfixture.New(ctx, map[string][]byte{
-				"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+			fixture, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+				"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 				"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
 				"techs/go/shared.md":   []byte(rule),
-			})
+			}))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -108,7 +108,7 @@ func TestProjectGuideExamples(t *testing.T) {
 				script = strings.ReplaceAll(script, "https://github.com/example/engineering-rules", fixture.Repository)
 				// The library publishes a newer version before the update example, so the example has something to apply.
 				if strings.Contains(script, "project update") && !updated {
-					if _, err := fixture.Commit(ctx, fixture.Worktree(), "Clarify shared", map[string][]byte{"techs/go/shared.md": []byte(rule + "\nWrap them with context.\n")}); err != nil {
+					if _, err := fixture.Commit(ctx, fixture.Worktree(), "Clarify shared", gitfixture.Library(map[string][]byte{"techs/go/shared.md": []byte(rule + "\nWrap them with context.\n")})); err != nil {
 						t.Fatal(err)
 					}
 					if err := fixture.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/shared: 1.1.0\nchanges:\n  techs/go/shared: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
@@ -133,12 +133,12 @@ func TestProjectGuideExamples(t *testing.T) {
 					t.Fatalf("%s does not link to the managed guide: %v", file, err)
 				}
 			}
-			for _, path := range []string{"rules/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
+			for _, path := range []string{"rules/techs/go/return-errors.md", "vendor/team/rules/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
 				if _, err := os.Stat(filepath.Join(directory, ".code-rules", path)); err != nil {
 					t.Fatalf("README did not produce %s: %v", path, err)
 				}
 			}
-			if shared, err := os.ReadFile(filepath.Join(directory, ".code-rules", "vendor/team/techs/go/shared.md")); err != nil || !updated || !strings.Contains(string(shared), "Wrap them with context.") {
+			if shared, err := os.ReadFile(filepath.Join(directory, ".code-rules", "vendor/team/rules/techs/go/shared.md")); err != nil || !updated || !strings.Contains(string(shared), "Wrap them with context.") {
 				t.Fatalf("the update example didn't apply the newer version: %v", err)
 			}
 		})

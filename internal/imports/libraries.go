@@ -163,6 +163,10 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	for file, data := range catalog.Files() {
 		snapshot.Files[file] = bytes.Clone(data)
 	}
+	// A library publishes only its manifest's library section, never the sources it uses as a project.
+	if snapshot.Files[librarytree.Manifest], err = rules.PublishedManifest(snapshot.Files[librarytree.Manifest], source.Name+"/"+librarytree.RepositoryPath(librarytree.Manifest)); err != nil {
+		return Library{}, err
+	}
 	metadata, err := requestedGroupMetadata(input, catalog, groups)
 	if err != nil {
 		return Library{}, err
@@ -202,6 +206,9 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 	if err != nil {
 		return nil, err
 	}
+	if err := r.requireLibraryLayout(source.Name, plan.release, plan.commit); err != nil {
+		return nil, err
+	}
 	terms, err := r.terms(ctx, source.Name, main)
 	if err != nil {
 		return nil, err
@@ -218,7 +225,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 		}
 		files[file] = entry
 		group, metadata := strings.CutSuffix(file, "/_group.yaml")
-		if file == "rule-library.yaml" || slices.Contains(terms, file) || metadata && (imported[file] || source.Groups.Includes(group)) {
+		if file == librarytree.Manifest || slices.Contains(terms, file) || metadata && (imported[file] || source.Groups.Includes(group)) {
 			prefetch = append(prefetch, entry)
 		}
 	}
@@ -230,6 +237,12 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 		if _, ok := owned[id+".md"]; !ok {
 			return nil, fail("unsupported-content", fmt.Sprintf("The library's commit %s has no rule %s, although its release record lists the rule.", plan.rules[id].Commit, id), nil)
 		}
+		if err := r.requireLegacyRuleLinks(ctx, source.Name, id, plan.rules[id], owned); err != nil {
+			return nil, err
+		}
+		rule := plan.rules[id]
+		rule.LegacyLayout = r.legacy[rule.Commit]
+		plan.rules[id] = rule
 		for file, entry := range owned {
 			files[file] = entry
 			prefetch = append(prefetch, entry)

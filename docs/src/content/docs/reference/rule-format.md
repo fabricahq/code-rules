@@ -71,7 +71,7 @@ Declare accompanying license and notice files in the [library manifest](/referen
 
 ## Supporting assets
 
-Use two optional locations for supporting files:
+Use two optional locations for supporting files, both in the Code Rules directory, `.code-rules/`, of a library or a project:
 
 ```text
 .code-rules/

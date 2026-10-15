@@ -28,6 +28,8 @@ type ruleOrigin struct {
 	// Version is nil, and Release is 0, for a local rule or an imported rule that isn't a published version.
 	Version *coderules.RuleVersion `json:"version,omitempty"`
 	Release int                    `json:"release,omitempty"`
+	// legacyLayout reports that Commit keeps File at the repository root, in the layout before version 2.
+	legacyLayout bool
 }
 
 // resolvedRule owns one parsed effective document. Upstream is non-nil only for replacements.
@@ -188,7 +190,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			if !recorded || !validCommit(version.Commit) {
 				return resolution{}, invalid(parsed.ID, "the source snapshot records no version or commit for this rule; run code-rules project sync")
 			}
-			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref.String(), Commit: version.Commit, Version: version.Version, Release: version.Release}
+			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref.String(), Commit: version.Commit, Version: version.Version, Release: version.Release, legacyLayout: version.LegacyLayout}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
 			if excluded {
 				file := exclusion.ReplacedBy + ".md"

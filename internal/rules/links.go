@@ -137,6 +137,50 @@ func RelativeTarget(destination, file string) (target, suffix string, local bool
 	return target, suffix, true, nil
 }
 
+// LibraryTarget resolves a decoded Markdown destination in the library file at library path file, as
+// RelativeTarget does, from where the file lives in its repository, and returns the target's library path. A
+// destination starting with / is relative to the Code Rules directory, .code-rules/, as in a project's authored
+// files, so /assets/diagram.svg names a shared asset. A local destination that holds no library file, such as one in
+// .code-rules/vendor/, fails.
+func LibraryTarget(destination, file string) (target, suffix string, local bool, err error) {
+	location := librarytree.RepositoryPath(file)
+	target, suffix, local, err = RelativeTarget(destination, location)
+	if err != nil || !local {
+		return "", "", local, err
+	}
+	raw, _, _ := strings.Cut(destination, "?")
+	raw, _, _ = strings.Cut(raw, "#")
+	if decoded, _ := url.PathUnescape(raw); strings.HasPrefix(decoded, "/") {
+		target = librarytree.Directory + "/" + target
+	}
+	path, ok := librarytree.LibraryPath(target)
+	if !ok {
+		return "", "", false, invalid(file, "links to "+target+", which isn't part of the library; link to this rule's own assets directory, a shared asset in .code-rules/assets/, or a declared license or notice file")
+	}
+	return path, suffix, true, nil
+}
+
+// LibraryTargets returns the distinct library paths that the library file at library path file links to, as
+// LibraryTarget resolves them, in path order, including HTML href/src attributes.
+func LibraryTargets(document, file string) ([]string, error) {
+	links, err := markdownLinks(document)
+	if err != nil {
+		return nil, err
+	}
+	targets := []string{}
+	for _, link := range links {
+		target, _, local, err := LibraryTarget(link, file)
+		if err != nil {
+			return nil, err
+		}
+		if local {
+			targets = append(targets, target)
+		}
+	}
+	slices.Sort(targets)
+	return slices.Compact(targets), nil
+}
+
 // AssetDirectory returns a shared or rule-owned asset directory, or empty for other paths.
 func AssetDirectory(file string) string {
 	parts := strings.Split(file, "/")
@@ -163,7 +207,7 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 		return nil
 	}
 	if _, err := librarytree.GroupFromPath(target, file); err == nil {
-		return invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the library-root assets/ directory")
+		return invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the shared assets/ directory")
 	}
 	own := AssetDirectory(file)
 	if own == "" {
@@ -173,7 +217,7 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 	if destination == "assets/" || (destination != "" && destination == own) {
 		return nil
 	}
-	return invalid(file, "unsupported supporting-file link: "+target+"; use this rule's assets directory or the library-root assets directory")
+	return invalid(file, "unsupported supporting-file link: "+target+"; use this rule's assets directory or the shared assets/ directory")
 }
 
 // MarkdownTargets returns distinct source-relative dependencies in deterministic path order, including HTML href/src attributes.
