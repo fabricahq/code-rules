@@ -20,8 +20,8 @@ const skillsDirectory = ".code-rules/" + skills.Directory
 // order, each starting with the file or folder it's about: a file directly in skills/, a folder whose name breaks the
 // skill name grammar or that has no SKILL.md, frontmatter skills.ReadMetadata or skills.Check rejects, and a cited
 // rule that isn't one of current, the library's rules, naming the replacement when the library's release history or
-// a pending change note retired it. It checks the form of the skills a skill uses, not that they exist. A nil tree
-// has no skills.
+// a pending change note retired it, and a skill a skill uses that isn't a folder of skills/ with a SKILL.md. A nil
+// tree has no skills.
 func skillProblems(tree *filetxn.Tree, current []string, changes libraryChanges) []string {
 	problems := []string{}
 	if tree == nil {
@@ -64,6 +64,14 @@ func skillProblems(tree *filetxn.Tree, current []string, changes libraryChanges)
 		for _, id := range metadata.RulesUsed {
 			if problem := citedRuleProblem(id, current, changes.history, retiring); problem != "" {
 				problems = append(problems, location+": "+problem)
+			}
+		}
+		missing := []string{}
+		for _, id := range metadata.SkillsUsed {
+			// A skill in the library is a folder with a SKILL.md; skills.Check reports a use that isn't a skill ID.
+			if name, _ := strings.CutPrefix(id, skills.Directory+"/"); skills.ValidSkillCitation(id, false) && !folders[name] && !slices.Contains(missing, id) {
+				missing = append(missing, id)
+				problems = append(problems, fmt.Sprintf("%s: %s names %s, which isn't a skill in this library", location, skills.SkillsUsedKey, id))
 			}
 		}
 	}

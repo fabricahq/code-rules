@@ -5,6 +5,7 @@ package build
 
 import (
 	"fmt"
+	"path"
 	"slices"
 	"strings"
 
@@ -33,8 +34,10 @@ type citedRule struct {
 // library's skill cites rules by their ID in that library; a skill from a repository that isn't a library cites
 // none, since the repository has no rules; an authored skill cites the project's authored rules by bare ID and a
 // source's rules by project ID. It fails when an authored skill cites an authored rule that doesn't exist, a source
-// the configuration doesn't declare, or a source that isn't a library. Cited rules are for reference only: they
-// never join RULES.md or a group page.
+// the configuration doesn't declare, a source that isn't a library, or a rule its source doesn't have. A source's
+// snapshot holds only the rules the source includes, so only a rule in a group the source includes in full, whose
+// every rule, retired ones too, the snapshot holds, can be known not to exist; a rule in any other group may exist,
+// and is described as not included. Cited rules are for reference only: they never join RULES.md or a group page.
 func citeRules(resolved *resolution, config rules.Configuration, libraries map[string]Library) ([]*ValidationError, error) {
 	active := map[string]*resolvedRule{}
 	for _, group := range resolved.Groups {
@@ -75,7 +78,11 @@ func citeRules(resolved *resolution, config rules.Configuration, libraries map[s
 			}
 			cited := citedRule{ID: citation.String(), Active: active[citation.String()]}
 			if citation.Source != "local" {
-				cited.Retired = slices.Contains(libraries[citation.Source].Snapshot.RetiredRules, citation.ID)
+				snapshot := libraries[citation.Source].Snapshot
+				cited.Retired = slices.Contains(snapshot.RetiredRules, citation.ID)
+				if _, imported := snapshot.Rules[citation.ID]; skill.Source == "" && !imported && !cited.Retired && sources[citation.Source].Groups.Includes(path.Dir(citation.ID)) {
+					return nil, invalid(location, fmt.Sprintf("%s names %s, which isn't a rule in %s's library; correct the rule ID, or remove it from %s", skills.RulesUsedKey, citation, citation.Source, skills.RulesUsedKey))
+				}
 				if exclusion, excluded := sources[citation.Source].Exclusion(citation.ID); excluded && exclusion.ReplacedBy == "" && cited.Active == nil {
 					cited.Excluded, cited.Reason = true, exclusion.Reason
 				}

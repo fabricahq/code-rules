@@ -100,6 +100,12 @@ func ValidRuleCitation(line string, qualified bool) bool {
 	return ruleProblem(ParseCitation(line), qualified) == ""
 }
 
+// ValidSkillCitation reports whether line, a line of syllabus-skills-used, has the form of a skill ID, qualified by a
+// source name only when qualified allows it. It doesn't check that the skill exists.
+func ValidSkillCitation(line string, qualified bool) bool {
+	return skillProblem(ParseCitation(line), qualified) == ""
+}
+
 // ruleProblem returns what is wrong with the form of a cited rule, or empty when it is a rule ID, qualified by a
 // source name only when qualified allows it.
 func ruleProblem(citation Citation, qualified bool) string {
