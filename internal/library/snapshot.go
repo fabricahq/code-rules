@@ -106,7 +106,7 @@ type ImportedRule struct {
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
 	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
-	// their library paths from the repository root rather than in .code-rules/rules/.
+	// their library paths from the repository root rather than in .syllabus/rules/.
 	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
 

@@ -12,7 +12,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
-// metadataMarker stands for anything a Git executable could print where Code Rules expects machine metadata.
+// metadataMarker stands for anything a Git executable could print where Syllabus expects machine metadata.
 const metadataMarker = "EXTERNAL-TEXT-MARKER"
 
 // wrapGit makes options run a Git wrapper that prints output, with printf escapes, for a command whose arguments

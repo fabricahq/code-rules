@@ -10,11 +10,11 @@ A change is breaking when it changes any of these in a way that forces users to 
 - JSON output from `--json`, which scripts parse
 - Project and library configuration files and their keys
 - The rule library format: rule, group, and library files, and the IDs other projects reference
-- Library releases: change notes in `changes/`, `release/<number>` tags, and the release record in their tag messages, which other Code Rules versions read
+- Library releases: change notes in `changes/`, `release/<number>` tags, and the release record in their tag messages, which other Syllabus versions read
 - The exported API of the `github.com/fabricahq/code-rules/coderules` Go package, which other tools import to read libraries
 - Vendored source records (`vendor/<source>/_source.json`), which projects commit
 - Generated files, including `generated/provenance.json`
-- The managed project README format (`.code-rules/README.md`); see [Choosing a version](#choosing-a-version)
+- The managed project README format (`.syllabus/README.md`); see [Choosing a version](#choosing-a-version)
 - Supported platforms, and the release archive names, `SHA256SUMS`, and attestation signer that the standalone installer, the Homebrew tap, and generated library CI workflows depend on
 
 Internal refactors, CI changes, and website-only changes are not part of the contract.
@@ -34,13 +34,13 @@ From 1.0.0:
 - Minor: compatible new features
 - Patch: compatible fixes, documentation, and internal changes
 
-A change to the managed project README format is always breaking: a minor release before 1.0.0, a major release from 1.0.0. The notes describe the format change, and that `code-rules project build`, `code-rules project sync`, `code-rules project update`, and `code-rules project init` replace an older, unedited guide with the one bundled in the new version but refuse to overwrite a manually edited guide.
+A change to the managed project README format is always breaking: a minor release before 1.0.0, a major release from 1.0.0. The notes describe the format change, and that `syllabus project build`, `syllabus project sync`, `syllabus project update`, and `syllabus project init` replace an older, unedited guide with the one bundled in the new version but refuse to overwrite a manually edited guide.
 
 ## Who reads the release notes
 
 Readers:
 
-- Developers and teams who install the `code-rules` CLI to adopt rules in their projects
+- Developers and teams who install the `syllabus` CLI to adopt rules in their projects
 - Authors of rule libraries, who care about changes to the library format and authoring commands
 - Developers of tools, such as catalogs, that read libraries with the `github.com/fabricahq/code-rules/coderules` Go package
 
@@ -56,7 +56,7 @@ The notes present changes in this order, leaving out any with nothing to say:
 ## Always and never
 
 - Always also call out a breaking change in a sentence near the start of the notes, so readers can't miss it.
-- Always give migration steps for a breaking change, with the commands or before-and-after examples readers need. Until Code Rules is publicly announced, summarize breaking changes in a sentence instead, and say that upgrade instructions are omitted because Code Rules is in initial development.
+- Always give migration steps for a breaking change, with the commands or before-and-after examples readers need. Until Syllabus is publicly announced, summarize breaking changes in a sentence instead, and say that upgrade instructions are omitted because Syllabus is in initial development.
 - Always credit external contributors by GitHub handle.
 - Never present internal refactors, CI changes, or website-only changes as new CLI features.
 - Never mention dependency updates unless they fix a security issue.
@@ -65,6 +65,6 @@ The notes present changes in this order, leaving out any with nothing to say:
 
 [build-release.yml](../.github/workflows/build-release.yml) builds the release files on the release pull request, and fails when their names differ from the ones the contract above lists.
 
-After a stable release publishes, the `downstream` job runs **Update Code Rules** (`update-code-rules.yml`) in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases don't update the formula. The job authenticates through **Fabrica Homebrew Releaser**, a shared App installed only on the tap with Actions write and Metadata read permissions. Its credentials are the `DOWNSTREAM_APP_CLIENT_ID` variable and `DOWNSTREAM_APP_PRIVATE_KEY` secret in this repository's `downstream` environment. The tap's own publishing App key never leaves the tap. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared keys with an OIDC dispatch service.
+After a stable release publishes, the `downstream` job runs **Update Syllabus** (`update-syllabus.yml`) in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases don't update the formula. The job authenticates through **Fabrica Homebrew Releaser**, a shared App installed only on the tap with Actions write and Metadata read permissions. Its credentials are the `DOWNSTREAM_APP_CLIENT_ID` variable and `DOWNSTREAM_APP_PRIVATE_KEY` secret in this repository's `downstream` environment. The tap's own publishing App key never leaves the tap. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared keys with an OIDC dispatch service.
 
-If the dispatch fails, use **Re-run failed jobs** on the Release run. If the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure doesn't change the published release.
+If the dispatch fails, use **Re-run failed jobs** on the Release run. If the tap update fails, fix the reported problem and run the tap's **Update Syllabus** workflow manually. A tap failure doesn't change the published release.

@@ -20,10 +20,10 @@ A version covers the rule's Markdown file and its own supporting files. Library-
 Releasing a new version of a rule takes three steps, and in none of them do you type a version number:
 
 1. **Update the rule.** Edit the rule's Markdown file, and its supporting files if it has any, as needed.
-2. **Run `code-rules library change` with the rule's ID**, such as `code-rules library change practices/testing/verify-retry-limits`. The command asks how large the change was, [major, minor, or patch](#semantic-versions), and for a one-line summary of what changed, then saves your answers in a **change note** in the library's `changes/` directory. In a script, pass `--bump` and `--summary` instead of answering. Commit the note in the same pull request as the rule edit. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
-3. **Publish a library release.** `code-rules library release` turns the pending change notes into new versions. If the rule was at `1.3.0` and its note says `minor`, the library release publishes the rule as `1.4.0`, with your summary.
+2. **Run `syllabus library change` with the rule's ID**, such as `syllabus library change practices/testing/verify-retry-limits`. The command asks how large the change was, [major, minor, or patch](#semantic-versions), and for a one-line summary of what changed, then saves your answers in a **change note** in the library's `changes/` directory. In a script, pass `--bump` and `--summary` instead of answering. Commit the note in the same pull request as the rule edit. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
+3. **Publish a library release.** `syllabus library release` turns the pending change notes into new versions. If the rule was at `1.3.0` and its note says `minor`, the library release publishes the rule as `1.4.0`, with your summary.
 
-The new version is then available to every project that imports the rule, and each project adopts it when someone runs `code-rules project update`. You can't release one rule on its own, but a [library release](#library-releases) can contain a single changed rule, so you can publish as soon as a change is ready. Before your library's first library release, rules have no versions and need no change notes; the first library release gives every rule `1.0.0`.
+The new version is then available to every project that imports the rule, and each project adopts it when someone runs `syllabus project update`. You can't release one rule on its own, but a [library release](#library-releases) can contain a single changed rule, so you can publish as soon as a change is ready. Before your library's first library release, rules have no versions and need no change notes; the first library release gives every rule `1.0.0`.
 
 For the commands step by step, see [Change rules after the first library release](#change-rules-after-the-first-library-release) and [Publish a library release](#publish-a-library-release).
 
@@ -59,7 +59,7 @@ Retiring a rule a project uses is as disruptive as a major change, because its a
 
 Projects import rules from your library. Each imported rule's version appears in the project's generated guidance, so agents and reviewers can cite the exact version they followed.
 
-A project keeps the versions it imported until someone runs `code-rules project update`, which previews each rule that changed, with its old and new versions and your summaries, plus new and retired rules. Nothing applies until someone on the project confirms, so major changes, which can change what the project's code must do, get reviewed first. See [Update rules](/guides/update/).
+A project keeps the versions it imported until someone runs `syllabus project update`, which previews each rule that changed, with its old and new versions and your summaries, plus new and retired rules. Nothing applies until someone on the project confirms, so major changes, which can change what the project's code must do, get reviewed first. See [Update rules](/guides/update/).
 
 A project can also pin a rule to a version, with a reason, while the rest moves forward. That's how projects hold back one major change, often while they give you feedback on it. Projects import only published versions, unless one deliberately imports an exact commit, so changes waiting for a library release don't reach them.
 
@@ -82,17 +82,17 @@ Publish a library release whenever you want your pending changes to reach projec
 
 A rule's current version is the one in the newest library release. Rule files carry no version, and files on the default branch can include unreleased edits, so look in the library release instead. Each `release/<number>` tag's [release record](/reference/rule-versions/#release-record) lists the version of every current rule, not only the ones that changed, and tools read it from the tag. For a library on GitHub.com, the newest library release's GitHub Release page, when it has one, shows the same versions under **All rule versions in this library release**.
 
-In a project, the versions you import are listed under **Rule versions** in `.code-rules/generated/libraries/<source-name>/README.md`, and recorded in `.code-rules/generated/provenance.json`; see [Provenance](/reference/provenance/). To adopt a newer version, see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version).
+In a project, the versions you import are listed under **Rule versions** in `.syllabus/generated/libraries/<source-name>/README.md`, and recorded in `.syllabus/generated/provenance.json`; see [Provenance](/reference/provenance/). To adopt a newer version, see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version).
 
 ## How library releases work
 
-You manage versions and library releases with three Code Rules commands. You never set versions or create tags by hand.
+You manage versions and library releases with three Syllabus commands. You never set versions or create tags by hand.
 
-- **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `.code-rules/changes/` directory.
-- **`code-rules library check`** confirms that every changed rule has a change note, and previews the versions the next library release will publish.
-- **`code-rules library release`** publishes a [library release](#library-releases).
+- **`syllabus library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `.syllabus/changes/` directory.
+- **`syllabus library check`** confirms that every changed rule has a change note, and previews the versions the next library release will publish.
+- **`syllabus library release`** publishes a [library release](#library-releases).
 
-Change notes pile up on `main` as you merge changes, and they're never deleted. Publishing a library release doesn't change any files: `code-rules library release` computes each rule's next version from the notes added since the previous library release, using the largest change when several notes name the same rule, and records the result in a new `release/<number>` tag. The next library release starts from that tag.
+Change notes pile up on `main` as you merge changes, and they're never deleted. Publishing a library release doesn't change any files: `syllabus library release` computes each rule's next version from the notes added since the previous library release, using the largest change when several notes name the same rule, and records the result in a new `release/<number>` tag. The next library release starts from that tag.
 
 Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
@@ -104,19 +104,19 @@ From then on, [record every change with a note](#change-rules-after-the-first-li
 
 ## Change rules after the first library release
 
-After the first library release, every change to a rule needs a change note, recorded with `code-rules library change` in the same pull request as the change. That's also how you change a rule's version: you never set or bump it by hand. Record how large the change is with `code-rules library change RULE_ID --bump major|minor|patch --summary '...'`, and the next `code-rules library release` applies it. The steps differ slightly for each kind of change.
+After the first library release, every change to a rule needs a change note, recorded with `syllabus library change` in the same pull request as the change. That's also how you change a rule's version: you never set or bump it by hand. Record how large the change is with `syllabus library change RULE_ID --bump major|minor|patch --summary '...'`, and the next `syllabus library release` applies it. The steps differ slightly for each kind of change.
 
 ### Update a rule
 
-Suppose you want to add a Python example to `practices/testing/verify-retry-limits`. First, edit the rule's Markdown file as usual. Then choose the change level, as described in [Semantic versions](#semantic-versions), and record it with `code-rules library change`:
+Suppose you want to add a Python example to `practices/testing/verify-retry-limits`. First, edit the rule's Markdown file as usual. Then choose the change level, as described in [Semantic versions](#semantic-versions), and record it with `syllabus library change`:
 
 ```sh
-code-rules library change practices/testing/verify-retry-limits \
+syllabus library change practices/testing/verify-retry-limits \
   --bump minor \
   --summary 'Add a Python example of the retry-limit test.'
 ```
 
-This writes a new note, such as `.code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
+This writes a new note, such as `.syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
 
 ```yaml
 summary: Add a Python example of the retry-limit test.
@@ -131,7 +131,7 @@ Write the summary for someone deciding whether to update: say what changed in th
 Create the rule as usual, and complete the draft it writes:
 
 ```sh
-code-rules library add rule practices/testing/verify-backoff \
+syllabus library add rule practices/testing/verify-backoff \
   --title 'Verify retry backoff' \
   --when-to-read 'When adding or changing retry delays.' \
   --impact MEDIUM \
@@ -141,7 +141,7 @@ code-rules library add rule practices/testing/verify-backoff \
 Then record it. A new rule always starts at version `1.0.0`, so leave out `--bump`:
 
 ```sh
-code-rules library change practices/testing/verify-backoff \
+syllabus library change practices/testing/verify-backoff \
   --summary 'Add a rule about testing retry backoff.'
 ```
 
@@ -152,7 +152,7 @@ Delete the rule's Markdown file and its asset directory, then record the retirem
 When a better rule replaces it, name the replacement:
 
 ```sh
-code-rules library change practices/testing/check-retry-backoff \
+syllabus library change practices/testing/check-retry-backoff \
   --retire \
   --replaced-by practices/testing/verify-retries \
   --summary 'Covered by the broader rule about testing retries.'
@@ -163,7 +163,7 @@ The replacement must exist in the library by the time the retirement is publishe
 When the practice itself is no longer recommended, leave out `--replaced-by`, and explain why in the summary:
 
 ```sh
-code-rules library change practices/code-design/comment-intent \
+syllabus library change practices/code-design/comment-intent \
   --retire \
   --summary "Agents shouldn't add explanatory comments."
 ```
@@ -187,20 +187,20 @@ Projects see the old rule retired, with the new rule as its replacement.
 
 ### Change a shared file or group description
 
-Files in the library's shared `.code-rules/assets/` directory, such as a diagram, group descriptions in `_group.yaml`, and the license in the `library` section of `.code-rules/config.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
+Files in the library's shared `.syllabus/assets/` directory, such as a diagram, group descriptions in `_group.yaml`, and the license in the `library` section of `.syllabus/config.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `syllabus library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
 
-A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that starts importing your library, or selects more of it, also gets them from the newest library release.
+A project receives library-wide files from one library release at a time. `syllabus project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that starts importing your library, or selects more of it, also gets them from the newest library release.
 
 Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release that supplies the project's library-wide files, so shared files should only explain and illustrate.
 
 ### Move a library from the earlier layout
 
-Earlier versions of Code Rules kept a library's files at the repository root. Library commands now fail, writing nothing, until you move them into `.code-rules/`, and their message lists each move. In one pull request:
+Earlier versions of Syllabus kept a library's files at the repository root. Library commands now fail, writing nothing, until you move them into `.syllabus/`, and their message lists each move. In one pull request:
 
-1. Move `techs/` and `practices/` to `.code-rules/rules/`, `assets/` to `.code-rules/assets/`, and `changes/` to `.code-rules/changes/`, such as with `git mv`.
-2. Delete `rule-library.yaml`, and write its `license` fields in the `library` section of `.code-rules/config.yaml`.
+1. Move `techs/` and `practices/` to `.syllabus/rules/`, `assets/` to `.syllabus/assets/`, and `changes/` to `.syllabus/changes/`, such as with `git mv`.
+2. Delete `rule-library.yaml`, and write its `license` fields in the `library` section of `.syllabus/config.yaml`.
 3. Add one `../` to each relative link from a rule to a shared asset, and two to each link to a license file at the repository root. Links that start with `/assets/` keep working.
-4. Record each rule whose links changed with `code-rules library change RULE_ID --bump patch --summary '...'`.
+4. Record each rule whose links changed with `syllabus library change RULE_ID --bump patch --summary '...'`.
 
 Rule IDs and versions don't change, and rules you didn't edit need no note. Publish a library release once the pull request merges: projects can't import a library release made in the earlier layout, so they need one from the new layout. See [Libraries in the earlier layout](/reference/library-format/#libraries-in-the-earlier-layout).
 
@@ -209,10 +209,10 @@ Rule IDs and versions don't change, and rules you didn't edit need no note. Publ
 Whatever you changed, check the library before opening your pull request:
 
 ```sh
-code-rules library check
+syllabus library check
 ```
 
-`code-rules library check` fails if a changed rule has no note, or if a note doesn't match a change. When it passes, it previews the pending library release:
+`syllabus library check` fails if a changed rule has no note, or if a note doesn't match a change. When it passes, it previews the pending library release:
 
 ```text
 Library is valid: 3 group(s), 6 rule(s).
@@ -221,7 +221,7 @@ Pending library release 3
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
 
-When you changed library-wide files, such as a group description or the license in the `library` section of `.code-rules/config.yaml`, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed.
+When you changed library-wide files, such as a group description or the license in the `library` section of `.syllabus/config.yaml`, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed.
 
 Commit each rule and its note together. Reviewers can then review the rule and the wording of its note in the same pull request.
 
@@ -234,20 +234,20 @@ Publish from an up-to-date checkout of `main`. This works on any Git host.
 Preview exactly what will be published:
 
 ```sh
-code-rules library release --dry-run
+syllabus library release --dry-run
 ```
 
-The preview shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `.code-rules/changes/` in a normal pull request, then preview again.
+The preview shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `.syllabus/changes/` in a normal pull request, then preview again.
 
 ### Publish
 
 ```sh
-code-rules library release
+syllabus library release
 ```
 
-The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, and `code-rules library check` passes. It then creates the annotated `release/<number>` tag on the current commit, pushes it, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). No files change and nothing is committed. Because it pushes a tag, run it as someone allowed to push to the repository.
+The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, and `syllabus library check` passes. It then creates the annotated `release/<number>` tag on the current commit, pushes it, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). No files change and nothing is committed. Because it pushes a tag, run it as someone allowed to push to the repository.
 
-If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get the tag only.
+If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `syllabus library release --no-github-release`; repositories hosted elsewhere get the tag only.
 
 ### What the GitHub Release page looks like
 
@@ -295,7 +295,7 @@ This library release also updates shared files, such as group descriptions or sh
 </details>
 ```
 
-Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note, as an item under its rule. Every paragraph and list item is one line, because GitHub shows each line break in a GitHub Release page as a new line. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
+Syllabus generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note, as an item under its rule. Every paragraph and list item is one line, because GitHub shows each line break in a GitHub Release page as a new line. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
 
 To add a general message, such as an introduction to what this library release is about, edit the GitHub Release page on GitHub. The page is only the announcement. The tag message keeps the generated text, and it's what projects read when they update.
 
@@ -317,26 +317,26 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      GIT_COMMITTER_NAME: Code Rules Bot
-      GIT_COMMITTER_EMAIL: code-rules-bot@noreply.invalid
+      GIT_COMMITTER_NAME: Syllabus Bot
+      GIT_COMMITTER_EMAIL: syllabus-bot@noreply.invalid
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      # Download and verify Code Rules, then add it to PATH.
-      - name: Install Code Rules
+      # Download and verify Syllabus, then add it to PATH.
+      - name: Install Syllabus
         run: ...
-      - run: code-rules library release
+      - run: syllabus library release
 ```
 
-The job needs only permission to push tags. It tags as Code Rules Bot, set through Git's identity variables.
+The job needs only permission to push tags. It tags as Syllabus Bot, set through Git's identity variables.
 
 ## Check changes in CI
 
-`code-rules library init` creates `.github/workflows/code-rules.yml`, which runs `code-rules library check` on every pull request, using the Code Rules version that created it:
+`syllabus library init` creates `.github/workflows/syllabus.yml`, which runs `syllabus library check` on every pull request, using the Syllabus version that created it:
 
 ```yaml
-name: Code Rules
+name: Syllabus
 on: pull_request
 permissions:
   contents: read
@@ -348,17 +348,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # Download and verify Code Rules, then add it to PATH.
-      - name: Install Code Rules
+      # Download and verify Syllabus, then add it to PATH.
+      - name: Install Syllabus
         run: ...
-      - run: code-rules library check
+      - run: syllabus library check
 ```
 
-The install step downloads that version's Linux archive and `SHA256SUMS` from the Code Rules GitHub Release page, verifies that Code Rules' release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version. The step prints the version it installed, such as `Installed Code Rules 0.2.0.`, in the job's log and summary.
+The install step downloads that version's Linux archive and `SHA256SUMS` from the Syllabus GitHub Release page, verifies that Syllabus's release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version. The step prints the version it installed, such as `Installed Syllabus 0.2.0.`, in the job's log and summary.
 
-The workflow keeps using that version until you change it; rerunning `code-rules library init` never changes an existing workflow. To check with a newer Code Rules, such as one that checks a feature your library started using, [upgrade Code Rules](/start-here/install/#upgrade), delete `.github/workflows/code-rules.yml`, and run `code-rules library init` again, which writes the workflow for the version you run. Review the difference and commit it.
+The workflow keeps using that version until you change it; rerunning `syllabus library init` never changes an existing workflow. To check with a newer Syllabus, such as one that checks a feature your library started using, [upgrade Syllabus](/start-here/install/#upgrade), delete `.github/workflows/syllabus.yml`, and run `syllabus library init` again, which writes the workflow for the version you run. Review the difference and commit it.
 
-`code-rules library check` needs every tag and the full history to compare rules with the latest library release, so the workflow checks out with `fetch-depth: 0`.
+`syllabus library check` needs every tag and the full history to compare rules with the latest library release, so the workflow checks out with `fetch-depth: 0`.
 
 To make the check required before merging, add a branch ruleset in **Settings > Rules > Rulesets** that requires the `check` status check.
 
@@ -366,8 +366,8 @@ To make the check required before merging, add a branch ruleset in **Settings > 
 
 | Problem | What to do |
 | --- | --- |
-| `code-rules library release` stopped after pushing the tag, such as when GitHub was unavailable. | Run it again. It finds the tag on the current commit and creates the GitHub Release page. |
-| The remote refused the tag push, such as a server hook or a GitHub tag ruleset. | The error names the cause Code Rules recognized, such as a repository rule with GitHub's error code `GH013`, a server hook that declined the tag, or denied access, but not the server's own message, which can hold anything, including credentials. Check the repository's tag rules and hooks. To read the server's message, push a test tag yourself, as [the CLI reference](/reference/cli/#library-release) shows. Fix the cause, such as getting permission to create `release/<number>` tags, then run `code-rules library release` again. The command deleted the tag it created, so the rerun starts over. |
+| `syllabus library release` stopped after pushing the tag, such as when GitHub was unavailable. | Run it again. It finds the tag on the current commit and creates the GitHub Release page. |
+| The remote refused the tag push, such as a server hook or a GitHub tag ruleset. | The error names the cause Syllabus recognized, such as a repository rule with GitHub's error code `GH013`, a server hook that declined the tag, or denied access, but not the server's own message, which can hold anything, including credentials. Check the repository's tag rules and hooks. To read the server's message, push a test tag yourself, as [the CLI reference](/reference/cli/#library-release) shows. Fix the cause, such as getting permission to create `release/<number>` tags, then run `syllabus library release` again. The command deleted the tag it created, so the rerun starts over. |
 | A release tag points to a different commit. | Someone created or moved a `release/<number>` tag by hand. Don't move published tags; projects may have imported them. Ask the tag's author, then restore it to its original commit. |
 | Check fails in a shallow clone. | Fetch the full history and tags, such as with `git fetch --unshallow --tags`, or `fetch-depth: 0` in CI. |
 | Check fails because the clone has change notes but no release tags, such as a clone made with `git clone --no-tags`. | Fetch the tags with `git fetch --tags`, or check out with `fetch-depth: 0` in CI. Without them, the library would look as if it had never published a library release. |

@@ -192,13 +192,13 @@ func requireEmptyDirectory(t *testing.T, root *os.Root, name string) {
 // asset directory's missing parent, or after it began replacing targets. Recovery restores every target and leaves
 // the directory, empty, since nothing can prove that the directory now at that path is the one the writer made.
 func TestKilledWriterLeavesTheParentsItCreated(t *testing.T) {
-	if directory := os.Getenv("CODE_RULES_PARENT_CHILD"); directory != "" {
+	if directory := os.Getenv("SYLLABUS_PARENT_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
-		stop := os.Getenv("CODE_RULES_PARENT_STOP")
+		stop := os.Getenv("SYLLABUS_PARENT_STOP")
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
 			mkdir, rename := w.mkdir, w.rename
 			w.mkdir = func(name string) error {
@@ -224,7 +224,7 @@ func TestKilledWriterLeavesTheParentsItCreated(t *testing.T) {
 			root := openProject(t)
 			writeAssetFreeFork(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledWriterLeavesTheParentsItCreated$")
-			child.Env = append(os.Environ(), "CODE_RULES_PARENT_CHILD="+root.Name(), "CODE_RULES_PARENT_STOP="+stop)
+			child.Env = append(os.Environ(), "SYLLABUS_PARENT_CHILD="+root.Name(), "SYLLABUS_PARENT_STOP="+stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {
@@ -339,21 +339,21 @@ func TestApply_RejectsTargetsOutsideLocalRules(t *testing.T) {
 // TestKilledForkWriterRecovers stops the writer after each rename, replacing the assets or removing them; the next
 // writer restores the previous fork, assets, and trees, or, once the commit marker exists, keeps everything new.
 func TestKilledForkWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("CODE_RULES_FORK_CHILD"); directory != "" {
+	if directory := os.Getenv("SYLLABUS_FORK_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
 		var assets map[string][]byte
-		if os.Getenv("CODE_RULES_FORK_ASSETS") != "" {
+		if os.Getenv("SYLLABUS_FORK_ASSETS") != "" {
 			assets = map[string][]byte{"new.md": []byte("new notes")}
 		}
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
 			rename := w.rename
 			w.rename = func(from, to string) error {
 				err := rename(from, to)
-				if err == nil && to == os.Getenv("CODE_RULES_FORK_STOP") {
+				if err == nil && to == os.Getenv("SYLLABUS_FORK_STOP") {
 					os.Exit(42)
 				}
 				return err
@@ -383,7 +383,7 @@ func TestKilledForkWriterRecovers(t *testing.T) {
 			root := openProject(t)
 			writeForkProject(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledForkWriterRecovers$")
-			child.Env = append(os.Environ(), "CODE_RULES_FORK_CHILD="+root.Name(), "CODE_RULES_FORK_STOP="+test.stop, "CODE_RULES_FORK_ASSETS="+test.assets)
+			child.Env = append(os.Environ(), "SYLLABUS_FORK_CHILD="+root.Name(), "SYLLABUS_FORK_STOP="+test.stop, "SYLLABUS_FORK_ASSETS="+test.assets)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

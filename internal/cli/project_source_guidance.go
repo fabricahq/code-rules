@@ -13,7 +13,7 @@ const sourceSelectionGuidance = `Choose rules from a library with rule selectors
 Choose skills with skill IDs, such as skills/build-feature, or * for every
 skill the source offers. A source can be a library, or any Git repository
 with skill folders; a repository without library releases needs --ref.
-See code-rules project add source --help.
+See syllabus project add source --help.
 
 Example source:
   Repository: https://github.com/example/rules.git
@@ -25,7 +25,7 @@ func sourceSelectionIntroduction(name string) string {
 
 - The name %q identifies this source in your project configuration.
 
-This command updates your project configuration. Run code-rules project sync afterward to fetch the source, build guidance, and install its skills.
+This command updates your project configuration. Run syllabus project sync afterward to fetch the source, build guidance, and install its skills.
 
 %s
 
@@ -36,15 +36,15 @@ Enter the source's details below.
 
 const sourceSelectionHelp = `Add a source of rules and skills to the project configuration without fetching
 it. A source is a library, or any other Git repository with skill folders; sync
-detects which. Run from your project root after code-rules project init.
+detects which. Run from your project root after syllabus project init.
 
 Interactive setup:
-  code-rules project add source team
+  syllabus project add source team
 
   Answer the prompts for the repository URL, rules, and skills.
 
 For agents and scripts (no prompts):
-  code-rules project add source team \
+  syllabus project add source team \
     --repository https://github.com/example/rules.git \
     --rules 'practices/testing/*' --rules 'techs/go/*' \
     --skills skills/build-feature \
@@ -69,7 +69,7 @@ Choosing skills:
   One skill:        --skills skills/build-feature
   Every skill:      --skills '*'
 
-A library's skill IDs are its .code-rules/skills/ folders, such as
+A library's skill IDs are its .syllabus/skills/ folders, such as
 skills/build-feature. In another repository, a skill is any folder with a
 SKILL.md, named by its path from the repository root, such as tools/review;
 * takes every one outside folders whose names start with a dot. Supply at
@@ -84,4 +84,4 @@ Taking one revision:
   not supported.
 
 After adding the source, fetch it, build guidance, and install its skills:
-  code-rules project sync`
+  syllabus project sync`

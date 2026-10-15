@@ -17,7 +17,7 @@ const File = "SKILL.md"
 // Wildcard is the skills.include selector that includes every skill a source offers.
 const Wildcard = "*"
 
-// Directory is the folder, in a repository's Code Rules directory, that holds the repository's authored skills,
+// Directory is the folder, in a repository's Syllabus directory, that holds the repository's authored skills,
 // and, in a library's vendor snapshot, the skills the library publishes.
 const Directory = "skills"
 
@@ -112,7 +112,7 @@ func InstallName(id string, metadata Metadata, location string) (string, error) 
 		name = id[strings.LastIndex(id, "/")+1:]
 	}
 	if !ValidName(name) {
-		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Code Rules can't install it")
+		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Syllabus can't install it")
 	}
 	return name, nil
 }

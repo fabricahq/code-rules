@@ -1,6 +1,6 @@
 # Security practices
 
-Users install Code Rules to download rule libraries into their repositories. Those files become instructions for their coding agents.
+Users install Syllabus to download rule libraries into their repositories. Those files become instructions for their coding agents.
 **Assume any agent may read imported rules on every invocation.** An unauthorized change could repeatedly influence generated code, tool use, and access to the user's repository.
 Security is therefore a core product requirement.
 
@@ -17,7 +17,7 @@ These are requirements to verify, not a claim that an audit has established ever
 A checksum proves consistency with its reference record, not authenticity if an attacker can replace both the content and the record.
 Even authentic, unchanged rules can contain harmful instructions. Users must deliberately choose which publishers and rule changes they trust.
 
-Code Rules runs Git on other people's repositories with hooks disabled and only HTTPS and SSH transports allowed. It never shows text from Git, a Git server, or the GitHub CLI, because that text can hold credentials; `internal/gitexec` classifies it privately so callers explain failures with their own messages. The [CLI reference](../docs/src/content/docs/reference/cli.md#text-from-git-servers-and-the-github-cli) states this contract.
+Syllabus runs Git on other people's repositories with hooks disabled and only HTTPS and SSH transports allowed. It never shows text from Git, a Git server, or the GitHub CLI, because that text can hold credentials; `internal/gitexec` classifies it privately so callers explain failures with their own messages. The [CLI reference](../docs/src/content/docs/reference/cli.md#text-from-git-servers-and-the-github-cli) states this contract.
 
 ## Security audits
 
@@ -33,7 +33,7 @@ Dependency scans alone do not establish rule integrity or library authenticity. 
 ## Protecting this repository
 
 We pin dependencies, review updates through Renovate PRs, and scan Go code for known vulnerabilities. Maintainers approve merges; the bot never merges updates automatically.
-The controls below reduce the risk of compromising Code Rules itself. Live GitHub settings must enforce the access and review policies alongside the repository configuration.
+The controls below reduce the risk of compromising Syllabus itself. Live GitHub settings must enforce the access and review policies alongside the repository configuration.
 
 ### Dependency pins
 
@@ -62,7 +62,7 @@ Renovate may refresh existing update branches outside that window.
 
 Renovate manages Go modules, Bun workspaces and their lockfile, workflow actions, and supported runtime inputs.
 A custom manager finds versioned `go run` tools in workflows and CONTRIBUTING.md commands so those pins receive update PRs too.
-The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `code-rules library init` writes, so its action pins receive update PRs; apply the same update to both workflow examples in the [version rules guide](../docs/src/content/docs/guides/version-rules.md). A test compares its **Check changes in CI** copy with the template; nothing checks the other.
+The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `syllabus library init` writes, so its action pins receive update PRs; apply the same update to both workflow examples in the [version rules guide](../docs/src/content/docs/guides/version-rules.md). A test compares its **Check changes in CI** copy with the template; nothing checks the other.
 Renovate includes indirect Go requirements. We disable broad lockfile-maintenance runs; dependency PRs regenerate the affected lockfile through the package manager.
 Review transitive changes in each lockfile diff: the cooldown does not establish the safety or age of every dependency a package manager resolves.
 

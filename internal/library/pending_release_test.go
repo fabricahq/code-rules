@@ -22,7 +22,7 @@ func TestPlan_FirstLibraryReleaseAddsEveryRuleWithASummary(t *testing.T) {
 			t.Fatalf("%s: %+v at %s", id, change, plan.versions[id])
 		}
 	}
-	// The record is encoded as code-rules library release writes it into a tag.
+	// The record is encoded as syllabus library release writes it into a tag.
 	encoded, err := encodeReleaseRecord(plan.record(nil))
 	if err != nil {
 		t.Fatal(err)

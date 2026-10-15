@@ -123,7 +123,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 		return err
 	}
 	if !available {
-		return failure("missing-group", "group "+group+" does not exist; create it first with code-rules project add group "+group+", then retry adding the rule", nil)
+		return failure("missing-group", "group "+group+" does not exist; create it first with syllabus project add group "+group+", then retry adding the rule", nil)
 	}
 	return filetxn.RequireAbsent(ctx, root, path.Join("rules", id+".md"))
 }
@@ -131,7 +131,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 func checkSourceAlias(config rules.Configuration, alias string) error {
 	for _, source := range config.Sources {
 		if source.Name == alias {
-			return failure("source-exists", "source "+alias+" already exists; edit .code-rules/config.yaml or choose a different source name", nil)
+			return failure("source-exists", "source "+alias+" already exists; edit .syllabus/config.yaml or choose a different source name", nil)
 		}
 	}
 	return nil

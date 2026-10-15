@@ -28,18 +28,18 @@ func skillLibrary(t *testing.T) (*gitfixture.Fixture, string) {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                                     []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                            []byte(projectMetadata),
-		"techs/go/errors.md":                              []byte(projectRule),
-		".code-rules/skills/build-feature/SKILL.md":       []byte(buildSkill),
-		".code-rules/skills/build-feature/scripts/run.sh": []byte("#!/bin/sh\necho build\n"),
-		".code-rules/skills/review/SKILL.md":              []byte(reviewSkill),
+		"config.yaml":                                   []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                          []byte(projectMetadata),
+		"techs/go/errors.md":                            []byte(projectRule),
+		".syllabus/skills/build-feature/SKILL.md":       []byte(buildSkill),
+		".syllabus/skills/build-feature/scripts/run.sh": []byte("#!/bin/sh\necho build\n"),
+		".syllabus/skills/review/SKILL.md":              []byte(reviewSkill),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := os.Chmod(filepath.Join(f.Worktree(), ".code-rules/skills/build-feature/scripts/run.sh"), 0o700); err != nil {
+	if err := os.Chmod(filepath.Join(f.Worktree(), ".syllabus/skills/build-feature/scripts/run.sh"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	commit, err := f.Commit(ctx, f.Worktree(), "Make the script executable", nil)
@@ -106,22 +106,22 @@ func TestSync_InstallsSourceAndAuthoredSkillsIntoEverySkillTarget(t *testing.T) 
 	}
 	for _, target := range []string{".claude/skills", ".agents/skills"} {
 		installed := readRepositoryFile(t, options, target+"/build-feature/SKILL.md")
-		if want := "---\n<!-- code-rules:installed team:skills/build-feature " + commit + ". Do not edit; code-rules project sync replaces this copy. -->\n# Build"; !strings.Contains(installed, want) {
+		if want := "---\n<!-- syllabus:installed team:skills/build-feature " + commit + ". Do not edit; syllabus project sync replaces this copy. -->\n# Build"; !strings.Contains(installed, want) {
 			t.Errorf("%s/build-feature/SKILL.md:\n%s\nwant the marker after the frontmatter", target, installed)
 		}
 		info, err := os.Stat(filepath.Join(options.Directory, target, "build-feature/scripts/run.sh"))
 		if err != nil || info.Mode().Perm()&0o100 == 0 {
 			t.Errorf("%s run.sh isn't executable: %v %v", target, info, err)
 		}
-		if authored := readRepositoryFile(t, options, target+"/check-release/SKILL.md"); !strings.Contains(authored, "<!-- code-rules:installed skills/check-release. Do not edit; edit .code-rules/skills/check-release/ instead. -->") {
+		if authored := readRepositoryFile(t, options, target+"/check-release/SKILL.md"); !strings.Contains(authored, "<!-- syllabus:installed skills/check-release. Do not edit; edit .syllabus/skills/check-release/ instead. -->") {
 			t.Errorf("authored copy:\n%s", authored)
 		}
 	}
-	rulesIndex := readRepositoryFile(t, options, ".code-rules/generated/RULES.md")
+	rulesIndex := readRepositoryFile(t, options, ".syllabus/generated/RULES.md")
 	if !strings.Contains(rulesIndex, "This project also installs agent skills. See [SKILLS.md](SKILLS.md)") {
 		t.Errorf("RULES.md doesn't point to SKILLS.md:\n%s", rulesIndex)
 	}
-	index := readRepositoryFile(t, options, ".code-rules/generated/SKILLS.md")
+	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
 	for _, want := range []string{"### build-feature", "Build a feature from a spec.", "**Skill:** `team:skills/build-feature`, from release/1, commit `" + commit + "`", "**Level:** offered by `team`, release 1", "**Type:** playbook", "[.claude/skills/build-feature/SKILL.md](../../.claude/skills/build-feature/SKILL.md)", "**Skill:** `skills/check-release`, authored in this project"} {
 		if !strings.Contains(index, want) {
 			t.Errorf("SKILLS.md lacks %q:\n%s", want, index)
@@ -135,7 +135,7 @@ func TestSync_InstallsSourceAndAuthoredSkillsIntoEverySkillTarget(t *testing.T) 
 		Executable    []string                           `json:"executable"`
 		Files         map[string]string                  `json:"files"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".code-rules/vendor/team/_source.json")), &record); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/vendor/team/_source.json")), &record); err != nil {
 		t.Fatal(err)
 	}
 	if record.FormatVersion != 3 || record.Kind != "library" || !slices.Equal(record.SkillInclude, []string{"*"}) || len(record.Skills) != 2 || *record.Skills["skills/review"].Level != "offered" || !slices.Equal(record.Executable, []string{"skills/build-feature/scripts/run.sh"}) || record.Files["skills/build-feature/SKILL.md"] == "" {
@@ -152,7 +152,7 @@ func TestSync_InstallsSourceAndAuthoredSkillsIntoEverySkillTarget(t *testing.T) 
 			Targets []string `json:"targets"`
 		} `json:"skills"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".code-rules/generated/provenance.json")), &provenance); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/generated/provenance.json")), &provenance); err != nil {
 		t.Fatal(err)
 	}
 	if len(provenance.Skills) != 3 {
@@ -206,12 +206,12 @@ func TestSync_RemovesTheFoldersOfSkillsNoLongerIncluded(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if exists(t, options, ".claude/skills") || exists(t, options, ".code-rules/generated/SKILLS.md") {
+	if exists(t, options, ".claude/skills") || exists(t, options, ".syllabus/generated/SKILLS.md") {
 		t.Fatal("sync left an emptied skill target or SKILLS.md behind")
 	}
 }
 
-func TestSync_RefusesToReplaceAFolderCodeRulesDidNotInstall(t *testing.T) {
+func TestSync_RefusesToReplaceAFolderSyllabusDidNotInstall(t *testing.T) {
 	ctx := context.Background()
 	f, _ := skillLibrary(t)
 	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"]}}}}`)
@@ -224,10 +224,10 @@ func TestSync_RefusesToReplaceAFolderCodeRulesDidNotInstall(t *testing.T) {
 	}
 	_, err := Sync(ctx, options, git)
 	projectCode(t, err, "skill-folder-not-managed")
-	if !strings.Contains(err.Error(), ".claude/skills/review already exists, and Code Rules didn't install it") {
+	if !strings.Contains(err.Error(), ".claude/skills/review already exists, and Syllabus didn't install it") {
 		t.Fatalf("got %v", err)
 	}
-	if readRepositoryFile(t, options, ".claude/skills/review/SKILL.md") != "My own review.\n" || exists(t, options, ".code-rules/vendor/team") {
+	if readRepositoryFile(t, options, ".claude/skills/review/SKILL.md") != "My own review.\n" || exists(t, options, ".syllabus/vendor/team") {
 		t.Fatal("refused sync changed files")
 	}
 }
@@ -259,14 +259,14 @@ func TestSync_InstallsSkillsFromARepositoryThatIsNotALibrary(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(readRepositoryFile(t, options, ".agents/skills/review/SKILL.md"), "code-rules:installed skills:tools/review "+f.FirstCommit) || !exists(t, options, ".agents/skills/review/checklist.md") || exists(t, options, ".agents/skills/own") {
+	if !strings.Contains(readRepositoryFile(t, options, ".agents/skills/review/SKILL.md"), "syllabus:installed skills:tools/review "+f.FirstCommit) || !exists(t, options, ".agents/skills/review/checklist.md") || exists(t, options, ".agents/skills/own") {
 		t.Fatal("sync didn't install exactly the repository's skill outside dot folders")
 	}
-	record := readRepositoryFile(t, options, ".code-rules/vendor/skills/_source.json")
+	record := readRepositoryFile(t, options, ".syllabus/vendor/skills/_source.json")
 	if !strings.Contains(record, `"kind": "non-library"`) || !strings.Contains(record, `"tools/review": {`) {
 		t.Fatalf("source record:\n%s", record)
 	}
-	installed := readRepositoryFile(t, options, ".code-rules/generated/installed-skills.json")
+	installed := readRepositoryFile(t, options, ".syllabus/generated/installed-skills.json")
 	if !strings.Contains(installed, `"commit": "`+f.FirstCommit+`"`) {
 		t.Fatalf("installed-skills.json:\n%s", installed)
 	}
@@ -290,7 +290,7 @@ func TestSync_FailsForANewlyIncludedSkillTheLockedRevisionLacks(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Add a skill", map[string][]byte{".code-rules/skills/plan/SKILL.md": []byte("---\nname: plan\n---\n# Plan\n")}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Add a skill", map[string][]byte{".syllabus/skills/plan/SKILL.md": []byte("---\nname: plan\n---\n# Plan\n")}); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\n"); err != nil {
@@ -304,7 +304,7 @@ func TestSync_FailsForANewlyIncludedSkillTheLockedRevisionLacks(t *testing.T) {
 	writeFixture(t, root, configurationFile, strings.ReplaceAll(`{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/plan","skills/review"]}}}}`, "REPOSITORY", quoteJSON(f.Repository)))
 	_, err = Sync(ctx, options, git)
 	var failure *imports.Error
-	if !errors.As(err, &failure) || failure.Code != "skill-not-in-revision" || !strings.Contains(err.Error(), "sources.team.skills.include names skills/plan, which isn't in release/1") || !strings.Contains(err.Error(), "Run code-rules project update team") {
+	if !errors.As(err, &failure) || failure.Code != "skill-not-in-revision" || !strings.Contains(err.Error(), "sources.team.skills.include names skills/plan, which isn't in release/1") || !strings.Contains(err.Error(), "Run syllabus project update team") {
 		t.Fatalf("got %v; want skill-not-in-revision naming update team", err)
 	}
 	if exists(t, options, ".claude/skills/plan") {
@@ -318,7 +318,7 @@ func TestSync_FailsForANewlyIncludedSkillTheLockedRevisionLacks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(applied.Added, "../.claude/skills/plan/SKILL.md") || !strings.Contains(readRepositoryFile(t, options, ".code-rules/vendor/team/_source.json"), `"release": 2`) {
+	if !slices.Contains(applied.Added, "../.claude/skills/plan/SKILL.md") || !strings.Contains(readRepositoryFile(t, options, ".syllabus/vendor/team/_source.json"), `"release": 2`) {
 		t.Fatalf("update didn't move the source to release/2 and install the skill: %v", applied.Added)
 	}
 }
@@ -336,10 +336,10 @@ func TestSync_RecordsSkillsWithoutSkillTargetsAndWarns(t *testing.T) {
 			if len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "The project has no skill targets, so no copy of its 2 skill(s) was installed.") {
 				t.Fatalf("warnings = %v", changes.Warnings)
 			}
-			if exists(t, options, ".claude") || exists(t, options, ".agents") || !exists(t, options, ".code-rules/vendor/team/skills/review/SKILL.md") {
+			if exists(t, options, ".claude") || exists(t, options, ".agents") || !exists(t, options, ".syllabus/vendor/team/skills/review/SKILL.md") {
 				t.Fatal("sync installed copies or didn't record the skills")
 			}
-			if index := readRepositoryFile(t, options, ".code-rules/generated/SKILLS.md"); !strings.Contains(index, "**Installed at:** nowhere, because the project has no skill targets. Read it at [.code-rules/vendor/team/skills/review/SKILL.md](../vendor/team/skills/review/SKILL.md).") {
+			if index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md"); !strings.Contains(index, "**Installed at:** nowhere, because the project has no skill targets. Read it at [.syllabus/vendor/team/skills/review/SKILL.md](../vendor/team/skills/review/SKILL.md).") {
 				t.Fatalf("SKILLS.md:\n%s", index)
 			}
 		})
@@ -378,9 +378,9 @@ func TestBuild_RejectsInvalidAuthoredSkillsAndNameClashes(t *testing.T) {
 		location string
 		code     string
 	}{
-		"file directly in skills": {map[string]string{"skills/notes.md": "x"}, ".code-rules/skills/notes.md", ""},
-		"folder without SKILL.md": {map[string]string{"skills/tidy/notes.md": "x"}, ".code-rules/skills/tidy/", ""},
-		"invalid folder name":     {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".code-rules/skills/Tidy/", ""},
+		"file directly in skills": {map[string]string{"skills/notes.md": "x"}, ".syllabus/skills/notes.md", ""},
+		"folder without SKILL.md": {map[string]string{"skills/tidy/notes.md": "x"}, ".syllabus/skills/tidy/", ""},
+		"invalid folder name":     {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".syllabus/skills/Tidy/", ""},
 		"two skills, one name":    {map[string]string{"skills/one/SKILL.md": "---\nname: shared\n---\n", "skills/two/SKILL.md": "---\nname: shared\n---\n"}, "", "skill-name-clash"},
 	}
 	for name, test := range tests {

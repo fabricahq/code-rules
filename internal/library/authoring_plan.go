@@ -122,7 +122,7 @@ func checkNewRule(ctx context.Context, root *os.Root, id string, options Options
 		if err != nil {
 			return err
 		}
-		command := "code-rules library add group " + group + " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
+		command := "syllabus library add group " + group + " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
 		return failure("missing-group", "group "+group+" does not exist; create it first with "+command+", then retry adding the rule", nil)
 	}
 	return filetxn.RequireAbsent(ctx, root, librarytree.RepositoryPath(id+".md"))

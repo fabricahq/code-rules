@@ -66,10 +66,10 @@ jobs:
             });
             // Artifact order matches install-preview.sh arguments.
             const targets = [
-              ['code-rules-darwin-arm64', 'macOS Apple Silicon'],
-              ['code-rules-darwin-amd64', 'macOS Intel'],
-              ['code-rules-linux-arm64', 'Linux ARM'],
-              ['code-rules-linux-amd64', 'Linux Intel/AMD'],
+              ['syllabus-darwin-arm64', 'macOS Apple Silicon'],
+              ['syllabus-darwin-amd64', 'macOS Intel'],
+              ['syllabus-linux-arm64', 'Linux ARM'],
+              ['syllabus-linux-amd64', 'Linux Intel/AMD'],
             ];
             const downloads = [];
             for (const [name, label] of targets) {
@@ -85,7 +85,7 @@ jobs:
             const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
               owner, repo, commit_sha: run.head_sha, per_page: 100,
             });
-            const marker = '<!-- code-rules-binary-preview -->';
+            const marker = '<!-- syllabus-binary-preview -->';
             const runURL = `${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}`;
             const commitURL = `${context.serverUrl}/${owner}/${repo}/commit/${run.head_sha}`;
             const expires = new Date(Math.min(...downloads.map(d => Date.parse(d.artifact.expires_at)))).toLocaleString('en-US', {
@@ -133,13 +133,13 @@ jobs:
                 '',
                 '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
                 '',
-                '**Manual testing is optional.** With [GitHub CLI](https://cli.github.com/) installed and signed in (`gh auth login`), copy this line to install the build for your computer in the current directory. It replaces any existing `./code-rules` after a successful download:',
+                '**Manual testing is optional.** With [GitHub CLI](https://cli.github.com/) installed and signed in (`gh auth login`), copy this line to install the build for your computer in the current directory. It replaces any existing `./syllabus` after a successful download:',
                 '',
                 '```sh',
                 installCommand,
                 '```',
                 '',
-                'Then run `./code-rules --help`. No extraction or global installation needed.',
+                'Then run `./syllabus --help`. No extraction or global installation needed.',
                 '',
                 `GitHub sign-in required. Downloads expire ${expires} UTC.`,
                 '',

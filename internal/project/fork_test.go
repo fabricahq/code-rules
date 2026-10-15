@@ -100,7 +100,7 @@ func (f forkFixture) fork(t *testing.T, id, from, reason string) (AuthoringResul
 	return plan.Commit(context.Background(), reason)
 }
 
-// files returns every file of the project's Code Rules directory.
+// files returns every file of the project's Syllabus directory.
 func (f forkFixture) files(t *testing.T) map[string][]byte {
 	t.Helper()
 	return projectTree(t, f.options).Files
@@ -296,7 +296,7 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	rule, err := coderules.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.code-rules/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -311,9 +311,9 @@ func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 		repository, url string
 		legacy          bool
 	}{
-		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.code-rules/rules/techs/go/errors.md", false},
+		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.syllabus/rules/techs/go/errors.md", false},
 		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md", true},
-		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.code-rules/rules/techs/go/errors.md", false},
+		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.syllabus/rules/techs/go/errors.md", false},
 		{"https://git.example.org/srv/rules.git", "https://git.example.org/srv/rules.git", false},
 		{"git@git.example.org:srv/rules.git", "", false},
 	} {
@@ -551,7 +551,7 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync") {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v", err)
 	}
 }

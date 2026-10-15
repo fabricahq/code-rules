@@ -55,7 +55,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 func requireSync(t *testing.T, got map[string]snapshot, err error) {
 	t.Helper()
 	var validation errs.ValidationError
-	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v, %v; want a failure that asks for sync", got, err)
 	}
 }
@@ -235,7 +235,7 @@ func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
 	}
 	got, err := decodeSnapshots(snapshotConfig(t, `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/erorrs","reason":"Typo."}]}`), vendor)
 	var validation errs.ValidationError
-	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v, %v; want a failure naming the entry that asks for sync", got, err)
 	}
 }
@@ -362,7 +362,7 @@ func TestSnapshotOfALibraryInTheLayoutBeforeVersion2IsUnsupported(t *testing.T) 
 	delete(encoded, "team/config.yaml")
 	got, err := decodeSnapshots(config, encoded)
 	var validation errs.ValidationError
-	want := "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, delete .code-rules/vendor/team/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
+	want := "records a library in the layout from before this version of Syllabus, with rule-library.yaml, which this version can't read. Once the library has moved its files into .syllabus/ and published a library release, delete .syllabus/vendor/team/ and run syllabus project sync to import the source again, which imports its unpinned rules at their newest versions"
 	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/team/_source.json" || validation.ValidationProblem() != want {
 		t.Fatalf("got %v, %v; want %s", got, err, want)
 	}
@@ -377,7 +377,7 @@ func TestSnapshotFormatOneIsUnsupported(t *testing.T) {
 		"sync":    func() error { _, err := recordedSnapshots(config, vendor); return err },
 	} {
 		var validation errs.ValidationError
-		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .code-rules/vendor/ and run code-rules project sync") {
+		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .syllabus/vendor/ and run syllabus project sync") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}

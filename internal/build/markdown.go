@@ -75,7 +75,7 @@ func referenceEdits(root ast.Node, ruleID string) []edit {
 	labels := map[text.Index]string{}
 	edits := []edit{}
 	// The digest keeps generated labels short even for long source-qualified IDs.
-	prefix := fmt.Sprintf("code-rules-%x-", sha256.Sum256([]byte(ruleID)))
+	prefix := fmt.Sprintf("syllabus-%x-", sha256.Sum256([]byte(ruleID)))
 	_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if definition, ok := node.(*ast.LinkReferenceDefinition); entering && ok {
 			label := fmt.Sprintf("%s%d", prefix, len(labels))

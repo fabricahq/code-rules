@@ -31,7 +31,7 @@ func TestInitSetsSkillTargets(t *testing.T) {
 			if out, diagnostic, code := runCLI(t, binary, directory, append([]string{"project", "init"}, test.args...)...); code != 0 {
 				t.Fatal(code, out, diagnostic)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/config.yaml"))
+			data, err := os.ReadFile(filepath.Join(directory, ".syllabus/config.yaml"))
 			if err != nil || string(data) != "schemaVersion: 2\n"+test.want+"sources: {}\n" {
 				t.Fatalf("config.yaml:\n%s %v", data, err)
 			}
@@ -42,7 +42,7 @@ func TestInitSetsSkillTargets(t *testing.T) {
 func TestInitReplacesSkillTargetsOnlyWhenAsked(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	config := filepath.Join(directory, ".code-rules/config.yaml")
+	config := filepath.Join(directory, ".syllabus/config.yaml")
 	for _, step := range []struct {
 		args []string
 		want string

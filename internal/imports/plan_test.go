@@ -463,7 +463,7 @@ func TestImport_IgnoresUnselectedGroupMetadata(t *testing.T) {
 		"techs/go/_group.yaml": groupMetadata,
 		"techs/go/y.md":        versionedRule("y 1.0.0"),
 	})
-	if _, err := f.Command(ctx, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("5", 40)+",.code-rules/rules/techs/rust/_group.yaml"); err != nil {
+	if _, err := f.Command(ctx, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("5", 40)+",.syllabus/rules/techs/rust/_group.yaml"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.Command(ctx, "commit", "--quiet", "--message", "Add a submodule where metadata belongs"); err != nil {
@@ -493,13 +493,13 @@ func TestImport_RefusesALibraryReleaseDeclaringTermsInsideARulesVersion(t *testi
 	h := history{fixture: f, commits: map[int]string{}}
 	h.release(t, 1, nil, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.0.0\nchanges:\n  techs/go/a: {change: new, summaries: [Add the rule.]}\n  techs/go/b: {change: new, summaries: [Add the rule.]}\n")
 	h.release(t, 2, map[string][]byte{
-		"config.yaml":                       []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":".code-rules/rules/techs/go/assets/a/requirements.md","notices":[]}}}`),
+		"config.yaml":                       []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/assets/a/requirements.md","notices":[]}}}`),
 		"techs/go/assets/a/requirements.md": []byte("Replacement requirements.\n"),
 		"techs/go/b.md":                     versionedRule("b 1.1.0"),
 	}, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summaries: [Add an example.]}\n")
 	imported, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/a","version":"1.0.0","reason":"Keep."}]}`), nil)
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || !strings.Contains(invalid.ValidationLocation(), ".code-rules/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "rule's version") {
+	if !errors.As(err, &invalid) || !strings.Contains(invalid.ValidationLocation(), ".syllabus/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "rule's version") {
 		t.Fatalf("imported %q with error %v; want the license declaration refused", imported.Snapshot.Files["techs/go/assets/a/requirements.md"], err)
 	}
 }
@@ -586,7 +586,7 @@ func TestImport_RejectsAReleaseTagWithoutARecord(t *testing.T) {
 }
 
 // TestImport_AsksToUpgradeForANewerReleaseRecordFormat refuses a release record written in a later format with
-// its own code, telling the user to upgrade Code Rules, and reads a record with fields it doesn't know.
+// its own code, telling the user to upgrade Syllabus, and reads a record with fields it doesn't know.
 func TestImport_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	h := newHistory(t)
 	record := "release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nsignedBy: {name: A later field}\n"
@@ -597,7 +597,7 @@ func TestImport_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	h.release(t, 5, nil, "formatVersion: 2\n"+strings.Replace(record, "release: 4", "release: 5", 1))
 	_, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"]}`), nil)
 	requireCode(t, err, "unsupported-release-record")
-	if !strings.Contains(err.Error(), "release/5 uses release record format 2") || !strings.Contains(err.Error(), "Upgrade Code Rules") {
+	if !strings.Contains(err.Error(), "release/5 uses release record format 2") || !strings.Contains(err.Error(), "Upgrade Syllabus") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -605,7 +605,7 @@ func TestImport_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 // TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit refuses a release tag with a valid record whose target
 // is a tree or a blob, so a non-commit never becomes a recorded commit.
 func TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit(t *testing.T) {
-	for _, target := range []string{"HEAD^{tree}", "HEAD:.code-rules/config.yaml"} {
+	for _, target := range []string{"HEAD^{tree}", "HEAD:.syllabus/config.yaml"} {
 		t.Run(target, func(t *testing.T) {
 			h := newHistory(t)
 			ctx := context.Background()

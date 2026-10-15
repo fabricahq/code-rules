@@ -25,7 +25,7 @@ const offered = "offered"
 
 // skillFolders returns the skills in files, a commit's tree by repository path, keyed by skill ID, each with its
 // files keyed by their path in the vendor snapshot. A library's skills are the folders directly in its
-// .code-rules/skills/ that hold a SKILL.md, with IDs skills/<name> and snapshot paths in skills/. Any other
+// .syllabus/skills/ that hold a SKILL.md, with IDs skills/<name> and snapshot paths in skills/. Any other
 // repository's are the folders that hold a SKILL.md, other than the repository root and a folder inside another
 // skill's folder, which belongs to that skill; their IDs and snapshot paths are their repository paths.
 func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[string]treeEntry {
@@ -96,18 +96,18 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string) ([]s
 			continue
 		}
 		if plan.locked != "" && plan.locked == plan.commit {
-			next := fmt.Sprintf("Run code-rules project update %s, which moves the source to its newest library release, and takes the skill from it if it has it, or check the skill ID.", source.Name)
+			next := fmt.Sprintf("Run syllabus project update %s, which moves the source to its newest library release, and takes the skill from it if it has it, or check the skill ID.", source.Name)
 			if !source.Ref.IsZero() {
-				next = fmt.Sprintf("To take the skill, set sources.%s.ref to a tag or commit that has it, then run code-rules project sync, or check the skill ID.", source.Name)
+				next = fmt.Sprintf("To take the skill, set sources.%s.ref to a tag or commit that has it, then run syllabus project sync, or check the skill ID.", source.Name)
 			}
 			return nil, fail("skill-not-in-revision", fmt.Sprintf("sources.%s.skills.include names %s, which isn't in %s, the revision vendor/%s/_source.json records for the source. Sync never moves a source, so it takes every skill from that revision. %s", source.Name, id, revision, source.Name, next), nil)
 		}
-		return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("the source has no skill %s at %s; check the skill ID. A library's skills are the folders in its .code-rules/skills/, such as skills/build-feature; another repository's are the folders that hold a SKILL.md, named by their path from the repository root", id, revision)}
+		return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("the source has no skill %s at %s; check the skill ID. A library's skills are the folders in its .syllabus/skills/, such as skills/build-feature; another repository's are the folders that hold a SKILL.md, named by their path from the repository root", id, revision)}
 	}
 	return slices.Clone(source.Skills), nil
 }
 
-// isLibrary reports whether a fetched commit holds a library: a .code-rules/config.yaml with a library section, or a
+// isLibrary reports whether a fetched commit holds a library: a .syllabus/config.yaml with a library section, or a
 // rule-library.yaml in the layout before version 2. A configuration it can't read counts as a library's, so the
 // catalog loader reports what is wrong with it.
 func (r *repository) isLibrary(ctx context.Context, commit string) (bool, error) {
@@ -174,7 +174,7 @@ func (r *repository) readSkills(ctx context.Context, source rules.Source, plan s
 		result.skills[id] = library.ImportedSkill{Level: level}
 		for name, entry := range folders[id] {
 			if !entry.mode.IsRegular() {
-				return importedSkills{}, fail("unsupported-content", fmt.Sprintf("sources.%s: skill %s has a symbolic link or submodule at %s, which Code Rules doesn't install. Ask the source's maintainer to replace it with a file.", source.Name, id, name), nil)
+				return importedSkills{}, fail("unsupported-content", fmt.Sprintf("sources.%s: skill %s has a symbolic link or submodule at %s, which Syllabus doesn't install. Ask the source's maintainer to replace it with a file.", source.Name, id, name), nil)
 			}
 			entries[name] = entry
 			prefetch = append(prefetch, entry)

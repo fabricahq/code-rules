@@ -190,7 +190,7 @@ func TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, ".code-rules-transaction/staged", "left by an interrupted command")
+	writeFixture(t, root, ".syllabus-transaction/staged", "left by an interrupted command")
 	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{},"unknown":true}`)
 	root.Close()
 	_, err = Sync(context.Background(), options, git)

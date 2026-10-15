@@ -41,7 +41,7 @@ type Options struct {
 // Generate applies adoption policies and renders the complete generated file tree.
 // Configuration and catalogs must be validated; callers verify each library's source identity. localFiles holds the
 // project's authored files keyed as a library keys its own: rules, group metadata, and rule assets by their path in
-// rules/, and shared assets by their path in the Code Rules directory, assets/<path>. It installs every skill the
+// rules/, and shared assets by their path in the Syllabus directory, assets/<path>. It installs every skill the
 // sources' snapshots record and every authored skill into each skill target. It leaves inputs unchanged, preserves
 // retained bytes, and returns no partial output on failure; two skills with one install name fail with *ClashError.
 func Generate(config rules.Configuration, libraries map[string]Library, localFiles map[string][]byte, options Options) (Output, error) {

@@ -1,9 +1,9 @@
 ---
-title: "Install Code Rules"
-description: "Install Code Rules with the shell script or Homebrew."
+title: "Install Syllabus"
+description: "Install Syllabus with the shell script or Homebrew."
 ---
 
-Code Rules is a standalone binary for macOS and Linux. [Using Windows?](#installing-on-windows)
+Syllabus is a standalone binary for macOS and Linux. [Using Windows?](#installing-on-windows)
 
 ## Use the standalone installer
 
@@ -18,7 +18,7 @@ This installs the latest stable release into `~/.local/bin` and sets up your she
 Open a new terminal, then verify the installation:
 
 ```sh
-code-rules --version
+syllabus --version
 ```
 
 To use your current terminal, run the command the installer prints instead.
@@ -30,26 +30,48 @@ To use your current terminal, run the command the installer prints instead.
 Rerun the installer. Then, from each existing project root, refresh and check its generated files:
 
 ```sh
-code-rules project build
-code-rules project check
+syllabus project build
+syllabus project check
 ```
 
-A library's check workflow installs the Code Rules version that created it. To move it to the version you just installed, delete `.github/workflows/code-rules.yml` from the library and run `code-rules library init` again; see [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+A library's check workflow installs the Syllabus version that created it. To move it to the version you just installed, delete `.github/workflows/syllabus.yml` from the library and run `syllabus library init` again; see [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+
+## Upgrade from Code Rules
+
+Syllabus was called Code Rules. Its command was `code-rules`, and projects and libraries kept their files in `.code-rules/`. After you install Syllabus, remove the old `code-rules` executable, then move each repository to the new name:
+
+1. From the repository root, rename the directory, keeping everything in it:
+
+   ```sh
+   git mv .code-rules .syllabus
+   ```
+
+2. In `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, change `.code-rules/generated/RULES.md` to `.syllabus/generated/RULES.md`.
+3. Rebuild and check the project:
+
+   ```sh
+   syllabus project build
+   syllabus project check
+   ```
+
+4. In a library, delete `.github/workflows/code-rules.yml` and run `syllabus library init` to write `.github/workflows/syllabus.yml`.
+
+Until you rename it, project commands keep reading and updating `.code-rules/` and print a warning; a later version will stop reading it. Library commands refuse until the directory is renamed. Library releases published from `.code-rules/` stay readable, so the projects that import a library keep their rule versions and need no changes when the library moves.
 
 ## Install with Homebrew
 
 With [Homebrew](https://brew.sh/) installed on macOS or Linux:
 
 ```sh
-brew install fabricahq/tap/code-rules
-code-rules --version
+brew install fabricahq/tap/syllabus
+syllabus --version
 ```
 
 To upgrade or remove it:
 
 ```sh
-brew upgrade code-rules
-brew uninstall code-rules
+brew upgrade syllabus
+brew uninstall syllabus
 ```
 
 ## Other options
@@ -84,7 +106,7 @@ Stop if verification fails. Before extracting, compare the archive checksum with
 
 Extract the archive and move the executable into a directory on your `PATH`.
 
-To build from source instead, follow the contributing guide in the [Code Rules repository](https://github.com/fabricahq/code-rules).
+To build from source instead, follow the contributing guide in the [Syllabus repository](https://github.com/fabricahq/code-rules).
 
 </details>
 
@@ -99,7 +121,7 @@ Native Windows is not supported yet. The Linux version is expected to work in [W
 <summary>Uninstall</summary>
 
 ```sh
-rm "$HOME/.local/bin/code-rules"
+rm "$HOME/.local/bin/syllabus"
 ```
 
 Adjust the path if you chose a custom installation directory. Your project's rules are left in place.

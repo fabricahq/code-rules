@@ -28,7 +28,7 @@ first-version: v0.1.0
 # release-checks:
 #   workflow: release-checks.yml
 #
-# Code Rules runs its release validation (gofmt, go vet, staticcheck, go test -race, and a
+# Syllabus runs its release validation (gofmt, go vet, staticcheck, go test -race, and a
 # fresh govulncheck scan) on Linux and macOS in build-release.yml instead, because a script
 # here runs on Linux only.
 
@@ -45,7 +45,7 @@ release-assets:
 # Credentials and recovery: the Release pipeline section of .release-planner/policy.md.
 downstream:
   - repository: fabricahq/homebrew-tap
-    workflow: update-code-rules.yml
+    workflow: update-syllabus.yml
 
 # Release notes rules to turn off. release-planner validate checks the notes against every rule;
 # list them with: release-planner validate --rules

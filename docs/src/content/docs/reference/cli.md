@@ -1,27 +1,27 @@
 ---
 title: "CLI commands"
-description: "Syntax, arguments, options, and results for every supported Code Rules command."
+description: "Syntax, arguments, options, and results for every supported Syllabus command."
 ---
 
 Find each command's syntax and options below. Every command also accepts `--json` and `-h` / `--help`; [shared behavior](#shared-options-and-prompts) and [output formats](#command-output) are documented at the end.
 
 ## Project commands
 
-`code-rules project` manages rules and skills for a **project**, the codebase whose rules and skills Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
+`syllabus project` manages rules and skills for a **project**, the codebase whose rules and skills Syllabus manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
 :::note[Preview]
-Skills, `skillTargets`, `project init --skill-targets`, `project add skill`, and `project add source`, which replaces `project add library`, come in the next Code Rules release.
+Skills, `skillTargets`, `project init --skill-targets`, `project add skill`, and `project add source`, which replaces `project add library`, come in the next Syllabus release.
 :::
 
-Configuration lives in `.code-rules/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
+Configuration lives in `.syllabus/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
 ### project init
 
 ```sh
-code-rules project init [options]
+syllabus project init [options]
 ```
 
-Create project configuration, the authored rules directory, and the managed Code Rules guide. Rerunning init preserves valid configuration and authored rules and refreshes an unmodified guide.
+Create project configuration, the authored rules directory, and the managed Syllabus guide. Rerunning init preserves valid configuration and authored rules and refreshes an unmodified guide.
 
 | Option | Meaning |
 | --- | --- |
@@ -30,15 +30,15 @@ Create project configuration, the authored rules directory, and the managed Code
 
 A new configuration gets `skillTargets: [claude, agents]`, or `skillTargets: []` with `--skill-targets none`. Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. Init creates no skill target folders: build and sync write them when the project first installs a skill.
 
-Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Syllabus guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
 
 ### project add source
 
 ```sh
-code-rules project add source NAME [options]
+syllabus project add source NAME [options]
 ```
 
-Record a source in project configuration without fetching it. `NAME` is the source name, such as `team`. A source is a library, or any other Git repository with skill folders; you don't declare which, because sync detects whether the repository has a [library manifest](/reference/library-format/). Run `code-rules project sync` afterward to import the included rules and install the included skills.
+Record a source in project configuration without fetching it. `NAME` is the source name, such as `team`. A source is a library, or any other Git repository with skill folders; you don't declare which, because sync detects whether the repository has a [library manifest](/reference/library-format/). Run `syllabus project sync` afterward to import the included rules and install the included skills.
 
 | Option | Meaning |
 | --- | --- |
@@ -48,12 +48,12 @@ Record a source in project configuration without fetching it. `NAME` is the sour
 | `--ref REF` | Take the source exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. Required for a repository without `release/<number>` tags, such as one that isn't a library. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--rules` or `--skills`. At a terminal, the command asks for the repository when `--repository` is missing, and for rule and skill selectors when neither option is given. Without `--ref`, the source follows the library's newest library release when the project updates. To pin individual rules, add `rules.pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--rules` or `--skills`. At a terminal, the command asks for the repository when `--repository` is missing, and for rule and skill selectors when neither option is given. Without `--ref`, the source follows the library's newest library release when the project updates. To pin individual rules, add `rules.pins` to the source in configuration, or use `syllabus project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
 Adding a source preserves existing source exceptions and authored files. Quote `*` and selectors that end in `/*` so your shell does not expand them, and pass each selector as a separate option, rather than a comma-separated flag value:
 
 ```sh
-code-rules project add source team \
+syllabus project add source team \
   --repository https://github.com/example/rules.git \
   --rules 'practices/testing/*' \
   --rules 'techs/typescript/*' \
@@ -68,7 +68,7 @@ Sync checks the source when it first reads it. A source without `release/<number
 ### project add group
 
 ```sh
-code-rules project add group ID [options]
+syllabus project add group ID [options]
 ```
 
 Create a local group with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
@@ -85,7 +85,7 @@ A group can exist before it has rules. Local groups do not need a library source
 ### project add rule
 
 ```sh
-code-rules project add rule ID [options]
+syllabus project add rule ID [options]
 ```
 
 Create a rule in an existing local group. `ID` includes the group path and rule name, such as `practices/testing/check-retries`, without `.md`.
@@ -99,12 +99,12 @@ Create a rule in an existing local group. `ID` includes the group path and rule 
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `code-rules project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `code-rules:draft` marker before building. Existing rules are not overwritten.
+Create the group first with `syllabus project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `syllabus:draft` marker before building. Existing rules are not overwritten.
 
 #### Fork a library rule
 
 ```sh
-code-rules project add rule ID --from LIBRARY@VERSION [options]
+syllabus project add rule ID --from LIBRARY@VERSION [options]
 ```
 
 Copy one version of a library rule into `rules/` so the project controls its text. Use a fork to change what a rule says. To import one rule without the rest of its group, [select it individually](/reference/configuration/#select-individual-rules) instead, and to keep an imported rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `rules/practices/testing/verify-retry-limits.md`.
@@ -120,17 +120,17 @@ Metadata options and `--body-file` don't apply to a fork. The command:
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
 2. Writes them under `rules/`. When neither the project's own metadata nor a library the project imports supplies the rule's group, it also creates the group in `rules/` from the library's group metadata.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL, and the entry links to that address.
-4. When the configuration of the `LIBRARY` source selects the rule and its last sync imported it, adds a `rules.exclude` entry for it with your reason, the fork's rule ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned import, now decides what agents read. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
+4. When the configuration of the `LIBRARY` source selects the rule and its last sync imported it, adds a `rules.exclude` entry for it with your reason, the fork's rule ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned import, now decides what agents read. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
 
-If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
+If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `syllabus project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
 ### project add skill
 
 ```sh
-code-rules project add skill --from SOURCE:SKILL [options]
+syllabus project add skill --from SOURCE:SKILL [options]
 ```
 
-Fork a skill the project installs: copy it into `.code-rules/skills/` so the project controls its steps, and install the copy in its place. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so the command takes no `NAME`. To write a new skill instead, create its folder in `.code-rules/skills/`; see [Write your own skill](/guides/install-skills/#write-your-own-skill).
+Fork a skill the project installs: copy it into `.syllabus/skills/` so the project controls its steps, and install the copy in its place. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so the command takes no `NAME`. To write a new skill instead, create its folder in `.syllabus/skills/`; see [Write your own skill](/guides/install-skills/#write-your-own-skill).
 
 | Option | Meaning |
 | --- | --- |
@@ -140,22 +140,22 @@ Fork a skill the project installs: copy it into `.code-rules/skills/` so the pro
 
 The command:
 
-1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.code-rules/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use.
-2. Adds a `skills.exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the commit the source record locks as [`basedOn`](/reference/configuration/#exclude-or-replace-a-skill), so the fork installs in place of the skill, and updates list the source's later changes to it. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
+1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.syllabus/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use.
+2. Adds a `skills.exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the commit the source record locks as [`basedOn`](/reference/configuration/#exclude-or-replace-a-skill), so the fork installs in place of the skill, and updates list the source's later changes to it. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
 
 :::note[Preview]
 Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
 :::
 
-It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward to install it. The source's license still applies to the copied files.
+It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward to install it. The source's license still applies to the copied files.
 
 ### project sync
 
 ```sh
-code-rules project sync [options]
+syllabus project sync [options]
 ```
 
-Import the rule versions and skills recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Code Rules directory, and the installed skill folders in each skill target, with the complete result. Sync also refreshes an older, unedited managed Code Rules guide.
+Import the rule versions and skills recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Syllabus directory, and the installed skill folders in each skill target, with the complete result. Sync also refreshes an older, unedited managed Syllabus guide.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -171,18 +171,18 @@ Sync needs access to every configured repository and uses your existing Git cred
 
 When you change `rules.include`, a group is newly selected if the record didn't import it as a whole, even when the previous value matched it. For example, after a sync with `include: ["*"]`, a group that a later library release adds is newly selected once you change `rules.include` to name its selector instead.
 
-Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-original-imported-files) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. Before importing from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit its `ref` named when it was recorded, even after the tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
+Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-original-imported-files) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .syllabus/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `syllabus project sync`, which applies any configuration changes; or delete `.syllabus/vendor/<source-name>/` and run `syllabus project sync`, which imports the source again, with its unpinned rules at their newest versions. Before importing from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit its `ref` named when it was recorded, even after the tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-Sync takes every skill of a source from the one revision its record locks, never moving the source for a skill: a skill ID that `skills.include` newly names and that revision lacks fails with `skill-not-in-revision`, which names the `code-rules project update SOURCE` that takes it from a newer library release. Sync installs each included skill, and each skill authored in `.code-rules/skills/`, into every [skill target](/reference/configuration/#skill-targets), and removes the folders of skills no longer included. It never replaces a folder in a skill target that Code Rules didn't install, and fails with `skill-folder-not-managed` instead; see [Skills](/reference/sync/#skills). With no skill targets, sync records and lists the skills and warns that it installed no copy.
+Sync takes every skill of a source from the one revision its record locks, never moving the source for a skill: a skill ID that `skills.include` newly names and that revision lacks fails with `skill-not-in-revision`, which names the `syllabus project update SOURCE` that takes it from a newer library release. Sync installs each included skill, and each skill authored in `.syllabus/skills/`, into every [skill target](/reference/configuration/#skill-targets), and removes the folders of skills no longer included. It never replaces a folder in a skill target that Syllabus didn't install, and fails with `skill-folder-not-managed` instead; see [Skills](/reference/sync/#skills). With no skill targets, sync records and lists the skills and warns that it installed no copy.
 
 When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an entry in `rules.include` that another selector in the list already covers, such as a rule whose group's selector is listed, since the entry changes nothing.
 
 ### project update
 
 ```sh
-code-rules project update [SOURCE | SOURCE:RULE ...] [options]
+syllabus project update [SOURCE | SOURCE:RULE ...] [options]
 ```
 
 Preview newer rule versions, new rules, and retirements, then apply them after you confirm, and regenerate guidance like sync. With no arguments, every source is updated. `SOURCE`, such as `team`, limits the update to one library. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
@@ -205,23 +205,23 @@ The preview lists, for each source:
 | `replaced` | A rule you [replaced with a local rule](/reference/configuration/#exclude-or-replace-a-rule), with your local rule's path. When the exclusion records `basedOn`, the row appears whenever the library's newest version is newer than `basedOn`, and lists every change after it, labeled with its version when there are several, also when a pin keeps the imported copy where it is. Without `basedOn`, it compares with the version the project imports instead: it appears whenever the library's newest version is newer, also when a pin keeps the imported copy where it is, and lists the changes since, which your local rule may already have. Your local rule doesn't change unless you pass `--update-fork`; compare the two to decide whether it needs the same change. |
 | `pinned` | A pinned rule that has a newer version. It doesn't move; the preview shows the pin's reason. |
 
-In a terminal, `code-rules project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. For each new rule, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose imported copy a pin keeps, it names the local files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the libraries, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule to move, add, or drop, and no shared files to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no rule updates are available and no files were written.
+In a terminal, `syllabus project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. For each new rule, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose imported copy a pin keeps, it names the local files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the libraries, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule to move, add, or drop, and no shared files to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no rule updates are available and no files were written.
 
-A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementLocalRule` when your project already replaces that replacement with a local rule), `localRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. For an `update-fork` decision, a row's `overwrites` lists the local files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Code Rules directory; both are empty for other rows. A `replaced` row's `from` is the version the project imports and `to` the newest version, or `newest` instead when a pin keeps the imported copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `localRule` lacks. A source that uses `ref` has its `ref` and no rules. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
+A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementLocalRule` when your project already replaces that replacement with a local rule), `localRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. For an `update-fork` decision, a row's `overwrites` lists the local files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Syllabus directory; both are empty for other rows. A `replaced` row's `from` is the version the project imports and `to` the newest version, or `newest` instead when a pin keeps the imported copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `localRule` lacks. A source that uses `ref` has its `ref` and no rules. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
 
 The preview doesn't list changes to rules you excluded without a replacement. `--keep` and pins in configuration never change which rules are imported. When a rule you exclude or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your local rules in a group with no metadata, such as a fork of a retired rule, it writes the group's metadata to `rules/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
 
-Sources that use `ref` don't move; change `ref` and run `code-rules project sync` instead. An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group metadata, shared assets, and the library's license files, to the newest library release, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A `SOURCE:RULE` update leaves them where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published.
+Sources that use `ref` don't move; change `ref` and run `syllabus project sync` instead. An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group metadata, shared assets, and the library's license files, to the newest library release, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A `SOURCE:RULE` update leaves them where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published.
 
 #### Replace a fork with the newest version
 
-`--update-fork SOURCE:RULE` replaces the local rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the imported copy at an older one. The new fork is exactly what [`code-rules project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the `replacedBy` path, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
+`--update-fork SOURCE:RULE` replaces the local rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the imported copy at an older one. The new fork is exactly what [`syllabus project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the `replacedBy` path, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
 
 Passing `--update-fork` is your consent to overwrite the local rule: your edits to it are lost, so commit them first if you want to compare. The preview, human and JSON, lists every file it replaces and, separately, every file it removes, reading the new fork from the library to tell them apart. The local rule's asset directory is replaced as a whole, including files you added to it, and the shared assets the new version links to are copied into it, as a fork copies them. Nothing outside the rule and its asset directory changes, because each rule owns its asset directory and no other rule may link into it. A pin stays: it governs only the imported copy.
 
 `--update-fork` refuses, as an `invalid-arguments` usage error that exits `2`, a rule the source doesn't exclude with `replacedBy`, an unknown source, a `--reason`, and a rule that `--keep` or `--exclude` also names, before reading any library. It also refuses a rule the preview doesn't list as `replaced`, because the library has nothing newer than the version your rule is based on or the update doesn't include the rule, and a rule the library retired, which has no newest version to fork. Like the rest of the update, it fails with `invalid-release-tag`, writing nothing, when the library release tag that published the fork's version names another commit than when the update previewed it, also when a pin or a `SOURCE:RULE` update keeps the imported copy at an older version. Without `--update-fork`, `--yes` leaves every local rule as it is.
 
-If you merged the library's changes into your local rule by hand, record the version you merged by editing `basedOn` in `.code-rules/config.yaml`, so later updates list only newer changes.
+If you merged the library's changes into your local rule by hand, record the version you merged by editing `basedOn` in `.syllabus/config.yaml`, so later updates list only newer changes.
 
 #### Replaced skills
 
@@ -248,10 +248,10 @@ See [Update rules](/guides/update/) for the workflow.
 ### project build
 
 ```sh
-code-rules project build [options]
+syllabus project build [options]
 ```
 
-Regenerate `generated/` from project configuration, verified imported files, and local rules, and reinstall every skill into the skill targets, as sync does. Build works offline and does not change imported revisions, so it's how you install an authored skill you just wrote or changed. It also creates a missing managed Code Rules guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
+Regenerate `generated/` from project configuration, verified imported files, and local rules, and reinstall every skill into the skill targets, as sync does. Build works offline and does not change imported revisions, so it's how you install an authored skill you just wrote or changed. It also creates a missing managed Syllabus guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -260,10 +260,10 @@ Run sync first if the imported repository, selection, pins, or `ref` no longer m
 ### project check
 
 ```sh
-code-rules project check [options]
+syllabus project check [options]
 ```
 
-Check generated guidance and the managed Code Rules guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `code-rules project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
+Check generated guidance and the managed Syllabus guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `syllabus project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -271,19 +271,19 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 
 ## Library commands
 
-`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. A library keeps its manifest in the `library` section of `.code-rules/config.yaml`, its groups and rules in `.code-rules/rules/`, its shared assets in `.code-rules/assets/`, and its change notes in `.code-rules/changes/`; see [Library format](/reference/library-format/). Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
+`syllabus library` manages a **library**, an independently maintained collection of rule groups that projects can import. A library keeps its manifest in the `library` section of `.syllabus/config.yaml`, its groups and rules in `.syllabus/rules/`, its shared assets in `.syllabus/assets/`, and its change notes in `.syllabus/changes/`; see [Library format](/reference/library-format/). Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
 
 Every library command fails, writing nothing, in a repository that still has `rule-library.yaml`, `techs`, or `practices` at its root, where earlier versions kept a library; its message shows where each file moves. See [Libraries in the earlier layout](/reference/library-format/#libraries-in-the-earlier-layout).
 
 ### library init
 
 ```sh
-code-rules library init [options]
+syllabus library init [options]
 ```
 
-Create `.code-rules/config.yaml` with an empty `library` section, an authoring README at the repository root, and a GitHub Actions workflow without overwriting existing authored files. In a project, it adds the `library` section to the existing `.code-rules/config.yaml`, keeping its `sources`, so the repository is both; a configuration that already has a `library` section is left as it is. Optionally copy explicitly supplied license terms into the library.
+Create `.syllabus/config.yaml` with an empty `library` section, an authoring README at the repository root, and a GitHub Actions workflow without overwriting existing authored files. In a project, it adds the `library` section to the existing `.syllabus/config.yaml`, keeping its `sources`, so the repository is both; a configuration that already has a `library` section is left as it is. Optionally copy explicitly supplied license terms into the library.
 
-The workflow, `.github/workflows/code-rules.yml`, runs `code-rules library check` on every pull request, using the Code Rules version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`, and prints the version it installed in the job's log and summary. Rerunning `code-rules library init` never changes an existing workflow; to move it to the Code Rules version you run, delete the workflow and run `code-rules library init` again. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+The workflow, `.github/workflows/syllabus.yml`, runs `syllabus library check` on every pull request, using the Syllabus version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`, and prints the version it installed in the job's log and summary. Rerunning `syllabus library init` never changes an existing workflow; to move it to the Syllabus version you run, delete the workflow and run `syllabus library init` again. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
 
 | Option | Meaning |
 | --- | --- |
@@ -298,10 +298,10 @@ If you omit the license options, the `library` section leaves the license undecl
 ### library add group
 
 ```sh
-code-rules library add group ID [options]
+syllabus library add group ID [options]
 ```
 
-Create a group with `_group.yaml` metadata and an authoring README in the library's `.code-rules/rules/`. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a group with `_group.yaml` metadata and an authoring README in the library's `.syllabus/rules/`. `ID` is a group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
@@ -316,10 +316,10 @@ Empty groups are valid. Existing group files are preserved.
 ### library add rule
 
 ```sh
-code-rules library add rule ID [options]
+syllabus library add rule ID [options]
 ```
 
-Create a rule in an existing library group. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`; the rule's file is `.code-rules/rules/<ID>.md`.
+Create a rule in an existing library group. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`; the rule's file is `.syllabus/rules/<ID>.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -331,12 +331,12 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `code-rules library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `code-rules library change`. Like `code-rules library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
+Create the group first with `syllabus library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `syllabus:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `syllabus library change`. Like `syllabus library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
 
 ### library change
 
 ```sh
-code-rules library change ID... [options]
+syllabus library change ID... [options]
 ```
 
 Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`; name several rules to cover related changes in one note. Before the first library release, rules need no notes, so the command fails and says so.
@@ -349,17 +349,17 @@ Write a new [change note](/reference/rule-versions/#change-notes) for one or mor
 | `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. If it isn't a rule in the library yet, the command warns; add it before the next library release. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes a new file in `.code-rules/changes/` with a unique name, such as `.code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
+The command writes a new file in `.syllabus/changes/` with a unique name, such as `.syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
 
 See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
 
 ### library check
 
 ```sh
-code-rules library check [options]
+syllabus library check [options]
 ```
 
-Validate the `library` section of `.code-rules/config.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
+Validate the `library` section of `.syllabus/config.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |
@@ -370,7 +370,7 @@ Reports group and rule counts, `value.groupCount` and `value.ruleCount` in JSON,
 
 After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when:
 
-- A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
+- A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `syllabus library change` command to run.
 - A new rule has no pending note.
 - A published rule was deleted without a pending note that retires it.
 - A retired rule's `replacedBy` isn't a rule in the library.
@@ -381,14 +381,14 @@ After the first library release, check compares each rule's [versioned content](
 
 Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it. When a pending note retires a rule that an earlier library release named as a retired rule's replacement, check warns about it: when the note names a replacement, that updates will point projects still importing the earlier rule on to it; otherwise, that they would be pointed at a retired rule, suggesting a replacement as `replacedBy`. A pending retirement whose `replacedBy` isn't a rule in the library fails.
 
-This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `code-rules library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
+This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `syllabus library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
-When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, license files, or the `library` section of `config.yaml`, changed since the latest library release, the preview lists them too, by their paths in the library, such as `config.yaml` and `practices/testing/_group.yaml`, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `code-rules library release` reports the rules it publishes in `value.rules` the same way.
+When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `syllabus library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, license files, or the `library` section of `config.yaml`, changed since the latest library release, the preview lists them too, by their paths in the library, such as `config.yaml` and `practices/testing/_group.yaml`, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `syllabus project update` name them. `syllabus library release` reports the rules it publishes in `value.rules` the same way.
 
 ### library release
 
 ```sh
-code-rules library release [options]
+syllabus library release [options]
 ```
 
 Publish the pending change notes, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
@@ -404,24 +404,24 @@ Before publishing, the command fetches from the branch's upstream remote. It ref
 
 - you're on the remote's default branch,
 - the branch matches the remote exactly, so the library release contains no unpushed commits and misses none, and
-- `code-rules library check` passes.
+- `syllabus library check` passes.
 
 It then computes each changed rule's next version from the pending notes, using the largest change when several notes name the same rule. The first library release gives every rule version `1.0.0`. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
 
 `--dry-run` shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes.
 
-If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Code Rules created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Code Rules and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `code-rules library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules` and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Syllabus created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Syllabus and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `syllabus library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules` and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
-When the push fails, the command fails with `push-failed` and deletes the tag it created, so a rerun starts over. Code Rules doesn't show what Git or the server printed, as [Text from Git, servers, and the GitHub CLI](#text-from-git-servers-and-the-github-cli) explains; its message names the cause it recognizes in that text instead:
+When the push fails, the command fails with `push-failed` and deletes the tag it created, so a rerun starts over. Syllabus doesn't show what Git or the server printed, as [Text from Git, servers, and the GitHub CLI](#text-from-git-servers-and-the-github-cli) explains; its message names the cause it recognizes in that text instead:
 
 - a repository rule or tag protection, such as a GitHub ruleset or a GitLab protected tag, with GitHub's error code when the server gave `GH006` or `GH013`,
 - the HTTPS server's certificate or the SSH host key couldn't be verified,
 - Git couldn't connect to the server,
 - the server denied access, or authentication failed,
 - a hook on the server, such as a pre-receive or update hook, declined the tag,
-- the server refused the tag for a reason Code Rules doesn't recognize, with GitHub's error code when the server gave another one, such as `GH001` for large files, or
+- the server refused the tag for a reason Syllabus doesn't recognize, with GitHub's error code when the server gave another one, such as `GH001` for large files, or
 - the push failed before the server answered, such as when your pre-push hook stopped it.
 
 To read the server's own message, push a test tag that your tag rules cover yourself, such as `release/0`, which isn't a library release tag:
@@ -434,7 +434,7 @@ git tag --delete release/0
 
 If that push succeeds, delete the test tag from the remote with `git push origin --delete refs/tags/release/0`.
 
-`code-rules library release` refuses before creating anything, with exit code `1` and `error.code` in JSON output, when:
+`syllabus library release` refuses before creating anything, with exit code `1` and `error.code` in JSON output, when:
 
 | Code | Refusal |
 | --- | --- |
@@ -451,9 +451,9 @@ If that push succeeds, delete the test tag from the remote with `git push origin
 | `remote-changed` | Someone pushed to the branch, or changed a release tag, while the command ran. |
 | `release-tag-mismatch` | A release tag in the clone differs from the remote's, exists only in the clone without being the next one on this commit, or doesn't publish what this commit would. |
 | `invalid-release-tag` | A release tag reachable from the commit isn't a valid annotated tag with a release record. |
-| `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Code Rules. |
+| `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Syllabus. |
 | `uncommitted-changes` | Library files differ from the checked-out commit. |
-| `change-notes` | Change notes don't match the rule changes, as `code-rules library check` reports; other check failures keep their own codes. |
+| `change-notes` | Change notes don't match the rule changes, as `syllabus library check` reports; other check failures keep their own codes. |
 | `version-limit` | A change would take a rule's version past the largest version number. |
 | `git-identity` | Git doesn't know your name and email for the tag's tagger. |
 | `github-cli-missing` | A GitHub Release page applies, but `gh` isn't installed. |
@@ -472,20 +472,20 @@ After it creates the tag, it can fail with:
 | `github-cli-failed` | `gh` couldn't run. |
 | `github-release-failed` | `gh` couldn't look up or create the GitHub Release page. The message names the cause it recognizes: GitHub's rate limit, `gh` signed out or its credentials refused, permission denied, or a repository GitHub can't find. Otherwise, when the lookup failed, it says to run `gh release view` to read `gh`'s message; when creating the page failed, it suggests checks that change nothing, `gh auth status` and `gh repo view`, and running the command again, which creates the page with its generated notes only if it's still missing. The tag is published; run the command again to create the page. |
 
-**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `code-rules library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only. The page's URL in the result is built from the repository and the tag, never taken from what `gh` printed.
+**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `syllabus library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `syllabus library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only. The page's URL in the result is built from the repository and the tag, never taken from what `gh` printed.
 
 <span id="help-and-version"></span>
 
 ## Help, version, and license
 
 ```sh
-code-rules --help
-code-rules COMMAND --help
-code-rules --version
-code-rules --license
+syllabus --help
+syllabus COMMAND --help
+syllabus --version
+syllabus --license
 ```
 
-Use `-h` or `--help` to inspect command syntax and options. For example, run `code-rules project --help` to find project commands or `code-rules library add rule --help` for rule authoring options.
+Use `-h` or `--help` to inspect command syntax and options. For example, run `syllabus project --help` to find project commands or `syllabus library add rule --help` for rule authoring options.
 
 | Option | Meaning |
 | --- | --- |
@@ -494,19 +494,19 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `co
 | `--license` | At the root, print the full embedded MIT license and copyright notice. |
 | `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
-Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `code-rules project`, `code-rules project add`, `code-rules library`, and `code-rules library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
+Running `syllabus` or a command group such as `syllabus library` without a subcommand displays help. The `syllabus project`, `syllabus project add`, `syllabus library`, and `syllabus library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
 The root `--version` flag prints the tool version. To choose which versions of a library's rules to import, see [Choose versions](/reference/configuration/#choose-versions).
 
 ## Working directories
 
-In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `code-rules library init --directory`.
+In Git repositories, run `syllabus project init` or `syllabus library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `syllabus library init --directory`.
 
-Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands use that root's `.code-rules/config.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
+Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands use that root's `.syllabus/config.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.syllabus/` does not override the root's configuration.
 
 Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
 
-Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` resolve from the directory where you run the command. Paths inside project configuration remain relative to `.code-rules/`.
+Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` resolve from the directory where you run the command. Paths inside project configuration remain relative to `.syllabus/`.
 
 ## Shared options and prompts
 
@@ -516,7 +516,7 @@ Authoring commands accept `--non-interactive`. Without it, commands can prompt f
 
 Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
 
-Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
+Both init commands, both check commands, and `syllabus library release` run without prompts. Of these, `syllabus library check` and `syllabus library release` accept `--non-interactive`; `syllabus project check`, `syllabus project sync`, `syllabus project update`, and `syllabus project build` do not need or accept it.
 
 String options accept one value and cannot be repeated, except `--rules`, `--skills`, `--skill-targets`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
@@ -527,7 +527,7 @@ Scaffolding commands validate paths and detect collisions before writing. They p
 Human-readable output is the default. Add `--json` for scripts:
 
 ```sh
-code-rules project check --json
+syllabus project check --json
 ```
 
 JSON mode writes one response to stdout:
@@ -537,26 +537,27 @@ JSON mode writes one response to stdout:
 | `ok` | `true` for success; `false` for failure or an out-of-date project check. |
 | `value` | The command's result, when available. An out-of-date check still includes its report here. |
 | `error` | On failure, an object with `kind` (`usage`, `validation`, `operation`, `cancelled`, or `out-of-date` for a stale project check) and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`, and every `usage` error has the code `invalid-arguments`. |
+| `warnings` | Present only when there is a warning about how the command found the project, such as a project that still keeps its files in `.code-rules/`; see [Upgrade from Code Rules](/start-here/install/#upgrade-from-code-rules). It accompanies success and failure alike. Human output prints these warnings to stderr. |
 
 Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 
-Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
+Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Syllabus directory. Both generated guidance and the managed Syllabus guide must be current for success.
 
 Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build. The files of installed skill copies are listed by the same relative path, such as `../.claude/skills/build-feature/SKILL.md` for sync and `../../.claude/skills/build-feature/SKILL.md` for build. Authoring commands, such as init, add source, add group, add rule, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, skills installed nowhere because the project has no skill targets, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Syllabus directory, or to `generated/` for build. The files of installed skill copies are listed by the same relative path, such as `../.claude/skills/build-feature/SKILL.md` for sync and `../../.claude/skills/build-feature/SKILL.md` for build. Authoring commands, such as init, add source, add group, add rule, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, skills installed nowhere because the project has no skill targets, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Syllabus guide, `value.guide` reports its path relative to the Syllabus directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/code-rules/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 
 ## Text from Git, servers, and the GitHub CLI
 
-Code Rules never shows text that Git, a Git server, or the GitHub CLI, `gh`, produced: not in human output, JSON output, or errors. That includes Git's error messages, the lines a server or its hooks print, the reason in Git's `! [remote rejected]` line, the default branch a server advertises, and everything `gh` prints. Such text can hold anything, including credentials Code Rules can't know about, such as one a Git credential helper, `GIT_ASKPASS`, or `http.extraHeader` supplies, so Code Rules doesn't try to find and remove them. It reads the text privately to choose one of its own fixed messages and error codes, which name the likely cause and what to check. A message may name a GitHub error code it recognizes, such as `GH013`, because those are a fixed set. To read the original text, run the Git or `gh` command yourself; the message or this reference says which.
+Syllabus never shows text that Git, a Git server, or the GitHub CLI, `gh`, produced: not in human output, JSON output, or errors. That includes Git's error messages, the lines a server or its hooks print, the reason in Git's `! [remote rejected]` line, the default branch a server advertises, and everything `gh` prints. Such text can hold anything, including credentials Syllabus can't know about, such as one a Git credential helper, `GIT_ASKPASS`, or `http.extraHeader` supplies, so Syllabus doesn't try to find and remove them. It reads the text privately to choose one of its own fixed messages and error codes, which name the likely cause and what to check. A message may name a GitHub error code it recognizes, such as `GH013`, because those are a fixed set. To read the original text, run the Git or `gh` command yourself; the message or this reference says which.
 
-Code Rules also never shows credentials in a URL it displays. A repository address it shows, such as a library's remote in `code-rules library release`, has any password, query, and fragment removed, and its user name too unless it's an SSH user name, which names an account. An address it can't parse is replaced by a note, including one with an authority but no scheme, such as `//host/rules`, and a `user@host:path` address with a colon before its `@`, which could start a password. The GitHub Release page URL is built from the repository and the tag, not taken from `gh`.
+Syllabus also never shows credentials in a URL it displays. A repository address it shows, such as a library's remote in `syllabus library release`, has any password, query, and fragment removed, and its user name too unless it's an SSH user name, which names an account. An address it can't parse is replaced by a note, including one with an authority but no scheme, such as `//host/rules`, and a `user@host:path` address with a colon before its `@`, which could start a password. The GitHub Release page URL is built from the repository and the tag, not taken from `gh`.
 
-Code Rules shows some values that Git computes, after checking their form: commit and object IDs, which must be hexadecimal object IDs; commit counts, which must be nonnegative integers; and object types, which must be one of Git's four. A value in any other form fails with code `git-failed` and a fixed message instead.
+Syllabus shows some values that Git computes, after checking their form: commit and object IDs, which must be hexadecimal object IDs; commit counts, which must be nonnegative integers; and object types, which must be one of Git's four. A value in any other form fails with code `git-failed` and a fixed message instead.
 
-Code Rules shows as they are:
+Syllabus shows as they are:
 
 - names you chose locally, such as branch and remote names,
 - the repository addresses in project configuration, which can't contain credentials, and
@@ -570,10 +571,10 @@ Human output still shows control characters in that text as visible escapes, as 
 | --- | --- |
 | `0` | Success. |
 | `1` | An operation failed, inputs are invalid, or a project check found stale output. |
-| `2` | Invalid command usage, such as an unknown command, unsupported option, missing required CLI input, or options the command can't combine, such as `code-rules library change --bump` for a new rule, or a `code-rules project update` decision the preview doesn't offer, such as `--keep` for a rule the update doesn't move. |
+| `2` | Invalid command usage, such as an unknown command, unsupported option, missing required CLI input, or options the command can't combine, such as `syllabus library change --bump` for a new rule, or a `syllabus project update` decision the preview doesn't offer, such as `--keep` for a rule the update doesn't move. |
 | `130` | The command was interrupted, such as with Ctrl-C, including at a prompt. It says it was cancelled; a command interrupted before writing files writes none, and one interrupted while replacing files is recovered by the next command, as [Sync and recovery](/reference/sync/) describes. JSON output reports `error.kind` as `cancelled`. |
 
-Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. A failure of `code-rules project sync` or `code-rules project update` that wrote nothing, including an update's refusal of its arguments after the command line is parsed, ends with `No files were written.`, or, when the command first recovered an interrupted earlier command, which restores or finishes that command's files, says so instead, as an update's preview and a declined or interrupted update do too, and names the source, as in `source team:`, when the problem doesn't already. An interrupted one says `cancelled; no files were written`, or, after such a recovery, that it was cancelled and what the recovery did. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
+Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. A failure of `syllabus project sync` or `syllabus project update` that wrote nothing, including an update's refusal of its arguments after the command line is parsed, ends with `No files were written.`, or, when the command first recovered an interrupted earlier command, which restores or finishes that command's files, says so instead, as an update's preview and a declined or interrupted update do too, and names the source, as in `source team:`, when the problem doesn't already. An interrupted one says `cancelled; no files were written`, or, after such a recovery, that it was cancelled and what the recovery did. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
 
 ## Migrating from earlier commands
 
@@ -582,13 +583,13 @@ Update existing scripts to use the scoped commands below. Use `-h` or `--help` f
 
 | Earlier command | Canonical command |
 | --- | --- |
-| `code-rules init` | `code-rules project init` |
-| `code-rules add source` | `code-rules project add source` |
-| `code-rules project add library` | `code-rules project add source` |
-| `code-rules local add group` | `code-rules project add group` |
-| `code-rules local add rule` | `code-rules project add rule` |
-| `code-rules sync` | `code-rules project sync` |
-| `code-rules build` | `code-rules project build` |
-| `code-rules check` | `code-rules project check` |
+| `syllabus init` | `syllabus project init` |
+| `syllabus add source` | `syllabus project add source` |
+| `syllabus project add library` | `syllabus project add source` |
+| `syllabus local add group` | `syllabus project add group` |
+| `syllabus local add rule` | `syllabus project add rule` |
+| `syllabus sync` | `syllabus project sync` |
+| `syllabus build` | `syllabus project build` |
+| `syllabus check` | `syllabus project check` |
 
 Library command paths are unchanged. For configuration fields that changed, see [Configuration](/reference/configuration/#fields).

@@ -1,4 +1,4 @@
-# Canonical Code Rules group IDs.
+# Canonical Syllabus group IDs.
 #
 # Libraries choose their own group IDs. When libraries use an ID from this list,
 # tools and catalogs can treat their groups as the same group and combine them.

@@ -21,9 +21,9 @@ func TestScopedCommandHelp(t *testing.T) {
 		{[]string{"project"}, []string{"Main commands:", "Utility commands:", "  init ", "  add ", "  sync ", "  build ", "  check "}, []string{"  local ", "Available Commands:", "Additional Commands:"}},
 		{[]string{"project", "--help"}, []string{"Main commands:", "Utility commands:"}, []string{"Available Commands:"}},
 		{[]string{"project", "add"}, []string{"  rule ", "  group ", "  source "}, []string{"  library ", "  repository ", "  local "}},
-		{[]string{"project", "add", "source", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--rules", "--skills"}, nil},
+		{[]string{"project", "add", "source", "--help"}, []string{"without fetching", "syllabus project sync", "--repository", "--rules", "--skills"}, nil},
 		{[]string{"project", "check", "--help"}, []string{"not whether application code follows"}, []string{"--config"}},
-		{[]string{"project", "add", "rule", "-h"}, []string{"code-rules project add rule RULE_PATH", "--body-file"}, nil},
+		{[]string{"project", "add", "rule", "-h"}, []string{"syllabus project add rule RULE_PATH", "--body-file"}, nil},
 		{[]string{"library"}, []string{"  init ", "  add ", "  check "}, nil},
 		{[]string{"library", "add"}, []string{"  rule ", "  group "}, nil},
 	} {

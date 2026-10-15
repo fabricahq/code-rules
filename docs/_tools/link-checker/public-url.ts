@@ -83,7 +83,7 @@ export async function readPublicURL(
         signal,
         headers: {
           Host: url.host,
-          'User-Agent': 'CodeRulesDocsLinkChecker/1.0',
+          'User-Agent': 'SyllabusDocsLinkChecker/1.0',
           Accept: 'text/html,*/*;q=0.8',
         },
       },

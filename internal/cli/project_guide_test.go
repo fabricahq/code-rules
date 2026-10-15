@@ -25,12 +25,12 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 	if code != 0 {
 		t.Fatal(out, diagnostic)
 	}
-	guidePath := filepath.Join(directory, ".code-rules", "README.md")
+	guidePath := filepath.Join(directory, ".syllabus", "README.md")
 	guide, err := os.ReadFile(guidePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"Add a group", "Add a rule", "Add a source", "Install skills", "code-rules project check"} {
+	for _, text := range []string{"Add a group", "Add a rule", "Add a source", "Install skills", "syllabus project check"} {
 		if !strings.Contains(string(guide), text) {
 			t.Fatalf("guide missing %q", text)
 		}
@@ -67,10 +67,10 @@ func TestProjectGuideExamples(t *testing.T) {
 		t.Run(projectName, func(t *testing.T) {
 			ctx := context.Background()
 			fixture, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-				"config.yaml":                               []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-				"techs/go/_group.yaml":                      []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
-				"techs/go/shared.md":                        []byte(rule),
-				".code-rules/skills/build-feature/SKILL.md": []byte("---\nname: build-feature\ndescription: Build a feature.\n---\n# Build a feature\n"),
+				"config.yaml":                             []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+				"techs/go/_group.yaml":                    []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
+				"techs/go/shared.md":                      []byte(rule),
+				".syllabus/skills/build-feature/SKILL.md": []byte("---\nname: build-feature\ndescription: Build a feature.\n---\n# Build a feature\n"),
 			}))
 			if err != nil {
 				t.Fatal(err)
@@ -96,7 +96,7 @@ func TestProjectGuideExamples(t *testing.T) {
 			if code != 0 {
 				t.Fatal(out, diagnostic)
 			}
-			guide, err := os.ReadFile(filepath.Join(directory, ".code-rules", "README.md"))
+			guide, err := os.ReadFile(filepath.Join(directory, ".syllabus", "README.md"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -105,7 +105,7 @@ func TestProjectGuideExamples(t *testing.T) {
 				t.Fatal("no executable README examples")
 			}
 			for index, block := range blocks {
-				script := strings.ReplaceAll(string(block[1]), "code-rules ", gitfixture.Quote(binary)+" ")
+				script := strings.ReplaceAll(string(block[1]), "syllabus ", gitfixture.Quote(binary)+" ")
 				script = strings.ReplaceAll(script, "https://github.com/example/engineering-rules", fixture.Repository)
 				// The library publishes a newer version before the update example, so the example has something to apply.
 				if strings.Contains(script, "project update") && !updated {
@@ -129,17 +129,17 @@ func TestProjectGuideExamples(t *testing.T) {
 				t.Fatal("changed authored README", err)
 			}
 			for _, file := range []string{"rules/README.md", "rules/techs/go/README.md"} {
-				content, err := os.ReadFile(filepath.Join(directory, ".code-rules", file))
+				content, err := os.ReadFile(filepath.Join(directory, ".syllabus", file))
 				if err != nil || !strings.Contains(string(content), "/README.md)") {
 					t.Fatalf("%s does not link to the managed guide: %v", file, err)
 				}
 			}
 			for _, path := range []string{"rules/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md", "generated/SKILLS.md", "../.claude/skills/build-feature/SKILL.md", "../.agents/skills/build-feature/SKILL.md"} {
-				if _, err := os.Stat(filepath.Join(directory, ".code-rules", path)); err != nil {
+				if _, err := os.Stat(filepath.Join(directory, ".syllabus", path)); err != nil {
 					t.Fatalf("README did not produce %s: %v", path, err)
 				}
 			}
-			if shared, err := os.ReadFile(filepath.Join(directory, ".code-rules", "vendor/team/techs/go/shared.md")); err != nil || !updated || !strings.Contains(string(shared), "Wrap them with context.") {
+			if shared, err := os.ReadFile(filepath.Join(directory, ".syllabus", "vendor/team/techs/go/shared.md")); err != nil || !updated || !strings.Contains(string(shared), "Wrap them with context.") {
 				t.Fatalf("the update example didn't apply the newer version: %v", err)
 			}
 		})
@@ -162,7 +162,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 						t.Fatal(code, out, diagnostic)
 					}
 				}
-				root := filepath.Join(directory, ".code-rules")
+				root := filepath.Join(directory, ".syllabus")
 				guideName := "README.md"
 				guidePath := filepath.Join(root, guideName)
 				if guideState == "missing" {
@@ -216,7 +216,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 						if !strings.Contains(out, "Status:") {
 							t.Fatal(out, diagnostic)
 						}
-						if wantCode == 0 && !strings.Contains(out, "the Code Rules guide are current") {
+						if wantCode == 0 && !strings.Contains(out, "the Syllabus guide are current") {
 							t.Fatal(out)
 						}
 						if guideState != "current" && !strings.Contains(out, guideName) {

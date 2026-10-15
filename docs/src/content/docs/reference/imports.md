@@ -7,17 +7,17 @@ An **import** copies selected rules from a shared library into your project.
 
 Imports let you reuse your team's engineering practices across projects without writing and maintaining the same rules in each one. You can also import rules from third-party libraries whose engineering practices you want to adopt. Each project can choose which rules to use, add its own rules, and replace imported rules to fit its needs.
 
-This page explains which files Code Rules imports and how it combines imported rules with your local rules and exceptions. It also covers the checks that protect your project during an update and the limits on what you can import. For step-by-step instructions, see [Import rules](/guides/select-rules/).
+This page explains which files Syllabus imports and how it combines imported rules with your local rules and exceptions. It also covers the checks that protect your project during an update and the limits on what you can import. For step-by-step instructions, see [Import rules](/guides/select-rules/).
 
 ## From library rules to project guidance
 
-When you run `code-rules project sync`, Code Rules:
+When you run `syllabus project sync`, Syllabus:
 
 1. Reads your configuration to find the libraries, groups, and rule versions you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
 2. Copies the selected library files into your project. The copy of one library is called a **snapshot**; each rule in it comes from the library release that published its version.
 3. Combines the imported rules with your local rules and configured exceptions, then generates files for your agents to read.
 
-These files live in the **Code Rules directory**, `.code-rules/` at the project root:
+These files live in the **Syllabus directory**, `.syllabus/` at the project root:
 
 | Directory | What it contains |
 | --- | --- |
@@ -26,32 +26,32 @@ These files live in the **Code Rules directory**, `.code-rules/` at the project 
 | `assets/` | Supporting files that several of your rules share. |
 | `generated/` | The rules and reading indexes your agents use. |
 
-For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `code-rules project build` can regenerate guidance without network access.
+For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `syllabus project build` can regenerate guidance without network access.
 
 ## What gets copied
 
-Each library has a **source name** in your configuration, such as `team`. Code Rules stores that library's imported files under `vendor/team/`.
+Each library has a **source name** in your configuration, such as `team`. Syllabus stores that library's imported files under `vendor/team/`.
 
 The copy includes:
 
 - Rules from the selected groups and the individually selected rules, including rules your project excludes or replaces.
 - Supporting files, such as images and examples, from the library's designated asset directories.
 - Group metadata, which describes each group and when to read it.
-- The library's manifest, as `config.yaml`, holding only the `library` section of the library's `.code-rules/config.yaml`, and its declared license and notice files. The library's own `sources`, change notes, and `vendor/` and `generated/` directories are never copied; see [What a library publishes](/reference/library-format/#what-a-library-publishes).
+- The library's manifest, as `config.yaml`, holding only the `library` section of the library's `.syllabus/config.yaml`, and its declared license and notice files. The library's own `sources`, change notes, and `vendor/` and `generated/` directories are never copied; see [What a library publishes](/reference/library-format/#what-a-library-publishes).
 
-- The files of each skill the source's `skills.include` selects, with their executable bits, all from the one commit the source record locks, including skills that `skills.exclude` leaves out, so updates can compare a replaced skill with your replacement. A library's skills are the folders in its `.code-rules/skills/`; another repository's are its folders that hold a `SKILL.md`. See [Select skills](/reference/configuration/#select-skills).
+- The files of each skill the source's `skills.include` selects, with their executable bits, all from the one commit the source record locks, including skills that `skills.exclude` leaves out, so updates can compare a replaced skill with your replacement. A library's skills are the folders in its `.syllabus/skills/`; another repository's are its folders that hold a `SKILL.md`. See [Select skills](/reference/configuration/#select-skills).
 
-A source whose repository has no library manifest, a `.code-rules/config.yaml` with a `library` section, at that commit isn't a library: its snapshot holds only its selected skills, and it needs a `ref`.
+A source whose repository has no library manifest, a `.syllabus/config.yaml` with a `library` section, at that commit isn't a library: its snapshot holds only its selected skills, and it needs a `ref`.
 
 :::note[Preview]
-Skills, and sources that aren't libraries, come in the next Code Rules release.
+Skills, and sources that aren't libraries, come in the next Syllabus release.
 :::
 
 Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `rules/`; syncing replaces the imported files.
 
-The snapshot contains no Git history or `.git` directory. Code Rules reads the original files through temporary Git storage and removes that temporary storage afterward.
+The snapshot contains no Git history or `.git` directory. Syllabus reads the original files through temporary Git storage and removes that temporary storage afterward.
 
-## How Code Rules selects the rules your agents read
+## How Syllabus selects the rules your agents read
 
 Your configuration selects groups from each library, and optionally individual rules. You can name groups individually or use one of these selectors:
 
@@ -61,9 +61,9 @@ Your configuration selects groups from each library, and optionally individual r
 | `"practices/*"` | Every practice group. |
 | `"techs/*"` | Every technology group. |
 
-Code Rules finds the matching groups in the imported library before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
+Syllabus finds the matching groups in the imported library before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
 
-Code Rules then decides which rules are **active**, meaning included in the generated guidance:
+Syllabus then decides which rules are **active**, meaning included in the generated guidance:
 
 1. Starts with the imported rules, from your selected groups and your individually selected rules, and discovers local groups from their `_group.yaml` files.
 2. Removes rules you explicitly excluded.
@@ -74,11 +74,11 @@ Each rule's ID includes its source name. For example, `team:practices/testing/ch
 
 A replacement contributes its complete local definition: ID, title, metadata, body, attribution, and links to supporting files. It must belong to the same group as the rule it replaces. Each local rule appears only once, even when used as a replacement.
 
-Code Rules does not read rule text to detect contradictory instructions. Two libraries can supply conflicting rules, and both remain active unless you configure an exclusion or replacement. The order of libraries in your configuration does not establish priority. See [Resolve conflicting rules](/guides/conflicting-guidance/).
+Syllabus does not read rule text to detect contradictory instructions. Two libraries can supply conflicting rules, and both remain active unless you configure an exclusion or replacement. The order of libraries in your configuration does not establish priority. See [Resolve conflicting rules](/guides/conflicting-guidance/).
 
 ## Where agents read the result
 
-Code Rules writes the active rules and reading indexes to `generated/`. Agents start at `generated/RULES.md`, open relevant groups, and read the applicable rules in full.
+Syllabus writes the active rules and reading indexes to `generated/`. Agents start at `generated/RULES.md`, open relevant groups, and read the applicable rules in full.
 
 The generated files also include library summaries, retained license files, and **provenance**: records of where rules came from and which rules they replaced. Replacement targets and reasons stay in configuration and provenance, outside the rule guidance. Group descriptions remain labeled by source so you can see which library supplied them.
 
@@ -86,37 +86,37 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version only for a newly selected rule, a new source or changed repository, a pin you add or change, or a `ref` you add, change, or remove; see [project sync](/reference/cli/#project-sync).
+Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `syllabus project sync` again imports those same versions, so every checkout of the project gets the same rules. `syllabus project sync` chooses a rule's version only for a newly selected rule, a new source or changed repository, a pin you add or change, or a `ref` you add, change, or remove; see [project sync](/reference/cli/#project-sync).
 
-`code-rules project update` previews each rule's newest version, and applies it once you confirm, unless the rule is [pinned](/reference/configuration/#pin-a-rule). Sources that use `ref` don't move.
+`syllabus project update` previews each rule's newest version, and applies it once you confirm, unless the rule is [pinned](/reference/configuration/#pin-a-rule). Sources that use `ref` don't move.
 
 With the same configuration and recorded versions, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
-`code-rules project update` reports each changed rule with its change, versions, and summary, and applies the changes only after you confirm. Both commands report changed files, including group metadata and version records.
+`syllabus project update` reports each changed rule with its change, versions, and summary, and applies the changes only after you confirm. Both commands report changed files, including group metadata and version records.
 
 ### How rule versions are resolved
 
 The newest library release is the one with the highest `release/<number>` tag. Each [library release](/reference/rule-versions/#library-releases) tag's message records every rule's version and the changes that library release published.
 
-To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the one library release that `vendor/<source-name>/_source.json` records as `release`, which is never older than the library release of any imported rule version. A new source or newly selected rules take them from the newest library release, `code-rules project update` moves them there, and `code-rules project sync` keeps the recorded one; see [What a version covers](/reference/rule-versions/#what-a-version-covers).
+To choose a rule's version, Syllabus reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the one library release that `vendor/<source-name>/_source.json` records as `release`, which is never older than the library release of any imported rule version. A new source or newly selected rules take them from the newest library release, `syllabus project update` moves them there, and `syllabus project sync` keeps the recorded one; see [What a version covers](/reference/rule-versions/#what-a-version-covers).
 
 A rule absent from a library release was retired, and the release record's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 
-To find versions, Code Rules lists only `release/` tags, fetches their messages without the library's history, and fetches only the files it imports. It records each imported rule's version, library release, and commit in `_source.json` and generated provenance, and shows the version in generated guidance.
+To find versions, Syllabus lists only `release/` tags, fetches their messages without the library's history, and fetches only the files it imports. It records each imported rule's version, library release, and commit in `_source.json` and generated provenance, and shows the version in generated guidance.
 
 ### Tracing rules to their source
 
-Code Rules records the versions you requested, and each imported rule's exact version and commit. See [Provenance](/reference/provenance/) for these records.
+Syllabus records the versions you requested, and each imported rule's exact version and commit. See [Provenance](/reference/provenance/) for these records.
 
 Links to original files on GitHub.com and GitLab.com use the imported commit, so moving a tag does not change their destination. For other Git hosts, links point to the stored files; provenance retains the repository address and commit.
 
-Code Rules preserves rule attribution in both imported and generated files and keeps attribution links valid. It verifies and retains the license and notice files declared in the library manifest, includes them in integrity checks, and reports their changes during updates.
+Syllabus preserves rule attribution in both imported and generated files and keeps attribution links valid. It verifies and retains the license and notice files declared in the library manifest, includes them in integrity checks, and reports their changes during updates.
 
 Generated rules link to retained terms under `generated/libraries/<source-name>/licenses/`. See [License rules](/guides/license-rules/) for how library authors declare those files.
 
 ## Checks before updating your files
 
-Code Rules fetches and validates all selected libraries before replacing your project's imported files or generated guidance. If any library cannot be fetched or validated, your previous complete set of rules stays in place.
+Syllabus fetches and validates all selected libraries before replacing your project's imported files or generated guidance. If any library cannot be fetched or validated, your previous complete set of rules stays in place.
 
 Validation rejects:
 
@@ -127,32 +127,32 @@ Validation rejects:
 
 Selected library rules must pass validation even if you exclude or replace them. File checks also ensure that paths stay within their allowed directories.
 
-Code Rules detects concurrent writes and interrupted updates so a mixture of old and new output cannot pass a consistency check. For file replacement and recovery behavior, see [Sync and recovery](/reference/sync/).
+Syllabus detects concurrent writes and interrupted updates so a mixture of old and new output cannot pass a consistency check. For file replacement and recovery behavior, see [Sync and recovery](/reference/sync/).
 
 ## Git access and supported files
 
-Imports require Git 2.30 or later on macOS or Linux. Code Rules accepts HTTPS and SSH repository addresses, including scp-style SSH addresses and nested repository paths. See [Repository addresses](/reference/configuration/#repository-addresses) for accepted formats.
+Imports require Git 2.30 or later on macOS or Linux. Syllabus accepts HTTPS and SSH repository addresses, including scp-style SSH addresses and nested repository paths. See [Repository addresses](/reference/configuration/#repository-addresses) for accepted formats.
 
-Code Rules uses your Git credentials and certificate and host-key verification settings. It does not store credentials in configuration or provenance. A valid repository address does not guarantee that the repository is reachable or appropriate for your network.
+Syllabus uses your Git credentials and certificate and host-key verification settings. It does not store credentials in configuration or provenance. A valid repository address does not guarantee that the repository is reachable or appropriate for your network.
 
-Git URL rewrites still apply. If a rewrite uses another protocol, your Git configuration must explicitly allow that protocol. Executable `ext` helpers are always disabled. Code Rules passes Git arguments separately and applies the same path checks and resource limits across hosts.
+Git URL rewrites still apply. If a rewrite uses another protocol, your Git configuration must explicitly allow that protocol. Executable `ext` helpers are always disabled. Syllabus passes Git arguments separately and applies the same path checks and resource limits across hosts.
 
-Code Rules reads original Git file contents without checking out the library. It does not run library scripts, Git hooks, or checkout filters. Selected symbolic links, submodules, and Git LFS pointers are unsupported; Code Rules does not fetch submodule contents. A selected skill with a symbolic link or submodule fails with `unsupported-content`. Code Rules never runs a skill's scripts; it copies them, keeping their executable bit.
+Syllabus reads original Git file contents without checking out the library. It does not run library scripts, Git hooks, or checkout filters. Selected symbolic links, submodules, and Git LFS pointers are unsupported; Syllabus does not fetch submodule contents. A selected skill with a symbolic link or submodule fails with `unsupported-content`. Syllabus never runs a skill's scripts; it copies them, keeping their executable bit.
 
 ### Supporting files
 
-Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
+Syllabus copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
-- **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
-- **Shared assets:** files in the library's `.code-rules/assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the library release that supplies the source's library-wide files.
+- **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Syllabus copies this directory in full when it imports the rule.
+- **Shared assets:** files in the library's `.syllabus/assets/` directory. Syllabus copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the library release that supplies the source's library-wide files.
 
-Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
+Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Syllabus preserves external URLs as links without downloading their contents.
 
 A rule or Markdown attachment cannot link to another rule document on disk, even if that rule is also selected. Each rule must work independently because projects can exclude or replace it. Put shared supporting explanations in the library's shared assets directory.
 
 Within a selected group, Markdown files outside asset directories count as rules, including files in nested folders. Declared license and notice files and the group-root `README.md` are exceptions. Put other supporting Markdown, such as `_README.md`, in an asset directory.
 
-Markdown assets, license files, and notice files must use UTF-8 text. Other assets can be binary files; Code Rules preserves their original bytes.
+Markdown assets, license files, and notice files must use UTF-8 text. Other assets can be binary files; Syllabus preserves their original bytes.
 
 ## Import limits and version errors
 
@@ -173,19 +173,19 @@ Each library import has these limits:
 
 The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Finding rule versions uses the same Git access settings and deadline as fetching.
 
-When finding the newest library release, Code Rules can report:
+When finding the newest library release, Syllabus can report:
 
 | Error | Meaning and next step |
 | --- | --- |
 | `ref-required` | The source's repository has no `release/<number>` tags, because it isn't a library or hasn't published its first library release, and the source has no `ref`. Set the source's `ref` to a tag or full commit SHA. |
-| `skill-not-in-revision` | `skills.include` names a skill that the revision the source record locks doesn't have. Sync never moves a source, so run `code-rules project update <source>` to take a newer library release, set `ref` to a revision that has the skill, or check the skill ID. |
+| `skill-not-in-revision` | `skills.include` names a skill that the revision the source record locks doesn't have. Sync never moves a source, so run `syllabus project update <source>` to take a newer library release, set `ref` to a revision that has the skill, or check the skill ID. |
 | `releases-not-found` | Forking a rule from a library that has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release. |
 | `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, a skill exclusion's `basedOn` names a commit the repository doesn't have, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin, `ref`, or `basedOn`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
 | `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
-| `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
-| `unsupported-library-layout` | The library release or commit the source selects keeps the library in the [earlier layout](/reference/library-format/#libraries-in-the-earlier-layout), with `rule-library.yaml` and rule folders at the repository root, which this Code Rules can't read; or a rule version that such a library release published has a link that resolves to another file in the current layout. Ask the library's maintainer to move the library into `.code-rules/` and publish a library release, then select it, such as with `code-rules project update`, or select a version of the rule published after the move. |
+| `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Syllabus reads, because a later Syllabus published it. Upgrade Syllabus. |
+| `unsupported-library-layout` | The library release or commit the source selects keeps the library in the [earlier layout](/reference/library-format/#libraries-in-the-earlier-layout), with `rule-library.yaml` and rule folders at the repository root, which this Syllabus can't read; or a rule version that such a library release published has a link that resolves to another file in the current layout. Ask the library's maintainer to move the library into `.syllabus/` and publish a library release, then select it, such as with `syllabus project update`, or select a version of the rule published after the move. |
 
-When Code Rules can't read the library's repository, it can report:
+When Syllabus can't read the library's repository, it can report:
 
 | Error | Meaning and next step |
 | --- | --- |
@@ -193,7 +193,7 @@ When Code Rules can't read the library's repository, it can report:
 | `https-certificate-failed` | The HTTPS server's certificate couldn't be verified. Check that your system trusts it: Git's `http.sslCAInfo` setting, your system's certificate store, and any proxy that intercepts TLS. |
 | `ssh-host-key-failed` | The SSH host key couldn't be verified. Check the server's entry in your `known_hosts` file. |
 | `not-found-or-no-access` | Git or the server reported that the repository doesn't exist or that your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
-| `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
-| `git-failed` | Another Git failure, including one whose cause Code Rules doesn't recognize. The message says which step failed, such as fetching library files. |
+| `object-fetch-refused` | The server refused to send a file by its object ID, which Syllabus needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
+| `git-failed` | Another Git failure, including one whose cause Syllabus doesn't recognize. The message says which step failed, such as fetching library files. |
 
-These messages never include what Git or the server printed, which can hold credentials, such as one that `url.*.insteadOf` rewriting adds to the repository address. Code Rules reads that text only to choose the code and message, as [Text from Git, servers, and the GitHub CLI](/reference/cli/#text-from-git-servers-and-the-github-cli) describes. To read Git's message, run `git ls-remote` with the repository address yourself.
+These messages never include what Git or the server printed, which can hold credentials, such as one that `url.*.insteadOf` rewriting adds to the repository address. Syllabus reads that text only to choose the code and message, as [Text from Git, servers, and the GitHub CLI](/reference/cli/#text-from-git-servers-and-the-github-cli) describes. To read Git's message, run `git ls-remote` with the repository address yourself.

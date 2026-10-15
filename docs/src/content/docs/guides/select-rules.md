@@ -5,9 +5,9 @@ description: "Choose groups from rule libraries and adapt their rules to your pr
 
 You can **import rules** written by your team or others instead of writing every rule yourself. These rules come from **libraries**, collections of rules shared across projects.
 
-In this guide, you'll choose **groups** to import, record your choices in `.code-rules/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+In this guide, you'll choose **groups** to import, record your choices in `.syllabus/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
 
-Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
+Start with a project that already has a `.syllabus/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
 ## Choose groups for your project
 
@@ -26,7 +26,7 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 
 ## Select groups from each source
 
-In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
+In `.syllabus/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
 - **Which rules to import:** `rules.include` lists selectors. A group's selector, such as `practices/testing/*`, includes every rule in the group, including rules the library adds to it later. A rule ID, such as `techs/go/wrap-errors-with-operation`, imports one rule without the rest of its group; rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
@@ -39,7 +39,7 @@ See the [complete configuration example](/reference/configuration/#complete-exam
 To adopt an entire library, include `"*"`.
 Use `practices/*` for all practice groups, or `techs/*` for all technology groups, alone or beside other selectors.
 All groups within that scope in the imported library are included, and exclusions and replacements still apply.
-When a library adds rules or groups within your selector, `code-rules project update` adds them. Review them as part of that update.
+When a library adds rules or groups within your selector, `syllabus project update` adds them. Review them as part of that update.
 See [Select rules](/reference/configuration/#select-rules) for every selector form and snapshot requirements.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.
@@ -60,12 +60,12 @@ Keep those decisions in configuration and local files so agents read the resolve
 Write a Markdown rule under the matching group in `rules/`:
 
 ```text
-.code-rules/rules/practices/testing/test-project-contracts.md
+.syllabus/rules/practices/testing/test-project-contracts.md
 ```
 
 The group needs `_group.yaml` metadata from a selected library or from `rules/<group-id>/`.
 If you later deselect or remove the last library supplying the group, sync copies the group's last imported metadata to `rules/<group-id>/_group.yaml` and warns that it did, so the rule keeps its group; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
-Put supporting files that several of your rules share in `.code-rules/assets/`, and link to them from the rule as `../../../assets/<file>`.
+Put supporting files that several of your rules share in `.syllabus/assets/`, and link to them from the rule as `../../../assets/<file>`.
 The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
@@ -108,9 +108,9 @@ sources:
           replacedBy: techs/typescript/prefer-interfaces
 ```
 
-Here the local rule is `.code-rules/rules/techs/typescript/prefer-interfaces.md`.
+Here the local rule is `.syllabus/rules/techs/typescript/prefer-interfaces.md`.
 
-To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `rules/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `code-rules project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
+To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `rules/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `syllabus project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
 
 The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.
 In this example, the generated ID is `local:techs/typescript/prefer-interfaces`.
@@ -122,8 +122,8 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, pins, or selected groups or rules change, run `code-rules project sync`.
-For changes limited to local rules or exceptions, run `code-rules project build` against the existing vendor snapshots.
+When sources, pins, or selected groups or rules change, run `syllabus project sync`.
+For changes limited to local rules or exceptions, run `syllabus project build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 
 The importer rejects exclusions of rules the source doesn't import, missing replacement files, and a local file that replaces more than one rule.

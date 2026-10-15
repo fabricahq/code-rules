@@ -34,7 +34,7 @@ func (f *authoringFlags) libraryOptions(ctx context.Context, initialize bool) (l
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.
 func addLibraryCommands(root *cobra.Command, options Options, output *commandOutput) {
 	library := &cobra.Command{Use: "library", Short: "Create and maintain a shared rule library"}
-	library.Long = library.Short + "\n\nA library keeps its manifest in the library section of .code-rules/config.yaml,\nits rules in .code-rules/rules/, shared assets in .code-rules/assets/, and change\nnotes in .code-rules/changes/. The same repository can also be a project.\n\nRun init from the Git repository root. Other library commands can run from any\nsubdirectory. Outside Git, run commands from the library root." + documentationHelp
+	library.Long = library.Short + "\n\nA library keeps its manifest in the library section of .syllabus/config.yaml,\nits rules in .syllabus/rules/, shared assets in .syllabus/assets/, and change\nnotes in .syllabus/changes/. The same repository can also be a project.\n\nRun init from the Git repository root. Other library commands can run from any\nsubdirectory. Outside Git, run commands from the library root." + documentationHelp
 	root.AddCommand(library)
 	library.AddCommand(libraryInitCommand(options, output), libraryCheckCommand(options, output), libraryChangeCommand(options, output), libraryReleaseCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a library group or rule"}

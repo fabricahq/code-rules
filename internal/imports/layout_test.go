@@ -23,7 +23,7 @@ func legacyRule(name, link string) []byte {
 
 // movedHistory is a library whose release/1 keeps the layout before version 2, with rule a linking to a shared
 // asset with an absolute link, rule b with a relative one, and rule c without links, and whose release/2 moved it
-// into .code-rules/, giving b's link one more ../ as a patch change.
+// into .syllabus/, giving b's link one more ../ as a patch change.
 func movedHistory(t *testing.T) history {
 	t.Helper()
 	ctx := context.Background()
@@ -52,7 +52,7 @@ func movedHistory(t *testing.T) history {
 		"techs/go/c.md":        versionedRule("c 1.0.0"),
 		"assets/guide.md":      []byte("Guide.\n"),
 	}))
-	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .code-rules", moved)
+	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .syllabus", moved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestImport_RefusesALibraryReleaseInTheLayoutBeforeVersion2(t *testing.T) {
 	h := movedHistory(t)
 	_, err := h.sync(t, h.source(t, `"ref":"release/1","rules":{"include":["techs/go/*"]}`), nil)
 	requireCode(t, err, "unsupported-library-layout")
-	want := "sources.team: the library's release/1 keeps its files in the layout from before this version of Code Rules, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .code-rules/config.yaml and its rules from .code-rules/rules/, so it can't import release/1. Ask the library's maintainer to move the library's files into .code-rules/ and publish a library release, then select that release, such as with code-rules project update team."
+	want := "sources.team: the library's release/1 keeps its files in the layout from before this version of Syllabus, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .syllabus/config.yaml and its rules from .syllabus/rules/, so it can't import release/1. Ask the library's maintainer to move the library's files into .syllabus/ and publish a library release, then select that release, such as with syllabus project update team."
 	if !strings.HasSuffix(err.Error(), want) {
 		t.Fatalf("got %v\nwant %s", err, want)
 	}
@@ -126,7 +126,7 @@ func TestImport_RefusesARuleVersionWhoseLinksMovedWithTheLibrary(t *testing.T) {
 	h := movedHistory(t)
 	_, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/b","version":"1.0.0","reason":"Keep."}]}`), nil)
 	requireCode(t, err, "unsupported-library-layout")
-	want := "sources.team: rule techs/go/b version 1.0.0 comes from the library's release/1, which keeps its files in the layout from before this version of Code Rules, and its link to assets/guide.md resolves differently in the current layout, so this version of Code Rules can't import the rule's version. Select a version of techs/go/b that the library published after moving its files into .code-rules/, such as with code-rules project update team:techs/go/b, or ask the library's maintainer to publish one."
+	want := "sources.team: rule techs/go/b version 1.0.0 comes from the library's release/1, which keeps its files in the layout from before this version of Syllabus, and its link to assets/guide.md resolves differently in the current layout, so this version of Syllabus can't import the rule's version. Select a version of techs/go/b that the library published after moving its files into .syllabus/, such as with syllabus project update team:techs/go/b, or ask the library's maintainer to publish one."
 	if !strings.HasSuffix(err.Error(), want) {
 		t.Fatalf("got %v\nwant %s", err, want)
 	}
@@ -144,10 +144,10 @@ func TestImport_ReadsALibraryThatIsAlsoAProject(t *testing.T) {
 		"techs/go/a.md":        versionedRule("a 1.0.0"),
 	})
 	if _, err := f.Commit(ctx, f.Worktree(), "Sync the project", map[string][]byte{
-		".code-rules/vendor/upstream/config.yaml":        []byte("not this library's manifest\n"),
-		".code-rules/vendor/upstream/techs/go/errors.md": []byte("Vendored.\n"),
-		".code-rules/generated/RULES.md":                 []byte("Generated.\n"),
-		".code-rules/rules/README.md":                    []byte("The project's guide.\n"),
+		".syllabus/vendor/upstream/config.yaml":        []byte("not this library's manifest\n"),
+		".syllabus/vendor/upstream/techs/go/errors.md": []byte("Vendored.\n"),
+		".syllabus/generated/RULES.md":                 []byte("Generated.\n"),
+		".syllabus/rules/README.md":                    []byte("The project's guide.\n"),
 	}); err != nil {
 		t.Fatal(err)
 	}

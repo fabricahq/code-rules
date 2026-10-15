@@ -3,7 +3,7 @@ title: "Set up your first project"
 description: "Write a rule for your coding agent, then reuse rules written by others."
 ---
 
-We're going to enable your coding agent to get consistent instructions for how to write and review code in your codebase. In Code Rules, that codebase is your **project**.
+We're going to enable your coding agent to get consistent instructions for how to write and review code in your codebase. In Syllabus, that codebase is your **project**.
 
 We will declare guidance in a **rule,** which is a Markdown file that explains one practice you want your agent to follow, such as testing changes to your code.
 
@@ -15,17 +15,17 @@ In this walkthrough, you'll:
 4. Tell your coding agent where to find and read both rules, then try a task.
 5. Commit the guidance so everyone working on the project can use it.
 
-Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Code Rules installed](/start-here/install/), and Git to import the library. To publish rules for other projects to use instead, follow [Create your first library](/start-here/create-library/).
+Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Syllabus installed](/start-here/install/), and Git to import the library. To publish rules for other projects to use instead, follow [Create your first library](/start-here/create-library/).
 
 ## 1. Set up the project
 
 ```sh
-code-rules project init
+syllabus project init
 ```
 
-This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `rules/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
+This creates the **Syllabus directory**, `.syllabus/`, with your **project configuration** in `.syllabus/config.yaml` and a place for project-only rules in `rules/`. Initializing Syllabus does not change your project's `README.md` or agent instructions.
 
-Later, when you import a library, Code Rules saves a copy of its files, at the rule versions your configuration selects, in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
+Later, when you import a library, Syllabus saves a copy of its files, at the rule versions your configuration selects, in `vendor/`. Syllabus prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
 Run the commands below from the project root. After initialization, you can also run project commands from its Git subdirectories. See [Project files](/reference/files/) for the layout.
 
@@ -36,7 +36,7 @@ A **local rule** belongs to this project. Let's add one about testing changed be
 First create its group. A group collects related rules and tells agents when to read them:
 
 ```sh
-code-rules project add group practices/testing \
+syllabus project add group practices/testing \
   --name Testing \
   --description 'Tests for the behavior this project provides.' \
   --when-to-read 'When adding or changing behavior, fixing bugs, or reviewing tests.'
@@ -45,14 +45,14 @@ code-rules project add group practices/testing \
 Use the CLI to create a draft rule in that group:
 
 ```sh
-code-rules project add rule practices/testing/test-changed-behavior \
+syllabus project add rule practices/testing/test-changed-behavior \
   --title 'Test changed behavior' \
   --when-to-read 'When adding or changing externally visible behavior.' \
   --impact HIGH \
   --impact-description 'Prevents behavior changes from silently breaking existing use cases.'
 ```
 
-Open `.code-rules/rules/practices/testing/test-changed-behavior.md` in your editor and replace its entire contents with this complete rule:
+Open `.syllabus/rules/practices/testing/test-changed-behavior.md` in your editor and replace its entire contents with this complete rule:
 
 ```md
 ---
@@ -83,25 +83,25 @@ With one rule, you could point your agent directly at the Markdown file. With do
 Run:
 
 ```sh
-code-rules project build
+syllabus project build
 ```
 
-`code-rules project build` reads your rules and `.code-rules/config.yaml`, validates them, and writes the results into `.code-rules/generated/`. It:
+`syllabus project build` reads your rules and `.syllabus/config.yaml`, validates them, and writes the results into `.syllabus/generated/`. It:
 
 - **Applies your choices:** includes the selected rules, leaves out rules you've excluded, and substitutes your local replacements for imported rules where configured.
 - **Organizes the rules for reading:** creates `RULES.md` and group indexes with links and instructions that help agents find and read relevant rules. See [a sample `RULES.md` and the files it links to](/reference/files/#example-follow-a-rule-from-the-index).
 - **Splits large indexes into pages:** keeps navigation manageable without shortening the full rule text.
 
-If two rules give conflicting advice, you decide which to exclude or replace in configuration. `code-rules project build` applies those decisions; it doesn't detect or resolve contradictory advice on its own.
+If two rules give conflicting advice, you decide which to exclude or replace in configuration. `syllabus project build` applies those decisions; it doesn't detect or resolve contradictory advice on its own.
 
-For this first build, open `.code-rules/generated/RULES.md` and follow its links to the Testing group and your rule. You've turned your source rule into part of the organized guidance your agent will use.
+For this first build, open `.syllabus/generated/RULES.md` and follow its links to the Testing group and your rule. You've turned your source rule into part of the organized guidance your agent will use.
 
 Keep editing rules in `rules/`, then build again to update the agent's copy. Don't edit `generated/` directly.
 
 You can verify that the generated files match your source files:
 
 ```sh
-code-rules project check
+syllabus project check
 ```
 
 This checks the rule files, not whether your application follows the rules.
@@ -115,23 +115,23 @@ The [Fabrica public library](https://github.com/fabricahq/public-rules) includes
 From the same project root, run:
 
 ```sh
-code-rules project add source fabrica \
+syllabus project add source fabrica \
   --repository https://github.com/fabricahq/public-rules.git \
   --rules 'practices/code-design/*'
 ```
 
-This adds the library's repository and selected group to `.code-rules/config.yaml` under the source name `fabrica`. A source can also supply [skills](/concepts/skill/), which sync installs where your agents find them; see [Install skills](/guides/install-skills/).
+This adds the library's repository and selected group to `.syllabus/config.yaml` under the source name `fabrica`. A source can also supply [skills](/concepts/skill/), which sync installs where your agents find them; see [Install skills](/guides/install-skills/).
 
-Each rule in Fabrica's library has its own version. The project follows each rule's newest version whenever you run `code-rules project update`.
+Each rule in Fabrica's library has its own version. The project follows each rule's newest version whenever you run `syllabus project update`.
 
-Now run `code-rules project sync` to download the selected rules and build the agent guidance. You don't need to run `code-rules project build` separately. `code-rules project sync` records the version of each rule it imported, so your project keeps the same rules until you choose to [update them](/guides/update/).
+Now run `syllabus project sync` to download the selected rules and build the agent guidance. You don't need to run `syllabus project build` separately. `syllabus project sync` records the version of each rule it imported, so your project keeps the same rules until you choose to [update them](/guides/update/).
 
 ```sh
-code-rules project sync
-code-rules project check
+syllabus project sync
+syllabus project check
 ```
 
-Open `.code-rules/generated/RULES.md` again. You'll now see your local Testing group and the imported "Code design" group. Your local rule remains yours to edit. Each imported rule shows its version and retains its source and license information.
+Open `.syllabus/generated/RULES.md` again. You'll now see your local Testing group and the imported "Code design" group. Your local rule remains yours to edit. Each imported rule shows its version and retains its source and license information.
 
 ## 5. Give the rules to your agent
 
@@ -144,7 +144,7 @@ Add this section to your existing `AGENTS.md`, or the equivalent project instruc
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 
-1. Read `.code-rules/generated/RULES.md` and follow its instructions to
+1. Read `.syllabus/generated/RULES.md` and follow its instructions to
    select relevant groups and read their rules in full, including linked
    files and additional index pages.
 2. Follow the applicable rules and their exceptions while doing the work.
@@ -159,13 +159,13 @@ Now ask your agent for a change as you normally would. For example, in a checkou
 
 > Fix the bug where applying an expired coupon still reduces the order total.
 
-You don't need to mention Code Rules in each request. The project instructions tell your agent to read and apply the rules automatically.
+You don't need to mention Syllabus in each request. The project instructions tell your agent to read and apply the rules automatically.
 
 For your first task, check that the agent reads the relevant rules and validates its changes. In this example, the testing rule calls for a test covering the expired coupon. These instructions guide the agent; they don't guarantee compliance. For a more detailed implementation and review workflow, see [For agents](/for-agents/).
 
 ## 6. Commit the guidance for your team
 
-Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.code-rules/` directory and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance.
+Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.syllabus/` directory and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance.
 
 Anyone who checks out the repository will then have the same rules and instructions for their agent to read on future tasks.
 

@@ -1,4 +1,4 @@
-<h1 align="center">Code Rules</h1>
+<h1 align="center">Syllabus</h1>
 
 <h3 align="center">The package manager for your engineering&nbsp;rules.</h3>
 
@@ -16,15 +16,15 @@
 <p align="center">
   <a href="https://code-rules.fabricahq.com">Docs</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="https://code-rules.fabricahq.com/start-here/overview/">Why Code Rules</a> ·
+  <a href="https://code-rules.fabricahq.com/start-here/overview/">Why Syllabus</a> ·
   <a href="https://code-rules.fabricahq.com/reference/cli/">CLI reference</a>
 </p>
 
 ---
 
-## What is Code Rules?
+## What is Syllabus?
 
-Code Rules is a **package manager** for engineering practices.
+Syllabus is a **package manager** for engineering practices.
 
 That means you can:
 
@@ -44,32 +44,32 @@ To solve the problem of "how," most teams start by writing guidance into an inst
 
 Many teams also deliver guidance through **skills**. Skills are an excellent way to repeat the same guidance in the same situation, but the skills themselves rarely evolve with you based on the real-world feedback you give to agents. Skills are also coarse-grained, making it hard to use a subset of a skill's guidance on a specific project.
 
-### The Code Rules approach
+### The Syllabus approach
 
-The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
+The Syllabus philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Syllabus rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
 
 You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 
-Pulling many files from versioned libraries into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach, not to reusable code, but to agent guidance.
+Pulling many files from versioned libraries into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Syllabus applies that same approach, not to reusable code, but to agent guidance.
 
 As with packages for code, you can:
 
 - **Version every rule.** Each rule has its own semantic version, so an update shows exactly which rules changed and whether a change could break code that followed them. Projects record the exact version of every rule they import, and accept major changes explicitly.
 - **Customize without forking the library.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
 - **Build reproducibly.** Every imported rule is vendored at its exact version, and keeps its source and license terms.
-- **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
+- **Catch drift in CI.** `syllabus project check` fails when generated files are out of date.
 
-Agents don't read every rule on every task. Code Rules generates an index with a "when to read" cue for each group of rules, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
+Agents don't read every rule on every task. Syllabus generates an index with a "when to read" cue for each group of rules, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
 
 ### Rules can evolve
 
 As you work, you will find that some rules consistently deliver value, while others start to get in the way or no longer represent your preferred way of working. Or you may be repeatedly giving the same guidance to agents, in which case, it may be time to create a rule for it.
 
-Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and once a library release publishes the change, every project that uses the rule picks it up on its next `code-rules project update`.
+Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and once a library release publishes the change, every project that uses the rule picks it up on its next `syllabus project update`.
 
 ## Quick start
 
-### Set up Code Rules
+### Set up Syllabus
 
 Install the standalone binary (macOS and Linux; no Go, Node.js, or Bun required):
 
@@ -80,13 +80,13 @@ curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
 Or install with [Homebrew](https://brew.sh/):
 
 ```sh
-brew install fabricahq/tap/code-rules
+brew install fabricahq/tap/syllabus
 ```
 
-Then set up Code Rules from your repository root:
+Then set up Syllabus from your repository root:
 
 ```sh
-code-rules project init
+syllabus project init
 ```
 
 ### Write your first rule
@@ -103,11 +103,11 @@ Assert the observable result, such as an order's new total, rather than which pr
 Then add the rule to a group:
 
 ```sh
-code-rules project add group practices/testing \
+syllabus project add group practices/testing \
   --name Testing \
   --description 'Tests for the behavior this project provides.' \
   --when-to-read 'When adding or changing behavior, fixing bugs, or reviewing tests.'
-code-rules project add rule practices/testing/test-changed-behavior \
+syllabus project add rule practices/testing/test-changed-behavior \
   --title 'Test changed behavior' \
   --when-to-read 'When adding or changing externally visible behavior.' \
   --impact HIGH \
@@ -115,16 +115,16 @@ code-rules project add rule practices/testing/test-changed-behavior \
   --body-file test-changed-behavior.md
 ```
 
-Leave out `--body-file` to start from a template instead. Either way, the rule lives in `.code-rules/rules/`, where you keep editing it.
+Leave out `--body-file` to start from a template instead. Either way, the rule lives in `.syllabus/rules/`, where you keep editing it.
 
 ### Tell your agents to follow your rule
 
 Build the guidance your agent reads:
 
 ```console
-$ code-rules project build
+$ syllabus project build
 Build complete: 6 added, 0 changed, 0 removed.
-Paths relative to .code-rules/generated:
+Paths relative to .syllabus/generated:
   Add: RULES.md
   Add: groups/README.md
   Add: groups/practices/testing.md
@@ -152,7 +152,7 @@ Then point your agent at it. Add this to `AGENTS.md`, `CLAUDE.md`, or whichever 
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 
-1. Read `.code-rules/generated/RULES.md` and follow its instructions to
+1. Read `.syllabus/generated/RULES.md` and follow its instructions to
    select relevant groups and read their rules in full, including linked
    files and additional index pages.
 2. Follow the applicable rules and their exceptions while doing the work.
@@ -163,25 +163,25 @@ If required rule files are unavailable or give conflicting instructions,
 report the issue rather than silently skipping them or choosing a policy.
 ```
 
-Commit `.code-rules/` and you're done. Now ask your agent for a change as you normally would; you don't need to mention Code Rules in each request.
+Commit `.syllabus/` and you're done. Now ask your agent for a change as you normally would; you don't need to mention Syllabus in each request.
 
 ➡️ The full walkthrough is in [Set up your first project](https://code-rules.fabricahq.com/start-here/set-up-project/).
 
 ## Share rules across projects
 
-Once a rule proves itself, you may want to move it into a **library**: a Git repository of rule groups that any project can import. A library keeps its rules in `.code-rules/rules/`, the same layout a project uses, with its manifest in the `library` section of `.code-rules/config.yaml`, so one repository can be both.
+Once a rule proves itself, you may want to move it into a **library**: a Git repository of rule groups that any project can import. A library keeps its rules in `.syllabus/rules/`, the same layout a project uses, with its manifest in the `library` section of `.syllabus/config.yaml`, so one repository can be both.
 
-We recommend publishing your team's default rules in a repository such as `acme/.code-rules`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
+We recommend publishing your team's default rules in a repository such as `acme/.syllabus`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
 
 ```sh
-code-rules project add source fabrica \
+syllabus project add source fabrica \
   --repository https://github.com/fabricahq/public-rules.git \
   --rules 'practices/testing/*' \
   --rules 'techs/go/*'
-code-rules project sync
+syllabus project sync
 ```
 
-The dependency lands in `.code-rules/config.yaml`, the file you review and commit:
+The dependency lands in `.syllabus/config.yaml`, the file you review and commit:
 
 ```yaml
 schemaVersion: 2
@@ -195,19 +195,19 @@ sources:
         - techs/go/*
 ```
 
-`code-rules project sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update previews every changed, new, and retired rule, and applies them only after you confirm.
+`syllabus project sync` imports each rule's newest version, snapshots them into `.syllabus/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `syllabus project update`, on its own schedule. Update previews every changed, new, and retired rule, and applies them only after you confirm.
 
 ➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
 
-## What Code Rules doesn't do
+## What Syllabus doesn't do
 
-- **It doesn't enforce your rules.** Code Rules gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `code-rules project check` verifies your rule files, not your application code.
+- **It doesn't enforce your rules.** Syllabus gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `syllabus project check` verifies your rule files, not your application code.
 - **It doesn't resolve contradictions automatically.** If two rules disagree, you decide which to exclude or replace. [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/) gives you a prompt that has your agent find the conflicts and propose fixes for you to review.
 - **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
 
 ## Learn more
 
-- → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, groups, projects, and libraries fit together
+- → [**What is Syllabus?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, groups, projects, and libraries fit together
 - → [**Install**](https://code-rules.fabricahq.com/start-here/install/) Versions, custom directories, checksum verification, and upgrades
 - → [**Write a rule**](https://code-rules.fabricahq.com/guides/write-rules/) Write rules agents can actually follow
 - → [**Configuration**](https://code-rules.fabricahq.com/reference/configuration/) Every field in `config.yaml`
@@ -219,4 +219,4 @@ Bug reports and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) co
 
 ## License
 
-Code Rules is [MIT licensed](LICENSE.md). Rule libraries carry their own license terms, which Code Rules preserves in each project that imports them.
+Syllabus is [MIT licensed](LICENSE.md). Rule libraries carry their own license terms, which Syllabus preserves in each project that imports them.

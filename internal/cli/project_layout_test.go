@@ -12,7 +12,7 @@ import (
 )
 
 // localFolderProblem is the problem every project command reports for a project with a local/ folder.
-const localFolderProblem = `this version of Code Rules reads authored rules and groups from .code-rules/rules/, and shared assets from .code-rules/assets/. It no longer reads .code-rules/local/, and doesn't move its files. Move them yourself, keeping each path below local/, then delete local/:
+const localFolderProblem = `this version of Syllabus reads authored rules and groups from .syllabus/rules/, and shared assets from .syllabus/assets/. It no longer reads .syllabus/local/, and doesn't move its files. Move them yourself, keeping each path below local/, then delete local/:
 
   local/techs/go/_group.yaml         ->  rules/techs/go/_group.yaml
   local/techs/go/errors.md           ->  rules/techs/go/errors.md
@@ -21,7 +21,7 @@ const localFolderProblem = `this version of Code Rules reads authored rules and 
   local/README.md                    ->  rules/README.md
   local/assets/retry-lifecycle.svg   ->  assets/retry-lifecycle.svg
 
-Rule IDs don't change, so config.yaml needs no edits. A moved rule sits one folder deeper, so its links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg. Then run code-rules project build.`
+Rule IDs don't change, so config.yaml needs no edits. A moved rule sits one folder deeper, so its links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg. Then run syllabus project build.`
 
 // TestProjectCommands_RejectALocalFolder refuses, writing nothing, every project command in a project whose Code
 // Rules directory still has local/, and says where its files belong now, in human and JSON output.
@@ -36,7 +36,7 @@ func TestProjectCommands_RejectALocalFolder(t *testing.T) {
 		"local/techs/go/errors.md":   "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling functions.\n---\nSee [the diagram](../../assets/retry.svg).\n",
 		"local/assets/retry.svg":     "<svg/>",
 	} {
-		path := filepath.Join(directory, ".code-rules", name)
+		path := filepath.Join(directory, ".syllabus", name)
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +62,7 @@ func TestProjectCommands_RejectALocalFolder(t *testing.T) {
 		{[]string{"project", "add", "source", "team", "--repository", "https://example.invalid/team.git", "--rules", "techs/go/*", "--non-interactive"}, ""},
 	} {
 		t.Run(strings.Join(test.args[1:min(len(test.args), 4)], " "), func(t *testing.T) {
-			want := "Error: " + localFolderProblem + test.outcome + "\n\nLocation: .code-rules/local/\n"
+			want := "Error: " + localFolderProblem + test.outcome + "\n\nLocation: .syllabus/local/\n"
 			if out, diagnostic, code := runCLI(t, binary, directory, test.args...); code != 1 || out != "" || diagnostic != want {
 				t.Errorf("exit %d\n%s%s", code, out, diagnostic)
 			}
@@ -71,7 +71,7 @@ func TestProjectCommands_RejectALocalFolder(t *testing.T) {
 			if err := json.Unmarshal([]byte(out), &result); err != nil || code != 1 || diagnostic != "" || result.OK || result.Error == nil {
 				t.Fatalf("exit %d\n%s%s", code, out, diagnostic)
 			}
-			if got := *result.Error; got != (responseError{Kind: "validation", Message: ".code-rules/local/: " + localFolderProblem + test.outcome, Location: ".code-rules/local/"}) {
+			if got := *result.Error; got != (responseError{Kind: "validation", Message: ".syllabus/local/: " + localFolderProblem + test.outcome, Location: ".syllabus/local/"}) {
 				t.Errorf("error %+v", got)
 			}
 		})

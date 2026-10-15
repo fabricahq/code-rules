@@ -1,4 +1,4 @@
-// Package project owns a consuming project's Code Rules state: initialization, local authoring,
+// Package project owns a consuming project's Syllabus state: initialization, local authoring,
 // library adoption, offline generation, and read-only freshness checks. Storage protocols stay private.
 // Each source's vendor/<source>/_source.json is its lockfile: sync restores the recorded rule versions and chooses
 // one only where configuration asks for something the record lacks, so only update moves rules to newer versions on
@@ -233,6 +233,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `syllabus project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun syllabus project build and syllabus project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

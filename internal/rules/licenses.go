@@ -25,18 +25,18 @@ type Library struct {
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
 // A nil SPDXExpression means the library declared a file but no SPDX identifier. Files and AttributionFiles hold
-// library paths, which are the declared paths except inside .code-rules/: a declared
-// .code-rules/assets/NOTICE.md is assets/NOTICE.md.
+// library paths, which are the declared paths except inside .syllabus/: a declared
+// .syllabus/assets/NOTICE.md is assets/NOTICE.md.
 type LicenseDeclaration struct {
 	SPDXExpression   *string  `json:"spdxExpression"`
 	Files            []string `json:"files"`
 	AttributionFiles []string `json:"attributionFiles"`
 }
 
-// skillLevelsProblem rejects library.skills, which a later version of Code Rules reads.
-const skillLevelsProblem = "skill levels aren't supported yet in this version of Code Rules; remove library.skills"
+// skillLevelsProblem rejects library.skills, which a later version of Syllabus reads.
+const skillLevelsProblem = "skill levels aren't supported yet in this version of Syllabus; remove library.skills"
 
-// ParseLibraryManifest validates text, a library's whole .code-rules/config.yaml, and returns its library section,
+// ParseLibraryManifest validates text, a library's whole .syllabus/config.yaml, and returns its library section,
 // or nil when the configuration has none, which means the repository isn't a library. Errors prefix their location
 // with location, such as team/config.yaml. It checks syntax only; callers read the declared files themselves.
 func ParseLibraryManifest(text []byte, location string) (*Library, error) {
@@ -58,7 +58,7 @@ func ParseLibraryManifest(text []byte, location string) (*Library, error) {
 	return config.Library, nil
 }
 
-// PublishedManifest returns what a library publishes of text, its whole .code-rules/config.yaml, when it validates
+// PublishedManifest returns what a library publishes of text, its whole .syllabus/config.yaml, when it validates
 // as ParseLibraryManifest validates it: a configuration that holds only its library section, as canonical JSON, so
 // the sources and other fields that configure the repository as a project, and its comments and formatting, stay in
 // the repository. It returns nil for a configuration without a library section.
@@ -93,7 +93,7 @@ func PublishedManifestOf(section json.RawMessage) ([]byte, error) {
 }
 
 // parseLibrary validates a configuration's library section. Its only field is license; skill levels are rejected
-// until Code Rules supports them.
+// until Syllabus supports them.
 func parseLibrary(input json.RawMessage) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
@@ -167,7 +167,7 @@ func parseLicense(input json.RawMessage, location string) (*LicenseDeclaration, 
 }
 
 // termsPath reads a declared license or notice path, relative to the repository root, and returns its library path.
-// The file must be library-wide: outside .code-rules/, or in its assets/ or a group in its rules/. A rule's Markdown
+// The file must be library-wide: outside .syllabus/, or in its assets/ or a group in its rules/. A rule's Markdown
 // file or a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a
 // library release replace a rule version's content.
 func termsPath(input json.RawMessage, location string) (string, error) {
@@ -177,7 +177,7 @@ func termsPath(input json.RawMessage, location string) (string, error) {
 	}
 	path, ok := librarytree.LibraryPath(declared)
 	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") {
-		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files")
+		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files")
 	}
 	if librarytree.IsRuleContent(path) {
 		return "", invalid(location, decode.Quote(declared)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root")

@@ -9,17 +9,17 @@ You can publish your team's rules in a library or import libraries from others. 
 
 ## What a library contains
 
-A library lives in a Git repository, in the same Code Rules directory, `.code-rules/`, that a project uses. It contains:
+A library lives in a Git repository, in the same Syllabus directory, `.syllabus/`, that a project uses. It contains:
 
-- **A manifest**, the `library` section of `.code-rules/config.yaml`, which makes the repository a library and declares any license information.
-- **Groups** under `.code-rules/rules/techs/` and `.code-rules/rules/practices/`, each with group metadata and Markdown rule files.
-- **Skills**, optionally, under `.code-rules/skills/`, one folder per [skill](/concepts/skill/). Projects install the ones they include, from the same library release as the library's rules. Skills come in the next Code Rules release.
+- **A manifest**, the `library` section of `.syllabus/config.yaml`, which makes the repository a library and declares any license information.
+- **Groups** under `.syllabus/rules/techs/` and `.syllabus/rules/practices/`, each with group metadata and Markdown rule files.
+- **Skills**, optionally, under `.syllabus/skills/`, one folder per [skill](/concepts/skill/). Projects install the ones they include, from the same library release as the library's rules. Skills come in the next Syllabus release.
 
 For example, a repository named "engineering-rules" might contain:
 
 ```text
 engineering-rules/
-  .code-rules/
+  .syllabus/
     config.yaml
     rules/practices/testing/
       _group.yaml
@@ -28,15 +28,15 @@ engineering-rules/
 
 The repository name is your choice. Rules can also include [supporting assets](/reference/rule-format/#supporting-assets). A library publishes only these files and its license files; its change notes stay in the repository.
 
-Because a library and a project share the layout, one repository can be both: its configuration lists the `sources` it imports beside its `library` section, and the rules in `.code-rules/rules/` guide its own agents as well as the projects that import them. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
+Because a library and a project share the layout, one repository can be both: its configuration lists the `sources` it imports beside its `library` section, and the rules in `.syllabus/rules/` guide its own agents as well as the projects that import them. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
 
 ## How projects use a library
 
-Each [project](/concepts/project/) chooses which libraries and groups to import in `.code-rules/config.yaml`. A project can use several libraries and add its own local rules.
+Each [project](/concepts/project/) chooses which libraries and groups to import in `.syllabus/config.yaml`. A project can use several libraries and add its own local rules.
 
-Running `code-rules project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
+Running `syllabus project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 
-A project records the version of every rule it imports. Running `code-rules project update` moves rules to newer versions and reports every rule that changed, so each project adopts updates on its own schedule. A project can also pin a rule to a version, with a reason, or import only specific rules instead of whole groups. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
+A project records the version of every rule it imports. Running `syllabus project update` moves rules to newer versions and reports every rule that changed, so each project adopts updates on its own schedule. A project can also pin a rule to a version, with a reason, or import only specific rules instead of whole groups. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
 
 ## How a library publishes rules
 
@@ -44,12 +44,12 @@ A library doesn't have one version for all of its rules. Each rule has [its own 
 
 When an author changes a rule, they add a change note saying how large the change is and what changed. A **library release** turns the pending notes into new rule versions at once, and can hold one rule change or many. Projects import only published versions, unless one deliberately imports an exact commit, so they never see changes that haven't been published.
 
-`code-rules library release` publishes a library release as one Git tag that records every rule's version, along with one GitHub Release page that lists the changes. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule. See [Version your rules](/guides/version-rules/).
+`syllabus library release` publishes a library release as one Git tag that records every rule's version, along with one GitHub Release page that lists the changes. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule. See [Version your rules](/guides/version-rules/).
 
 ## Sharing a library
 
 Libraries can be public or private. Imports copy their content into the consuming project, so use private libraries only in projects allowed to hold and share that content.
 
-Code Rules preserves declared license text and notices with imported rules. For choosing terms, see [License rules](/guides/license-rules/).
+Syllabus preserves declared license text and notices with imported rules. For choosing terms, see [License rules](/guides/license-rules/).
 
 To publish your own, follow [Create your first library](/start-here/create-library/). For file details, see [Library format](/reference/library-format/).

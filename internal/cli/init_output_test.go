@@ -15,21 +15,21 @@ func TestProjectInitGuidance(t *testing.T) {
 		directory := t.TempDir()
 		args := []string{"project", "init"}
 		out, diagnostic, code := runCLI(t, binary, directory, args...)
-		if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules initialized!\n") {
+		if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Syllabus initialized!\n") {
 			t.Fatal(code, out, diagnostic)
 		}
 		if strings.Contains(out, "Updated files:") || strings.Contains(out, directory) {
 			t.Fatal("init led with internal file changes", out)
 		}
 		// Like other authoring commands, init lists the files it added, relative to the working directory.
-		if !strings.Contains(out, "Added:\n  .code-rules/config.yaml\n  .code-rules/rules/README.md\n  .code-rules/README.md\n") || strings.Contains(out, "Project configuration:") {
+		if !strings.Contains(out, "Added:\n  .syllabus/config.yaml\n  .syllabus/rules/README.md\n  .syllabus/README.md\n") || strings.Contains(out, "Project configuration:") {
 			t.Fatal("init doesn't list the files it added", out)
 		}
-		if !strings.Contains(out, "Or use a shared library or skills repository") || !strings.Contains(out, "code-rules project sync") {
+		if !strings.Contains(out, "Or use a shared library or skills repository") || !strings.Contains(out, "syllabus project sync") {
 			t.Fatal("missing shared-library path", out)
 		}
 		// Without this step, a user who follows only the CLI output has rules that no agent reads.
-		if !strings.Contains(out, "connect your coding agent to the rules; see .code-rules/README.md") {
+		if !strings.Contains(out, "connect your coding agent to the rules; see .syllabus/README.md") {
 			t.Fatal("missing agent connection step", out)
 		}
 		// Execute the displayed project-only examples, supplying metadata to avoid terminal prompts.
@@ -37,14 +37,14 @@ func TestProjectInitGuidance(t *testing.T) {
 		for _, line := range strings.Split(out, "\n") {
 			command := strings.TrimSpace(line)
 			switch {
-			case strings.HasPrefix(command, "code-rules project add group "):
+			case strings.HasPrefix(command, "syllabus project add group "):
 				command += " --name Testing --description 'Testing practices.' --when-to-read 'When writing tests.'"
-			case strings.HasPrefix(command, "code-rules project add rule "):
+			case strings.HasPrefix(command, "syllabus project add rule "):
 				command += " --title 'Test boundaries' --impact HIGH --impact-description 'Catch edge cases.' --when-to-read 'When writing tests.'"
 			default:
 				continue
 			}
-			command = strings.Replace(command, "code-rules", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
+			command = strings.Replace(command, "syllabus", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
 			child := exec.Command("/bin/sh", "-eu", "-c", command)
 			child.Dir = directory
 			if output, err := child.CombinedOutput(); err != nil {
@@ -56,11 +56,11 @@ func TestProjectInitGuidance(t *testing.T) {
 			t.Fatal("missing project-only examples", out)
 		}
 		out, diagnostic, code = runCLI(t, binary, directory, args...)
-		if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules is already initialized.\nNo files changed.\n") || strings.Contains(out, "my-rule") {
+		if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Syllabus is already initialized.\nNo files changed.\n") || strings.Contains(out, "my-rule") {
 			t.Fatal("repeat init should report existing setup", code, out, diagnostic)
 		}
-		location := ".code-rules/config.yaml"
-		if !strings.Contains(out, "Project configuration: "+location+"\n") || !strings.Contains(out, "Code Rules directory: "+".code-rules"+"\n") {
+		location := ".syllabus/config.yaml"
+		if !strings.Contains(out, "Project configuration: "+location+"\n") || !strings.Contains(out, "Syllabus directory: "+".syllabus"+"\n") {
 			t.Fatal("repeat init should show the configuration path", out)
 		}
 		out, diagnostic, code = runCLI(t, binary, directory, append(args, "--json")...)

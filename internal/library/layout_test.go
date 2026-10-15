@@ -1,4 +1,4 @@
-// Check that library commands refuse the layout before version 2, share the writer of the repository's Code Rules
+// Check that library commands refuse the layout before version 2, share the writer of the repository's Syllabus
 // directory, and compare a moved library with a library release made before the move.
 
 package library
@@ -90,13 +90,13 @@ func tree(t *testing.T, dir string) []string {
 	return names
 }
 
-// TestLibraryCommands_ShareTheWriterOfTheCodeRulesDirectory refuses library check while a project command holds
-// the writer of the repository's Code Rules directory, and records no change note while it waits.
-func TestLibraryCommands_ShareTheWriterOfTheCodeRulesDirectory(t *testing.T) {
+// TestLibraryCommands_ShareTheWriterOfTheSyllabusDirectory refuses library check while a project command holds
+// the writer of the repository's Syllabus directory, and records no change note while it waits.
+func TestLibraryCommands_ShareTheWriterOfTheSyllabusDirectory(t *testing.T) {
 	ctx := context.Background()
 	_, options := authorClone(t, libraryFiles(), releaseOne)
 	edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed.")})
-	lock := filepath.Join(options.Directory, ".code-rules", ".code-rules-lock")
+	lock := filepath.Join(options.Directory, ".syllabus", ".syllabus-lock")
 	if err := os.WriteFile(lock, []byte("held by a project command\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -112,21 +112,21 @@ func TestLibraryCommands_ShareTheWriterOfTheCodeRulesDirectory(t *testing.T) {
 	if _, err := plan.Commit(waiting, coderules.ChangePatch, "Fix a.", noteDay); err == nil {
 		t.Fatal("recorded a change note while a project command held the writer")
 	}
-	if notes, err := os.ReadDir(filepath.Join(options.Directory, ".code-rules", "changes")); err == nil && len(notes) != 0 {
+	if notes, err := os.ReadDir(filepath.Join(options.Directory, ".syllabus", "changes")); err == nil && len(notes) != 0 {
 		t.Fatalf("wrote %d notes", len(notes))
 	}
 }
 
 // legacyFiles is libraryFiles in the layout before version 2, at the repository root, with a license, a shared
 // asset that rule a links to with an absolute link and rule b with a relative one, and a project configuration in
-// .code-rules/, which that layout didn't read.
+// .syllabus/, which that layout didn't read.
 func legacyFiles() map[string][]byte {
 	files := map[string][]byte{
-		"rule-library.yaml":            []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices: []\n"),
-		"LICENSE.md":                   []byte("MIT License\n"),
-		"assets/retry.svg":             []byte("<svg/>\n"),
-		".code-rules/config.yaml":      []byte("schemaVersion: 2\nsources: {}\n"),
-		".code-rules/generated/OUT.md": []byte("generated\n"),
+		"rule-library.yaml":          []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices: []\n"),
+		"LICENSE.md":                 []byte("MIT License\n"),
+		"assets/retry.svg":           []byte("<svg/>\n"),
+		".syllabus/config.yaml":      []byte("schemaVersion: 2\nsources: {}\n"),
+		".syllabus/generated/OUT.md": []byte("generated\n"),
 	}
 	for name, data := range libraryFiles() {
 		if name != "config.yaml" {
@@ -142,7 +142,7 @@ func legacyFiles() map[string][]byte {
 // relative link one more ../, and commits the move.
 func moveLibrary(t *testing.T, fixture *gitfixture.Fixture, dir string) {
 	t.Helper()
-	moved := map[string][]byte{"rule-library.yaml": nil, ".code-rules/config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.md\n    notices: []\n")}
+	moved := map[string][]byte{"rule-library.yaml": nil, ".syllabus/config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.md\n    notices: []\n")}
 	for name, data := range legacyFiles() {
 		if first, _, _ := strings.Cut(name, "/"); first == "techs" || first == "practices" || first == "assets" {
 			moved[name] = nil
@@ -152,7 +152,7 @@ func moveLibrary(t *testing.T, fixture *gitfixture.Fixture, dir string) {
 			maps.Copy(moved, gitfixture.Library(map[string][]byte{name: data}))
 		}
 	}
-	if _, err := fixture.Commit(context.Background(), dir, "Move the library into .code-rules", moved); err != nil {
+	if _, err := fixture.Commit(context.Background(), dir, "Move the library into .syllabus", moved); err != nil {
 		t.Fatal(err)
 	}
 	// Committing deletions leaves the emptied folders, which git mv would have removed.

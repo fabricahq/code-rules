@@ -3,7 +3,7 @@ title: "Update rules"
 description: "Upgrade the rules your project imports to newer versions: preview each change, keep rules where they are when you need to, and adopt the rest deliberately."
 ---
 
-This guide is for projects that import rules from libraries. Updating rules brings changes from those libraries into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
+This guide is for projects that import rules from libraries. Updating rules brings changes from those libraries into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `syllabus project update` and confirm them. Plain `syllabus project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
 In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one library](#update-one-library) or [upgrade a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
 
@@ -13,17 +13,17 @@ Start with a project that already [imports rules](/guides/select-rules/). To pub
 
 Two commands import library rules, and they do different things:
 
-- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a newly added source or selected rule, a changed repository, or when you add or change a pin or `ref`.
-- **`code-rules project update`** looks for newer rule versions, new rules, and retirements, shows you a preview, and applies the changes once you confirm.
+- **`syllabus project sync`** imports the rule versions already recorded in `.syllabus/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a newly added source or selected rule, a changed repository, or when you add or change a pin or `ref`.
+- **`syllabus project update`** looks for newer rule versions, new rules, and retirements, shows you a preview, and applies the changes once you confirm.
 
-Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
+Neither command runs during ordinary coding, review, or `syllabus project check`, so rules never change underneath your agents.
 
 ## Update your libraries
 
 From the project root, run:
 
 ```sh
-code-rules project update
+syllabus project update
 ```
 
 The command previews every change in each library, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm:
@@ -49,7 +49,7 @@ team
             pass --update-fork team:techs/react/use-query-hooks.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
-            Reason: Waiting on the author's response to acme/.code-rules#45.
+            Reason: Waiting on the author's response to acme/.syllabus#45.
 ```
 
 When a rule moves through several versions, each summary starts with the version it belongs to, such as `1.4.0: Add an example.`
@@ -70,12 +70,12 @@ Read the major changes, new rules, and retirements closely: each can change what
 
 For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing replaces or removes. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would replace and those it would remove. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
 
-To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.code-rules/config.yaml` to the version you merged, so later updates list only newer changes. Code Rules never moves `basedOn` on its own, because only you know whether your rule took the changes in.
+To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.syllabus/config.yaml` to the version you merged, so later updates list only newer changes. Syllabus never moves `basedOn` on its own, because only you know whether your rule took the changes in.
 
 The preview lists a skill you [forked](/guides/install-skills/#fork-a-skill) as `replaced` too, when the source's copy changed since the commit your fork is based on, naming the files that changed. The update never changes your fork: compare the files, merge what you need, and set the exclusion's `basedOn` to the commit you merged. See [Replaced skills](/reference/cli/#replaced-skills).
 
 :::note[Preview]
-Forking skills comes in the next Code Rules release.
+Forking skills comes in the next Syllabus release.
 :::
 
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
@@ -83,15 +83,15 @@ In a terminal, the command also asks about each new rule: add it, or exclude it.
 In a script or CI job, where there's no terminal to confirm in, the command only shows the preview. To apply it, pass `--yes`:
 
 ```sh
-code-rules project update --yes
+syllabus project update --yes
 ```
 
 ## Update one library
 
-When your project imports rules from several libraries, you can update just one of them. Name the library's source, its name under `sources` in `.code-rules/config.yaml`:
+When your project imports rules from several libraries, you can update just one of them. Name the library's source, its name under `sources` in `.syllabus/config.yaml`:
 
 ```sh
-code-rules project update team
+syllabus project update team
 ```
 
 The update works like a full one, with the same preview and questions, for `team` only. Your other libraries stay where they are until your next full update.
@@ -101,7 +101,7 @@ The update works like a full one, with the same preview and questions, for `team
 To upgrade a single rule your project imports, without taking anything else from its library, name the rule after its source, as `SOURCE:RULE`:
 
 ```sh
-code-rules project update team:techs/react/prefer-server-components
+syllabus project update team:techs/react/prefer-server-components
 ```
 
 The preview and the update cover only that rule. The library's new rules, its other rule changes, and its shared files stay where they are, with one exception: when the rule's new version comes from a newer library release than your shared files, they move to that library release, because a rule version can rely on the shared files its library release published. To upgrade several rules together, name each of them.
@@ -115,37 +115,37 @@ When an update brings a change you're not ready for, keep that rule where it is 
 ```yaml
 sources:
   team:
-    repository: https://github.com/acme/.code-rules.git
+    repository: https://github.com/acme/.syllabus.git
     rules:
       include: [techs/react/*, practices/testing/*]
       pins:
         - id: practices/testing/verify-retry-limits
           version: "1.3.0"
-          reason: Waiting on the author's response to acme/.code-rules#45.
+          reason: Waiting on the author's response to acme/.syllabus#45.
 ```
 
 There are three ways to add one:
 
-- **During the update.** In a terminal, `code-rules project update` asks whether to adopt each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
+- **During the update.** In a terminal, `syllabus project update` asks whether to adopt each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
 - **With `--keep`.** Pin rules as part of the update, without prompts:
 
   ```sh
-  code-rules project update --yes \
+  syllabus project update --yes \
     --keep team:practices/testing/verify-retry-limits \
-    --reason "Waiting on the author's response to acme/.code-rules#45."
+    --reason "Waiting on the author's response to acme/.syllabus#45."
   ```
 
-- **By hand.** Add the pin to `.code-rules/config.yaml`, using the version recorded in `.code-rules/vendor/<source-name>/_source.json`, and run `code-rules project sync`. An agent asked to keep a rule at its current version can do this for you.
+- **By hand.** Add the pin to `.syllabus/config.yaml`, using the version recorded in `.syllabus/vendor/<source-name>/_source.json`, and run `syllabus project sync`. An agent asked to keep a rule at its current version can do this for you.
 
 A pinned rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. Every update preview lists it, with its newest version and your reason, so the decision isn't forgotten.
 
 When you're ready to adopt the newer version, delete the pin and [update that rule](#update-one-rule-to-its-newest-version):
 
 ```sh
-code-rules project update team:practices/testing/verify-retry-limits
+syllabus project update team:practices/testing/verify-retry-limits
 ```
 
-A pin can also move a rule to a specific version: set `version`, and `code-rules project sync` moves the rule to exactly that version, up or down. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
+A pin can also move a rule to a specific version: set `version`, and `syllabus project sync` moves the rule to exactly that version, up or down. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
 
 ## Handle retirements
 
@@ -166,15 +166,15 @@ sources:
       include: ["*"]
 ```
 
-`code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
+`syllabus project update` doesn't move this source. To import another library release, change the tag and run `syllabus project sync`. To go back to following rule versions, remove `ref`.
 
-`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules with unreleased changes have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
+`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules with unreleased changes have no version, so Syllabus warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
 
 ## Review and commit the update
 
-`code-rules project update` reports added, changed, and removed file paths. Before committing:
+`syllabus project update` reports added, changed, and removed file paths. Before committing:
 
-- Inspect the diff of `.code-rules/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
+- Inspect the diff of `.syllabus/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
 - For each `replaced` rule in the preview, compare the library's old and new text before deciding whether your local rule still makes sense.
 - When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
 
@@ -182,17 +182,17 @@ Commit the configuration, vendor snapshots, and generated files together.
 
 ## Change selected groups or rules
 
-Edit the relevant `sources.<name>.rules.include` and run `code-rules project sync`.
-`code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
+Edit the relevant `sources.<name>.rules.include` and run `syllabus project sync`.
+`syllabus project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
 You don't need to create group metadata before deselecting, or removing, the last library supplying an authored rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last imported copy in `vendor/`, to `rules/<group-id>/_group.yaml` and warns that it did. See [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group). Review the file afterward; it's now yours to edit. If `rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 
-`code-rules project update` and `code-rules project sync` validate and render before installing output.
+`syllabus project update` and `syllabus project sync` validate and render before installing output.
 A failed import, or an update you didn't confirm, preserves the previous working ruleset.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
 Rules never change automatically during coding, review, or offline checks.
-Code Rules keeps the versions it recorded until you change your selection, pins, or `ref`, or confirm an update.
+Syllabus keeps the versions it recorded until you change your selection, pins, or `ref`, or confirm an update.

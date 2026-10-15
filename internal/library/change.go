@@ -1,4 +1,4 @@
-// Record rule changes as new change notes in .code-rules/changes/, and read the notes library check compares.
+// Record rule changes as new change notes in .syllabus/changes/, and read the notes library check compares.
 
 package library
 
@@ -27,7 +27,7 @@ import (
 )
 
 // changesDirectory holds change notes, by their library paths; projects never import it. The repository keeps it
-// in .code-rules/changes/.
+// in .syllabus/changes/.
 const changesDirectory = "changes"
 
 // maxNoteNameAttempts bounds the random suffixes tried for a note name that isn't taken.
@@ -77,7 +77,7 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 	return &ChangePlan{request: request, options: options, Versioned: versioned}, nil
 }
 
-// Commit writes a new, uniquely named note, such as .code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
+// Commit writes a new, uniquely named note, such as .syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
 // by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
 // collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
 // A retirement whose replacement isn't a rule yet succeeds with a warning.
@@ -95,7 +95,7 @@ func (p *ChangePlan) Commit(ctx context.Context, bump coderules.Change, summary 
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	dir, err := openCodeRulesDirectory(ctx, root, false)
+	dir, err := openSyllabusDirectory(ctx, root, false)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -398,7 +398,7 @@ func readChangeNotes(ctx context.Context, input FileSource) (map[string][]byte, 
 	for _, entry := range entries {
 		name := changesDirectory + "/" + entry.Name()
 		if entry.Type()&fs.ModeType != 0 || !strings.HasSuffix(name, ".yaml") {
-			return nil, bad(name, "expected only change notes, as .yaml files, in .code-rules/changes/")
+			return nil, bad(name, "expected only change notes, as .yaml files, in .syllabus/changes/")
 		}
 		if _, err := r.read(name); err != nil {
 			return nil, err

@@ -44,7 +44,7 @@ func syncedProject(t *testing.T) (Options, imports.Options, func(*testing.T)) {
 	return options, git, thirdRelease
 }
 
-// projectTree reads every file of the project's Code Rules directory.
+// projectTree reads every file of the project's Syllabus directory.
 func projectTree(t *testing.T, options Options) *filetxn.Tree {
 	t.Helper()
 	root, err := openProject(context.Background(), options, false)

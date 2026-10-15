@@ -107,7 +107,7 @@ func TestLibraryCheck_ReportsMissingNotesAndShallowClones(t *testing.T) {
 	fixture, dir := releasedLibrary(t)
 	writeFiles(t, dir, map[string]string{"practices/testing/a.md": libraryRule("Changed.")})
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
-	if code != 1 || out != "" || !strings.Contains(diagnostic, "practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: code-rules library change practices/testing/a") {
+	if code != 1 || out != "" || !strings.Contains(diagnostic, "practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: syllabus library change practices/testing/a") {
 		t.Fatal(code, out, diagnostic)
 	}
 	assertJSONError(t, binary, dir, fixture.Environment, "change-notes")
@@ -175,7 +175,7 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 		t.Fatal(code, out, diagnostic, notes)
 	}
 	note := libraryFile(dir, "changes/"+notes[0])
-	want := "Change note created.\nAdded:\n  .code-rules/changes/" + notes[0] + "\n\nNext: Commit the note with the rule change, then validate the library:\n  code-rules library check\n"
+	want := "Change note created.\nAdded:\n  .syllabus/changes/" + notes[0] + "\n\nNext: Commit the note with the rule change, then validate the library:\n  syllabus library check\n"
 	if out != want {
 		t.Fatalf("stdout:\n%s\nwant:\n%s", out, want)
 	}
@@ -193,7 +193,7 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	if len(response.Value.Added) != 1 || len(response.Value.Changed) != 0 || response.Value.Added[0] == note || !generated.MatchString(filepath.Base(response.Value.Added[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
+	if len(response.Value.Added) != 1 || len(response.Value.Changed) != 0 || response.Value.Added[0] == note || !generated.MatchString(filepath.Base(response.Value.Added[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "syllabus library check" {
 		t.Fatalf("%+v", response.Value)
 	}
 }
@@ -311,7 +311,7 @@ func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 	writeFiles(t, dir, map[string]string{"body.md": "Test every retry.\n"})
 	add := []string{"library", "add", "rule", "practices/testing/retries", "--title", "Test retries", "--when-to-read", "When changing retries.", "--impact", "HIGH", "--impact-description", "Catch retry bugs.", "--body-file", "body.md"}
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, add...)
-	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  code-rules library change practices/testing/retries --summary '<what the rule adds>'\n\nThen validate the library:\n  code-rules library check\n"
+	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  syllabus library change practices/testing/retries --summary '<what the rule adds>'\n\nThen validate the library:\n  syllabus library check\n"
 	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
@@ -333,7 +333,7 @@ func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 	}
 	writeFiles(t, unreleased, map[string]string{"body.md": "Test every retry.\n"})
 	out, diagnostic, code = runCLIWithEnvironment(t, binary, unreleased, fixture.Environment, add...)
-	if code != 0 || strings.Contains(out, "library change") || !strings.HasSuffix(out, "After writing the rule text, run:\n  code-rules library check\n") {
+	if code != 0 || strings.Contains(out, "library change") || !strings.HasSuffix(out, "After writing the rule text, run:\n  syllabus library check\n") {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 }

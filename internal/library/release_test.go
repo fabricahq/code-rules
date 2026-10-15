@@ -125,7 +125,7 @@ func TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag(t *test
 	files := libraryFiles()
 	files["practices/testing/README.md"] = []byte("# Testing\n\nHow to author testing rules.\n")
 	fixture, options := authorClone(t, files)
-	options.Git.Environment = append(slices.Clone(options.Git.Environment), "GIT_COMMITTER_NAME=Code Rules Bot", "GIT_COMMITTER_EMAIL=code-rules-bot@noreply.invalid")
+	options.Git.Environment = append(slices.Clone(options.Git.Environment), "GIT_COMMITTER_NAME=Syllabus Bot", "GIT_COMMITTER_EMAIL=syllabus-bot@noreply.invalid")
 	if _, err := fixture.CommandIn(ctx, options.Directory, "tag", "unrelated"); err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag(t *test
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/1"); message != notes+"\n---\n"+record {
 		t.Fatalf("tag message:\n%s\nwant:\n%s\n---\n%s", message, notes, record)
 	}
-	if object := catTag(t, fixture, remoteDir(fixture), "release/1"); !strings.Contains(object, "\ntagger Code Rules Bot <code-rules-bot@noreply.invalid> ") || !strings.Contains(object, "object "+fixture.LatestCommit+"\ntype commit\n") {
+	if object := catTag(t, fixture, remoteDir(fixture), "release/1"); !strings.Contains(object, "\ntagger Syllabus Bot <syllabus-bot@noreply.invalid> ") || !strings.Contains(object, "object "+fixture.LatestCommit+"\ntype commit\n") {
 		t.Fatalf("tag object:\n%s", object)
 	}
 	if strings.Contains(tags(t, fixture, remoteDir(fixture)), "unrelated") {
@@ -289,20 +289,20 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})
 			}},
-		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - .code-rules/changes/a.yaml isn't committed\n  - .code-rules/rules/practices/testing/a.md differs from its committed copy\n  - .code-rules/rules/practices/testing/b.md was deleted, and the deletion isn't committed\n  - .code-rules/rules/practices/testing/c.md isn't committed\nCommit and push your changes",
+		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - .syllabus/changes/a.yaml isn't committed\n  - .syllabus/rules/practices/testing/a.md differs from its committed copy\n  - .syllabus/rules/practices/testing/b.md was deleted, and the deletion isn't committed\n  - .syllabus/rules/practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
 			}},
-		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - .code-rules/assets/note.txt differs from its committed copy\n",
+		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - .syllabus/assets/note.txt differs from its committed copy\n",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				// Like Git LFS, the clean filter commits other content than the checkout holds, so Git sees no change.
 				run(t, fixture, options.Directory, "config", "filter.upper.clean", "/usr/bin/tr a-z A-Z")
-				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitattributes": []byte(".code-rules/assets/*.txt filter=upper\n"), "assets/note.txt": []byte("checked content\n")})
+				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitattributes": []byte(".syllabus/assets/*.txt filter=upper\n"), "assets/note.txt": []byte("checked content\n")})
 				if status, err := fixture.CommandIn(context.Background(), options.Directory, "-c", "filter.upper.clean=/usr/bin/tr a-z A-Z", "status", "--porcelain"); err != nil || status != "" {
 					t.Fatalf("the filtered file looks changed to Git: %q %v", status, err)
 				}
 			}},
-		{name: "ignored library file", code: "uncommitted-changes", message: ".code-rules/rules/practices/testing/c.md isn't committed",
+		{name: "ignored library file", code: "uncommitted-changes", message: ".syllabus/rules/practices/testing/c.md isn't committed",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitignore": []byte("c.md\n")})
 				edit(t, options.Directory, map[string]string{"practices/testing/c.md": ruleText("New."), "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n"})
@@ -454,7 +454,7 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 	commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
 	fake := withGitHub(t, fixture, &options, gitHubCalls("release/2", 1))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/acme/rules, then run code-rules library release again, which creates the page with its notes only if it's still missing.") || strings.Contains(err.Error(), "gh release create") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/acme/rules, then run syllabus library release again, which creates the page with its notes only if it's still missing.") || strings.Contains(err.Error(), "gh release create") {
 		t.Fatal(err)
 	}
 	message := tagMessage(t, fixture, remoteDir(fixture), "release/2")
@@ -497,7 +497,7 @@ func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
 	responses[1].Stderr = "HTTP 502: Bad Gateway (https://api.github.com/repos/acme/rules/releases/tags/release/1)\n"
 	fake := withGitHub(t, fixture, &options, responses)
 	_, err := Release(context.Background(), ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1: gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view release/1 --repo github.com/acme/rules to read gh's message") || strings.Contains(err.Error(), "Bad Gateway") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1: gh failed for a reason Syllabus doesn't recognize. The tag is published; run gh release view release/1 --repo github.com/acme/rules to read gh's message") || strings.Contains(err.Error(), "Bad Gateway") {
 		t.Fatal(err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})
@@ -615,8 +615,8 @@ func TestRelease_RefusesWhenTheRemoteChangesBetweenListingAndFetching(t *testing
 		change  string
 		message string
 	}{
-		{"branch", "commit --quiet --allow-empty --message Elsewhere", "origin changed while code-rules library release was reading it: someone pushed to main."},
-		{"release tag", "tag --force --annotate --cleanup=verbatim --message " + gitfixture.Quote(strings.Replace(releaseOne, "Add a.", "Add rule a.", 1)) + " release/1", "origin changed while code-rules library release was reading it: release/1 changed."},
+		{"branch", "commit --quiet --allow-empty --message Elsewhere", "origin changed while syllabus library release was reading it: someone pushed to main."},
+		{"release tag", "tag --force --annotate --cleanup=verbatim --message " + gitfixture.Quote(strings.Replace(releaseOne, "Add a.", "Add rule a.", 1)) + " release/1", "origin changed while syllabus library release was reading it: release/1 changed."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			fixture, options := authorClone(t, libraryFiles(), releaseOne)
@@ -737,7 +737,7 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 	}
 }
 
-// interruptedRelease creates the release tag that code-rules library release would publish from options'
+// interruptedRelease creates the release tag that syllabus library release would publish from options'
 // library, as a run interrupted before pushing it leaves it, and returns its release notes.
 func interruptedRelease(t *testing.T, options Options) string {
 	t.Helper()
@@ -752,7 +752,7 @@ func interruptedRelease(t *testing.T, options Options) string {
 	return planned.notes
 }
 
-// planFixtureRelease returns the library release that code-rules library release would publish from options'
+// planFixtureRelease returns the library release that syllabus library release would publish from options'
 // library, and the commit it would tag.
 func planFixtureRelease(t *testing.T, options Options) (plannedRelease, string) {
 	t.Helper()
@@ -870,14 +870,14 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 func TestRelease_AsksToUpgradeForAnUnpublishedTagInANewerFormat(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles())
-	// A newer Code Rules created this tag, then stopped before pushing it.
+	// A newer Syllabus created this tag, then stopped before pushing it.
 	newer := "Library release 1.\n\n---\nformatVersion: 2\nrelease: 1\nrules: A later shape.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/1", newer); err != nil {
 		t.Fatal(err)
 	}
 	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Code Rules") || strings.Contains(err.Error(), "git tag --delete") {
+	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Syllabus") || strings.Contains(err.Error(), "git tag --delete") {
 		t.Fatalf("got %v; want unsupported-release-record asking to upgrade", err)
 	}
 	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
@@ -989,7 +989,7 @@ func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *test
 }
 
 // TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLimit counts every tag record,
-// including peeled ones, toward 20,000, and ignores tags Code Rules doesn't use.
+// including peeled ones, toward 20,000, and ignores tags Syllabus doesn't use.
 func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLimit(t *testing.T) {
 	main := upstream{branch: "main", remote: "origin", ref: "refs/heads/main"}
 	commit, tag := strings.Repeat("a", 40), strings.Repeat("b", 64)

@@ -53,13 +53,13 @@ A rule can also be **retired**, when a better rule replaces it or the practice i
 
 Each version is recorded in the library release that published it, with a summary of what changed. The rule file itself has no version field; see [Find a rule's current version](/guides/version-rules/#find-a-rules-current-version). Library authors never set a version by hand: they [record each change in a change note](/guides/version-rules/#change-rules-after-the-first-library-release), and a library release turns the notes into new versions.
 
-Projects see each imported rule's version in their generated guidance, and upgrade a rule to its newest version with `code-rules project update`; see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version). Before a project adopts a major change or retirement of a rule it uses, someone on the project accepts it. Local rules have no versions.
+Projects see each imported rule's version in their generated guidance, and upgrade a rule to its newest version with `syllabus project update`; see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version). Before a project adopts a major change or retirement of a rule it uses, someone on the project accepts it. Local rules have no versions.
 
 See [Rule versions](/reference/rule-versions/) for the tag format, [Version your rules](/guides/version-rules/) for authors, and [Update rules](/guides/update/) for projects.
 
 ## How agents identify and use it
 
-When you build or sync a project, Code Rules combines its local and imported rules into generated group files. Each group file contains the rules in full, or summaries with links to the full rules when the group is large. The project's exclusions and replacements determine which rules appear.
+When you build or sync a project, Syllabus combines its local and imported rules into generated group files. Each group file contains the rules in full, or summaries with links to the full rules when the group is large. The project's exclusions and replacements determine which rules appear.
 
 Agents read the generated guidance in this order:
 

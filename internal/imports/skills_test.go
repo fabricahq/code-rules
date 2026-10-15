@@ -29,9 +29,9 @@ func TestSkillFoldersFindsEachSkillAndItsFiles(t *testing.T) {
 		isLibrary bool
 		want      map[string][]string
 	}{
-		"library skills are folders directly in .code-rules/skills": {
-			tree: entries(".code-rules/skills/build/SKILL.md", ".code-rules/skills/build/scripts/run.sh", ".code-rules/skills/notes.md", ".code-rules/skills/empty/README.md",
-				".code-rules/skills/group/nested/SKILL.md", ".code-rules/rules/techs/go/errors.md", "tools/review/SKILL.md"),
+		"library skills are folders directly in .syllabus/skills": {
+			tree: entries(".syllabus/skills/build/SKILL.md", ".syllabus/skills/build/scripts/run.sh", ".syllabus/skills/notes.md", ".syllabus/skills/empty/README.md",
+				".syllabus/skills/group/nested/SKILL.md", ".syllabus/rules/techs/go/errors.md", "tools/review/SKILL.md"),
 			isLibrary: true,
 			want:      map[string][]string{"skills/build": {"skills/build/SKILL.md", "skills/build/scripts/run.sh"}},
 		},
@@ -90,7 +90,7 @@ func TestChooseSkillsTakesEverySkillFromThePlannedRevision(t *testing.T) {
 		"wildcard skips dot folders":           {release, []string{"*"}, sourcePlan{commit: locked}, []string{"skills/build", "skills/review"}, "", ""},
 		"named skills":                         {release, []string{"skills/review"}, sourcePlan{commit: locked, locked: locked}, []string{"skills/review"}, "", ""},
 		"a dot folder can be named":            {release, []string{".claude/skills/local"}, sourcePlan{commit: locked}, []string{".claude/skills/local"}, "", ""},
-		"missing from the locked release":      {release, []string{"skills/new"}, sourcePlan{release: 1, commit: locked, locked: locked}, nil, "skill-not-in-revision", "Run code-rules project update team"},
+		"missing from the locked release":      {release, []string{"skills/new"}, sourcePlan{release: 1, commit: locked, locked: locked}, nil, "skill-not-in-revision", "Run syllabus project update team"},
 		"missing from the locked ref":          {pinned, []string{"skills/new"}, sourcePlan{commit: locked, locked: locked}, nil, "skill-not-in-revision", "set sources.team.ref to a tag or commit that has it"},
 		"missing from a newly chosen revision": {release, []string{"skills/new"}, sourcePlan{release: 2, commit: newer, locked: locked}, nil, "", "the source has no skill skills/new at release/2"},
 		"missing without a record":             {release, []string{"skills/new"}, sourcePlan{commit: newer}, nil, "", "the source has no skill skills/new at commit " + newer},

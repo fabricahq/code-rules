@@ -36,7 +36,7 @@ func invalid(location, problem string) error {
 }
 
 // translate returns err with the validation error of an internal package, such as decode or librarytree, replaced
-// by a *ValidationError with the same location and problem, keeping err's text, so callers outside Code Rules only
+// by a *ValidationError with the same location and problem, keeping err's text, so callers outside Syllabus only
 // ever see this package's error types. It returns other errors, and nil, as they are.
 func translate(err error) error {
 	var internal errs.ValidationError

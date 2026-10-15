@@ -17,7 +17,7 @@ import (
 // TestProjectAuthoringLifecycle covers idempotent init, local authoring, offline build, and config-only source addition.
 func TestProjectAuthoringLifecycle(t *testing.T) {
 	ctx := context.Background()
-	directory := filepath.Join(t.TempDir(), ".code-rules")
+	directory := filepath.Join(t.TempDir(), ".syllabus")
 	options := Options{Directory: filepath.Dir(directory)}
 	result, err := Initialize(ctx, options)
 	if err != nil || len(result.Written()) != 3 {
@@ -96,7 +96,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 	for _, scenario := range []string{"invalid-config", "linked-rules", "case-alias", "hardlink", "pending-recovery", "cancelled"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx := context.Background()
-			directory := filepath.Join(t.TempDir(), ".code-rules")
+			directory := filepath.Join(t.TempDir(), ".syllabus")
 			options := Options{Directory: filepath.Dir(directory)}
 			if _, err := Initialize(ctx, options); err != nil {
 				t.Fatal(err)
@@ -116,7 +116,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 					t.Fatal(err)
 				}
 			case "pending-recovery":
-				os.Mkdir(filepath.Join(directory, ".code-rules-authoring-pending"), 0700)
+				os.Mkdir(filepath.Join(directory, ".syllabus-authoring-pending"), 0700)
 			case "cancelled":
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithCancel(ctx)
@@ -141,7 +141,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 // TestRuleRequiresGroup rejects missing metadata without changing an existing document.
 func TestRuleRequiresGroup(t *testing.T) {
 	ctx := context.Background()
-	directory := filepath.Join(t.TempDir(), ".code-rules")
+	directory := filepath.Join(t.TempDir(), ".syllabus")
 	options := Options{Directory: filepath.Dir(directory)}
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
@@ -166,7 +166,7 @@ func TestRuleRequiresGroup(t *testing.T) {
 // TestRuleUsesImportedGroup accepts imported metadata without creating a local override.
 func TestRuleUsesImportedGroup(t *testing.T) {
 	ctx := context.Background()
-	directory := filepath.Join(t.TempDir(), ".code-rules")
+	directory := filepath.Join(t.TempDir(), ".syllabus")
 	options := Options{Directory: filepath.Dir(directory)}
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)

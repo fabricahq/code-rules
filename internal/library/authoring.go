@@ -63,16 +63,16 @@ type RuleOptions struct {
 //go:embed library-guide.md
 var libraryReadme string
 
-// checkWorkflow runs code-rules library check on pull requests; checkWorkflowFor fills in checkWorkflowVersion.
+// checkWorkflow runs syllabus library check on pull requests; checkWorkflowFor fills in checkWorkflowVersion.
 //
 //go:embed check-workflow.yml
 var checkWorkflow string
 
-// checkWorkflowVersion marks where checkWorkflow's install step sets the Code Rules version it installs.
-const checkWorkflowVersion = "CODE_RULES_VERSION"
+// checkWorkflowVersion marks where checkWorkflow's install step sets the Syllabus version it installs.
+const checkWorkflowVersion = "SYLLABUS_VERSION"
 
 // latestVersion is the shell command that the install step of a development build's workflow runs to find the
-// version of the latest Code Rules release, without its v prefix.
+// version of the latest Syllabus release, without its v prefix.
 const latestVersion = `$(gh release view --repo fabricahq/code-rules --json tagName --jq '.tagName | ltrimstr("v")')`
 
 // developmentVersion prefixes the versions of builds that no release published: development builds and
@@ -80,10 +80,11 @@ const latestVersion = `$(gh release view --repo fabricahq/code-rules --json tagN
 const developmentVersion = "0.0.0-"
 
 // checkWorkflowPath is the GitHub Actions workflow library init writes.
-const checkWorkflowPath = ".github/workflows/code-rules.yml"
+const checkWorkflowPath = ".github/workflows/syllabus.yml"
 
 // openLibrary opens the library repository's root, enforcing the same final-root no-link policy as project
-// authoring. It fails, closing the root, when the repository is in the library layout before version 2.
+// authoring. It fails, closing the root, when the repository is in the library layout before version 2 or keeps
+// its Syllabus directory under the name Code Rules used.
 func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, error) {
 	directory := options.Directory
 	if directory == "" {
@@ -97,12 +98,16 @@ func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, e
 		root, err = filetxn.Open(ctx, directory)
 	}
 	if errors.Is(err, os.ErrNotExist) && !create {
-		return nil, failure("needs-init", directory+": missing library directory; run code-rules library init first", err)
+		return nil, failure("needs-init", directory+": missing library directory; run syllabus library init first", err)
 	}
 	if err != nil {
 		return nil, err
 	}
 	if err := requireLibraryLayout(root); err != nil {
+		root.Close()
+		return nil, err
+	}
+	if err := requireCurrentDirectory(root); err != nil {
 		root.Close()
 		return nil, err
 	}
@@ -121,7 +126,7 @@ func declaredTerms(ctx context.Context, root *os.Root, manifest []byte, planned 
 		return nil, nil, err
 	}
 	if declaration == nil {
-		return nil, nil, failure("needs-init", manifestPath+" has no library section, so this repository isn't a library; run code-rules library init to add one", nil)
+		return nil, nil, failure("needs-init", manifestPath+" has no library section, so this repository isn't a library; run syllabus library init to add one", nil)
 	}
 	inventory := map[string][]byte{librarytree.Manifest: manifest}
 	for _, name := range rules.LicensePaths(declaration.License) {
@@ -167,18 +172,18 @@ func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *ru
 		return nil, nil, err
 	}
 	if data == nil {
-		return nil, nil, failure("needs-init", "missing "+manifestPath+"; run code-rules library init first", nil)
+		return nil, nil, failure("needs-init", "missing "+manifestPath+"; run syllabus library init first", nil)
 	}
 	return declaredTerms(ctx, root, data, nil)
 }
 
 // Initialize creates missing scaffolding and explicit terms without overwriting existing terms, README, or check
-// workflow. It adds a library section to .code-rules/config.yaml, creating the configuration when it's missing and
+// workflow. It adds a library section to .syllabus/config.yaml, creating the configuration when it's missing and
 // keeping an existing one's sources and comments; an existing library section stays unchanged. The workflow installs
-// codeRulesVersion, an unprefixed version such as 0.2.0, from the Code Rules release tagged with it, or the latest
+// syllabusVersion, an unprefixed version such as 0.2.0, from the Syllabus release tagged with it, or the latest
 // release for a 0.0.0- development build.
-func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVersion string) (AuthoringResult, error) {
-	workflow, err := checkWorkflowFor(codeRulesVersion)
+func Initialize(ctx context.Context, options Options, terms *Terms, syllabusVersion string) (AuthoringResult, error) {
+	workflow, err := checkWorkflowFor(syllabusVersion)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -187,7 +192,7 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	dir, err := openCodeRulesDirectory(ctx, root, true)
+	dir, err := openSyllabusDirectory(ctx, root, true)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -280,7 +285,7 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 // version first and then installs exactly that one.
 func checkWorkflowFor(version string) ([]byte, error) {
 	if canonical, err := rules.TagVersion(version, "version"); err != nil || canonical != version {
-		return nil, failure("invalid-version", "Code Rules version "+strconv.Quote(version)+" is not a complete semantic version", err)
+		return nil, failure("invalid-version", "Syllabus version "+strconv.Quote(version)+" is not a complete semantic version", err)
 	}
 	installed := version
 	if strings.HasPrefix(version, developmentVersion) {
@@ -300,7 +305,7 @@ func readOptionalBelow(ctx context.Context, root *os.Root, name string) ([]byte,
 	return filetxn.ReadOptional(ctx, root, name)
 }
 
-// editLibrary revalidates manifest and the target category under the writer of the Code Rules directory before
+// editLibrary revalidates manifest and the target category under the writer of the Syllabus directory before
 // publication; prepare returns files by repository path.
 func editLibrary(ctx context.Context, options Options, group string, prepare func(*os.Root) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openLibrary(ctx, options, false)
@@ -308,7 +313,7 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	dir, err := openCodeRulesDirectory(ctx, root, false)
+	dir, err := openSyllabusDirectory(ctx, root, false)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -400,6 +405,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the repository root, four directories above this folder.\nUse `code-rules library add rule %s/<rule-name>` to add a rule; run `code-rules library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `code-rules library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the repository root, four directories above this folder.\nUse `syllabus library add rule %s/<rule-name>` to add a rule; run `syllabus library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `syllabus library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

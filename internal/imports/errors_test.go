@@ -20,7 +20,7 @@ func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 	connection := "Could not connect to the library's repository. Check the repository address and your network connection."
 	certificate := "The library's HTTPS server certificate couldn't be verified. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS."
 	hostKey := "The library's SSH host key couldn't be verified. Check the server's entry in your known_hosts file."
-	refused := "The library's server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant."
+	refused := "The library's server refused to send a file by its object ID, which Syllabus needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant."
 	for _, test := range []struct {
 		name, diagnostics, code, message string
 	}{
@@ -50,8 +50,8 @@ func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 		{"Host key verification failed.\nfatal: Could not read from remote repository. " + marker + "\n", "ssh-host-key-failed", hostKey},
 		{"fatal: Authentication failed for '" + marker + "'\n", "not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials."},
 		{"fatal: could not read Username for '" + marker + "': terminal prompts disabled\n", "not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials."},
-		{"fatal: " + marker + "\n", "git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
-		{"", "git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
+		{"fatal: " + marker + "\n", "git-failed", "Could not read the library's repository for a reason Syllabus doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
+		{"", "git-failed", "Could not read the library's repository for a reason Syllabus doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
 	} {
 		err := remoteFailure([]byte(test.diagnostics))
 		requireCode(t, err, test.code)

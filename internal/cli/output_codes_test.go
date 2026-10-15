@@ -67,7 +67,7 @@ func syncWithConfiguration(t *testing.T, f *gitfixture.Fixture, fields string, a
 		t.Fatal(code, out, diagnostic)
 	}
 	config := `{"schemaVersion":2,"sources":{"team":{"repository":"` + f.Repository + `",` + fields + `}}}`
-	if err := os.WriteFile(filepath.Join(directory, ".code-rules", "config.yaml"), []byte(config), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, ".syllabus", "config.yaml"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
 	return runCLIWithEnvironment(t, binary, directory, f.Environment, append([]string{"project", "sync"}, args...)...)

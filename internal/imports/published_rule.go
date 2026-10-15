@@ -23,7 +23,7 @@ type PublishedRule struct {
 	Release int
 	Commit  string
 	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
-	// their library paths from the repository root rather than in .code-rules/rules/.
+	// their library paths from the repository root rather than in .syllabus/rules/.
 	LegacyLayout bool
 	// Files holds original bytes by library path: the rule's Markdown file, its asset directory's files, and each
 	// file in the shared assets/ directory that those files link to, directly or through other shared assets.

@@ -14,7 +14,7 @@ import (
 // newProjectCommand groups project operations with their flags and help sections.
 func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 	command := &cobra.Command{Use: "project", Short: "Manage rules for this project"}
-	command.Long = command.Short + "\n\nCode Rules stores this project's configuration and rules in the .code-rules/\ndirectory at its root. Rules can be project-only, imported from libraries, or both.\nRun init from the Git repository root. Other project commands can run from any\nsubdirectory. Outside Git, run commands from the project root." + documentationHelp
+	command.Long = command.Short + "\n\nSyllabus stores this project's configuration and rules in the .syllabus/\ndirectory at its root. Rules can be project-only, imported from libraries, or both.\nRun init from the Git repository root. Other project commands can run from any\nsubdirectory. Outside Git, run commands from the project root." + documentationHelp
 	command.AddGroup(
 		&cobra.Group{ID: "main", Title: "Main commands:"},
 		&cobra.Group{ID: "utility", Title: "Utility commands:"},
@@ -23,7 +23,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		descriptions := map[string]string{"sync": "Fetch configured sources, build guidance, and install skills", "build": "Rebuild guidance and installed skills using local snapshots", "check": "Check configuration and generated guidance"}
 		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
 		if name == "check" {
-			cmd.Long = "Check project configuration, generated guidance, and the Code Rules guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
+			cmd.Long = "Check project configuration, generated guidance, and the Syllabus guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
 		}
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 			directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)
@@ -67,8 +67,8 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 }
 
 func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
-	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
-	initialize.Long = initialize.Short + "\n\nCreates the .code-rules/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules and how to connect your coding agent to them. Run it from the repository\nroot; outside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide.\n\nA new configuration installs skills into .claude/skills/ and .agents/skills/.\nChoose others with --skill-targets: repeat it for claude and agents, or pass\nnone to install no copies. On an existing configuration, init changes the skill\ntargets only when you pass --skill-targets.\n\nLearn more: https://code-rules.fabricahq.com/start-here/set-up-project/"
+	initialize, f := newAuthoringCommand("init", "Set up Syllabus in this project", cobra.NoArgs, options.Directory)
+	initialize.Long = initialize.Short + "\n\nCreates the .syllabus/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules and how to connect your coding agent to them. Run it from the repository\nroot; outside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide.\n\nA new configuration installs skills into .claude/skills/ and .agents/skills/.\nChoose others with --skill-targets: repeat it for claude and agents, or pass\nnone to install no copies. On an existing configuration, init changes the skill\ntargets only when you pass --skill-targets.\n\nLearn more: https://code-rules.fabricahq.com/start-here/set-up-project/"
 	var skillTargets []string
 	initialize.Flags().StringArrayVar(&skillTargets, "skill-targets", nil, "Where to install skills (repeat): claude for .claude/skills/, agents for .agents/skills/, or none")
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {

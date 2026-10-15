@@ -22,8 +22,8 @@ func libraryFile(dir, name string) string {
 // buildCLI compiles the real entry point so tests cover process exit and standard streams.
 func buildCLI(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "code-rules")
-	command := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules")
+	binary := filepath.Join(t.TempDir(), "syllabus")
+	command := exec.Command("go", "build", "-o", binary, "../../cmd/syllabus")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build: %v %s", err, output)
 	}
@@ -119,7 +119,7 @@ func TestCLIProcess(t *testing.T) {
 			}
 		})
 	}
-	root := filepath.Join(dir, ".code-rules")
+	root := filepath.Join(dir, ".syllabus")
 	if err := os.Mkdir(root, 0700); err != nil {
 		t.Fatal(err)
 	}

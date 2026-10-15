@@ -128,9 +128,9 @@ func describeSkill(skill *resolvedSkill, location string) error {
 // skill, and, for an authored skill, where to edit it.
 func (skill resolvedSkill) marker() string {
 	if skill.Source == "" {
-		return fmt.Sprintf("<!-- code-rules:installed %s. Do not edit; edit .code-rules/%s/ instead. -->", skill.ID, skill.Folder)
+		return fmt.Sprintf("<!-- syllabus:installed %s. Do not edit; edit .syllabus/%s/ instead. -->", skill.ID, skill.Folder)
 	}
-	return fmt.Sprintf("<!-- code-rules:installed %s %s. Do not edit; code-rules project sync replaces this copy. -->", skill.ID, skill.Commit)
+	return fmt.Sprintf("<!-- syllabus:installed %s %s. Do not edit; syllabus project sync replaces this copy. -->", skill.ID, skill.Commit)
 }
 
 // installed returns the files of skill's installed copy: its files with the marker line in SKILL.md.
@@ -185,12 +185,12 @@ func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[strin
 	return folders, files, nil
 }
 
-// InstalledSkillsFile is the record, in generated/, of the skill folders Code Rules installed, which is how it knows
+// InstalledSkillsFile is the record, in generated/, of the skill folders Syllabus installed, which is how it knows
 // which folders in the skill targets it owns.
 const InstalledSkillsFile = "installed-skills.json"
 
 // InstalledFolders reads the folders an installed-skills.json record lists, by path from the repository root,
-// sorted. A record it can't read lists none, so no folder counts as installed by Code Rules.
+// sorted. A record it can't read lists none, so no folder counts as installed by Syllabus.
 func InstalledFolders(data []byte) []string {
 	var record struct {
 		FormatVersion int `json:"formatVersion"`
@@ -232,7 +232,7 @@ func folderDigest(folder SkillFiles) string {
 // skillsIndex renders SKILLS.md: one entry per installed skill, saying what it does, where it comes from, what it
 // replaces, and where agents find it, then the skills the project excludes, each with its reason.
 func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
-	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.code-rules/skills/` and rebuild."}
+	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.syllabus/skills/` and rebuild."}
 	for _, skill := range resolved {
 		lines := []string{"### " + skill.Name}
 		if description := strings.TrimSpace(skill.Description); description != "" {
@@ -259,16 +259,16 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 			facts = append(facts, "- **Type:** "+escapeText(skill.Type))
 		}
 		if len(skill.Targets) == 0 {
-			source := ".code-rules/" + skill.Folder + "/" + skills.File
+			source := ".syllabus/" + skill.Folder + "/" + skills.File
 			if skill.Source != "" {
-				source = ".code-rules/vendor/" + skill.Source + "/" + skill.Folder + "/" + skills.File
+				source = ".syllabus/vendor/" + skill.Source + "/" + skill.Folder + "/" + skills.File
 			}
-			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".code-rules/generated/SKILLS.md", source)+").")
+			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", source)+").")
 		} else {
 			links := []string{}
 			for _, target := range skill.Targets {
 				file := target + "/" + skills.File
-				links = append(links, "["+file+"]("+rules.RelativeLink(".code-rules/generated/SKILLS.md", file)+")")
+				links = append(links, "["+file+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", file)+")")
 			}
 			facts = append(facts, "- **Installed at:** "+strings.Join(links, ", "))
 		}

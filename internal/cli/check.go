@@ -24,7 +24,7 @@ type checkProblem struct {
 }
 
 // rebuild is the repair of every problem project check reports: regenerating output and the managed guide.
-var rebuild = nextStep{Instruction: "Regenerate the project's generated files and Code Rules guide:", Commands: []string{"code-rules project build"}}
+var rebuild = nextStep{Instruction: "Regenerate the project's generated files and Syllabus guide:", Commands: []string{"syllabus project build"}}
 
 // checkProject checks generated files and the managed README, keeping unreadable or invalid inputs as operational errors.
 func checkProject(ctx context.Context, options project.Options) (projectCheckResult, error) {
@@ -43,7 +43,7 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 		case project.UnexpectedFile:
 			message = "Unexpected generated file"
 		case project.OutdatedGuide:
-			message = "Code Rules guide is missing or outdated; preserve any manual edits before refreshing"
+			message = "Syllabus guide is missing or outdated; preserve any manual edits before refreshing"
 		}
 		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextSteps: []nextStep{rebuild}})
 	}
