@@ -25,12 +25,12 @@ sources:
     repository: https://github.com/fabricahq/public-rules.git
     rules:
       include: [techs/typescript/*, practices/testing/*]
-    skills:
-      include: [skills/build-feature]
       exclude:
         - id: techs/typescript/prefer-type-aliases
           reason: Our public extension API relies on declaration merging.
           replacedBy: techs/typescript/prefer-interfaces
+    skills:
+      include: [skills/build-feature]
   acme:
     repository: https://github.com/acme/.code-rules.git
     rules:
