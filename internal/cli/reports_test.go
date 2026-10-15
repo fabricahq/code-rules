@@ -16,10 +16,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// invokeReport runs args through Run in directory, with an empty home directory, so no personal skills.
 func invokeReport(t *testing.T, ctx context.Context, directory string, args ...string) (string, string, int) {
 	t.Helper()
+	return invokeWithHome(t, ctx, directory, t.TempDir(), args...)
+}
+
+// invokeWithHome runs args through Run in directory, as invokeReport does, with home as the home directory whose
+// personal skills sync, update, and check read.
+func invokeWithHome(t *testing.T, ctx context.Context, directory, home string, args ...string) (string, string, int) {
+	t.Helper()
 	var out, diagnostic bytes.Buffer
-	code := Run(ctx, args, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory})
+	code := Run(ctx, args, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Home: home})
 	return out.String(), diagnostic.String(), code
 }
 

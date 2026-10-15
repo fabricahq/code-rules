@@ -43,7 +43,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			return &project.UnchangedError{Err: err}
 		}
 		f.status("Reading library releases...")
-		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version}, options.Git, targets, decisions)
+		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version, Home: options.home()}, options.Git, targets, decisions)
 		if err != nil {
 			return err
 		}

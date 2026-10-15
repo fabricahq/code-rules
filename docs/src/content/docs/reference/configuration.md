@@ -6,7 +6,7 @@ description: "Fields in .code-rules/config.yaml."
 The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules and skills it includes from each, its exceptions, and where it installs skills. The **Code Rules directory**, `.code-rules/`, also holds `rules/`, `assets/`, `skills/`, `vendor/`, and `generated/`.
 
 :::note[Preview]
-`skillTargets`, `skills.include`, and sources that aren't libraries come in the next Code Rules release.
+`skillTargets`, `skills.include`, `skills.uses`, and sources that aren't libraries come in the next Code Rules release.
 :::
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
@@ -63,6 +63,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.rules.exclude` | Optional list of entries, each with a selector as its `id`, a `reason` and, for a single rule, optionally a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, or `"*"` alone for every skill the source offers. See [Select skills](#select-skills). |
+| `sources.<name>.skills.uses` | Optional map of a skill ID to the skill IDs it uses that its own `syllabus-skills-used` doesn't list. See [Declare the skills a skill uses](#declare-the-skills-a-skill-uses). |
 | `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
@@ -154,7 +155,32 @@ sources:
       include: [tools/review]
 ```
 
-Skill levels, such as `recommended`, and the `rename`, `exclude`, and `uses` fields aren't supported yet.
+Sync also installs every skill an included skill uses, from the same source; see [Declare the skills a skill uses](#declare-the-skills-a-skill-uses).
+
+Skill levels, such as `recommended`, and the `rename` and `exclude` fields aren't supported yet.
+
+### Declare the skills a skill uses
+
+A skill lists the other skills it calls in its `syllabus-skills-used` metadata, one skill ID per line, and sync installs them with it, and the skills they use in turn, all from the same source and revision. A skill installed only because another uses it isn't listed in `skills.include`, and `generated/SKILLS.md` says which skill uses it.
+
+Many skills, especially ones from a repository that isn't a library, call other skills without listing them. Declare those calls in the source's `skills.uses`, so sync installs them too:
+
+```yaml
+sources:
+  pstack:
+    repository: https://github.com/example/pstack.git
+    ref: v1.4.0
+    skills:
+      include: [skills/poteto-mode]
+      uses:
+        skills/architect: [skills/how]
+```
+
+Each key is a skill the source installs, because `skills.include` selects it or another installed skill uses it, and each value lists skill IDs in the same repository. `uses` adds to what the skill's `syllabus-skills-used` lists; it can't remove one. A skill can't use itself, and the skills used can't form a cycle, directly or through other skills. Code Rules doesn't search skill text for calls: `syllabus-skills-used` and `skills.uses` are the only ways it learns of them.
+
+Sync fails, writing nothing, when a skill uses one the source's revision doesn't have, naming both skills, and when skills use each other in a cycle. A `skills.uses` entry that names a skill the recorded revision lacks fails with `skill-not-in-revision`, because sync never moves a source. Offline, `code-rules project build` and `code-rules project check` ask for `code-rules project sync` when `skills.uses` changed what the source installs.
+
+Dependencies don't cross sources: a source's skill uses skills from its own repository. A skill you author in `.code-rules/skills/` can use a source's skill by its project ID, such as `pstack:skills/how`, but Code Rules doesn't install it for that: the source must install it, so add it to the source's `skills.include`.
 
 ## Repository addresses
 
