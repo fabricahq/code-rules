@@ -57,13 +57,13 @@ type Metadata struct {
 	Name string
 	// Description is the frontmatter's description, or empty.
 	Description string
-	// Type is metadata.fg-skill-type as written, or empty.
+	// Type is metadata.syllabus-skill-type as written, or empty.
 	Type string
-	// RulesUsed and SkillsUsed are the lines of metadata.fg-rules-used and metadata.fg-skills-used, trimmed of
+	// RulesUsed and SkillsUsed are the lines of metadata.syllabus-rules-used and metadata.syllabus-skills-used, trimmed of
 	// surrounding whitespace, without blank lines, in the order written; nil when the key is absent. Their IDs are
 	// unchecked: Check validates them.
 	RulesUsed, SkillsUsed []string
-	// ReservedKeys lists, sorted, the metadata keys that start with fg- but aren't one of the three Code Rules
+	// ReservedKeys lists, sorted, the metadata keys that start with syllabus- but aren't one of the three Code Rules
 	// defines, which only Check rejects; nil when there are none.
 	ReservedKeys []string
 	// Frontmatter reports whether the file starts with a frontmatter block.
@@ -124,7 +124,7 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 			*field.lines = idLines(text)
 		}
 		for _, key := range slices.Sorted(maps.Keys(metadata)) {
-			if strings.HasPrefix(key, "fg-") && !slices.Contains([]string{TypeKey, RulesUsedKey, SkillsUsedKey}, key) {
+			if strings.HasPrefix(key, "syllabus-") && !slices.Contains([]string{TypeKey, RulesUsedKey, SkillsUsedKey}, key) {
 				result.ReservedKeys = append(result.ReservedKeys, key)
 			}
 		}

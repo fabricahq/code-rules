@@ -70,7 +70,7 @@ func skillProblems(tree *filetxn.Tree, current []string, changes libraryChanges)
 	return problems
 }
 
-// citedRuleProblem returns why id, a line of fg-rules-used, doesn't name a current rule of the library, or empty when
+// citedRuleProblem returns why id, a line of syllabus-rules-used, doesn't name a current rule of the library, or empty when
 // it does or isn't a rule ID, which skills.Check reports instead. retiring holds the pending change notes'
 // retirements by rule.
 func citedRuleProblem(id string, current []string, history releaseHistory, retiring map[string][]rules.NoteChange) string {

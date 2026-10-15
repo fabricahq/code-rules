@@ -11,18 +11,18 @@ import (
 	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
-// The metadata keys Code Rules defines. Every other key that starts with fg- is reserved.
+// The metadata keys Code Rules defines. Every other key that starts with syllabus- is reserved.
 const (
-	TypeKey       = "fg-skill-type"
-	RulesUsedKey  = "fg-rules-used"
-	SkillsUsedKey = "fg-skills-used"
+	TypeKey       = "syllabus-skill-type"
+	RulesUsedKey  = "syllabus-rules-used"
+	SkillsUsedKey = "syllabus-skills-used"
 )
 
-// Types lists the values fg-skill-type accepts. A type is a label only: Code Rules shows it and treats every skill
+// Types lists the values syllabus-skill-type accepts. A type is a label only: Code Rules shows it and treats every skill
 // the same way.
 var Types = []string{"playbook", "review"}
 
-// Citation is one ID that fg-rules-used or fg-skills-used names: a rule or skill ID, and, when the line qualifies
+// Citation is one ID that syllabus-rules-used or syllabus-skills-used names: a rule or skill ID, and, when the line qualifies
 // it, the name of the source that supplies it.
 type Citation struct {
 	// Source is the source name before the first colon, or empty for a bare ID, which names a rule or skill the
@@ -31,7 +31,7 @@ type Citation struct {
 	ID     string
 }
 
-// ParseCitation splits a line of fg-rules-used or fg-skills-used into its source name and ID. It checks nothing.
+// ParseCitation splits a line of syllabus-rules-used or syllabus-skills-used into its source name and ID. It checks nothing.
 func ParseCitation(line string) Citation {
 	if source, id, found := strings.Cut(line, ":"); found {
 		return Citation{Source: source, ID: id}
@@ -48,8 +48,8 @@ func (c Citation) String() string {
 }
 
 // Check returns every problem in the frontmatter of the skill a repository authors in skills/<folder>/, in a fixed
-// order, or none: frontmatter that is missing, a name other than folder, a type that isn't in Types, a reserved fg-
-// key, and fg-rules-used or fg-skills-used lines that aren't IDs, repeat an ID, or name the skill itself. qualified
+// order, or none: frontmatter that is missing, a name other than folder, a type that isn't in Types, a reserved syllabus-
+// key, and syllabus-rules-used or syllabus-skills-used lines that aren't IDs, repeat an ID, or name the skill itself. qualified
 // allows IDs that name a source, as a project's skills may; a library's skills cite only its own rules and skills.
 // It checks the IDs' form only, not that the rules and skills they name exist. Each problem is a sentence about
 // SKILL.md, for the caller to place at its location.
@@ -94,7 +94,7 @@ func checkLines(key string, lines []string, qualified bool, self string, problem
 	return problems
 }
 
-// ValidRuleCitation reports whether line, a line of fg-rules-used, has the form of a rule ID, qualified by a source
+// ValidRuleCitation reports whether line, a line of syllabus-rules-used, has the form of a rule ID, qualified by a source
 // name only when qualified allows it, so that whether it names a rule can be checked.
 func ValidRuleCitation(line string, qualified bool) bool {
 	return ruleProblem(ParseCitation(line), qualified) == ""

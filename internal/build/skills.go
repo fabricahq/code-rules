@@ -55,7 +55,7 @@ type resolvedSkill struct {
 	Level string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
-	// RulesUsed lists the lines of the skill's fg-rules-used, and Cited how the project resolves each of them, in
+	// RulesUsed lists the lines of the skill's syllabus-rules-used, and Cited how the project resolves each of them, in
 	// the same order; both are empty for a skill that cites no rules.
 	RulesUsed []string
 	Cited     []citedRule
