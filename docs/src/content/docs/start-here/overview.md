@@ -30,9 +30,8 @@ Code Rules records each skill's and rule's source and version, updates them only
 
 With Code Rules, you can:
 
-- Start every new repo with your team's pull request review skill and Go rules already in place, without copying folders around.
+- Start every new repo with exactly the right skills and rules in place.
 - Fix a skill once in your organization's library, and have every repo pick up the fix on its next update.
-- Install a skill once and have it work in Claude Code, Codex, and Cursor.
 - Use a skill from someone else's GitHub repo, know exactly which commit you have, and see what changed before you take an update.
 - Turn off one shared rule that doesn't fit a repo, such as a web logging rule in a CLI, without forking the whole library.
 
