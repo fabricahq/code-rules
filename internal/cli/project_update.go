@@ -175,6 +175,10 @@ func flagDecisions(keep, exclude, forks []string, reason string) ([]project.Upda
 func askUpdateDecisions(f *authoringFlags, plan *project.UpdatePlan, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, error) {
 	var intro strings.Builder
 	formatUpdatePreview(&intro, preview.Sources)
+	// The scripts warning comes before the questions, so people read the scripts before they decide.
+	if warning := preview.ScriptsWarning(); warning != "" {
+		fmt.Fprintf(&intro, "\nWarning: %s\n", warning)
+	}
 	f.introduction = intro.String()
 	for _, source := range preview.Sources {
 		for _, row := range source.Rules {
@@ -328,6 +332,10 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 		out.WriteString(projectChangesReport("update", result.FileChanges, location.root, location.workdir).human)
 		return commandReport{value: result, human: out.String()}
 	}
+	// A blank line sets the warnings apart from the preview, as a terminal shows them before its questions.
+	if out.Len() > 0 && len(result.Warnings) > 0 {
+		out.WriteByte('\n')
+	}
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
@@ -350,8 +358,9 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 // updateKindWidth fits the longest change name, replaced.
 const updateKindWidth = len(imports.UpdateReplaced)
 
-// formatUpdatePreview lists each source's rows with the change, rule ID, and versions in aligned columns, each
-// row's details indented beneath them, and any move of its shared files. It writes nothing when no source has
+// formatUpdatePreview lists each source's rule rows with the change, rule ID, and versions in aligned columns, then
+// its skill rows with the change and skill ID, each row's details indented beneath them, and any move of its shared
+// files. It writes nothing when no source has
 // anything to show, so the caller's summary stands alone.
 func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 	idWidth := 0
@@ -360,7 +369,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.Rules {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || source.Ref != "" || source.SharedFiles != nil
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -371,7 +380,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		switch {
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
-		case len(source.Rules) == 0 && source.SharedFiles == nil:
+		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil:
 			out.WriteString("  No rule updates.\n")
 		}
 		for _, row := range source.Rules {
@@ -380,10 +389,29 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
+		for _, row := range source.Skills {
+			fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
+			for _, line := range skillUpdateDetails(row) {
+				fmt.Fprintf(out, "%s%s\n", indent, line)
+			}
+		}
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
+}
+
+// skillUpdateDetails returns the lines shown under a skill's row: the files a changed skill's update changes, then
+// one line for each script the update adds or changes.
+func skillUpdateDetails(row imports.SkillUpdate) []string {
+	lines := []string{}
+	if len(row.Files) > 0 {
+		lines = append(lines, "Changed: "+strings.Join(row.Files, ", "))
+	}
+	for _, script := range row.Scripts {
+		lines = append(lines, "script "+string(script.Change)+": "+script.Path)
+	}
+	return lines
 }
 
 // updateVersions shows where a row's rule moves, or the one version it has.
