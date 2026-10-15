@@ -140,7 +140,7 @@ Fork a skill the project installs: copy it into `.code-rules/skills/` so the pro
 
 The command:
 
-1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.code-rules/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use.
+1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.code-rules/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use. In the copy's `SKILL.md`, it adds the source's name to each skill ID in `syllabus-skills-used`, and, for a library's skill, each rule ID in `syllabus-rules-used`, such as `fabrica:skills/tdd` for `skills/tdd`, because in your project a bare ID names a skill or rule you author.
 2. Adds a `skills.exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the commit the source record locks as [`basedOn`](/reference/configuration/#exclude-or-replace-a-skill), so the fork installs in place of the skill, and updates list the source's later changes to it. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
 
 :::note[Preview]
