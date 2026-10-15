@@ -127,3 +127,61 @@ func TestSkillFoldersKeepsFileModes(t *testing.T) {
 		t.Fatalf("modes = %v", files)
 	}
 }
+
+func TestRequireConfiguredUsesNeedsEachUsedSkillInTheRevision(t *testing.T) {
+	const locked = "1111111111111111111111111111111111111111"
+	available := []string{"skills/architect", "skills/how"}
+	source := func(uses map[string][]string) rules.Source {
+		return rules.Source{Name: "team", Skills: []string{"skills/architect"}, SkillUses: uses}
+	}
+	if err := requireConfiguredUses(source(map[string][]string{"skills/architect": {"skills/how"}}), sourcePlan{commit: locked, locked: locked}, available); err != nil {
+		t.Fatal(err)
+	}
+	err := requireConfiguredUses(source(map[string][]string{"skills/architect": {"skills/gone"}}), sourcePlan{release: 1, commit: locked, locked: locked}, available)
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "skill-not-in-revision" || !strings.HasPrefix(failure.Error(), "sources.team.skills.uses.skills/architect names skills/gone, which isn't in release/1") {
+		t.Fatalf("locked revision: got %v", err)
+	}
+	err = requireConfiguredUses(source(map[string][]string{"skills/architect": {"skills/gone"}}), sourcePlan{commit: locked}, available)
+	var validation *ValidationError
+	if !errors.As(err, &validation) || validation.Location != "sources.team.skills.uses.skills/architect" || !strings.Contains(validation.Problem, "the source has no skill skills/gone") {
+		t.Fatalf("new revision: got %v", err)
+	}
+}
+
+func TestInstalledSkillsReportsTheSkillsAMissingUseOrCycleInvolves(t *testing.T) {
+	plan := sourcePlan{release: 3, commit: "1111111111111111111111111111111111111111"}
+	tests := map[string]struct {
+		uses       map[string][]string
+		configured map[string][]string
+		location   string
+		problem    string
+	}{
+		"an included skill's missing use": {
+			map[string][]string{"skills/architect": {"skills/how"}}, nil, "sources.team.skills",
+			"skills/architect uses skills/how, which isn't a skill in release/3: skills/architect names it in syllabus-skills-used. Syllabus installs every skill an installed skill uses, so it can't install skills/architect. Ask the source's maintainer to correct syllabus-skills-used, or stop including skills/architect",
+		},
+		"a used skill's missing use": {
+			map[string][]string{"skills/architect": {"skills/how"}, "skills/how": {"skills/gone"}}, nil, "sources.team.skills",
+			"skills/how uses skills/gone, which isn't a skill in release/3: skills/how names it in syllabus-skills-used. Syllabus installs every skill an installed skill uses, so it can't install skills/how, which skills/architect uses. Ask the source's maintainer to correct syllabus-skills-used, or stop including skills/architect",
+		},
+		"a cycle": {
+			map[string][]string{"skills/architect": {"skills/how"}, "skills/how": {"skills/architect"}}, nil, "sources.team.skills",
+			"the skills the source installs use each other in a cycle: skills/architect -> skills/how -> skills/architect. Syllabus installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct syllabus-skills-used, or remove the use from sources.team.skills.uses",
+		},
+		"a uses key the source doesn't install": {
+			map[string][]string{"skills/architect": nil}, map[string][]string{"skills/other": {"skills/architect"}}, "sources.team.skills.uses.skills/other",
+			"skills/other isn't a skill the source installs, so it has no uses to declare; a key of skills.uses names a skill that skills.include selects, or one those skills use. Include the skill, or remove the entry",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			source := rules.Source{Name: "team", Skills: []string{"skills/architect"}, SkillUses: test.configured}
+			_, err := installedSkills(source, plan, source.Skills, test.uses)
+			var validation *ValidationError
+			if !errors.As(err, &validation) || validation.Location != test.location || validation.Problem != test.problem {
+				t.Fatalf("got %v\nwant %s: %s", err, test.location, test.problem)
+			}
+		})
+	}
+}

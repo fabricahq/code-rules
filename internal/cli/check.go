@@ -12,30 +12,41 @@ import (
 type projectCheckResult struct {
 	Status   string         `json:"status"`
 	Problems []checkProblem `json:"problems"`
+	// Warnings never change Status.
+	Warnings []string `json:"warnings"`
 }
 
 // checkProblem identifies an observed mismatch and the steps that can repair it, in the same form as authoring
 // results' next steps.
 type checkProblem struct {
-	Kind      string     `json:"kind"`
-	Path      string     `json:"path"`
+	Kind string `json:"kind"`
+	Path string `json:"path"`
+	// Skill is the project ID of the skill an installed skill folder problem is about; it is omitted for other
+	// problems.
+	Skill     string     `json:"skill,omitempty"`
 	Message   string     `json:"message"`
 	NextSteps []nextStep `json:"nextSteps"`
 }
 
-// rebuild is the repair of every problem project check reports: regenerating output, the managed guide, and the
-// AGENTS.md section.
+// rebuild is the repair of every problem project check reports about generated files, the managed guide, and the
+// AGENTS.md section: regenerating them.
 var rebuild = nextStep{Instruction: "Regenerate the project's generated files, Syllabus guide, and AGENTS.md section:", Commands: []string{"syllabus project build"}}
 
-// checkProject checks generated files and the managed README, keeping unreadable or invalid inputs as operational errors.
+// reinstallSkills is the repair of every problem project check reports about an installed skill folder: installing
+// fresh copies from each skill's source.
+var reinstallSkills = nextStep{Instruction: "Reinstall the project's skills from their sources, replacing any edits to the installed copies:", Commands: []string{"syllabus project build"}}
+
+// checkProject checks generated files, installed skill folders, and the managed README, keeping unreadable or invalid
+// inputs as operational errors.
 func checkProject(ctx context.Context, options project.Options) (projectCheckResult, error) {
 	report, err := project.Check(ctx, options)
 	if err != nil {
 		return projectCheckResult{}, err
 	}
-	result := projectCheckResult{Status: "up-to-date", Problems: []checkProblem{}}
+	result := projectCheckResult{Status: "up-to-date", Problems: []checkProblem{}, Warnings: nonNil(report.Warnings)}
 	for _, problem := range report.Problems {
 		message := ""
+		repair := rebuild
 		switch problem.Kind {
 		case project.MissingFile:
 			message = "Missing generated file"
@@ -47,8 +58,14 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 			message = "Syllabus guide is missing or outdated; preserve any manual edits before refreshing"
 		case project.OutdatedAgents:
 			message = "AGENTS.md is missing the Syllabus section, or holds an outdated one"
+		case project.MissingSkill:
+			message, repair = "Installed skill "+problem.Skill+" is missing", reinstallSkills
+		case project.ModifiedSkill:
+			message, repair = "Installed skill "+problem.Skill+" differs from its source; don't edit installed copies, since build replaces them", reinstallSkills
+		case project.UnexpectedSkill:
+			message, repair = "Installed skill "+problem.Skill+" is no longer installed by this project; build removes it", reinstallSkills
 		}
-		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextSteps: []nextStep{rebuild}})
+		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Skill: problem.Skill, Message: message, NextSteps: []nextStep{repair}})
 	}
 	if !report.Current() {
 		result.Status = "out-of-date"

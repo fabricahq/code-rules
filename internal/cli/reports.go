@@ -264,13 +264,16 @@ func projectCheckedReport(result projectCheckResult, root, workdir string) comma
 	var out strings.Builder
 	report := commandReport{value: result}
 	if result.Status == "up-to-date" {
-		out.WriteString("Status: up to date.\nGenerated guidance and the Syllabus guide are current.\nNo files were changed.\n")
+		out.WriteString("Status: up to date.\nGenerated guidance, installed skills, and the Syllabus guide are current.\nNo files were changed.\n")
 	} else {
 		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Syllabus files are out of date; see the reported problems and next steps"}
 		fmt.Fprintf(&out, "Status: out of date.\nNo files were changed.\nPaths relative to %s:\n\nProblems:\n", relativeDirectory(project.Directory(root), workdir))
 		for _, problem := range result.Problems {
 			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
+	}
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
 	report.human = out.String()
 	return report

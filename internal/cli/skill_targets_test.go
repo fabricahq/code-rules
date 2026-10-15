@@ -126,3 +126,110 @@ func TestSync_InstallsTheSkillsOfAnAddedSource(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckNamesAnEditedInstalledSkillAndItsRepair(t *testing.T) {
+	binary := buildCLI(t)
+	f, err := gitfixture.New(context.Background(), map[string][]byte{"tools/review/SKILL.md": []byte("---\nname: review\ndescription: Review a change.\n---\n# Review\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	directory := t.TempDir()
+	for _, args := range [][]string{{"project", "init", "--skill-targets", "claude"}, {"project", "add", "source", "tools", "--repository", f.Repository, "--ref", "v1.0.0", "--skills", "*", "--non-interactive"}} {
+		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
+			t.Fatal(args, code, out, diagnostic)
+		}
+	}
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, f.Environment, "project", "sync"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	installed := filepath.Join(directory, ".claude/skills/review/SKILL.md")
+	if err := os.WriteFile(installed, []byte("# Edited by hand\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, diagnostic, code := runCLI(t, binary, directory, "project", "check", "--json")
+	var result struct {
+		OK    bool
+		Value projectCheckResult
+		Error responseError
+	}
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out-of-date" || len(result.Value.Problems) != 1 {
+		t.Fatal(code, out, diagnostic)
+	}
+	problem := result.Value.Problems[0]
+	if problem.Kind != "modified-skill" || problem.Path != "../.claude/skills/review" || problem.Skill != "tools:tools/review" || problem.Message != "Installed skill tools:tools/review differs from its source; don't edit installed copies, since build replaces them" || repairCommand(t, problem) != "syllabus project build" {
+		t.Fatalf("problem = %+v", problem)
+	}
+	human, diagnostic, code := runCLI(t, binary, directory, "project", "check")
+	if want := "  " + problem.Message + ": ../.claude/skills/review\n    Next: syllabus project build\n"; code != 1 || diagnostic != "" || !strings.Contains(human, want) {
+		t.Fatalf("human output:\n%s\nwant\n%s", human, want)
+	}
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "build"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	if data, err := os.ReadFile(installed); err != nil || !strings.Contains(string(data), "# Review") {
+		t.Fatalf("build didn't reinstall the skill: %s %v", data, err)
+	}
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "check"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+}
+
+func TestBuildReportsAnInvalidSkillTypeAtTheSkill(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	skill := filepath.Join(directory, ".syllabus/skills/fix-bug/SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(skill), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(skill, []byte("---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: workflow\n---\n# Fix\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{"build", "check"} {
+		out, diagnostic, code := runCLI(t, binary, directory, "project", command, "--json")
+		var result struct {
+			OK    bool
+			Error responseError
+		}
+		if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "validation" || result.Error.Location != "skills/fix-bug/SKILL.md" || !strings.Contains(result.Error.Message, `syllabus-skill-type is "workflow"; use playbook or review, or leave it out`) {
+			t.Fatal(command, code, out, diagnostic)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(directory, ".claude/skills/fix-bug")); err == nil {
+		t.Fatal("build installed an invalid skill")
+	}
+}
+
+func TestSync_NamesTheSkillAndTheUsedSkillItCannotFind(t *testing.T) {
+	binary := buildCLI(t)
+	f, err := gitfixture.New(context.Background(), map[string][]byte{"skills/architect/SKILL.md": []byte("---\nname: architect\nmetadata:\n  syllabus-skills-used: |\n    skills/how\n---\n# Architect\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	directory := t.TempDir()
+	for _, args := range [][]string{{"project", "init", "--skill-targets", "claude"}, {"project", "add", "source", "pstack", "--repository", f.Repository, "--ref", "v1.0.0", "--skills", "skills/architect", "--non-interactive"}} {
+		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
+			t.Fatal(args, code, out, diagnostic)
+		}
+	}
+	problem := "skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in syllabus-skills-used."
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, f.Environment, "project", "sync", "--json")
+	var result struct {
+		OK    bool
+		Error responseError
+	}
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "validation" || result.Error.Location != "sources.pstack.skills" || !strings.Contains(result.Error.Message, problem) {
+		t.Fatal(code, out, diagnostic)
+	}
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, directory, f.Environment, "project", "sync")
+	if code != 1 || !strings.Contains(diagnostic, "Error: "+problem) || !strings.Contains(diagnostic, "Location: sources.pstack.skills\n") {
+		t.Fatal(code, out, diagnostic)
+	}
+	if _, err := os.Stat(filepath.Join(directory, ".claude")); err == nil {
+		t.Fatal("failed sync installed skills")
+	}
+}

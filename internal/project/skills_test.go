@@ -372,16 +372,35 @@ func TestBuild_InstallsAuthoredSkillsOffline(t *testing.T) {
 	}
 }
 
-func TestBuild_RejectsInvalidAuthoredSkillsAndNameClashes(t *testing.T) {
+func TestSync_RejectsASourceSkillAndAnAuthoredSkillWithOneName(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"]}}}}`)
+	root, err := openProject(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, "skills/review/SKILL.md", "---\nname: review\n---\n# Our review\n")
+	_, err = Sync(ctx, options, git)
+	projectCode(t, err, "skill-name-clash")
+	if exists(t, options, ".claude/skills/review") {
+		t.Fatal("a failed sync installed a skill")
+	}
+}
+
+func TestBuild_RejectsInvalidAuthoredSkills(t *testing.T) {
 	tests := map[string]struct {
 		files    map[string]string
 		location string
 		code     string
 	}{
-		"file directly in skills": {map[string]string{"skills/notes.md": "x"}, ".syllabus/skills/notes.md", ""},
-		"folder without SKILL.md": {map[string]string{"skills/tidy/notes.md": "x"}, ".syllabus/skills/tidy/", ""},
-		"invalid folder name":     {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".syllabus/skills/Tidy/", ""},
-		"two skills, one name":    {map[string]string{"skills/one/SKILL.md": "---\nname: shared\n---\n", "skills/two/SKILL.md": "---\nname: shared\n---\n"}, "", "skill-name-clash"},
+		"file directly in skills":       {map[string]string{"skills/notes.md": "x"}, ".syllabus/skills/notes.md", ""},
+		"folder without SKILL.md":       {map[string]string{"skills/tidy/notes.md": "x"}, ".syllabus/skills/tidy/", ""},
+		"invalid folder name":           {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".syllabus/skills/Tidy/", ""},
+		"name that isn't the folder's":  {map[string]string{"skills/one/SKILL.md": "---\nname: shared\n---\n"}, "skills/one/SKILL.md", ""},
+		"unknown skill type":            {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  syllabus-skill-type: design\n---\n"}, "skills/one/SKILL.md", ""},
+		"cited rule that doesn't exist": {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  syllabus-rules-used: techs/go/missing\n---\n"}, "skills/one/SKILL.md", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

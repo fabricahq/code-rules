@@ -30,10 +30,11 @@ func buildCLI(t *testing.T) string {
 	return binary
 }
 
-// runCLI runs the compiled command in an isolated project without any runtime binaries on PATH.
+// runCLI runs the compiled command in an isolated project without any runtime binaries on PATH, and with an empty
+// home directory, so no personal skills.
 func runCLI(t *testing.T, binary, dir string, args ...string) (string, string, int) {
 	t.Helper()
-	return runCLIWithEnvironment(t, binary, dir, append(os.Environ(), "PATH="+filepath.Join(dir, "empty-path")), args...)
+	return runCLIWithEnvironment(t, binary, dir, append(os.Environ(), "PATH="+filepath.Join(dir, "empty-path"), "HOME="+t.TempDir()), args...)
 }
 
 // runCLIWithGit runs the compiled command with only Git on PATH and no user or system Git configuration,

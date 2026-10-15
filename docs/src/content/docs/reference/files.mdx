@@ -71,7 +71,20 @@ The directories serve different purposes:
 - **`generated/`: the resolved rules your agents read.** Syllabus combines the imported and authored rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
 
 - **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill. A fork of a source's skill, which `syllabus project add skill --from` writes, lives here too, and a `skills.exclude` entry names it as the skill's replacement.
-- **Skill target folders: installed copies of every skill.** Build and sync copy each skill into each folder that `skillTargets` names, `.claude/skills/` and `.agents/skills/`, with a marker line saying not to edit it, and record the folders they installed in `generated/installed-skills.json`. They never replace or remove a folder there that they didn't install. Commit the copies; edit the skill's source instead.
+- **Skill target folders: installed copies of every skill.** Build and sync copy each skill into each folder that `skillTargets` names, `.claude/skills/` and `.agents/skills/`, with a marker line saying not to edit it, and record the folders they installed in `generated/installed-skills.json`. They never replace or remove a folder there that they didn't install. Commit the copies; edit the skill's source instead. Check fails while a copy differs from what build would write.
+
+When a skill cites rules in `syllabus-rules-used`, the installed `SKILL.md` ends with a generated section that links to the project's version of each one, relative to the copy, so the same copy works in every skill target:
+
+```md
+## Rules this skill applies
+
+Read each rule in full before the step that applies it. These are the project's versions of the rules this skill cites, for reference: they don't join RULES.md.
+
+- `fabrica:practices/testing/test-behavior-not-implementation` 1.3.0: [.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md](../../../.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md)
+- `local:practices/releases/write-release-notes`: [.syllabus/generated/rules/local/practices/releases/write-release-notes.md](../../../.syllabus/generated/rules/local/practices/releases/write-release-notes.md)
+```
+
+A cited rule the project replaces names the authored rule that does; one it excluded, doesn't include, or whose library retired it, has no link and says why.
 
 Think of `rules/`, `assets/`, `skills/`, and `vendor/` as inputs, and `generated/` and the installed skill copies as the output for your agent.
 For example, when you replace a library rule, its imported source stays in `vendor/`, your replacement lives in `rules/`, and `generated/` presents the replacement to your agent.
@@ -132,7 +145,7 @@ When `AGENTS.md` already points to `.syllabus/generated/RULES.md` outside the ma
 | `rules/` | Individual resolved rules, available even when a group also includes them inline. |
 | `libraries/` | Source summaries and retained license and notice files. |
 | `provenance.json` | Machine-readable source versions, origins, replacement decisions, and installed skills. |
-| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, and, for a replacement, the skill it replaces and why; then the skills the project excludes, with their reasons. `RULES.md` links to it when the project installs a skill. |
+| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, how many rules it applies, and, for a replacement, the skill it replaces and why. It also lists the skills each one uses, by install name, and says why a source's skill is installed: `included`, `used by <name>` when only other skills use it, or both. Then it lists the skills the project excludes, with their reasons. `RULES.md` links to it when the project installs a skill. |
 | `installed-skills.json` | The skill folders Syllabus installed, with each skill's ID, install name, and folder digest, so later commands replace or remove only those folders. |
 
 Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.

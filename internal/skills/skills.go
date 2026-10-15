@@ -6,6 +6,8 @@ package skills
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/decode"
@@ -57,13 +59,21 @@ type Metadata struct {
 	Description string
 	// Type is metadata.syllabus-skill-type as written, or empty.
 	Type string
+	// RulesUsed and SkillsUsed are the lines of metadata.syllabus-rules-used and metadata.syllabus-skills-used, trimmed of
+	// surrounding whitespace, without blank lines, in the order written; nil when the key is absent. Their IDs are
+	// unchecked: Check validates them.
+	RulesUsed, SkillsUsed []string
+	// ReservedKeys lists, sorted, the metadata keys that start with syllabus- but aren't one of the three Syllabus
+	// defines, which only Check rejects; nil when there are none.
+	ReservedKeys []string
 	// Frontmatter reports whether the file starts with a frontmatter block.
 	Frontmatter bool
 }
 
 // ReadMetadata reads the frontmatter of a SKILL.md file. A file without frontmatter, such as one from a repository
 // that isn't a library, has empty metadata. It fails when the frontmatter isn't one closed YAML mapping, or a field
-// it reads isn't a string; it checks nothing else, so a field it doesn't read can hold anything.
+// it reads isn't a string; it checks nothing else, so a field it doesn't read can hold anything, and Check
+// validates what it reads.
 func ReadMetadata(data []byte, location string) (Metadata, error) {
 	header, _, found, err := split(data, location)
 	if err != nil || !found {
@@ -96,11 +106,41 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 		if json.Unmarshal(*fields.Metadata, &metadata) != nil {
 			return Metadata{}, invalid(location+".metadata", "expected a mapping of string keys to string values")
 		}
-		if raw, ok := metadata["syllabus-skill-type"]; ok && json.Unmarshal(raw, &result.Type) != nil {
-			return Metadata{}, invalid(location+".metadata.syllabus-skill-type", "expected a string, such as playbook or review")
+		if raw, ok := metadata[TypeKey]; ok && json.Unmarshal(raw, &result.Type) != nil {
+			return Metadata{}, invalid(location+".metadata."+TypeKey, "expected a string, such as playbook or review")
+		}
+		for _, field := range []struct {
+			key   string
+			lines *[]string
+		}{{RulesUsedKey, &result.RulesUsed}, {SkillsUsedKey, &result.SkillsUsed}} {
+			raw, ok := metadata[field.key]
+			if !ok {
+				continue
+			}
+			var text string
+			if json.Unmarshal(raw, &text) != nil {
+				return Metadata{}, invalid(location+".metadata."+field.key, "expected a string with one ID per line; write it as a YAML block string, starting with |")
+			}
+			*field.lines = idLines(text)
+		}
+		for _, key := range slices.Sorted(maps.Keys(metadata)) {
+			if strings.HasPrefix(key, "syllabus-") && !slices.Contains([]string{TypeKey, RulesUsedKey, SkillsUsedKey}, key) {
+				result.ReservedKeys = append(result.ReservedKeys, key)
+			}
 		}
 	}
 	return result, nil
+}
+
+// idLines returns the lines of text, trimmed of surrounding whitespace, without blank lines.
+func idLines(text string) []string {
+	lines := []string{}
+	for line := range strings.Lines(text) {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 // InstallName returns the name a skill installs under, which names its installed folders: its frontmatter name, or,
