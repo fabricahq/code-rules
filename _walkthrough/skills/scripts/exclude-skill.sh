@@ -36,3 +36,4 @@ show syllabus project sync
 show ls .claude/skills
 show sed -n '/^## Excluded skills/,$p' .syllabus/generated/SKILLS.md
 commit_all "Take every Acme skill but one"
+show_files "$APP" demo-app

@@ -40,3 +40,4 @@ find .claude .agents -type f | sort
 show ls -l .claude/skills/acme-review/scripts
 show cat .syllabus/generated/installed-skills.json
 commit_all "Install skills with Syllabus"
+show_files "$APP" demo-app

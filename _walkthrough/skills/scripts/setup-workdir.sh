@@ -3,7 +3,16 @@
 # home folder and your global Git configuration, and serves the demo repositories over a local SSH stand-in.
 set -eo pipefail
 
+# Runbooks starts the first blocks in the runbook's folder, where it keeps the Files panel's Generated files. Keep that
+# folder, so show_files can remove stale copies there; a rerun after an earlier block changed directory keeps the one
+# recorded before.
 WORK="{{ .inputs.WorkDir }}"
+RUNBOOK_DIR=""
+if [ -f "$PWD/runbook.mdx" ]; then
+  RUNBOOK_DIR="$PWD"
+elif [ -f "$WORK/env.sh" ]; then
+  RUNBOOK_DIR=$(sed -n 's/^export RUNBOOK_DIR="\(.*\)"$/\1/p' "$WORK/env.sh")
+fi
 case "$WORK" in
   /*) ;;
   *) echo "WorkDir must be an absolute path, such as /tmp/syllabus-skills-walkthrough."; exit 1 ;;
@@ -47,6 +56,7 @@ chmod +x "$WORK/bin/demo-ssh"
 cat > "$WORK/env.sh" <<ENV
 # Sourced by every step of the walkthrough.
 export WORK="$WORK"
+export RUNBOOK_DIR="$RUNBOOK_DIR"
 ENV
 cat >> "$WORK/env.sh" <<'ENV'
 export CR="$WORK/bin/syllabus"
@@ -86,10 +96,13 @@ quote_command() {
 }
 
 # show_files copies the files of the repository at $1, without .git, to the Files panel's Generated files, under the
-# folder name $2. The copy is a snapshot: later blocks that change the repository don't change it.
+# folder name $2. Each block that changes a repository calls it last. Runbooks adds captured files to Generated files
+# without removing any, so it first deletes the earlier copy there, or files the repository no longer has would stay.
 show_files() {
   [ -n "${GENERATED_FILES:-}" ] || return 0
-  rm -rf "${GENERATED_FILES:?}/$2"
+  if [ -n "$RUNBOOK_DIR" ] && [ -d "$RUNBOOK_DIR/generated/$2" ]; then
+    rm -rf "${RUNBOOK_DIR:?}/generated/${2:?}"
+  fi
   mkdir -p "$GENERATED_FILES/$2"
   tar -C "$1" --exclude=.git -cf - . | tar -C "$GENERATED_FILES/$2" -xf -
 }

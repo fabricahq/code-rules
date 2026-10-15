@@ -24,3 +24,4 @@ show cat .syllabus/config.yaml
 expect_failure syllabus project check
 show syllabus project build
 show syllabus project check
+show_files "$APP" demo-app

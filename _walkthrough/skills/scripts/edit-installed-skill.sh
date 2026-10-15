@@ -12,3 +12,4 @@ expect_failure syllabus project check
 show syllabus project build
 show syllabus project check
 show git status --short
+show_files "$APP" demo-app

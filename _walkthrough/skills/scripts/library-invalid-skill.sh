@@ -27,3 +27,4 @@ echo "The same failure as JSON, with its error code:"
 
 rm -r .syllabus/skills/acme-deploy
 show syllabus library check
+show_files "$LIB" acme-library

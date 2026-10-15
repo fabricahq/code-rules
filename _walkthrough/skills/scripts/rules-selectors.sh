@@ -16,3 +16,4 @@ show syllabus project sync
 echo
 echo "Rules the project now has:"
 find .syllabus/generated/rules/acme -name '*.md' | sort
+show_files "$APP" demo-app

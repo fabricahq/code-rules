@@ -49,3 +49,4 @@ find . -name SKILL.md -not -path './.git/*' | sort
 echo
 echo "Tags in the hosted repository:"
 git ls-remote --tags origin
+show_files "$TEAM" team-skills

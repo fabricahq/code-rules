@@ -87,3 +87,4 @@ MD
 show syllabus project build
 show cat .claude/skills/release-checklist/SKILL.md
 commit_all "Add the release-checklist skill"
+show_files "$APP" demo-app

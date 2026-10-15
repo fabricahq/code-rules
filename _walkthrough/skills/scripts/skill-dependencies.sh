@@ -43,3 +43,4 @@ echo
 echo "What SKILLS.md says about why each skill is installed:"
 grep -E '^### |Uses:|Installed because:' .syllabus/generated/SKILLS.md
 commit_all "Install the skills our skills use"
+show_files "$APP" demo-app

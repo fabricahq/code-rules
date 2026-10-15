@@ -17,3 +17,4 @@ commit_all "Start demo-app"
 show syllabus project init --non-interactive
 echo
 show cat .syllabus/config.yaml
+show_files "$APP" demo-app

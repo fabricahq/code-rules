@@ -22,3 +22,4 @@ commit_all "Improve the review and fix-bug skills"
 git push -q origin main
 show syllabus library check
 show syllabus library release --no-github-release --non-interactive
+show_files "$LIB" acme-library

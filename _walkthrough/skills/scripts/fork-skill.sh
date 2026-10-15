@@ -15,3 +15,4 @@ printf '4. Add the failing test to tests/regressions/ and link the bug.\n' >> .s
 show syllabus project build
 show sed -n '/^### acme-fix-bug/,/Installed at/p' .syllabus/generated/SKILLS.md
 commit_all "Fork acme-fix-bug"
+show_files "$APP" demo-app

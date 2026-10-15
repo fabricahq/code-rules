@@ -11,3 +11,4 @@ echo
 echo "Your fork is unchanged; the library's new step 4 isn't in it:"
 show tail -3 .claude/skills/acme-fix-bug/SKILL.md
 commit_all "Update Acme to library release 2"
+show_files "$APP" demo-app

@@ -17,3 +17,4 @@ find .syllabus/rules -type f | sort
 echo
 echo "Generated copy, under the source name local:"
 find .syllabus/generated/rules/local -type f | sort
+show_files "$APP" demo-app
