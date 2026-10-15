@@ -56,16 +56,6 @@ metadata:
 
 All three keys are optional. The standard sets `metadata` aside for properties it doesn't define, so a skill with these keys is still a standard skill, and agents that don't read them use it as usual. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
 
-### Where cited rules live
-
-A skill cites rules from its own repository, so the rules it depends on always travel with it:
-
-- **A library's skill** cites only rules in the same library, by their ID there, such as `practices/testing/test-behavior-not-implementation`. Any project that installs the skill from that library gets those rules too, at the same release.
-- **A skill you author in your project** can cite your project's own rules, and also rules from the project's sources by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation`.
-- **A skill from a repository that isn't a library** has no rules to cite, so Code Rules ignores its `syllabus-rules-used`.
-
-In a library, `code-rules library check` fails when a skill cites a rule that doesn't exist or was retired, so a typo never reaches an agent. See [Rules a skill applies](/reference/skill-format/#rules-a-skill-applies).
-
 ## Skill types
 
 A skill can declare one type:
@@ -78,6 +68,16 @@ A skill can declare one type:
 The test is the skill's main job: a playbook changes the work, and a review judges work that already exists. A review may offer to fix what it found, and a playbook may include a review step.
 
 A skill that fits neither type leaves the field out. The type is a plain label for people and catalogs, such as `code-rules project list skills --type review`. Code Rules installs, checks, and updates typed and untyped skills the same way.
+
+## Where cited rules live
+
+A skill cites rules from its own repository, so the rules it depends on always travel with it:
+
+- **A library's skill** cites only rules in the same library, by their ID there, such as `practices/testing/test-behavior-not-implementation`. Any project that installs the skill from that library gets those rules too, at the same release.
+- **A skill you author in your project** can cite your project's own rules, and also rules from the project's sources by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation`.
+- **A skill from a repository that isn't a library** has no rules to cite, so Code Rules ignores its `syllabus-rules-used`.
+
+In a library, `code-rules library check` fails when a skill cites a rule that doesn't exist or was retired, so a typo never reaches an agent. See [Rules a skill applies](/reference/skill-format/#rules-a-skill-applies).
 
 ## Skills and rules
 
