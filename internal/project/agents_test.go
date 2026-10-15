@@ -23,7 +23,7 @@ func TestRenderAgentsSection(t *testing.T) {
 	if marker == nil || marker[1] != "1.2.3" || marker[2] != agentsDigest(strings.Join(lines[1:len(lines)-2], "")) || lines[len(lines)-2] != "<!-- syllabus:end -->\n" {
 		t.Fatalf("markers:\n%s", section)
 	}
-	for _, want := range []string{"## Skills and Rules\n", "Read `.syllabus/generated/RULES.md`", "If `.syllabus/generated/SKILLS.md` lists a skill", "follow `.syllabus/README.md`"} {
+	for _, want := range []string{"## Skills and Rules\n", "Read `.syllabus/generated/RULES.md`", "If `.syllabus/generated/SKILLS.md` exists, read it", "follow `.syllabus/README.md`"} {
 		if !strings.Contains(section, want) {
 			t.Fatalf("missing %q:\n%s", want, section)
 		}
