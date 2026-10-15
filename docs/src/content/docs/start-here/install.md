@@ -46,6 +46,8 @@ Syllabus was called Code Rules. Its command was `code-rules`, and projects and l
    git mv .code-rules .syllabus
    ```
 
+   In a project that isn't in a Git repository, use `mv` instead of `git mv`.
+
 2. In `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, change `.code-rules/generated/RULES.md` to `.syllabus/generated/RULES.md`.
 3. Rebuild and check the project:
 

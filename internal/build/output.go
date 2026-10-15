@@ -217,7 +217,8 @@ type provenanceSource struct {
 	Skills       []string `json:"skills"`
 }
 
-// provenanceSkill records an installed skill's origin, level, and installed folders.
+// provenanceSkill records an installed skill's origin, level, why it is installed, the skills it uses, and its
+// installed folders.
 type provenanceSkill struct {
 	ID     string                `json:"id"`
 	Name   string                `json:"name"`
@@ -229,6 +230,11 @@ type provenanceSkill struct {
 	RequiredBy    *provenanceLevel `json:"requiredBy"`
 	RecommendedBy *provenanceLevel `json:"recommendedBy"`
 	OfferedBy     *provenanceLevel `json:"offeredBy"`
+	// Included is false for a skill installed only because other skills use it. UsedBy and Uses list, sorted, the
+	// project IDs of the installed skills that use it and that it uses.
+	Included bool     `json:"included"`
+	UsedBy   []string `json:"usedBy"`
+	Uses     []string `json:"uses"`
 	// Targets lists the folders the skill is installed in, by path from the repository root.
 	Targets []string `json:"targets"`
 	// Upstream is the origin of the skill an authored skill replaces, Reason the exclusion's reason, and BasedOn the
@@ -381,6 +387,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 			upstream := skillOrigin(replaced.Upstream)
 			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())
 		}
+		record.Included, record.UsedBy, record.Uses = skill.Included, skill.UsedBy, skill.Uses
 		result.Skills = append(result.Skills, record)
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })

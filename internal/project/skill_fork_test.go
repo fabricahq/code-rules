@@ -15,6 +15,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/skills"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
@@ -344,5 +345,30 @@ func TestSync_ChecksTheCommitAReplacementIsBasedOn(t *testing.T) {
 				t.Fatal("refused sync installed skills")
 			}
 		})
+	}
+}
+
+// TestQualifyCitations_NamesTheSourceInAForkedSkillsCitations keeps a fork of a library's skill citing the library's
+// rules and skills, which in the project need the source's name.
+func TestQualifyCitations_NamesTheSourceInAForkedSkillsCitations(t *testing.T) {
+	original := "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/tdd\n    other:techs/go/errors\n  syllabus-skills-used: |-\n    skills/tdd\n---\n\nskills/tdd stays as written here.\n"
+	metadata, err := skills.ReadMetadata([]byte(original), "SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    team:practices/testing/tdd\n    other:techs/go/errors\n  syllabus-skills-used: |-\n    team:skills/tdd\n---\n\nskills/tdd stays as written here.\n"
+	if got := string(qualifyCitations([]byte(original), metadata, "team", true, "SKILL.md")); got != want {
+		t.Errorf("library fork:\n%s\nwant:\n%s", got, want)
+	}
+	want = strings.Replace(want, "team:practices/testing/tdd", "practices/testing/tdd", 1)
+	if got := string(qualifyCitations([]byte(original), metadata, "team", false, "SKILL.md")); got != want {
+		t.Errorf("fork from a repository that isn't a library:\n%s\nwant:\n%s", got, want)
+	}
+	flow := "---\nname: fix-bug\nmetadata: {syllabus-skills-used: \"skills/tdd\"}\n---\n"
+	if metadata, err = skills.ReadMetadata([]byte(flow), "SKILL.md"); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(qualifyCitations([]byte(flow), metadata, "team", true, "SKILL.md")); got != flow {
+		t.Errorf("a list that isn't a block string changed:\n%s", got)
 	}
 }

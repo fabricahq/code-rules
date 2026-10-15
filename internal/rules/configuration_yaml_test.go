@@ -215,6 +215,9 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			if want.Skills == nil {
 				want.Skills = []string{}
 			}
+			if want.SkillUses == nil {
+				want.SkillUses = map[string][]string{}
+			}
 			if want.SkillExclude == nil {
 				want.SkillExclude = map[string]rules.SkillExclusion{}
 			}
