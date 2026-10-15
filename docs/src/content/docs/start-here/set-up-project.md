@@ -140,7 +140,7 @@ Open `.code-rules/generated/RULES.md` again. You'll now see your own Testing rul
 
 ## 5. Install a skill
 
-Rules say what good work looks like. A **skill** says what to do, step by step, for one kind of task, and cites the rules each step applies. Fabrica's library includes a **Build a feature** skill, `skills/build-feature`.
+Rules are granular: one practice each. A **skill** is coarser: a playbook for one kind of task, such as building a feature, that cites the rules it applies. Fabrica's library includes a **Build a feature** skill, `skills/build-feature`.
 
 Open `.code-rules/config.yaml` and add a `skills` section to the `fabrica` source:
 

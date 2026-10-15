@@ -13,10 +13,10 @@ This guide covers deciding between a skill and a rule, creating a skill, writing
 
 ## Skill or rule?
 
-Keep opinions in rules and order in skills.
+Choose by granularity.
 
-- A **rule** states one expectation and when it applies, such as "test that requests stop at the configured retry limit." It applies to any work that matches it, in any order, whatever task the agent is doing.
-- A **skill** says what to do and in what order for one kind of task, such as "reproduce the bug, find the cause, fix it, then check the test." It applies when an agent takes on that task.
+- A **rule** states one best practice and when it applies, such as "test that requests stop at the configured retry limit." A project can adopt, exclude, or replace it on its own, and it has its own version. It applies to any work that matches it, whatever task the agent is doing.
+- A **skill** is coarse-grained: a playbook, technique, or way of coordinating one kind of task, such as "reproduce the bug, find the cause, fix it, then check the test." It combines many practices, and applies when an agent takes on that task.
 
 When a step needs a practice followed, cite the rule rather than restating it. A project can then exclude or replace the rule, and the skill follows the project's choice; when the rule gets a new version, the skill applies it without a change of its own; and reviewers check the work against the same rule the implementing agent read.
 

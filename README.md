@@ -38,7 +38,7 @@ That means you can:
 
 ### Skills need a package manager
 
-Most people already guide their agents with skills: folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from a teammate's repository, a vendor's collection, or the last project they worked on. Before long, it's hard to know where each skill came from, keep it up to date, share it across an organization, or use it with more than one agent.
+Most people already guide their agents with skills, the AI skills we all know, officially folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from a teammate's repository, a vendor's collection, or the last project they worked on. Before long, it's hard to know where each skill came from, keep it up to date, share it across an organization, or use it with more than one agent.
 
 Pulling many files from versioned sources into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach to skills. Each project declares its sources in one configuration file, and Code Rules records each skill's source and exact revision, updates it only when you ask, and writes it into the folders your agents read. Your organization can publish shared skills in its own `.code-rules` repository and require or recommend them for every project.
 

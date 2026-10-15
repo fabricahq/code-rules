@@ -7,7 +7,7 @@ Use this file to understand the product we are building and the decisions it sho
 
 ### Motivation
 
-Most people already guide their coding agents with skills: folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from many places, and it's hard to know where each skill came from, keep it updated, share it across an organization, or use it with more than one agent.
+Most people already guide their coding agents with skills, the AI skills everyone knows, officially folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from many places, and it's hard to know where each skill came from, keep it updated, share it across an organization, or use it with more than one agent.
 Skills need a package manager. Code Rules records each skill's source and revision, updates it only when a project asks, shares it through libraries and an organization's `.code-rules` repository, and installs it into the folders each of the project's agents reads.
 Publishers need a formal format that tools can read in a structured way: a library manifest, a version for each skill, change notes, and skill metadata.
 
@@ -68,7 +68,7 @@ Rule groups guide selection; individual rules determine applicability. A testing
 
 #### Skill
 
-A skill is the same kind of skill people already use with coding agents: a folder that follows the open Agent Skills standard, whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Rules say what good work looks like; skills say what to do and in what order, and cite the rules each step applies. Skills don't belong to rule groups. A skill may declare a type, `playbook` or `review`, as a label only.
+A skill is the AI skill people already know, officially a folder that follows the open Agent Skills standard, whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Skills are coarse-grained: suited to playbooks, techniques, and coordinating a whole task. Rules are the granular layer: one best practice each, adopted and versioned on its own. A skill cites the rules it applies instead of restating them. Skills don't belong to rule groups. A skill may declare a type, `playbook` or `review`, as a label only.
 
 Code Rules installs included skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. It installs skills into repositories, never into a person's home directory; it only warns when a personal skill has the same name as one a project installs. See [Skill](docs/src/content/docs/concepts/skill.md).
 
@@ -110,7 +110,8 @@ Keep Fabrica's private rule corpus separate; public examples must be original or
 
 Projects retain their product vision, domain knowledge, and architecture context.
 Code Rules manages which versioned rules and skills a codebase adopts, delivers the rules' resolved definitions, and installs the skills.
-Projects choose how to apply, validate, and enforce those rules through agent prompts, skills, or separate tooling. Code Rules does not run skills or that workflow; its agent instructions are a suggested integration.
+Code Rules supplies an Engineering rules section that projects add to `AGENTS.md`; it tells agents to read `RULES.md`, which links to `SKILLS.md`. Code Rules never edits `AGENTS.md`, and it can't guarantee that agents follow the rules or use the skills.
+Projects can add their own guidance on how agents apply rules and skills, in other procedures, skills, or elsewhere in `AGENTS.md`, and choose their own validation and enforcement.
 Rule and skill input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
 
 ## Working in this repository

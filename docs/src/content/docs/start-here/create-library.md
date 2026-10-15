@@ -207,7 +207,7 @@ Other projects can take rules from the same library. You maintain the shared rul
 
 ## Optional: add a skill
 
-A library can also hold **skills**: step-by-step procedures, such as how to fix a reported bug, that tell agents what to do and in what order, and cite the rules each step applies. Skills live in `.code-rules/skills/` beside your rules and are versioned like rules. Create a draft:
+A library can also hold **skills**: coarser-grained playbooks, such as how to fix a reported bug, that cite the rules they apply. Skills live in `.code-rules/skills/` beside your rules and are versioned like rules. Create a draft:
 
 ```sh
 code-rules library add skill fix-bug \

@@ -7,15 +7,15 @@ description: "A reusable procedure that tells an agent what to do, step by step,
 Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
 :::
 
-A **skill** is the same kind of skill you may already use with your coding agents: a folder that follows the open [Agent Skills](https://agentskills.io) standard. It holds a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
+A **skill** is the AI skill you already know, officially a folder that follows the open [Agent Skills](https://agentskills.io) standard. It holds a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
 
-Rules say what good work looks like. Skills say what to do and in what order. A skill that builds a feature might tell the agent to read the spec, decide where the code lives, write a failing test, implement, and verify the result in the browser. The rules it applies say how each of those steps should be done well.
+Skills are coarse-grained. A skill that builds a feature combines many practices, from where the code lives to how it's tested and verified, and not all of them apply every time. That makes skills good for playbooks, techniques, and coordinating a whole task, but clumsy as the only way to deliver guidance: you can't adopt, update, or version one practice inside a skill on its own. [Rules](/concepts/rule/) are the granular layer: one best practice per file, with its own version. A skill cites the rules it applies, so each practice is written once, and every skill that applies it stays current.
 
 Code Rules installs skills into your repository, records where each one came from and which version it is, and checks them. It doesn't run skills, decide when an agent uses one, or check that the agent followed it.
 
 ## What a skill contains
 
-A skill lives in a folder named after it:
+A skill uses the standard format from the [Agent Skills specification](https://agentskills.io/specification): a folder named after the skill, holding a `SKILL.md` file and any scripts, references, or assets it bundles.
 
 ```text
 build-feature/
@@ -26,7 +26,9 @@ build-feature/
     verify.sh
 ```
 
-`SKILL.md` starts with metadata, followed by the instructions:
+`SKILL.md` starts with YAML frontmatter, followed by the instructions. The standard requires two fields: `name`, which agents find the skill by, and `description`, which agents read to decide when to use it.
+
+Code Rules extends the format with three keys of its own, under the standard's `metadata` field:
 
 ```markdown
 ---
@@ -46,12 +48,11 @@ metadata:
 ...
 ```
 
-- `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it.
-- `syllabus-skill-type` labels what kind of skill it is. See [Skill types](#skill-types).
-- `syllabus-rules-used` lists the rules the skill applies.
-- `syllabus-skills-used` lists other skills it calls.
+- `syllabus-skill-type` labels what kind of skill it is, `playbook` or `review`. See [Skill types](#skill-types).
+- `syllabus-rules-used` lists the rules the skill applies. Code Rules takes those rules with the skill, and the installed copy links to your project's version of each one.
+- `syllabus-skills-used` lists other skills the skill calls. Code Rules installs them alongside it.
 
-All three `syllabus-` keys are optional. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
+All three keys are optional. The standard sets `metadata` aside for properties it doesn't define, so a skill with these keys is still a standard skill, and agents that don't read them use it as usual. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
 
 ## Skill types
 
@@ -68,7 +69,7 @@ A skill that fits neither type leaves the field out. The type is a plain label f
 
 ## Skills and rules
 
-Keep opinions in rules and order in skills. When a skill needs a practice followed, it cites the rule rather than restating it:
+Keep each practice in a rule, and cite it from the skills that apply it. When a skill needs a practice followed, it cites the rule rather than restating it:
 
 - A project can exclude or replace the rule, and every skill that cites it picks up the project's choice.
 - When the rule gets a new version, every skill that cites it applies the new version, without a change to the skill.

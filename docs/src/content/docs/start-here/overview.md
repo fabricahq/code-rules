@@ -36,7 +36,7 @@ Skills are coarse-grained. They're good for playbooks, techniques, and coordinat
 
 So Code Rules adds [rules](/concepts/rule/). A rule is one engineering practice in a Markdown file: what to do, when it applies, and how to check the work. Rules live in rule groups, such as Go or testing, and agents read only the rule groups that match their task. A skill cites the rules each step applies instead of restating them. When a project excludes or replaces a rule, or a rule gets a new version, every skill that cites it follows.
 
-Code Rules manages rules and skills together: for libraries that publish them, organizations that standardize on them, and projects that use them.
+Code Rules manages rules and skills together: for libraries that publish them, organizations that standardize on them, and projects that use them. For the longer story, read [Announcing Code Rules](https://fabricahq.com/blog/code-rules/).
 
 ## How Code Rules works
 
@@ -52,7 +52,7 @@ You organize rules into [rule groups](/concepts/groups/). There are two kinds of
 
 ### Skills
 
-A [skill](/concepts/skill/) is an Agent Skills folder with a reusable procedure, such as how to build a feature or review a pull request. Rules say what good work looks like; skills say what to do and in what order, citing the rules each step applies.
+A [skill](/concepts/skill/) is the AI skill you already know, officially an Agent Skills folder: a reusable procedure, such as how to build a feature or review a pull request. Skills are coarse-grained, so a skill cites the rules it applies instead of restating them.
 
 ### Projects
 
@@ -88,4 +88,6 @@ Code Rules assembles rules and skills from multiple sources into a cohesive, age
 
 Code Rules installs skills into your repository, not on your computer. It doesn't manage the personal skills a person installs for all of their repositories, though it warns when one has the same name as a skill your project installs.
 
-That is where Code Rules stops. It installs and checks skills, but it doesn't run them, decide when your agents use them, or check that your agents followed them or your rules. At least for now, how your agents consume rules and skills is up to you, though we'll share best practices as we discover them.
+Code Rules also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: an **Engineering rules** section for your `AGENTS.md`, which tells them to read `RULES.md` and apply the rules that fit the task. `RULES.md` links to `SKILLS.md`, and agents with skill support find installed skills on their own. `code-rules project init` writes the section into `.code-rules/README.md` for you, or your agent, to add to `AGENTS.md`; Code Rules doesn't edit `AGENTS.md` itself. See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
+
+That is where Code Rules' work ends. It can't guarantee that your agents followed your rules or used your skills. You can add your own guidance on how agents should apply them, in other procedures, in skills, or elsewhere in `AGENTS.md`.
