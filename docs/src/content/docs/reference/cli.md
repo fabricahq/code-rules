@@ -10,7 +10,7 @@ Find each command's syntax and options below. Every command also accepts `--json
 `code-rules project` manages rules and skills for a **project**, the codebase whose rules and skills Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
 :::note[Preview]
-Skills, `skillTargets`, `project init --skill-targets`, and `project add source`, which replaces `project add library`, come in the next Code Rules release.
+Skills, `skillTargets`, `project init --skill-targets`, `project add skill`, and `project add source`, which replaces `project add library`, come in the next Code Rules release.
 :::
 
 Configuration lives in `.code-rules/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
@@ -124,6 +124,31 @@ Metadata options and `--body-file` don't apply to a fork. The command:
 
 If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
+### project add skill
+
+```sh
+code-rules project add skill --from SOURCE:SKILL [options]
+```
+
+Fork a skill the project installs: copy it into `.code-rules/skills/` so the project controls its steps, and install the copy in its place. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so the command takes no `NAME`. To write a new skill instead, create its folder in `.code-rules/skills/`; see [Write your own skill](/guides/install-skills/#write-your-own-skill).
+
+| Option | Meaning |
+| --- | --- |
+| `--from SOURCE:SKILL` | Required. A skill that the source's `skills.include` selects and its last sync installed. |
+| `--reason TEXT` | Required. Why the project uses the fork instead of the source's skill, recorded with the exclusion. A terminal asks for it when it's missing. |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+The command:
+
+1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.code-rules/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use.
+2. Adds a `skills.exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the commit the source record locks as [`basedOn`](/reference/configuration/#exclude-or-replace-a-skill), so the fork installs in place of the skill, and updates list the source's later changes to it. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
+
+:::note[Preview]
+Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
+:::
+
+It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward to install it. The source's license still applies to the copied files.
+
 ### project sync
 
 ```sh
@@ -197,6 +222,26 @@ Passing `--update-fork` is your consent to overwrite the local rule: your edits 
 `--update-fork` refuses, as an `invalid-arguments` usage error that exits `2`, a rule the source doesn't exclude with `replacedBy`, an unknown source, a `--reason`, and a rule that `--keep` or `--exclude` also names, before reading any library. It also refuses a rule the preview doesn't list as `replaced`, because the library has nothing newer than the version your rule is based on or the update doesn't include the rule, and a rule the library retired, which has no newest version to fork. Like the rest of the update, it fails with `invalid-release-tag`, writing nothing, when the library release tag that published the fork's version names another commit than when the update previewed it, also when a pin or a `SOURCE:RULE` update keeps the imported copy at an older version. Without `--update-fork`, `--yes` leaves every local rule as it is.
 
 If you merged the library's changes into your local rule by hand, record the version you merged by editing `basedOn` in `.code-rules/config.yaml`, so later updates list only newer changes.
+
+#### Replaced skills
+
+The preview also lists a skill you [replaced with an authored skill](/reference/configuration/#exclude-or-replace-a-skill) as `replaced`, with the commits it compares, when the source's copy of the skill at the revision the update takes differs from the copy your skill is based on: the skill at the exclusion's `basedOn`, or, without `basedOn`, at the commit the source record locks. Under the row, it names your skill and the files that differ, by their paths in the skill's folder, in contents, presence, or executable bit:
+
+```text
+team
+  replaced  skills/fix-bug  commit 3f9c2a7b1d4e -> 8a41d07c5e2f
+            Your skill: skills/fix-bug, based on commit 3f9c2a7b1d4e.
+            Changed since commit 3f9c2a7b1d4e, the copy your skill is based on:
+              SKILL.md
+              scripts/reproduce.sh
+            Compare them with your skill: the update doesn't change it.
+```
+
+The update never changes your skill or `basedOn`, and a replaced skill alone doesn't make the update ask for confirmation. In JSON output, each source's `replacedSkills` lists these rows, each with its `id`, `localSkill`, the authored skill that replaces it, `basedOn` when the exclusion records it, `from`, the commit the source record locks, `to`, the commit the update takes the skill from, and `files`. A source that uses `ref` compares the copy at the commit its record locks. The preview doesn't list changes to skills you excluded without a replacement.
+
+:::note[Preview]
+Replacing a forked skill with the source's newer copy during an update, as `--update-fork` does for a rule, isn't supported yet: compare the files and edit your skill, then edit `basedOn` to the commit you merged.
+:::
 
 See [Update rules](/guides/update/) for the workflow.
 

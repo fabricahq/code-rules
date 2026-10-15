@@ -10,7 +10,7 @@ Read it when you want to understand why a rule is present, investigate a library
 This page shows where the records live, how Code Rules creates them, and how to trace a rule or skill back to its source.
 
 :::note[Preview]
-Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields come in the next Code Rules release.
+Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields, and the `upstream`, `replacementReason`, and `basedOn` fields of a skill, come in the next Code Rules release.
 :::
 
 ## Where to look
@@ -88,7 +88,7 @@ The same `generated/provenance.json` file contains four other top-level fields:
 | --- | --- |
 | `generatedNotice` | A reminder that Code Rules generates the file, and how to regenerate it. |
 | `toolVersion` | The Code Rules version that generated the files. |
-| `sources` | Each named source, its `kind`, `library` or `non-library`, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, declared terms, its `skillInclude`, and the IDs of the `skills` it installs. |
+| `sources` | Each named source, its `kind`, `library` or `non-library`, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, declared terms, its `skillInclude`, and the IDs of the `skills` it supplies, including those the project excludes. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 | `skills` | Each installed skill, as described in [Trace a skill to its source](#trace-a-skill-to-its-source). |
 
@@ -107,6 +107,7 @@ Each entry in the `skills` array of `generated/provenance.json` records one skil
 | `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.code-rules/`. `version` and `release` are `null`: skills don't have versions yet. |
 | `level` | `offered` for a library's skill, or `null` for an authored skill or one from a repository that isn't a library. |
 | `targets` | The folders the skill is installed in, such as `.claude/skills/build-feature`, empty when the project has no skill targets. |
+| `upstream`, `replacementReason`, and `basedOn` | For an authored skill that [replaces a source's skill](/reference/configuration/#exclude-or-replace-a-skill): the replaced skill's origin, as in `origin`, the exclusion's reason, and its `basedOn` commit, or `null` when it records none. All three are `null` for any other skill. |
 
 Every skill of a source comes from the source's one recorded commit. The installed copy's `SKILL.md` repeats the project ID and the commit in its marker line.
 
@@ -186,7 +187,7 @@ Each source has a separate `vendor/<source-name>/_source.json` file. It describe
 | `ruleSelection` | The rule IDs your `rules.include` lists individually. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
 | `skillInclude` | The source's `skills.include`, sorted, and empty when it includes no skills. |
-| `skills` | Each installed skill's ID, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library. Every skill comes from `resolvedCommit`; `code-rules project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` names a skill this commit doesn't have. |
+| `skills` | Each skill `skills.include` selects, including skills the project excludes, by ID, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library. Every skill comes from `resolvedCommit`; `code-rules project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` names a skill this commit doesn't have. |
 | `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. A library's skill files are stored under `skills/<name>/`, as its `.code-rules/skills/` holds them, and another repository's at their path in the repository. |
 | `executable` | The skill files whose executable bit the repository records, sorted. The vendored copies, and the installed copies, carry the same bit, and offline checks compare it. |
 

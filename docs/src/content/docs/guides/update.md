@@ -72,6 +72,12 @@ For a replaced rule you forked and never edited, or whose edits you no longer ne
 
 To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.code-rules/config.yaml` to the version you merged, so later updates list only newer changes. Code Rules never moves `basedOn` on its own, because only you know whether your rule took the changes in.
 
+The preview lists a skill you [forked](/guides/install-skills/#fork-a-skill) as `replaced` too, when the source's copy changed since the commit your fork is based on, naming the files that changed. The update never changes your fork: compare the files, merge what you need, and set the exclusion's `basedOn` to the commit you merged. See [Replaced skills](/reference/cli/#replaced-skills).
+
+:::note[Preview]
+Forking skills comes in the next Code Rules release.
+:::
+
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
 
 In a script or CI job, where there's no terminal to confirm in, the command only shows the preview. To apply it, pass `--yes`:
