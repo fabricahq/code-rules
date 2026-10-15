@@ -292,7 +292,7 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 // parseSkillFields reads a source's skills object into source: include, a list of skill IDs or only "*"; uses, the
 // skills each skill uses beyond what it declares; exclude, as parseSkillExclusions reads it; and rename, as
 // parseSkillRenames reads it. A missing object includes no skills, declares no uses, excludes none, and renames
-// none. A skill can't be both excluded and renamed.
+// none. include may be left out only beside rename. A skill can't be both excluded and renamed.
 func parseSkillFields(input json.RawMessage, location string, source *Source) error {
 	source.Skills, source.SkillUses, source.SkillExclude = []string{}, map[string][]string{}, map[string]SkillExclusion{}
 	if input == nil {
@@ -305,8 +305,11 @@ func parseSkillFields(input json.RawMessage, location string, source *Source) er
 	if err := decode.KnownFields(fields, []string{"include", "uses", "exclude", "rename"}, location); err != nil {
 		return err
 	}
-	if source.Skills, err = ParseSkillSelection(fields["include"], location+".include"); err != nil {
-		return err
+	// A source installs its library's required skills without include, so renaming one needs no include.
+	if _, renames := fields["rename"]; fields["include"] != nil || !renames {
+		if source.Skills, err = ParseSkillSelection(fields["include"], location+".include"); err != nil {
+			return err
+		}
 	}
 	if source.SkillUses, err = parseSkillUses(fields["uses"], location+".uses"); err != nil {
 		return err

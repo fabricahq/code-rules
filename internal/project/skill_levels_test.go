@@ -304,3 +304,18 @@ func TestUpdate_PreviewsLevelChangesAndInstallsNewRequiredSkills(t *testing.T) {
 		t.Fatalf("after update, installed %v; want the new required skills too", got)
 	}
 }
+
+func TestSync_RenamesARequiredSkill(t *testing.T) {
+	f := leveledLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"rename":{"skills/ship":"team-ship"}}}}}`)
+	changes, err := Sync(context.Background(), options, git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := installedSkills(t, options); !slices.Equal(got, []string{"team-ship"}) {
+		t.Fatalf("installed %v; want the required skill under its new name", got)
+	}
+	if len(changes.Warnings) != 1 || !strings.HasPrefix(changes.Warnings[0], "Installed skill team:skills/ship as team-ship instead of ship") {
+		t.Fatalf("warnings = %q", changes.Warnings)
+	}
+}
