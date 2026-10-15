@@ -52,7 +52,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	}
 
 	// The author changes the library: check requires a note for the changed rule, then accepts the recorded changes.
-	errorsRule := filepath.Join(author, "techs/go/errors.md")
+	errorsRule := filepath.Join(author, ".code-rules/rules/techs/go/errors.md")
 	errorsV1, err := os.ReadFile(errorsRule)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	if err := contains("library check failure", last().Stderr, "techs/go/errors changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: code-rules library change techs/go/errors"); err != nil {
 		return err
 	}
-	if err := os.Remove(filepath.Join(author, "techs/go/naming.md")); err != nil {
+	if err := os.Remove(filepath.Join(author, ".code-rules/rules/techs/go/naming.md")); err != nil {
 		return err
 	}
 	edit("Author edit: delete techs/go/naming")
@@ -96,7 +96,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	if err := contains("library check preview", last().Stdout, "Pending library release 2\n", "  techs/go/errors    major    1.0.0 -> 2.0.0\n", "  techs/go/naming    retired  1.0.0, replaced by techs/go/wrapping\n", "  techs/go/panics    new      1.0.0\n", "  techs/go/wrapping  new      1.0.0\n"); err != nil {
 		return err
 	}
-	wrappingV1, err := os.ReadFile(filepath.Join(author, "techs/go/wrapping.md"))
+	wrappingV1, err := os.ReadFile(filepath.Join(author, ".code-rules/rules/techs/go/wrapping.md"))
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 
 	// Library release 3 changes another rule, so the scoped update below has something to leave alone.
 	wrappingV2 := append(bytes.Clone(wrappingV1), []byte("\nFor example, wrap with the operation's name.\n")...)
-	if err := os.WriteFile(filepath.Join(author, "techs/go/wrapping.md"), wrappingV2, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(author, ".code-rules/rules/techs/go/wrapping.md"), wrappingV2, 0600); err != nil {
 		return err
 	}
 	edit("Author edit: add an example to techs/go/wrapping")
@@ -349,7 +349,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	if err := os.WriteFile(errorsRule, errorsV3, 0600); err != nil {
 		return err
 	}
-	if err := os.Remove(filepath.Join(author, "techs/go/wrapping.md")); err != nil {
+	if err := os.Remove(filepath.Join(author, ".code-rules/rules/techs/go/wrapping.md")); err != nil {
 		return err
 	}
 	edit("Author edit: add an example to techs/go/errors and delete techs/go/wrapping")

@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // Fixture owns a local repository and a private SSH transport that runs Git upload-pack or receive-pack over stdio,
@@ -232,4 +234,15 @@ func (f *Fixture) Route(fixtures map[string]*Fixture) ([]string, error) {
 		}
 	}
 	return append(env, "GIT_SSH_COMMAND="+Quote(helper)), nil
+}
+
+// Library returns files, a library's files keyed by library path, keyed by where a library repository keeps them,
+// as librarytree.RepositoryPath places them, for New and Commit. Files outside the library, such as a license at
+// the repository root, keep their paths, and nil entries, which Commit deletes, stay nil.
+func Library(files map[string][]byte) map[string][]byte {
+	placed := make(map[string][]byte, len(files))
+	for name, data := range files {
+		placed[librarytree.RepositoryPath(name)] = data
+	}
+	return placed
 }

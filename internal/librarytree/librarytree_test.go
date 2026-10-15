@@ -21,7 +21,7 @@ func TestVersionedRule_NamesTheRuleThatOwnsAFile(t *testing.T) {
 		"techs/go/README.md":                    "",
 		"techs/go/assets/loose.png":             "",
 		"assets/shared.md":                      "",
-		"rule-library.yaml":                     "",
+		"config.yaml":                           "",
 		"LICENSE.md":                            "",
 		"changes/one.yaml":                      "",
 		"techs/go/LICENSE.md":                   "",

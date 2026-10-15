@@ -17,6 +17,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -87,10 +88,10 @@ func TestLoadSkipsUnusedSharedAndRejectsLinkedAssets(t *testing.T) {
 	if _, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(directory, "techs/go/assets/errors"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(directory, librarytree.RepositoryPath("techs/go/assets/errors")), 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(directory, "assets/bad.md"), filepath.Join(directory, "techs/go/assets/errors/link.md")); err != nil {
+	if err := os.Symlink(filepath.Join(directory, librarytree.RepositoryPath("assets/bad.md")), filepath.Join(directory, librarytree.RepositoryPath("techs/go/assets/errors/link.md"))); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"}); err == nil || !strings.Contains(err.Error(), "symlink") {
@@ -105,7 +106,7 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 		{"unselected", "techs/go/errors.md", "../rust/other.md", "techs/rust/other.md"},
 		{"missing", "techs/go/errors.md", "missing.md", ""},
 		{"reference", "techs/go/errors.md", "", "techs/go/other.md"},
-		{"shared attachment", "assets/guide.md", "/techs/go/errors.md", ""},
+		{"shared attachment", "assets/guide.md", "/rules/techs/go/errors.md", ""},
 		{"HTML attachment", "assets/guide.md", "", ""},
 		{"owned attachment", "techs/go/assets/errors/guide.md", "../../errors.md", ""},
 	} {
@@ -115,10 +116,10 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 				files[test.target] = files["techs/go/errors.md"]
 			}
 			if test.from != "techs/go/errors.md" {
-				files["techs/go/errors.md"] += "\n[guide](/" + test.from + ")\n"
+				files["techs/go/errors.md"] += "\n[guide](/" + strings.TrimPrefix(librarytree.RepositoryPath(test.from), librarytree.Directory+"/") + ")\n"
 			}
 			if test.name == "HTML attachment" {
-				files[test.from] += `<a href="/techs/go/errors.md">rule</a>`
+				files[test.from] += `<a href="/rules/techs/go/errors.md">rule</a>`
 			} else if test.name == "reference" {
 				files[test.from] += "\n[other][rule]\n\n[rule]: other.md#details\n"
 			} else {
@@ -137,7 +138,7 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 // not an invalid rule.
 func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
 	files := validFiles()
-	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE.md","notices":[]}}`
+	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".code-rules/rules/techs/go/LICENSE.md","notices":[]}}}`
 	files["techs/go/LICENSE.md"] = "License terms."
 	files["techs/go/errors.md"] += "\n[terms](LICENSE.md)\n"
 	_, root := fixture(t, files)
@@ -157,16 +158,16 @@ func TestLoadRejectsTermsInsideRuleContent(t *testing.T) {
 		for _, groups := range [][]string{{}, {"techs/go"}} {
 			t.Run(term+strings.Join(groups, ","), func(t *testing.T) {
 				files := validFiles()
-				manifest, err := json.Marshal(map[string]any{"formatVersion": 1, "license": map[string]any{"file": "LICENSE", "notices": []string{term}}})
+				manifest, err := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{}, "library": map[string]any{"license": map[string]any{"file": "LICENSE", "notices": []string{librarytree.RepositoryPath(term)}}}})
 				if err != nil {
 					t.Fatal(err)
 				}
-				files["rule-library.yaml"] = string(manifest)
+				files["config.yaml"] = string(manifest)
 				files["LICENSE"], files[term] = "License\r\n", "Notice\n"
 				_, root := fixture(t, files)
 				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
 				var invalid errs.ValidationError
-				if !errors.As(err, &invalid) || invalid.ValidationLocation() != "team/rule-library.yaml: license.notices[0]" || got.Groups != nil {
+				if !errors.As(err, &invalid) || invalid.ValidationLocation() != "team/.code-rules/config.yaml: library.license.notices[0]" || got.Groups != nil {
 					t.Fatalf("got %+v, %v; want the notice path refused", got, err)
 				}
 			})

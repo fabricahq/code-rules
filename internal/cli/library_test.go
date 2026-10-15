@@ -71,7 +71,7 @@ func TestLibraryGuideExamples(t *testing.T) {
 		}
 	}
 	for _, path := range []string{"techs/go/_group.yaml", "techs/go/README.md", "techs/go/return-errors.md"} {
-		if _, err := os.Stat(filepath.Join(directory, path)); err != nil {
+		if _, err := os.Stat(libraryFile(directory, path)); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -229,3 +229,44 @@ func TestAppendConfigurationSourceValidatesInputFirst(t *testing.T) {
 		}
 	}
 }
+
+// TestAppendConfigurationLibrary adds a library section after a project's sources, keeping their presentation, and
+// refuses a second section and an invalid one.
+func TestAppendConfigurationLibrary(t *testing.T) {
+	input := []byte(`# Project guidance
+schemaVersion: 2
+sources:
+  existing:
+    repository: 'https://github.com/acme/existing.git' # keep the selected library
+    rules: {include: ['*']}
+`)
+	out, err := rules.AppendConfigurationLibrary(input, map[string]any{"license": map[string]any{"spdxExpression": "MIT", "file": "LICENSE.md", "notices": []string{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "rules: {include: ['*']}"} {
+		if !strings.Contains(string(out), retained) {
+			t.Fatalf("lost authored presentation %q:\n%s", retained, out)
+		}
+	}
+	if strings.Index(string(out), "sources:") > strings.Index(string(out), "library:") {
+		t.Fatalf("library section precedes the sources:\n%s", out)
+	}
+	got, err := rules.ParseConfigurationYAML(out)
+	if err != nil || len(got.Sources) != 1 || got.Library == nil || got.Library.License == nil || *got.Library.License.SPDXExpression != "MIT" {
+		t.Fatalf("invalid appended library section: %+v, %v", got, err)
+	}
+	if again, err := rules.AppendConfigurationLibrary(out, map[string]any{}); err == nil || again != nil || err.Error() != "library: the configuration already has a library section" {
+		t.Fatalf("accepted a second library section: %s, %v", again, err)
+	}
+	if invalid, err := rules.AppendConfigurationLibrary(input, map[string]any{"skills": map[string]any{}}); err == nil || invalid != nil {
+		t.Fatalf("accepted an invalid library section: %s, %v", invalid, err)
+	}
+	for _, input := range []string{"schemaVersion: 2", "schemaVersion: 1\nsources: {}"} {
+		_, want := rules.ParseConfigurationYAML([]byte(input))
+		out, got := rules.AppendConfigurationLibrary([]byte(input), map[string]any{})
+		if want == nil || got == nil || got.Error() != want.Error() || out != nil {
+			t.Fatalf("input error lost: output %s, got %v, want %v", out, got, want)
+		}
+	}
+}

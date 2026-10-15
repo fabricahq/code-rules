@@ -102,7 +102,7 @@ func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 			name: "first library release, which adds its library-wide files without the shared-files sentence",
 			record: coderules.ReleaseRecord{
 				Release:      1,
-				LibraryFiles: []string{"practices/testing/_group.yaml", "rule-library.yaml"},
+				LibraryFiles: []string{"config.yaml", "practices/testing/_group.yaml"},
 				Rules:        map[string]coderules.RuleVersion{"practices/testing/a": coderules.FirstRuleVersion, "techs/go/b": coderules.FirstRuleVersion},
 				Changes:      map[string]coderules.RecordedChange{"practices/testing/a": {Change: coderules.ChangeNew, Summaries: []string{"Add the rule."}}, "techs/go/b": {Change: coderules.ChangeNew, Summaries: []string{"Add the rule."}}},
 			},
@@ -119,7 +119,7 @@ func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 		},
 		{
 			name:   "library-wide files in a library without rules",
-			record: coderules.ReleaseRecord{Release: 1, Rules: map[string]coderules.RuleVersion{}, LibraryFiles: []string{"rule-library.yaml"}},
+			record: coderules.ReleaseRecord{Release: 1, Rules: map[string]coderules.RuleVersion{}, LibraryFiles: []string{"config.yaml"}},
 			want:   "Library release 1 publishes no rules, only shared files, such as group descriptions or shared assets.",
 		},
 	} {

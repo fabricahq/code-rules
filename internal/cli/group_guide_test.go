@@ -24,7 +24,7 @@ func TestGroupGuides(t *testing.T) {
 			init := []string{"project", "init"}
 			if library {
 				prefix = "library"
-				groupDir = filepath.Join(directory, "techs/go")
+				groupDir = filepath.Join(directory, ".code-rules/rules/techs/go")
 				init = []string{"library", "init"}
 			}
 			// run requires the actual executable to complete each authoring or verification step.

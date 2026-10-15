@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"regexp"
@@ -15,7 +16,9 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -344,7 +347,7 @@ func commits(count uint64) string {
 // requireCommitted refuses unless head commits exactly the bytes check read, as regular files, so the library
 // release publishes what check validated, even where a Git filter such as Git LFS stores other content.
 func (g *libraryGit) requireCommitted(ctx context.Context, head string, input checkInput) error {
-	entries, err := g.treeEntries(ctx, head, libraryPaths(rules.LicensePaths(input.license)))
+	entries, err := g.libraryEntries(ctx, head, libraryPaths(rules.LicensePaths(input.license)))
 	if err != nil {
 		return fmt.Errorf("list the files of commit=%s: %w", head, err)
 	}
@@ -357,18 +360,19 @@ func (g *libraryGit) requireCommitted(ctx context.Context, head string, input ch
 	var problems []string
 	for name, entry := range entries {
 		data, ok := captured[name]
+		location := librarytree.RepositoryPath(name)
 		switch {
 		case !ok:
-			problems = append(problems, name+" was deleted, and the deletion isn't committed")
+			problems = append(problems, location+" was deleted, and the deletion isn't committed")
 		case entry.kind != "blob" || (entry.mode != "100644" && entry.mode != "100755"):
-			problems = append(problems, name+" is committed as a symbolic link or submodule, not a file")
+			problems = append(problems, location+" is committed as a symbolic link or submodule, not a file")
 		case entry.object != blobID(strings.TrimSpace(string(format)), data):
-			problems = append(problems, name+" differs from its committed copy")
+			problems = append(problems, location+" differs from its committed copy")
 		}
 	}
 	for name := range captured {
 		if _, ok := entries[name]; !ok {
-			problems = append(problems, name+" isn't committed")
+			problems = append(problems, librarytree.RepositoryPath(name)+" isn't committed")
 		}
 	}
 	if len(problems) > 0 {
@@ -390,10 +394,10 @@ func blobID(format string, data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// libraryPaths are the paths holding every library-owned file and change note, given the license and notice
-// files, terms.
+// libraryPaths are the library paths holding every library-owned file and change note, given the license and
+// notice files, terms.
 func libraryPaths(terms []string) []string {
-	return append([]string{"rule-library.yaml", "assets", "practices", "techs", changesDirectory}, terms...)
+	return append([]string{librarytree.Manifest, "assets", "practices", "techs", changesDirectory}, terms...)
 }
 
 // changedLibraryFiles lists the library-wide files that changed between the latest library release, which is
@@ -411,11 +415,11 @@ func (g *libraryGit) changedLibraryFiles(ctx context.Context, head string, lates
 				terms = append(slices.Clip(terms), name)
 			}
 		}
-		if released, err = g.treeFiles(ctx, latest.object, libraryPaths(terms)); err != nil {
+		if released, err = g.libraryFiles(ctx, latest.object, libraryPaths(terms)); err != nil {
 			return nil, fmt.Errorf("list the files of %s: %w", latest.tagName(), err)
 		}
 	}
-	current, err := g.treeFiles(ctx, head, libraryPaths(terms))
+	current, err := g.libraryFiles(ctx, head, libraryPaths(terms))
 	if err != nil {
 		return nil, fmt.Errorf("list the files of commit=%s: %w", head, err)
 	}
@@ -439,7 +443,7 @@ func (g *libraryGit) pendingLibraryFiles(ctx context.Context, latest *publishedR
 			terms = append(slices.Clip(terms), name)
 		}
 	}
-	released, err := g.treeFiles(ctx, latest.object, libraryPaths(terms))
+	released, err := g.libraryFiles(ctx, latest.object, libraryPaths(terms))
 	if err != nil {
 		return nil, fmt.Errorf("list the files of %s: %w", latest.tagName(), err)
 	}
@@ -453,21 +457,60 @@ func (g *libraryGit) pendingLibraryFiles(ctx context.Context, latest *publishedR
 	if err != nil {
 		return nil, err
 	}
+	if data, ok := files[librarytree.Manifest]; ok {
+		current[librarytree.Manifest] = manifestDigest(data)
+	}
 	return diffLibraryFiles(current, released, terms), nil
 }
 
-// releasedTerms returns the license and notice files the latest library release's rule-library.yaml declared.
+// releasedTerms returns the library paths of the license and notice files the latest library release's manifest
+// declared. A library release made before the layout of version 2 kept its manifest in rule-library.yaml, whose
+// declared paths are library paths; its terms are read without validation, which that release passed.
 func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease) ([]string, error) {
-	location := latest.tagName() + ":rule-library.yaml"
-	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", latest.object + ":rule-library.yaml"}, maxFileBytes)
+	entries, err := g.treeEntries(ctx, latest.object, []string{librarytree.LegacyManifest, manifestPath})
+	if err != nil {
+		return nil, fmt.Errorf("list the files of %s: %w", latest.tagName(), err)
+	}
+	if legacy, ok := entries[librarytree.LegacyManifest]; ok {
+		manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", legacy.object}, maxFileBytes)
+		if err != nil {
+			return nil, fmt.Errorf("read %s:%s: %w", latest.tagName(), librarytree.LegacyManifest, err)
+		}
+		return legacyTerms(manifest), nil
+	}
+	location := latest.tagName() + ":" + manifestPath
+	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", latest.object + ":" + manifestPath}, maxFileBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", location, err)
 	}
-	license, err := rules.ParseLibraryLicense(manifest, location)
+	declaration, err := rules.ParseLibraryManifest(manifest, location)
 	if err != nil {
 		return nil, err
 	}
-	return rules.LicensePaths(license), nil
+	if declaration == nil {
+		return nil, failure("invalid-library", location+": the configuration has no library section", nil)
+	}
+	return rules.LicensePaths(declaration.License), nil
+}
+
+// legacyTerms returns the license and notice paths that a rule-library.yaml written before the layout of version 2
+// declares, which are library paths, or none when it declares no license.
+func legacyTerms(manifest []byte) []string {
+	_, data, err := decode.YAML(manifest, librarytree.LegacyManifest)
+	if err != nil {
+		return nil
+	}
+	var parsed struct {
+		License struct {
+			File    string   `json:"file"`
+			Notices []string `json:"notices"`
+		} `json:"license"`
+	}
+	if json.Unmarshal(data, &parsed) != nil || parsed.License.File == "" {
+		return nil
+	}
+	declaration := &rules.LicenseDeclaration{Files: []string{parsed.License.File}, AttributionFiles: parsed.License.Notices}
+	return rules.LicensePaths(declaration)
 }
 
 // diffLibraryFiles lists the library-wide files that differ between two trees' files, head and released,
@@ -490,10 +533,10 @@ func diffLibraryFiles(head, released map[string]string, terms []string) []string
 }
 
 // libraryWide reports whether a file is one projects receive outside any rule's version: the manifest, the
-// declared license and notice files, files in the library-root assets/ directory, and group metadata in
+// declared license and notice files, files in the shared assets/ directory, and group metadata in
 // _group.yaml. Group READMEs are authoring notes that projects never receive, so they're neither.
 func libraryWide(name string, terms []string) bool {
-	if name == "rule-library.yaml" || slices.Contains(terms, name) || strings.HasPrefix(name, "assets/") {
+	if name == librarytree.Manifest || slices.Contains(terms, name) || strings.HasPrefix(name, "assets/") {
 		return true
 	}
 	parts := strings.Split(name, "/")

@@ -47,7 +47,7 @@ func groupMetadataFields(input json.RawMessage, location string) (GroupMetadata,
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, present := fields[key]; present {
-			return GroupMetadata{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported")
+			return GroupMetadata{}, invalid(location+"."+key, "declare one license for the whole library in the library section of .code-rules/config.yaml; group-level licenses are unsupported")
 		}
 	}
 	// Sort keys so multiple unknown fields produce a deterministic first error.

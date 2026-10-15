@@ -116,7 +116,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 				}
 				supplied.Catalog.Groups[0].Rules = append(supplied.Catalog.Groups[0].Rules, other)
 			}
-			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/" + target + "#details)\n"
+			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/rules/" + target + "#details)\n"
 			libraries["team"] = versioned(supplied.Catalog)
 			resolved, err := resolve(config, libraries, nil)
 			if err != nil {

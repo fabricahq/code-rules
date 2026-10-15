@@ -311,6 +311,23 @@ func generateWith(t *testing.T, alter func(*library.Snapshot, *rules.Source)) ma
 	return files
 }
 
+// TestPrepareLinksToARuleWhereItsCommitKeepsIt links an imported rule's source to its file in .code-rules/rules/,
+// or at the repository root when the commit that published it keeps the layout before version 2.
+func TestPrepareLinksToARuleWhereItsCommitKeepsIt(t *testing.T) {
+	older := strings.Repeat("b", 40)
+	for legacy, path := range map[bool]string{false: ".code-rules/rules/techs/go/errors.md", true: "techs/go/errors.md"} {
+		files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+			version := coderules.RuleVersion{Major: 1, Minor: 3}
+			snapshot.Release = 2
+			snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: older, LegacyLayout: legacy}
+			source.Ref = rules.GitRef{}
+		})
+		if want := "(https://github.com/acme/rules/blob/" + older + "/" + path + ")"; !strings.Contains(files["rules/team/techs/go/errors.md"], want) {
+			t.Errorf("legacy layout %t: the source link isn't %s:\n%s", legacy, want, files["rules/team/techs/go/errors.md"])
+		}
+	}
+}
+
 // TestPrepareShowsEachImportedRulesVersion puts the version below the rule ID in guidance, and records it,
 // its library release, and the rule's own commit in provenance and the library summary.
 func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
@@ -327,7 +344,7 @@ func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 			t.Errorf("%s doesn't show the version below the rule ID:\n%s", name, files[name])
 		}
 	}
-	if !strings.Contains(files["rules/team/techs/go/errors.md"], "https://github.com/acme/rules/blob/"+older+"/techs/go/errors.md") {
+	if !strings.Contains(files["rules/team/techs/go/errors.md"], "https://github.com/acme/rules/blob/"+older+"/.code-rules/rules/techs/go/errors.md") {
 		t.Error("the source link doesn't use the rule's own commit")
 	}
 	var provenance struct {

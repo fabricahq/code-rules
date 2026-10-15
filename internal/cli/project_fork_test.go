@@ -26,14 +26,14 @@ type forkFixture struct {
 func newForkFixture(t *testing.T) forkFixture {
 	t.Helper()
 	ctx := context.Background()
-	f, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":             []byte(`{"formatVersion":1}`),
+	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                   []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 		"techs/go/_group.yaml":          []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
-		"techs/go/errors.md":            updateRule("Read [the guide](../../assets/guide.md)."),
+		"techs/go/errors.md":            updateRule("Read [the guide](../../../assets/guide.md)."),
 		"practices/testing/_group.yaml": []byte(`{"name":"Testing","description":"Tests.","whenToRead":"When testing."}`),
 		"practices/testing/verify.md":   updateRule("Verify."),
 		"assets/guide.md":               []byte("Guide.\n"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func newForkFixture(t *testing.T) forkFixture {
 	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": updateRule("Wrap errors.")}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(map[string][]byte{"techs/go/errors.md": updateRule("Wrap errors.")})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {

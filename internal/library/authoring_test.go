@@ -14,6 +14,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -105,7 +106,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	if _, err = AddRule(ctx, "techs/go/draft", rule, RuleOptions{Options: options}); err != nil {
 		t.Fatal(err)
 	}
-	draft, err := os.ReadFile(filepath.Join(options.Directory, "techs/go/draft.md"))
+	draft, err := os.ReadFile(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/draft.md")))
 	if err != nil || bytes.Count(draft, []byte(rules.DraftMarker)) != 1 {
 		t.Fatal("expected exactly one draft marker", err)
 	}
@@ -123,8 +124,10 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 			if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 				t.Fatal(err)
 			}
+			// write writes the file at library path name where the repository keeps it.
 			write := func(name, content string) {
 				t.Helper()
+				name = librarytree.RepositoryPath(name)
 				if err := os.MkdirAll(filepath.Dir(filepath.Join(options.Directory, name)), 0700); err != nil {
 					t.Fatal(err)
 				}
@@ -142,13 +145,16 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 				initRepository(t, options.Directory)
 				write(".git/objects/example", "arbitrary repository bytes")
 				write("docs/design.txt", "unrelated documentation")
+				write(".code-rules/vendor/team/config.yaml", "not this library's manifest")
+				write(".code-rules/generated/RULES.md", "[missing](absent.md)")
+				write(".code-rules/rules/README.md", "[missing](absent.md)")
 			case "cross-rule":
-				write("assets/shared.md", "[rule](/techs/go/errors.md)")
+				write("assets/shared.md", "[rule](/rules/techs/go/errors.md)")
 			case "malformed-rule":
 				write("techs/go/_group.yaml", `{"name":"Go","description":"Go.","whenToRead":"Go."}`)
 				write("techs/go/errors.md", "Missing frontmatter")
 			case "symlink":
-				if err := os.Symlink(t.TempDir(), filepath.Join(options.Directory, "assets")); err != nil {
+				if err := os.Symlink(t.TempDir(), filepath.Join(options.Directory, librarytree.RepositoryPath("assets"))); err != nil {
 					t.Fatal(err)
 				}
 			case "binary":
@@ -175,7 +181,7 @@ func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 	if err == nil {
 		t.Fatal("accepted terms collision")
 	}
-	if _, err = os.Stat(filepath.Join(directory, "rule-library.yaml")); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(directory, librarytree.RepositoryPath(librarytree.Manifest))); !os.IsNotExist(err) {
 		t.Fatal("partial manifest", err)
 	}
 	data, _ := os.ReadFile(filepath.Join(directory, "LICENSE.md"))
@@ -186,7 +192,7 @@ func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 
 // TestLibraryCheckRejectsConcurrentEdits covers files that the selected catalog does not reread.
 func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
-	for _, name := range []string{"assets/guide.md", "assets/new.md", "rule-library.yaml", "LICENSE.md"} {
+	for _, name := range []string{"assets/guide.md", "assets/new.md", librarytree.Manifest, "LICENSE.md"} {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
 			ctx := context.Background()
@@ -194,10 +200,10 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := os.Mkdir(filepath.Join(directory, "assets"), 0700); err != nil {
+			if err := os.Mkdir(filepath.Join(directory, librarytree.RepositoryPath("assets")), 0700); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(directory, "assets/guide.md"), []byte("Original guidance"), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(directory, librarytree.RepositoryPath("assets/guide.md")), []byte("Original guidance"), 0600); err != nil {
 				t.Fatal(err)
 			}
 			root, err := os.OpenRoot(directory)
@@ -209,7 +215,7 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(directory, name), []byte("[changed](missing.md)"), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(directory, librarytree.RepositoryPath(name)), []byte("[changed](missing.md)"), 0600); err != nil {
 				t.Fatal(err)
 			}
 			if err := requireLibraryUnchanged(ctx, root, before); err == nil || !strings.Contains(err.Error(), "changed during validation") {
@@ -235,10 +241,10 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(options.Directory, "techs/go"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go")), 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.yaml"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/_group.yaml")), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	catalog, err := LoadSource(ctx, capturedLibrary{snapshot.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
@@ -248,7 +254,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := requireLibraryUnchanged(ctx, root, snapshot); err == nil {
 		t.Fatal("missed new group")
 	}
-	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.yaml")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/_group.yaml"))); err != nil {
 		t.Fatal(err)
 	}
 	empty, err := libraryCheckInput(ctx, root)
@@ -266,10 +272,10 @@ func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 	if _, err := Initialize(context.Background(), options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(filepath.Join(options.Directory, "assets"), 0700); err != nil {
+	if err := os.Mkdir(filepath.Join(options.Directory, librarytree.RepositoryPath("assets")), 0700); err != nil {
 		t.Fatal(err)
 	}
-	name := filepath.Join(options.Directory, "assets/archive.bin")
+	name := filepath.Join(options.Directory, librarytree.RepositoryPath("assets/archive.bin"))
 	data := make([]byte, 9*1024*1024)
 	if err := os.WriteFile(name, data, 0600); err != nil {
 		t.Fatal(err)
@@ -294,7 +300,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	if _, err := AddGroup(ctx, "techs/go", existing, options); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(options.Directory, "techs/go/_group.yaml")
+	path := filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/_group.yaml"))
 	before, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

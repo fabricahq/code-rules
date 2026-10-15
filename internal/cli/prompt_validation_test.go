@@ -5,12 +5,13 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"go.yaml.in/yaml/v4"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v4"
 
 	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
 )
@@ -43,11 +44,7 @@ func TestInteractiveImpactRetry(t *testing.T) {
 			if !strings.Contains(transcript, "\nError: impact must be one of") || strings.Count(transcript, "Rule title:") != 1 || strings.Count(transcript, "Example rule:") != 1 || strings.Index(transcript, "Error:") > strings.LastIndex(transcript, "Why it matters:") {
 				t.Fatal(transcript)
 			}
-			root := dir
-			if scope == "project" {
-				root = filepath.Join(dir, ".code-rules", "rules")
-			}
-			data, err := os.ReadFile(filepath.Join(root, "practices/testing/my-rule.md"))
+			data, err := os.ReadFile(filepath.Join(dir, ".code-rules", "rules", "practices/testing/my-rule.md"))
 			if err != nil {
 				t.Fatal(err)
 			}

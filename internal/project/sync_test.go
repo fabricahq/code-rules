@@ -25,13 +25,13 @@ const firstRelease = "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1
 // release publishes techs/go/errors at 1.0.0. The project selects techs/go.
 func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	t.Helper()
-	f, err := gitfixture.New(context.Background(), map[string][]byte{
-		"rule-library.yaml":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":[]}}`),
+	f, err := gitfixture.New(context.Background(), gitfixture.Library(map[string][]byte{
+		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"LICENSE","notices":[]}}}`),
 		"LICENSE":                         []byte("Original terms\r\n"),
 		"techs/go/_group.yaml":            []byte(projectMetadata),
 		"techs/go/errors.md":              []byte(projectRule),
 		"techs/go/assets/errors/data.bin": {0, 255, 128},
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}

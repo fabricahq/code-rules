@@ -1,6 +1,7 @@
 # Rule library
 
-This folder contains a [Fabrica Code Rules](https://code-rules.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
+This repository contains a [Fabrica Code Rules](https://code-rules.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
+The library section of `.code-rules/config.yaml` makes the repository a library. Its groups and rules live in `.code-rules/rules/`, shared assets in `.code-rules/assets/`, and change notes in `.code-rules/changes/`.
 Use this README to author and maintain the library.
 
 ## Core concepts
@@ -34,7 +35,7 @@ code-rules library add group techs/go \
   --when-to-read 'When writing or reviewing Go code.'
 ```
 
-Confirm the metadata in `techs/go/_group.yaml`. Read `techs/go/README.md` before authoring rules in that group.
+Confirm the metadata in `.code-rules/rules/techs/go/_group.yaml`. Read `.code-rules/rules/techs/go/README.md` before authoring rules in that group.
 
 #### Add a rule
 
@@ -55,7 +56,7 @@ code-rules library add rule techs/go/return-errors \
   --body-file return-errors.body.md
 ```
 
-Inspect `techs/go/return-errors.md`; make future edits there. The body file is only an authoring input.
+Inspect `.code-rules/rules/techs/go/return-errors.md`; make future edits there. The body file is only an authoring input.
 If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders, remove unused sections, and remove the `<!-- code-rules:draft -->` marker when the rule is complete. Then run `code-rules library check`.
 
 #### Validate and share
@@ -66,7 +67,7 @@ code-rules library check
 
 Exit 0 means the library passes input validation; it does not prove that application code follows its rules.
 An undeclared license produces a warning. Confirm the publisher's license terms before sharing.
-Use one license declaration for the library in `rule-library.yaml`, with the actual license text and any notice files.
+Use one license declaration for the library in the library section of `.code-rules/config.yaml`, with the actual license text and any notice files.
 The result previews the next library release: each rule's change, and its current and next version.
 
 `.github/workflows/code-rules.yml` runs the same check on every pull request, with the Code Rules version that wrote it. Commit it with the library. To move it to a newer Code Rules version, delete it and run `code-rules library init` again.
@@ -77,7 +78,7 @@ Consumers run `code-rules project add library` in their project, then `code-rule
 
 #### Record changes after the first library release
 
-After the first library release, every change to a rule needs a change note in `changes/`. Record it with `code-rules library change` and the rule's ID:
+After the first library release, every change to a rule needs a change note in `.code-rules/changes/`. Record it with `code-rules library change` and the rule's ID:
 
 - For a rule that has a version, pass `--bump major`, `--bump minor`, or `--bump patch`. Choose `major` when work that complied with the previous version could fail the new one.
 - For a new rule, leave out `--bump`; it starts at version `1.0.0`.

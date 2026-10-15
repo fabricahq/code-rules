@@ -82,46 +82,66 @@ const developmentVersion = "0.0.0-"
 // checkWorkflowPath is the GitHub Actions workflow library init writes.
 const checkWorkflowPath = ".github/workflows/code-rules.yml"
 
-// openLibrary enforces the same final-root no-link policy as project authoring.
+// openLibrary opens the library repository's root, enforcing the same final-root no-link policy as project
+// authoring. It fails, closing the root, when the repository is in the library layout before version 2.
 func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, error) {
 	directory := options.Directory
 	if directory == "" {
 		directory = "."
 	}
+	var root *os.Root
+	var err error
 	if create {
-		return filetxn.Create(ctx, directory)
+		root, err = filetxn.Create(ctx, directory)
+	} else {
+		root, err = filetxn.Open(ctx, directory)
 	}
-	root, err := filetxn.Open(ctx, directory)
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, os.ErrNotExist) && !create {
 		return nil, failure("needs-init", directory+": missing library directory; run code-rules library init first", err)
 	}
-	return root, err
+	if err != nil {
+		return nil, err
+	}
+	if err := requireLibraryLayout(root); err != nil {
+		root.Close()
+		return nil, err
+	}
+	return root, nil
 }
 
-// declaredTerms validates the declaration before reading contained term paths, using planned bytes during initialization.
+// manifestPath is where the manifest lives in the library's repository.
+var manifestPath = librarytree.RepositoryPath(librarytree.Manifest)
+
+// declaredTerms validates the configuration in manifest, which must have a library section, before reading the
+// contained term files it declares, using planned bytes, by library path, during initialization. The returned
+// inventory holds the manifest and terms by library path.
 func declaredTerms(ctx context.Context, root *os.Root, manifest []byte, planned map[string][]byte) (map[string][]byte, *rules.LicenseDeclaration, error) {
-	license, err := rules.ParseLibraryLicense(manifest, "library")
+	declaration, err := rules.ParseLibraryManifest(manifest, manifestPath)
 	if err != nil {
 		return nil, nil, err
 	}
-	inventory := map[string][]byte{"rule-library.yaml": manifest}
-	for _, name := range rules.LicensePaths(license) {
+	if declaration == nil {
+		return nil, nil, failure("needs-init", manifestPath+" has no library section, so this repository isn't a library; run code-rules library init to add one", nil)
+	}
+	inventory := map[string][]byte{librarytree.Manifest: manifest}
+	for _, name := range rules.LicensePaths(declaration.License) {
 		data, ok := planned[name]
 		if !ok {
-			if err = checkParents(root, name); err != nil {
+			file := librarytree.RepositoryPath(name)
+			if err = checkParents(root, file); err != nil {
 				return nil, nil, err
 			}
-			data, err = filetxn.ReadOptional(ctx, root, name)
+			data, err = filetxn.ReadOptional(ctx, root, file)
 			if err != nil {
 				return nil, nil, err
 			}
 			if data == nil {
-				return nil, nil, failure("missing-license", name+": missing declared license or notice", nil)
+				return nil, nil, failure("missing-license", file+": missing declared license or notice", nil)
 			}
 		}
 		inventory[name] = data
 	}
-	return inventory, license, nil
+	return inventory, declaration.License, nil
 }
 
 // checkParents refuses observed symlinks in every term-file parent without traversing unrelated repository files.
@@ -142,19 +162,21 @@ func checkParents(root *os.Root, name string) error {
 
 // libraryManifest requires an initialized manifest and valid declared terms.
 func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *rules.LicenseDeclaration, error) {
-	data, err := filetxn.ReadOptional(ctx, root, "rule-library.yaml")
+	data, err := readOptionalBelow(ctx, root, manifestPath)
 	if err != nil {
 		return nil, nil, err
 	}
 	if data == nil {
-		return nil, nil, failure("needs-init", "missing rule-library.yaml; run library init first", nil)
+		return nil, nil, failure("needs-init", "missing "+manifestPath+"; run code-rules library init first", nil)
 	}
 	return declaredTerms(ctx, root, data, nil)
 }
 
-// Initialize creates missing scaffolding and explicit terms without overwriting an existing manifest, terms,
-// README, or check workflow. The workflow installs codeRulesVersion, an unprefixed version such as 0.2.0,
-// from the Code Rules release tagged with it, or the latest release for a 0.0.0- development build.
+// Initialize creates missing scaffolding and explicit terms without overwriting existing terms, README, or check
+// workflow. It adds a library section to .code-rules/config.yaml, creating the configuration when it's missing and
+// keeping an existing one's sources and comments; an existing library section stays unchanged. The workflow installs
+// codeRulesVersion, an unprefixed version such as 0.2.0, from the Code Rules release tagged with it, or the latest
+// release for a 0.0.0- development build.
 func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVersion string) (AuthoringResult, error) {
 	workflow, err := checkWorkflowFor(codeRulesVersion)
 	if err != nil {
@@ -165,32 +187,51 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
+	dir, err := openCodeRulesDirectory(ctx, root, true)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	defer dir.Close()
 	var license *rules.LicenseDeclaration
-	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
+	changes, err := filetxn.EditIn(ctx, dir, root, func() ([]filetxn.File, error) {
 		var files []filetxn.File
-		existing, err := filetxn.ReadOptional(ctx, root, "rule-library.yaml")
+		existing, err := filetxn.ReadOptional(ctx, root, manifestPath)
 		if err != nil {
 			return nil, err
 		}
-		if existing != nil && terms != nil {
-			return nil, failure("already-initialized", "library manifest exists; edit its license declaration explicitly", nil)
-		}
 		manifest := existing
+		var declared *rules.Library
+		if existing != nil {
+			if declared, err = rules.ParseLibraryManifest(existing, manifestPath); err != nil {
+				return nil, err
+			}
+		}
+		if declared != nil && terms != nil {
+			return nil, failure("already-initialized", manifestPath+" already has a library section; edit its license declaration there", nil)
+		}
 		planned := map[string][]byte{}
-		if existing == nil {
-			value := map[string]any{"formatVersion": 1}
+		if declared == nil {
+			section := map[string]any{}
 			if terms != nil {
 				notices := []string{}
 				if terms.Notice != nil {
 					notices = append(notices, "NOTICE.md")
 				}
-				value["license"] = map[string]any{"spdxExpression": terms.SPDXExpression, "file": "LICENSE.md", "notices": notices}
+				section["license"] = map[string]any{"spdxExpression": terms.SPDXExpression, "file": "LICENSE.md", "notices": notices}
 			}
-			manifest, err = yamlText(value)
+			if existing == nil {
+				manifest, err = yamlText(struct {
+					SchemaVersion int            `yaml:"schemaVersion"`
+					Sources       map[string]any `yaml:"sources"`
+					Library       map[string]any `yaml:"library"`
+				}{2, map[string]any{}, section})
+			} else {
+				manifest, err = rules.AppendConfigurationLibrary(existing, section)
+			}
 			if err != nil {
 				return nil, err
 			}
-			files = append(files, filetxn.File{Path: "rule-library.yaml", Content: manifest})
+			files = append(files, filetxn.File{Path: manifestPath, Content: manifest, Previous: existing})
 		}
 		if terms != nil {
 			planned["LICENSE.md"] = []byte(terms.License)
@@ -225,8 +266,8 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 	}
 	result, err := authoringResult(changes, err)
 	result.LicenseDeclared = license != nil
-	for _, directory := range []string{"practices", "techs"} {
-		if entries, readErr := fs.ReadDir(root.FS(), directory); readErr == nil && len(entries) > 0 {
+	for _, group := range []string{"practices", "techs"} {
+		if entries, readErr := fs.ReadDir(root.FS(), librarytree.RepositoryPath(group)); readErr == nil && len(entries) > 0 {
 			result.HasGroups = true
 		}
 	}
@@ -259,27 +300,27 @@ func readOptionalBelow(ctx context.Context, root *os.Root, name string) ([]byte,
 	return filetxn.ReadOptional(ctx, root, name)
 }
 
-// editLibrary revalidates manifest and the target category under exclusive ownership before publication.
+// editLibrary revalidates manifest and the target category under the writer of the Code Rules directory before
+// publication; prepare returns files by repository path.
 func editLibrary(ctx context.Context, options Options, group string, prepare func(*os.Root) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
-		var files []filetxn.File
+	dir, err := openCodeRulesDirectory(ctx, root, false)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	defer dir.Close()
+	changes, err := filetxn.EditIn(ctx, dir, root, func() ([]filetxn.File, error) {
 		if _, _, err := libraryManifest(ctx, root); err != nil {
 			return nil, err
 		}
-		if _, err := filetxn.ReadTree(ctx, root, strings.Split(group, "/")[0]); err != nil {
+		if _, err := filetxn.ReadTree(ctx, root, librarytree.RepositoryPath(strings.Split(group, "/")[0])); err != nil {
 			return nil, err
 		}
-		var err error
-		files, err = prepare(root)
-		if err != nil {
-			return nil, err
-		}
-		return files, nil
+		return prepare(root)
 	})
 	return authoringResult(changes, err)
 }
@@ -297,19 +338,20 @@ func AddGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, 
 		if err := checkNewGroup(ctx, root, id); err != nil {
 			return nil, err
 		}
-		return groupFiles(id, id, data), nil
+		return groupFiles(librarytree.RepositoryPath(id), id, data), nil
 	})
 }
 
 // hasGroupMetadata validates an existing group definition without creating it.
 func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, error) {
-	if err := checkParents(root, id+"/_group.yaml"); err != nil {
+	file := librarytree.RepositoryPath(id + "/_group.yaml")
+	if err := checkParents(root, file); err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-	data, err := filetxn.ReadOptional(ctx, root, id+"/_group.yaml")
+	data, err := filetxn.ReadOptional(ctx, root, file)
 	if err != nil || data == nil {
 		return false, err
 	}
@@ -331,7 +373,7 @@ func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, option
 		if err := checkNewRule(ctx, root, id, options.Options); err != nil {
 			return nil, err
 		}
-		return []filetxn.File{{Path: id + ".md", Content: data}}, nil
+		return []filetxn.File{{Path: librarytree.RepositoryPath(id + ".md"), Content: data}}, nil
 	})
 }
 
@@ -358,6 +400,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the library root, two directories above this folder.\nUse `code-rules library add rule %s/<rule-name>` to add a rule; run `code-rules library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `code-rules library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the repository root, four directories above this folder.\nUse `code-rules library add rule %s/<rule-name>` to add a rule; run `code-rules library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `code-rules library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

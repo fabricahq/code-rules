@@ -117,11 +117,7 @@ func TestCommandsDiscoverRepositoryRoot(t *testing.T) {
 				run("sync")
 			}
 			run("check")
-			prefix := root
-			if scope == "project" {
-				prefix = filepath.Join(root, ".code-rules", "rules")
-			}
-			data, err := os.ReadFile(filepath.Join(prefix, "techs/go/errors.md"))
+			data, err := os.ReadFile(filepath.Join(root, ".code-rules", "rules", "techs/go/errors.md"))
 			if err != nil || !strings.Contains(string(data), "Return errors to callers.") {
 				t.Fatal(string(data), err)
 			}

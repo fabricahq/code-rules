@@ -15,7 +15,7 @@ import (
 // TestClone_PushesCommitsAndTagsToTheFixture lets library release tests publish through the fixture's transport.
 func TestClone_PushesCommitsAndTagsToTheFixture(t *testing.T) {
 	ctx := context.Background()
-	f, err := New(ctx, map[string][]byte{"rule-library.yaml": []byte("formatVersion: 1\n")})
+	f, err := New(ctx, Library(map[string][]byte{"config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n")}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestClone_PushesCommitsAndTagsToTheFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	commit, err := f.Commit(ctx, checkout, "Add a change note", map[string][]byte{"changes/one.yaml": []byte("summary: One.\n"), "rule-library.yaml": nil})
+	commit, err := f.Commit(ctx, checkout, "Add a change note", Library(map[string][]byte{"changes/one.yaml": []byte("summary: One.\n"), "config.yaml": nil}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestClone_PushesCommitsAndTagsToTheFixture(t *testing.T) {
 		t.Fatalf("pushed main is %q, want %q: %v", head, commit, err)
 	}
 	// The working tree follows the pushed branch, so later fixture commits build on it.
-	if _, err := os.Stat(filepath.Join(f.Directory, "repository", "changes", "one.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(f.Directory, "repository", ".code-rules", "changes", "one.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := f.Command(ctx, "tag", "--list", "--format=%(contents)", "release/1"); err != nil || got+"\n" != message {
@@ -73,7 +73,7 @@ func TestNew_ServesPartialCloneFilters(t *testing.T) {
 // TestRelease_TagsARecordThatParses publishes a library release whose tag message Code Rules can read.
 func TestRelease_TagsARecordThatParses(t *testing.T) {
 	ctx := context.Background()
-	f, err := New(ctx, map[string][]byte{"rule-library.yaml": []byte("formatVersion: 1\n")})
+	f, err := New(ctx, Library(map[string][]byte{"config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n")}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,5 +87,19 @@ func TestRelease_TagsARecordThatParses(t *testing.T) {
 	}
 	if release, err := releasetag.ParseObject("release/1", []byte(object)); err != nil || release.Record.Release != 1 {
 		t.Fatalf("got %+v, %v", release, err)
+	}
+}
+
+// TestLibrary_PlacesLibraryFilesInTheCodeRulesDirectory keeps deletions and files outside the library.
+func TestLibrary_PlacesLibraryFilesInTheCodeRulesDirectory(t *testing.T) {
+	got := Library(map[string][]byte{"config.yaml": []byte("a"), "techs/go/errors.md": []byte("b"), "assets/x.svg": nil, "LICENSE.md": []byte("c")})
+	want := map[string][]byte{".code-rules/config.yaml": []byte("a"), ".code-rules/rules/techs/go/errors.md": []byte("b"), ".code-rules/assets/x.svg": nil, "LICENSE.md": []byte("c")}
+	if len(got) != len(want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	for name, data := range want {
+		if placed, ok := got[name]; !ok || string(placed) != string(data) || (placed == nil) != (data == nil) {
+			t.Fatalf("got %q, want %q", got, want)
+		}
 	}
 }

@@ -64,6 +64,7 @@ type reader struct {
 var sourceAlias = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 // Load expands the selection and validates every selected rule, returning no partial catalog.
+// root is the library's repository root, which keeps its files as librarytree.RepositoryPath places them.
 // The caller owns and closes root. No files are written. Symlinks and special entries
 // encountered in selected trees are rejected; os.Root confines concurrent path resolution.
 // Cancellation remains inspectable with errors.Is. Other input failures are ValidationError.
@@ -71,11 +72,11 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if root == nil {
 		return Catalog{}, bad("library", "expected an open filesystem root")
 	}
-	return LoadSource(ctx, rootFiles{ctx: ctx, root: root}, source, selection, nil)
+	return LoadSource(ctx, repositoryFiles{rootFiles{ctx: ctx, root: root}}, source, selection, nil)
 }
 
-// LoadSource applies the same catalog rules to bounded local or immutable Git bytes.
-// The caller owns the source and must keep its identity stable for this operation.
+// LoadSource applies the same catalog rules to bounded local or immutable Git bytes, which input lends by library
+// path. The caller owns the source and must keep its identity stable for this operation.
 // ruleIDs names individually selected rules, which must exist: each brings its group's metadata, and a group
 // the selection doesn't include holds only the named rules, whose other rules and assets are neither read nor validated.
 func LoadSource(ctx context.Context, input FileSource, source string, selection rules.GroupSelection, ruleIDs []string) (Catalog, error) {
@@ -100,7 +101,7 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 		return Catalog{}, err
 	}
 	r := reader{ctx: ctx, input: input, files: make(map[string][]byte)}
-	if _, err := r.read("rule-library.yaml"); err != nil {
+	if _, err := r.read(librarytree.Manifest); err != nil {
 		return Catalog{}, err
 	}
 	license, err := r.license(source)
@@ -186,8 +187,8 @@ func (r *reader) read(path string) ([]byte, error) {
 		info, err := r.input.Lstat(prefix)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				if path == "rule-library.yaml" {
-					return nil, bad(path, "missing library manifest at the repository root; this required file declares the library format and optional license")
+				if path == librarytree.Manifest {
+					return nil, bad(manifestPath, "missing library manifest; the library section of this configuration makes the repository a library and declares its optional license")
 				}
 				return nil, bad(path, "missing required file")
 			}
@@ -221,19 +222,23 @@ func (r *reader) read(path string) ([]byte, error) {
 	return data, nil
 }
 
-// license validates the declaration before reading its contained files; bytes stay unchanged.
+// license validates the manifest's library section and its license declaration before reading the declared files;
+// bytes stay unchanged. A configuration without a library section fails: the repository isn't a library.
 func (r *reader) license(source string) (*rules.LicenseDeclaration, error) {
-	manifest := r.files["rule-library.yaml"]
-	declaration, err := rules.ParseLibraryLicense(manifest, source)
+	location := source + "/" + manifestPath
+	declaration, err := rules.ParseLibraryManifest(r.files[librarytree.Manifest], location)
 	if err != nil {
 		return nil, err
 	}
-	for _, path := range rules.LicensePaths(declaration) {
+	if declaration == nil {
+		return nil, bad(location, "the configuration has no library section, so the repository isn't a library")
+	}
+	for _, path := range rules.LicensePaths(declaration.License) {
 		if _, err := r.read(path); err != nil {
 			return nil, err
 		}
 	}
-	return declaration, nil
+	return declaration.License, nil
 }
 
 // entries lists a real directory and applies cancellation and discovery-count limits.

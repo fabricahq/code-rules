@@ -73,6 +73,30 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	return encodeConfiguration(document)
 }
 
+// AppendConfigurationLibrary adds a library section, the manifest, holding value, such as an empty map or one with
+// a license, without dropping existing comments or reordering entries. It fails when the configuration already has
+// a library section. The complete resulting configuration is validated before any bytes are returned.
+func AppendConfigurationLibrary(input []byte, value any) ([]byte, error) {
+	document, data, err := decode.YAML(input, "configuration")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := ParseConfiguration(data); err != nil {
+		return nil, err
+	}
+	root := document.Content[0]
+	if mappingValue(root, "library") != nil {
+		return nil, invalid("library", "the configuration already has a library section")
+	}
+	var section yaml.Node
+	if err := section.Encode(value); err != nil {
+		return nil, err
+	}
+	root.Content = append(root.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "library"}, &section)
+	root.Style = 0
+	return encodeConfiguration(document)
+}
+
 // SourceEdit lists pins and exclusions to add to one source, pins to remove from it, and basedOn versions to set;
 // each may be empty or nil.
 type SourceEdit struct {

@@ -39,9 +39,9 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	config := snapshotConfig(t, `"rules":{"include":["techs/go/*"]}`)
 	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
-		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
+		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne, LegacyLayout: true}},
 		Files: map[string][]byte{
-			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+			"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 			"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
 			"techs/go/errors.md":   []byte(projectRule),
 			"techs/go/naming.md":   []byte(projectRule),
@@ -99,7 +99,7 @@ func TestSnapshotRecordFormat(t *testing.T) {
 	}
 	for field, want := range map[string]string{
 		"formatVersion": "2", "release": "2", "resolvedCommit": `"` + releaseTwo + `"`, "groupSelection": `["techs/go"]`, "groups": `["techs/go"]`,
-		"rules": `{"techs/go/errors":{"version":"1.1.0","release":2,"commit":"` + releaseTwo + `"},"techs/go/naming":{"version":"1.0.0","release":1,"commit":"` + releaseOne + `"}}`,
+		"rules": `{"techs/go/errors":{"version":"1.1.0","release":2,"commit":"` + releaseTwo + `"},"techs/go/naming":{"version":"1.0.0","release":1,"commit":"` + releaseOne + `","legacyLayout":true}}`,
 	} {
 		var compact strings.Builder
 		for _, line := range strings.Split(string(record[field]), "\n") {
@@ -306,7 +306,7 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 		{"bad hash", func(r map[string]any) { r["files"].(map[string]any)["LICENSE"] = "123" }},
 		{"reserved", func(r map[string]any) { r["files"].(map[string]any)["_source.json"] = strings.Repeat("a", 64) }},
 		{"traversal", func(r map[string]any) { r["files"].(map[string]any)["../outside"] = strings.Repeat("a", 64) }},
-		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "rule-library.yaml") }},
+		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "config.yaml") }},
 		{"missing metadata", func(r map[string]any) { delete(r["files"].(map[string]any), "techs/go/_group.yaml") }},
 		{"pin with a reason", func(r map[string]any) {
 			r["pins"] = map[string]any{"techs/go/errors": map[string]any{"version": "1.1.0", "reason": "Keep."}}
@@ -335,6 +335,34 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 				t.Fatalf("accepted corrupt record: %v", got)
 			}
 		})
+	}
+}
+
+// TestSnapshotOfALibraryInTheLayoutBeforeVersion2IsUnsupported explains that a record of a library's
+// rule-library.yaml needs the library to move and the source to be imported again.
+func TestSnapshotOfALibraryInTheLayoutBeforeVersion2IsUnsupported(t *testing.T) {
+	config, input := snapshotFixture(t)
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record sourceRecord
+	if err := json.Unmarshal(encoded["team/_source.json"], &record); err != nil {
+		t.Fatal(err)
+	}
+	record.Files["rule-library.yaml"] = record.Files["config.yaml"]
+	delete(record.Files, "config.yaml")
+	record.Checksum = recordChecksum(record)
+	if encoded["team/_source.json"], err = json.Marshal(record); err != nil {
+		t.Fatal(err)
+	}
+	encoded["team/rule-library.yaml"] = encoded["team/config.yaml"]
+	delete(encoded, "team/config.yaml")
+	got, err := decodeSnapshots(config, encoded)
+	var validation errs.ValidationError
+	want := "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, delete .code-rules/vendor/team/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
+	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/team/_source.json" || validation.ValidationProblem() != want {
+		t.Fatalf("got %v, %v; want %s", got, err, want)
 	}
 }
 
@@ -398,7 +426,7 @@ func TestSnapshotRefChecks(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			config := snapshotConfig(t, `"rules":{"include":["techs/go/*"]},"ref":"`+test.ref+`"`)
-			files := map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{}`)}
+			files := map[string][]byte{"config.yaml": []byte(`{"schemaVersion":2,"sources":{},"library":{}}`), "techs/go/_group.yaml": []byte(`{}`)}
 			item := snapshot{Repository: config.Sources[0].Repository, Ref: gitRef(t, test.ref), Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
 			_, err := encodeSnapshots(config, map[string]snapshot{"team": item})
 			if (err == nil) != test.ok {

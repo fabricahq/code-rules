@@ -3,9 +3,9 @@
     "id": "license-unspecified",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": null
@@ -19,9 +19,9 @@
     "id": "license-mit",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -53,9 +53,9 @@
     "id": "license-expression-2",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Apache-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Apache-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -87,9 +87,9 @@
     "id": "license-expression-3",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT OR Apache-2.0) AND BSD-2-Clause\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT OR Apache-2.0) AND BSD-2-Clause\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -121,9 +121,9 @@
     "id": "license-expression-4",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0+\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0+\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -155,9 +155,9 @@
     "id": "license-expression-5",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH Classpath-exception-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -189,9 +189,9 @@
     "id": "license-expression-6",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -223,9 +223,9 @@
     "id": "license-expression-7",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -257,9 +257,9 @@
     "id": "license-expression-8",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT or Apache-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT or Apache-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -291,9 +291,9 @@
     "id": "license-expression-9",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" MIT \"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" MIT \"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -325,9 +325,9 @@
     "id": "license-unidentified",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"]}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"]}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -359,9 +359,9 @@
     "id": "license-deduplicate",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"LICENSE\", \"NOTICE\"], \"spdxExpression\": \"MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"LICENSE\", \"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -393,9 +393,9 @@
     "id": "license-no-notices",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [], \"spdxExpression\": \"MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -425,13 +425,13 @@
     "input": {
       "manifest": "{"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: expected one YAML document",
-        "location": "library/rule-library.yaml"
+        "message": "library/.code-rules/config.yaml: expected one YAML document",
+        "location": "library/.code-rules/config.yaml"
       }
     }
   },
@@ -441,29 +441,13 @@
     "input": {
       "manifest": "null"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: expected an object",
-        "location": "library/rule-library.yaml"
-      }
-    }
-  },
-  {
-    "id": "license-version",
-    "operation": "licenses",
-    "input": {
-      "manifest": "{\"formatVersion\": 2}"
-    },
-    "location": "library",
-    "expected": {
-      "ok": false,
-      "error": {
-        "name": "ValidationError",
-        "message": "library/rule-library.yaml: formatVersion: only library formatVersion 1 is supported",
-        "location": "library/rule-library.yaml: formatVersion"
+        "message": "library/.code-rules/config.yaml: configuration: expected an object",
+        "location": "library/.code-rules/config.yaml: configuration"
       }
     }
   },
@@ -471,15 +455,15 @@
     "id": "license-null-license",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": null}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": null}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license: expected an object",
-        "location": "library/rule-library.yaml: license"
+        "message": "library/.code-rules/config.yaml: library.license: expected an object",
+        "location": "library/.code-rules/config.yaml: library.license"
       }
     }
   },
@@ -487,15 +471,15 @@
     "id": "license-null-notices",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": null, \"spdxExpression\": \"MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": null, \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.notices: expected an array of notice paths",
-        "location": "library/rule-library.yaml: license.notices"
+        "message": "library/.code-rules/config.yaml: library.license.notices: expected an array of notice paths",
+        "location": "library/.code-rules/config.yaml: library.license.notices"
       }
     }
   },
@@ -503,15 +487,15 @@
     "id": "license-traversal",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"../LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"../LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.file: expected a contained relative path, got \"../LICENSE\"",
-        "location": "library/rule-library.yaml: license.file"
+        "message": "library/.code-rules/config.yaml: library.license.file: expected a contained relative path, got \"../LICENSE\"",
+        "location": "library/.code-rules/config.yaml: library.license.file"
       }
     }
   },
@@ -519,31 +503,31 @@
     "id": "license-unknown",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"future\": true}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"future\": true}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license: unknown field future",
-        "location": "library/rule-library.yaml: license"
+        "message": "library/.code-rules/config.yaml: library.license: unknown field future",
+        "location": "library/.code-rules/config.yaml: library.license"
       }
     }
   },
   {
-    "id": "license-renamed",
+    "id": "license-expression-field",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"expression\": \"MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"expression\": \"MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.expression: renamed to license.spdxExpression; move the declaration to that field",
-        "location": "library/rule-library.yaml: license.expression"
+        "message": "library/.code-rules/config.yaml: library.license: unknown field expression",
+        "location": "library/.code-rules/config.yaml: library.license"
       }
     }
   },
@@ -551,15 +535,15 @@
     "id": "license-blank",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" \"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" \"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected nonempty text",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected nonempty text",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -567,15 +551,15 @@
     "id": "license-multiline",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\n\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\n\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected a single-line license expression",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected a single-line license expression",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -583,15 +567,15 @@
     "id": "license-invalid-25",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"mit\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"mit\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -599,15 +583,15 @@
     "id": "license-invalid-26",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Unreal-1.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Unreal-1.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -615,15 +599,15 @@
     "id": "license-invalid-27",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT OR\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT OR\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -631,15 +615,15 @@
     "id": "license-invalid-28",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -647,15 +631,15 @@
     "id": "license-invalid-29",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT +\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT +\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -663,15 +647,15 @@
     "id": "license-invalid-30",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -679,15 +663,15 @@
     "id": "license-invalid-31",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH Unknown\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH Unknown\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -695,15 +679,15 @@
     "id": "license-invalid-32",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\u00a0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT \"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -711,15 +695,15 @@
     "id": "license-invalid-33",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH classpath-exception-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH classpath-exception-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -727,9 +711,9 @@
     "id": "license-custom-exception",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH Classpath-exception-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -761,9 +745,9 @@
     "id": "license-document-exception",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -795,15 +779,15 @@
     "id": "license-custom-exception-invalid",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH MIT\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH MIT\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -811,15 +795,15 @@
     "id": "license-custom-exception-plus",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team+ WITH Classpath-exception-2.0\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team+ WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -827,15 +811,15 @@
     "id": "license-unclosed-open",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -843,15 +827,15 @@
     "id": "license-incomplete-document",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Team:  \"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Team:  \"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -859,15 +843,15 @@
     "id": "license-incomplete-nested",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT AND (\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT AND (\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.yaml: license.spdxExpression"
+        "message": "library/.code-rules/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.code-rules/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -875,9 +859,9 @@
     "id": "license-newer-identifier",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MVT-1.1\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MVT-1.1\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -904,9 +888,9 @@
     "id": "license-newer-exception",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH PCRE2-exception\"}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH PCRE2-exception\"}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -933,15 +917,15 @@
     "id": "license-file-is-a-rule",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"techs/go/errors.md\", \"notices\": []}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/techs/go/errors.md\", \"notices\": []}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.file: \"techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root",
-        "location": "library/rule-library.yaml: license.file"
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/rules/techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.code-rules/config.yaml: library.license.file"
       }
     }
   },
@@ -949,15 +933,15 @@
     "id": "license-file-in-a-group-assets-directory",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"techs/go/assets/LICENSE\", \"notices\": []}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/techs/go/assets/LICENSE\", \"notices\": []}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.file: \"techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root",
-        "location": "library/rule-library.yaml: license.file"
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/rules/techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.code-rules/config.yaml: library.license.file"
       }
     }
   },
@@ -965,15 +949,15 @@
     "id": "license-notice-in-a-rules-assets",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"practices/testing/assets/verify/nested/NOTICE.md\"]}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \".code-rules/rules/practices/testing/assets/verify/nested/NOTICE.md\"]}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.yaml: license.notices[1]: \"practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root",
-        "location": "library/rule-library.yaml: license.notices[1]"
+        "message": "library/.code-rules/config.yaml: library.license.notices[1]: \".code-rules/rules/practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.code-rules/config.yaml: library.license.notices[1]"
       }
     }
   },
@@ -981,9 +965,9 @@
     "id": "license-library-wide-paths-in-groups",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"techs/go/LICENSE.md\", \"notices\": [\"assets/NOTICE.md\", \"techs/go/README.md\"]}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/techs/go/LICENSE.md\", \"notices\": [\".code-rules/assets/NOTICE.md\", \".code-rules/rules/techs/go/README.md\"]}}}"
     },
-    "location": "library",
+    "location": "library/.code-rules/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -995,6 +979,249 @@
           "assets/NOTICE.md",
           "techs/go/README.md"
         ]
+      }
+    }
+  },
+  {
+    "id": "not-a-library",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": true,
+      "value": null,
+      "notLibrary": true
+    }
+  },
+  {
+    "id": "library-with-sources",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/acme/rules\", \"rules\": {\"include\": [\"techs/go/*\"]}}}, \"library\": {\"license\": {\"file\": \"LICENSE.md\", \"notices\": [], \"spdxExpression\": \"MIT\"}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "MIT",
+        "files": [
+          "LICENSE.md"
+        ],
+        "attributionFiles": []
+      }
+    }
+  },
+  {
+    "id": "license-in-docs-folder",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"docs/LICENSE.md\", \"notices\": [\"docs/NOTICE.md\"]}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": null,
+        "files": [
+          "docs/LICENSE.md"
+        ],
+        "attributionFiles": [
+          "docs/NOTICE.md"
+        ]
+      }
+    }
+  },
+  {
+    "id": "library-not-an-object",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": []}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library: expected an object",
+        "location": "library/.code-rules/config.yaml: library"
+      }
+    }
+  },
+  {
+    "id": "library-skills",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"review\": \"required\"}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.skills: skill levels aren't supported yet in this version of Code Rules; remove library.skills",
+        "location": "library/.code-rules/config.yaml: library.skills"
+      }
+    }
+  },
+  {
+    "id": "library-unknown",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"formatVersion\": 1}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library: unknown field formatVersion",
+        "location": "library/.code-rules/config.yaml: library"
+      }
+    }
+  },
+  {
+    "id": "license-root-rule-folder",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"techs/go/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-assets",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"assets/NOTICE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-changes",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"changes/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-config",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"config.yaml\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-manifest",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/config.yaml\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/config.yaml\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-change-note",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/changes/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-vendor",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/vendor/team/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-generated",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/generated/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-rules-readme",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".code-rules/rules/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.code-rules/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.code-rules/config.yaml: library.license.file: \".code-rules/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "location": "library/.code-rules/config.yaml: library.license.file"
       }
     }
   }

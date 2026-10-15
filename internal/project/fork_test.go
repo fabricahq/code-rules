@@ -41,20 +41,20 @@ type forkFixture struct {
 func newForkFixture(t *testing.T, repository string) forkFixture {
 	t.Helper()
 	ctx := context.Background()
-	f, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":[]}}`),
+	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"LICENSE","notices":[]}}}`),
 		"LICENSE":                         []byte("Terms\n"),
 		"techs/go/_group.yaml":            []byte("# Go metadata.\n" + projectMetadata + "\n"),
-		"techs/go/errors.md":              []byte(forkedRule("Read [the guide](../../assets/guide.md), [notes](assets/errors/notes.md), and [data](assets/errors/data.bin#top).")),
-		"techs/go/assets/errors/notes.md": []byte("![Flow](../../../../assets/diagrams/flow.svg) [Data](data.bin)\n"),
+		"techs/go/errors.md":              []byte(forkedRule("Read [the guide](../../../assets/guide.md), [notes](assets/errors/notes.md), and [data](assets/errors/data.bin#top).")),
+		"techs/go/assets/errors/notes.md": []byte("![Flow](../../../../../assets/diagrams/flow.svg) [Data](data.bin)\n"),
 		"techs/go/assets/errors/data.bin": {0, 255},
-		"techs/go/licensed.md":            []byte(forkedRule("See [the terms](../../LICENSE).")),
+		"techs/go/licensed.md":            []byte(forkedRule("See [the terms](../../../../LICENSE).")),
 		"practices/testing/_group.yaml":   []byte(`{"name":"Testing","description":"Tests.","whenToRead":"When testing."}`),
 		"practices/testing/verify.md":     []byte(forkedRule("Verify.")),
 		"assets/guide.md":                 []byte("[More](more.md)\n"),
 		"assets/more.md":                  []byte("More.\n"),
 		"assets/diagrams/flow.svg":        []byte("<svg/>"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors.")), "techs/go/added.md": []byte(forkedRule("Added."))}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors.")), "techs/go/added.md": []byte(forkedRule("Added."))})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/added: {change: new, summaries: [Add the rule.]}\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
@@ -296,23 +296,28 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	rule, err := coderules.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.code-rules/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
 }
 
-// TestForkAttribution_DependsOnTheHost links GitHub.com and GitLab.com rules at the commit, cites other hosts'
-// HTTPS addresses, and gives other addresses no entry.
+// TestForkAttribution_DependsOnTheHost links GitHub.com and GitLab.com rules at the commit, where the commit's
+// layout keeps them, cites other hosts' HTTPS addresses, and gives other addresses no entry.
 func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
 	version, _ := coderules.ParseRuleVersion("1.3.0", "version")
-	for _, test := range []struct{ repository, url string }{
-		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md"},
-		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/techs/go/errors.md"},
-		{"https://git.example.org/srv/rules.git", "https://git.example.org/srv/rules.git"},
-		{"git@git.example.org:srv/rules.git", ""},
+	for _, test := range []struct {
+		repository, url string
+		legacy          bool
+	}{
+		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.code-rules/rules/techs/go/errors.md", false},
+		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md", true},
+		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.code-rules/rules/techs/go/errors.md", false},
+		{"https://git.example.org/srv/rules.git", "https://git.example.org/srv/rules.git", false},
+		{"git@git.example.org:srv/rules.git", "", false},
 	} {
+		published.LegacyLayout = test.legacy
 		got, err := forkAttribution(test.repository, "techs/go/errors", version, published)
 		if err != nil || (got == nil) != (test.url == "") || got != nil && (got.URL != test.url || got.Description != "Forked from version 1.3.0 of techs/go/errors, published in library release 4 at commit "+published.Commit+".") {
 			t.Errorf("%s: got %+v, %v; want %q", test.repository, got, err, test.url)
@@ -505,7 +510,7 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 		t.Fatal(err)
 	}
 	library := f.fixture
-	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil, "techs/go/_group.yaml": []byte("# Go metadata, described again.\n" + projectMetadata + "\n")}); err != nil {
+	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", gitfixture.Library(map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil, "techs/go/_group.yaml": []byte("# Go metadata, described again.\n" + projectMetadata + "\n")})); err != nil {
 		t.Fatal(err)
 	}
 	if err := library.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [No longer recommended.]}\n"); err != nil {
@@ -555,7 +560,7 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 // itself, and keeps its pathless ones.
 func TestForkFiles_RelocatesExplicitSelfLinks(t *testing.T) {
 	published := imports.PublishedRule{Release: 1, Commit: "0123456789abcdef0123456789abcdef01234567", Files: map[string][]byte{
-		"techs/go/errors.md": []byte(forkedRule("See [the guide](../../assets/guide.md).")),
+		"techs/go/errors.md": []byte(forkedRule("See [the guide](../../../assets/guide.md).")),
 		"assets/guide.md":    []byte("[Root](/assets/guide.md#top) [Relative](../assets/guide.md) [Here](#top)\n"),
 	}}
 	files, err := forkFiles("techs/go/errors", "techs/go/errors.md", published, nil)
@@ -572,13 +577,13 @@ func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
 		refused           bool
 	}{
 		{"rule's own asset", `See <a href="assets/errors/x.md">x</a>.`, "Guide.\n", true},
-		{"shared asset", "See [the guide](../../assets/guide.md).", `<img src="flow.svg">` + "\n", true},
+		{"shared asset", "See [the guide](../../../assets/guide.md).", `<img src="flow.svg">` + "\n", true},
 		{"anchor", `See <a href="#top">the top</a>.`, "Guide.\n", true},
 		{"external", `See <a href="https://example.com/x">x</a>.`, "Guide.\n", false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			published := imports.PublishedRule{Release: 1, Commit: "0123456789abcdef0123456789abcdef01234567", Files: map[string][]byte{
-				"techs/go/errors.md":          []byte(forkedRule(test.rule + " [Guide](../../assets/guide.md)")),
+				"techs/go/errors.md":          []byte(forkedRule(test.rule + " [Guide](../../../assets/guide.md)")),
 				"techs/go/assets/errors/x.md": []byte("X.\n"),
 				"assets/guide.md":             []byte(test.guide),
 				"assets/flow.svg":             []byte("<svg/>"),
@@ -602,7 +607,7 @@ func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
 // nested in a link, whose destinations the Markdown tree lists out of document order.
 func TestForkFiles_RewritesLinksInDocumentOrder(t *testing.T) {
 	published := imports.PublishedRule{Release: 1, Commit: "0123456789abcdef0123456789abcdef01234567", Files: map[string][]byte{
-		"techs/go/errors.md": []byte(forkedRule("See [the guide][g] and [![Flow](../../assets/flow.svg)](../../assets/guide.md).\n\n[g]: ../../assets/guide.md")),
+		"techs/go/errors.md": []byte(forkedRule("See [the guide][g] and [![Flow](../../../assets/flow.svg)](../../../assets/guide.md).\n\n[g]: ../../../assets/guide.md")),
 		"assets/guide.md":    []byte("Guide.\n"),
 		"assets/flow.svg":    []byte("<svg/>"),
 	}}

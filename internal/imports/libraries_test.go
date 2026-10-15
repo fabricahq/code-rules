@@ -17,15 +17,17 @@ import (
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
-// libraryFiles supplies original rules, complete owned assets, shared dependencies, and exact license bytes.
+// libraryFiles supplies original rules, complete owned assets, shared dependencies, and exact license bytes, keyed
+// by library path.
 func libraryFiles() map[string][]byte {
 	return map[string][]byte{
-		"rule-library.yaml": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`),
-		"LICENSE":           []byte("Original license\r\n"), "NOTICE": []byte("Original notice\r\n"),
+		"config.yaml": []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"LICENSE","notices":["NOTICE"]}}}`),
+		"LICENSE":     []byte("Original license\r\n"), "NOTICE": []byte("Original notice\r\n"),
 		"techs/go/_group.yaml":             []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`),
 		"techs/go/errors.md":               []byte("---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n[Shared](/assets/guide.md)\n"),
 		"techs/go/assets/errors/image.bin": {0, 255, 1, 128},
@@ -36,10 +38,11 @@ func libraryFiles() map[string][]byte {
 	}
 }
 
-// newLibraryFixture commits original library bytes and owns cleanup for the test.
+// newLibraryFixture commits original library bytes, keyed by library path, where a library repository keeps them,
+// and owns cleanup for the test.
 func newLibraryFixture(t *testing.T, files map[string][]byte) *gitfixture.Fixture {
 	t.Helper()
-	f, err := gitfixture.New(context.Background(), files)
+	f, err := gitfixture.New(context.Background(), gitfixture.Library(files))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,10 +65,12 @@ func libraryConfig(t *testing.T, repository string) rules.Configuration {
 	return config
 }
 
-// TestImportLibraryOriginalBytes verifies real Git adoption, complete assets, and exact terms.
+// TestImportLibraryOriginalBytes verifies real Git adoption, complete assets, and exact terms, and keeps only the
+// library section of the library's manifest, which is all the library publishes of it.
 func TestImportLibraryOriginalBytes(t *testing.T) {
 	files := libraryFiles()
 	f := newLibraryFixture(t, files)
+	files["config.yaml"] = []byte(`{"library":{"license":{"file":"LICENSE","notices":["NOTICE"]}},"schemaVersion":2,"sources":{}}` + "\n")
 	config := libraryConfig(t, f.Repository)
 	imported, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	if err != nil {
@@ -105,15 +110,15 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			case "oversize":
 				files["techs/go/assets/errors/image.bin"] = bytes.Repeat([]byte("x"), maxBlobBytes+1)
 			case "escape":
-				files["assets/guide.md"] = []byte("[Escape](../../outside.md)\n")
+				files["assets/guide.md"] = []byte("[Escape](../../../outside.md)\n")
 			case "rule-link":
-				files["assets/guide.md"] = []byte("[Rule](/techs/rust/bad.md)\n")
+				files["assets/guide.md"] = []byte("[Rule](/rules/techs/rust/bad.md)\n")
 			case "missing-manifest":
-				delete(files, "rule-library.yaml")
+				delete(files, "config.yaml")
 			}
 			f := newLibraryFixture(t, files)
 			if kind == "symlink" {
-				name := filepath.Join(f.Directory, "repository", "techs/go/assets/errors/link")
+				name := filepath.Join(f.Directory, "repository", librarytree.RepositoryPath("techs/go/assets/errors/link"))
 				if err := os.Symlink("image.bin", name); err != nil {
 					t.Fatal(err)
 				}
@@ -122,16 +127,16 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 				}
 			}
 			if kind == "submodule" {
-				if _, err := f.Command(context.Background(), "update-index", "--add", "--cacheinfo", "160000,"+f.FirstCommit+",techs/go/assets/errors/submodule"); err != nil {
+				if _, err := f.Command(context.Background(), "update-index", "--add", "--cacheinfo", "160000,"+f.FirstCommit+","+librarytree.RepositoryPath("techs/go/assets/errors/submodule")); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if kind == "collision" {
-				object, err := f.Command(context.Background(), "rev-parse", "HEAD:techs/go/assets/errors/image.bin")
+				object, err := f.Command(context.Background(), "rev-parse", "HEAD:"+librarytree.RepositoryPath("techs/go/assets/errors/image.bin"))
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := f.Command(context.Background(), "update-index", "--add", "--cacheinfo", "100644,"+strings.TrimSpace(object)+",techs/go/assets/errors/Image.bin"); err != nil {
+				if _, err := f.Command(context.Background(), "update-index", "--add", "--cacheinfo", "100644,"+strings.TrimSpace(object)+","+librarytree.RepositoryPath("techs/go/assets/errors/Image.bin")); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -149,10 +154,10 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			}
 			if kind == "missing-manifest" {
 				var validation errs.ValidationError
-				if !errors.As(err, &validation) || validation.ValidationLocation() != "rule-library.yaml" {
+				if !errors.As(err, &validation) || validation.ValidationLocation() != ".code-rules/config.yaml" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{"source team: ", "missing library manifest at the repository root", "declares the library format and optional license"} {
+				for _, detail := range []string{"source team: ", ".code-rules/config.yaml: missing library manifest", "makes the repository a library and declares its optional license"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}

@@ -39,7 +39,7 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 		return CheckResult{}, err
 	}
 	defer root.Close()
-	if err = filetxn.RequireIdle(root); err != nil {
+	if err = requireIdle(ctx, root); err != nil {
 		return CheckResult{}, err
 	}
 	git, err := openLibraryGit(ctx, root.Name(), options.Git)
@@ -53,7 +53,7 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	if err = requireLibraryUnchanged(ctx, root, checked.input); err != nil {
 		return CheckResult{}, err
 	}
-	if err = filetxn.RequireIdle(root); err != nil {
+	if err = requireIdle(ctx, root); err != nil {
 		return CheckResult{}, err
 	}
 	return checked.result, nil
@@ -234,7 +234,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 			}
 			spellings[key] = prefix
 		}
-		if name == "rule-library.yaml" || slices.Contains(terms, name) || librarytree.IsGroupReadme(name) {
+		if name == librarytree.Manifest || slices.Contains(terms, name) || librarytree.IsGroupReadme(name) {
 			continue
 		}
 		asset := slices.Contains(parts, "assets")
@@ -271,7 +271,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 			if !utf8.Valid(files[name]) {
 				return failure("invalid-library", name+": expected UTF-8 Markdown", nil)
 			}
-			targets, err := rules.MarkdownTargets(string(files[name]), name)
+			targets, err := rules.LibraryTargets(string(files[name]), name)
 			if err != nil {
 				return err
 			}
@@ -295,7 +295,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 type checkInput struct {
 	tree    *filetxn.Tree
 	license *rules.LicenseDeclaration
-	// notes maps each file under changes/ to its bytes; notes stay out of catalogs and snapshots.
+	// notes maps each change note, by its library path under changes/, to its bytes; notes stay out of catalogs and snapshots.
 	notes map[string][]byte
 }
 
@@ -305,7 +305,7 @@ func libraryCheckInput(ctx context.Context, root *os.Root) (checkInput, error) {
 	if err != nil {
 		return checkInput{}, err
 	}
-	notes, err := readChangeNotes(ctx, rootFiles{ctx: ctx, root: root})
+	notes, err := readChangeNotes(ctx, repositoryFiles{rootFiles{ctx: ctx, root: root}})
 	if err != nil {
 		return checkInput{}, err
 	}

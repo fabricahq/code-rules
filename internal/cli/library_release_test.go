@@ -44,10 +44,10 @@ func releaseEnvironment(t *testing.T, fixture *gitfixture.Fixture, responses []g
 func pendingPatch(t *testing.T, fixture *gitfixture.Fixture, dir string) string {
 	t.Helper()
 	ctx := context.Background()
-	commit, err := fixture.Commit(ctx, dir, "Clarify a", map[string][]byte{
+	commit, err := fixture.Commit(ctx, dir, "Clarify a", gitfixture.Library(map[string][]byte{
 		"practices/testing/a.md": []byte(libraryRule("Test the retry limit, clearly.")),
 		"changes/a.yaml":         []byte("summary: Clarify the retry-limit rule.\nrules:\n  practices/testing/a: patch\n"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}

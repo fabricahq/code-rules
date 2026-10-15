@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -77,7 +76,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	defer root.Close()
-	if err = filetxn.RequireIdle(root); err != nil {
+	if err = requireIdle(ctx, root); err != nil {
 		return ReleaseResult{}, err
 	}
 	git, err := openLibraryGit(ctx, root.Name(), request.Git)
@@ -187,7 +186,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		if err = requireLibraryUnchanged(ctx, root, checked.input); err != nil {
 			return ReleaseResult{}, err
 		}
-		if err = filetxn.RequireIdle(root); err != nil {
+		if err = requireIdle(ctx, root); err != nil {
 			return ReleaseResult{}, err
 		}
 		if object, err = git.createTag(ctx, result.Tag, result.Commit, planned.message); err != nil {

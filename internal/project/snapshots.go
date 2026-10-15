@@ -51,6 +51,8 @@ type recordRule struct {
 	Version *coderules.RuleVersion `json:"version"`
 	Release *int                   `json:"release"`
 	Commit  string                 `json:"commit"`
+	// LegacyLayout is library.ImportedRule's.
+	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
@@ -109,7 +111,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 			record.RetiredRules = []string{}
 		}
 		for id, rule := range snapshot.Rules {
-			entry := recordRule{Version: rule.Version, Commit: rule.Commit}
+			entry := recordRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
 			if rule.Version != nil {
 				entry.Release = &rule.Release
 			}
@@ -315,7 +317,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 		if (rule.Version == nil) != (rule.Release == nil) || (rule.Release != nil && *rule.Release < 1) || !fullCommit(rule.Commit) {
 			return parsedRecord{}, invalidSnapshot(location, "expected a version, the library release that published it, and its commit, or a null version and release")
 		}
-		imported := library.ImportedRule{Version: rule.Version, Commit: rule.Commit}
+		imported := library.ImportedRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
 		if rule.Release != nil {
 			imported.Release = *rule.Release
 		}
@@ -332,7 +334,10 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if err := rules.ValidatePaths(paths, nil); err != nil {
 		return parsedRecord{}, fmt.Errorf("%s: %w", where, err)
 	}
-	if _, ok := paths["rule-library.yaml"]; !ok {
+	if _, ok := paths[librarytree.Manifest]; !ok {
+		if _, legacy := paths[librarytree.LegacyManifest]; legacy {
+			return parsedRecord{}, invalidSnapshot(where, "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, "+reimport(name))
+		}
 		return parsedRecord{}, invalidSnapshot(where, "missing library manifest from inventory")
 	}
 	for _, group := range result.Groups {

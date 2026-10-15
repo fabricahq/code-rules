@@ -12,8 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
 )
 
 // TestInteractiveAuthoring uses a real PTY and verifies prompt results, refusal, EOF, and cancellation without partial writes.
@@ -139,13 +140,9 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 	for _, kind := range []string{"project", "library"} {
 		t.Run(kind, func(t *testing.T) {
 			directory := t.TempDir()
-			initArgs := []string{"project", "init"}
+			// Project and library commands share the writer of the repository's Code Rules directory.
 			root := filepath.Join(directory, ".code-rules")
-			if kind == "library" {
-				initArgs = []string{"library", "init"}
-				root = directory
-			}
-			if _, stderr, code := runCLI(t, binary, directory, initArgs...); code != 0 {
+			if _, stderr, code := runCLI(t, binary, directory, kind, "init"); code != 0 {
 				t.Fatal(stderr)
 			}
 			if _, stderr, code := runCLI(t, binary, directory, kind, "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go."); code != 0 {
@@ -175,11 +172,7 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 			if _, err := os.Stat(lock); !os.IsNotExist(err) {
 				t.Fatal("lock not recovered", err)
 			}
-			ruleRoot := root
-			if kind == "project" {
-				ruleRoot = filepath.Join(root, "rules")
-			}
-			if _, err := os.Stat(filepath.Join(ruleRoot, "techs/go/errors.md")); err != nil {
+			if _, err := os.Stat(filepath.Join(root, "rules", "techs/go/errors.md")); err != nil {
 				t.Fatal(err)
 			}
 		})
