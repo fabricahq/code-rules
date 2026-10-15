@@ -12,7 +12,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 ## Choose the right command
 
 - **`code-rules project sync`**: Import the recorded rule versions, or choose versions for new and changed sources. Sync validates the library files and regenerates agent guidance.
-- **`code-rules project update`**: Preview newer versions, new rules, and retirements, and apply them after you confirm. Pinned rules and sources that use `ref` don't move. Update then does everything sync does.
+- **`code-rules project update`**: Preview newer versions, new rules, and retirements, and apply them after you confirm. Pinned rules don't move, and a source that uses `ref` moves as a whole to the commit its branch or tag names now. Update then does everything sync does.
 - **`code-rules project build`**: Apply local rule changes or exceptions using the library files you already have. Build regenerates guidance without contacting a repository.
 - **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
