@@ -58,8 +58,9 @@ export GIT_AUTHOR_NAME="Walkthrough" GIT_AUTHOR_EMAIL="walkthrough@example.inval
 export GIT_COMMITTER_NAME="Walkthrough" GIT_COMMITTER_EMAIL="walkthrough@example.invalid"
 export GIT_SSH_COMMAND="$WORK/bin/demo-ssh" GIT_SSH_VARIANT=ssh
 
-# Go: keep the module cache, build cache, and any downloaded toolchain in the work folder.
-export GOPATH="$WORK/go" GOCACHE="$WORK/go-build-cache" GOFLAGS=-modcacherw GOTOOLCHAIN=auto
+# Go: use your own module and build caches, so a build reuses what you've already downloaded, and fetch the Go
+# version syllabus needs when yours is older.
+export GOTOOLCHAIN=auto
 
 # syllabus runs the CLI this walkthrough built, so the commands below read like the ones you'd type.
 syllabus() { "$CR" "$@"; }

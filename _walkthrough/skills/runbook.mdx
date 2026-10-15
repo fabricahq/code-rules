@@ -18,7 +18,7 @@ runbooks open https://github.com/fabricahq/code-rules/tree/claude/skills-preview
 
 Run the blocks from top to bottom. Each step uses what the steps before it created.
 
-**What it touches.** Everything goes in one work folder, `/tmp/syllabus-skills-walkthrough` unless you choose another. Git runs with its own configuration file in that folder, so your `~/.gitconfig`, signing keys, and credential helpers are never used. Go keeps its module cache and build cache there too. The demo repositories live in the work folder and are reached through a small stand-in for `ssh`, so nothing goes over the network except the clone of syllabus and Go's module downloads. The last section points `HOME` at a folder inside the work folder, for two commands only. The final block deletes the work folder.
+**What it touches.** Everything goes in one work folder, `/tmp/syllabus-skills-walkthrough` unless you choose another. Git runs with its own configuration file in that folder, so your `~/.gitconfig`, signing keys, and credential helpers are never used. Go uses your own module and build caches, so a build reuses what you've already downloaded. The demo repositories live in the work folder and are reached through a small stand-in for `ssh`, so nothing goes over the network except the clone of syllabus and Go's module downloads. The last section points `HOME` at a folder inside the work folder, for two commands only. The final block deletes the work folder.
 
 ## Before you start
 
@@ -62,7 +62,7 @@ variables:
 ```
 </Inputs>
 
-First, create the work folder. This writes `env.sh`, which every later block sources: it points Git at the walkthrough's own configuration, keeps Go's caches in the work folder, and defines `syllabus` as the CLI built here.
+First, create the work folder. This writes `env.sh`, which every later block sources: it points Git at the walkthrough's own configuration and defines `syllabus` as the CLI built here.
 
 <Command
     id="setup-workdir"
@@ -72,7 +72,7 @@ First, create the work folder. This writes `env.sh`, which every later block sou
     successMessage="The work folder is ready."
 />
 
-Now clone the branch and build the CLI. The first build downloads Go modules, and the Go 1.27.2 toolchain if your Go is older, so it can take a few minutes.
+Now clone the branch and build the CLI. The first build downloads Go modules, and the Go 1.27.2 toolchain if your Go is older, so it can take a few minutes. It prints each package as it compiles; wait for **The CLI is built** before you run the next block.
 
 <Command
     id="build-cli"

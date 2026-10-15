@@ -14,6 +14,9 @@ fi
 git -C "$SRC" log -1 --format='Building %h %s (%cr)'
 
 cd "$SRC"
-show go build -o "$CR" ./cmd/syllabus
+# go version downloads Go 1.27.2 first when your Go is older, and says so. Building with -v then prints each package
+# as it compiles, so a first build that downloads modules and compiles everything shows its progress.
+show go version
+show go build -v -o "$CR" ./cmd/syllabus
 echo
 echo "Built $CR"

@@ -13,4 +13,4 @@ if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 21 ]; }; then
   echo "This Go is too old to download the Go version Syllabus needs. Install Go 1.21 or later."
   exit 1
 fi
-echo "Syllabus needs Go 1.27.2. If yours is older, the build downloads that toolchain into the work folder."
+echo "Syllabus needs Go 1.27.2. If yours is older, the build downloads that toolchain into Go's module cache."
