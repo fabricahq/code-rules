@@ -9,6 +9,8 @@ Skill support isn't in a released version of Code Rules yet. This guide describe
 
 A **[skill](/concepts/skill/)** tells an agent how to carry out one kind of task, step by step, and which rules each step applies. Installing skills with Code Rules gives every checkout of your project the same skills, from the revisions you choose, beside the rules they cite.
 
+Skills come from **sources**: the repositories your project takes skills and rules from. A source is usually a [library](/concepts/libraries/), but any Git repository of skill folders works too.
+
 In this guide, you'll see which skills your sources offer, install a library's required and recommended skills, and find out where they land. You'll also install skills from a repository that isn't a library, resolve a name clash, exclude or fork a skill, write your own, and commit the result.
 
 Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/). To choose rules as well, see [Include rules](/guides/select-rules/).
