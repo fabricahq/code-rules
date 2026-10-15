@@ -115,12 +115,12 @@ The [Fabrica public library](https://github.com/fabricahq/public-rules) includes
 From the same project root, run:
 
 ```sh
-code-rules project add library fabrica \
+code-rules project add source fabrica \
   --repository https://github.com/fabricahq/public-rules.git \
-  --groups practices/code-design
+  --rules 'practices/code-design/*'
 ```
 
-This adds the library's repository and selected group to `.code-rules/config.yaml` under the source name `fabrica`.
+This adds the library's repository and selected group to `.code-rules/config.yaml` under the source name `fabrica`. A source can also supply [skills](/concepts/skill/), which sync installs where your agents find them; see [Install skills](/guides/install-skills/).
 
 Each rule in Fabrica's library has its own version. The project follows each rule's newest version whenever you run `code-rules project update`.
 

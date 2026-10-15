@@ -39,6 +39,14 @@ The copy includes:
 - Group metadata, which describes each group and when to read it.
 - The library's manifest, as `config.yaml`, holding only the `library` section of the library's `.code-rules/config.yaml`, and its declared license and notice files. The library's own `sources`, change notes, and `vendor/` and `generated/` directories are never copied; see [What a library publishes](/reference/library-format/#what-a-library-publishes).
 
+- The files of each skill the source's `skills.include` selects, with their executable bits, all from the one commit the source record locks. A library's skills are the folders in its `.code-rules/skills/`; another repository's are its folders that hold a `SKILL.md`. See [Select skills](/reference/configuration/#select-skills).
+
+A source whose repository has no library manifest, a `.code-rules/config.yaml` with a `library` section, at that commit isn't a library: its snapshot holds only its selected skills, and it needs a `ref`.
+
+:::note[Preview]
+Skills, and sources that aren't libraries, come in the next Code Rules release.
+:::
+
 Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `rules/`; syncing replaces the imported files.
 
 The snapshot contains no Git history or `.git` directory. Code Rules reads the original files through temporary Git storage and removes that temporary storage afterward.
@@ -129,7 +137,7 @@ Code Rules uses your Git credentials and certificate and host-key verification s
 
 Git URL rewrites still apply. If a rewrite uses another protocol, your Git configuration must explicitly allow that protocol. Executable `ext` helpers are always disabled. Code Rules passes Git arguments separately and applies the same path checks and resource limits across hosts.
 
-Code Rules reads original Git file contents without checking out the library. It does not run library scripts, Git hooks, or checkout filters. Selected symbolic links, submodules, and Git LFS pointers are unsupported; Code Rules does not fetch submodule contents.
+Code Rules reads original Git file contents without checking out the library. It does not run library scripts, Git hooks, or checkout filters. Selected symbolic links, submodules, and Git LFS pointers are unsupported; Code Rules does not fetch submodule contents. A selected skill with a symbolic link or submodule fails with `unsupported-content`. Code Rules never runs a skill's scripts; it copies them, keeping their executable bit.
 
 ### Supporting files
 
@@ -169,7 +177,9 @@ When finding the newest library release, Code Rules can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
+| `ref-required` | The source's repository has no `release/<number>` tags, because it isn't a library or hasn't published its first library release, and the source has no `ref`. Set the source's `ref` to a tag or full commit SHA. |
+| `skill-not-in-revision` | `skills.include` names a skill that the revision the source record locks doesn't have. Sync never moves a source, so run `code-rules project update <source>` to take a newer library release, set `ref` to a revision that has the skill, or check the skill ID. |
+| `releases-not-found` | Forking a rule from a library that has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release. |
 | `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
 | `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
 | `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |

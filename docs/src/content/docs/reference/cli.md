@@ -7,7 +7,11 @@ Find each command's syntax and options below. Every command also accepts `--json
 
 ## Project commands
 
-`code-rules project` manages rules for a **project**, the codebase whose rules Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
+`code-rules project` manages rules and skills for a **project**, the codebase whose rules and skills Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
+
+:::note[Preview]
+Skills, `skillTargets`, `project init --skill-targets`, and `project add source`, which replaces `project add library`, come in the next Code Rules release.
+:::
 
 Configuration lives in `.code-rules/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
@@ -17,43 +21,49 @@ Configuration lives in `.code-rules/config.yaml` at the project root. See [Worki
 code-rules project init [options]
 ```
 
-Create project configuration, the local rules directory, and the managed Code Rules guide. Rerunning init preserves valid configuration and local rules and refreshes an unmodified guide.
+Create project configuration, the authored rules directory, and the managed Code Rules guide. Rerunning init preserves valid configuration and authored rules and refreshes an unmodified guide.
 
 | Option | Meaning |
 | --- | --- |
+| `--skill-targets TARGET` | Where to install skills: `claude` for `.claude/skills/`, `agents` for `.agents/skills/`, or `none`. Repeat for both targets. `none` can't be combined with a target. |
 | `--non-interactive` | Accepted; init runs without prompts even when this flag is omitted. |
 
-Init does not fetch libraries or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+A new configuration gets `skillTargets: [claude, agents]`, or `skillTargets: []` with `--skill-targets none`. Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. Init creates no skill target folders: build and sync write them when the project first installs a skill.
 
-### project add library
+Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+
+### project add source
 
 ```sh
-code-rules project add library ALIAS [options]
+code-rules project add source NAME [options]
 ```
 
-Record a library in project configuration without fetching it. `ALIAS` is the source name, such as `team`. Run `code-rules project sync` afterward to import the selected rules.
+Record a source in project configuration without fetching it. `NAME` is the source name, such as `team`. A source is a library, or any other Git repository with skill folders; you don't declare which, because sync detects whether the repository has a [library manifest](/reference/library-format/). Run `code-rules project sync` afterward to import the included rules and install the included skills.
 
 | Option | Meaning |
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
-| `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs and the selectors `*`, `practices/*`, and `techs/*`, which can be combined with group IDs. Quote wildcard values so your shell does not expand them. |
-| `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. |
-| `--ref REF` | Optional and advanced. Import the library exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. |
+| `--rules SELECTOR` | A [rule selector](/reference/configuration/#select-rules) for `rules.include`: a group prefix, such as `practices/testing/*`, a rule ID, such as `practices/testing/verify-retry-limits`, or a wildcard, `*`, `practices/*`, or `techs/*`. Repeat for several. |
+| `--skills SELECTOR` | A [skill selector](/reference/configuration/#select-skills) for `skills.include`: a skill ID, such as `skills/build-feature`, or `*` for every skill the source offers. Repeat for several skill IDs. |
+| `--ref REF` | Take the source exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. Required for a repository without `release/<number>` tags, such as one that isn't a library. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version when the project updates. The configuration records each group in the source's `rules.include` as its selector, such as `techs/go/*`, and each rule by its ID. To pin individual rules, add `rules.pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--rules` or `--skills`. At a terminal, the command asks for the repository when `--repository` is missing, and for rule and skill selectors when neither option is given. Without `--ref`, the source follows the library's newest library release when the project updates. To pin individual rules, add `rules.pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
-Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
+Adding a source preserves existing source exceptions and authored files. Quote `*` and selectors that end in `/*` so your shell does not expand them, and pass each selector as a separate option, rather than a comma-separated flag value:
 
 ```sh
-code-rules project add library team \
+code-rules project add source team \
   --repository https://github.com/example/rules.git \
-  --groups practices/testing \
-  --groups techs/typescript \
+  --rules 'practices/testing/*' \
+  --rules 'techs/typescript/*' \
+  --skills skills/build-feature \
   --non-interactive
 ```
 
-The repository address and groups are illustrative; replace them with a library you can access.
+The repository address and selectors are illustrative; replace them with a source you can access.
+
+Sync checks the source when it first reads it. A source without `release/<number>` tags and without `ref` fails with `ref-required`. `rules` on a source that isn't a library fails, because it has no rules. A skill ID the source doesn't have fails; see [Sync](/reference/sync/#skills).
 
 ### project add group
 
@@ -120,7 +130,7 @@ If the rule links to files in the library's shared `assets/` directory, the fork
 code-rules project sync [options]
 ```
 
-Import the rule versions recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Code Rules directory with the complete result. Sync also refreshes an older, unedited managed Code Rules guide.
+Import the rule versions and skills recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Code Rules directory, and the installed skill folders in each skill target, with the complete result. Sync also refreshes an older, unedited managed Code Rules guide.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -139,6 +149,8 @@ When you change `rules.include`, a group is newly selected if the record didn't 
 Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-original-imported-files) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. Before importing from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit its `ref` named when it was recorded, even after the tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
+
+Sync takes every skill of a source from the one revision its record locks, never moving the source for a skill: a skill ID that `skills.include` newly names and that revision lacks fails with `skill-not-in-revision`, which names the `code-rules project update SOURCE` that takes it from a newer library release. Sync installs each included skill, and each skill authored in `.code-rules/skills/`, into every [skill target](/reference/configuration/#skill-targets), and removes the folders of skills no longer included. It never replaces a folder in a skill target that Code Rules didn't install, and fails with `skill-folder-not-managed` instead; see [Skills](/reference/sync/#skills). With no skill targets, sync records and lists the skills and warns that it installed no copy.
 
 When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an entry in `rules.include` that another selector in the list already covers, such as a rule whose group's selector is listed, since the entry changes nothing.
 
@@ -194,7 +206,7 @@ See [Update rules](/guides/update/) for the workflow.
 code-rules project build [options]
 ```
 
-Regenerate `generated/` from project configuration, verified imported files, and local rules. Build works offline and does not change imported revisions. It also creates a missing managed Code Rules guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
+Regenerate `generated/` from project configuration, verified imported files, and local rules, and reinstall every skill into the skill targets, as sync does. Build works offline and does not change imported revisions, so it's how you install an authored skill you just wrote or changed. It also creates a missing managed Code Rules guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -461,7 +473,7 @@ Invalid interactive answers repeat the same question while retaining earlier ans
 
 Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
 
-String options accept one value and cannot be repeated, except `--groups`, `--rules`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
+String options accept one value and cannot be repeated, except `--rules`, `--skills`, `--skill-targets`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
 Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
@@ -487,7 +499,7 @@ Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `va
 
 Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build. Authoring commands, such as init, add group, add rule, add library, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build. The files of installed skill copies are listed by the same relative path, such as `../.claude/skills/build-feature/SKILL.md` for sync and `../../.claude/skills/build-feature/SKILL.md` for build. Authoring commands, such as init, add source, add group, add rule, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, skills installed nowhere because the project has no skill targets, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/code-rules/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 
@@ -526,7 +538,8 @@ Update existing scripts to use the scoped commands below. Use `-h` or `--help` f
 | Earlier command | Canonical command |
 | --- | --- |
 | `code-rules init` | `code-rules project init` |
-| `code-rules add source` | `code-rules project add library` |
+| `code-rules add source` | `code-rules project add source` |
+| `code-rules project add library` | `code-rules project add source` |
 | `code-rules local add group` | `code-rules project add group` |
 | `code-rules local add rule` | `code-rules project add rule` |
 | `code-rules sync` | `code-rules project sync` |

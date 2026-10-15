@@ -183,9 +183,9 @@ Each rule has its own version. From now on, every change to a rule needs a **cha
 In a [project you've set up](/start-here/set-up-project/), run the following from its root directory. Replace the example URL below with your library's Git URL:
 
 ```sh
-code-rules project add library acme-rules \
+code-rules project add source acme-rules \
   --repository https://github.com/YOUR-ORG/engineering-rules.git \
-  --groups practices/error-handling
+  --rules 'practices/error-handling/*'
 ```
 
 This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. The project follows each rule's newest version whenever someone runs `code-rules project update`.

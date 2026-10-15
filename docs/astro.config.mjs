@@ -59,6 +59,7 @@ export default defineConfig({
         { label: 'Rule', slug: 'concepts/rule' },
         { label: 'Group', slug: 'concepts/groups' },
         { label: 'Library', slug: 'concepts/libraries' },
+        { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
@@ -66,6 +67,7 @@ export default defineConfig({
         { label: 'Projects', collapsed: true, items: [
           { label: 'Import rules', slug: 'guides/select-rules' },
           { label: 'Update rules', slug: 'guides/update' },
+          { label: 'Install skills', slug: 'guides/install-skills' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
         { label: 'Libraries', collapsed: true, items: [

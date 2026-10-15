@@ -76,6 +76,7 @@ A library publishes only the files it authors:
 - the `library` section of `.code-rules/config.yaml`;
 - its groups and rules, in `.code-rules/rules/`;
 - its shared assets, in `.code-rules/assets/`;
+- its skills, in `.code-rules/skills/`, one folder with a `SKILL.md` per skill, which projects install when they include them; see [Select skills](/reference/configuration/#select-skills);
 - its declared license and notice files.
 
 Projects that import the library receive nothing else from the repository. Change notes stay in the library, and so do the `sources` and other fields of `config.yaml`: a project's copy, `vendor/<source-name>/config.yaml`, holds only the `library` section. A change to `sources` alone, or to a comment, is not a library-wide change.

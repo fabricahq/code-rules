@@ -13,6 +13,7 @@ A library lives in a Git repository, in the same Code Rules directory, `.code-ru
 
 - **A manifest**, the `library` section of `.code-rules/config.yaml`, which makes the repository a library and declares any license information.
 - **Groups** under `.code-rules/rules/techs/` and `.code-rules/rules/practices/`, each with group metadata and Markdown rule files.
+- **Skills**, optionally, under `.code-rules/skills/`, one folder per [skill](/concepts/skill/). Projects install the ones they include, from the same library release as the library's rules. Skills come in the next Code Rules release.
 
 For example, a repository named "engineering-rules" might contain:
 

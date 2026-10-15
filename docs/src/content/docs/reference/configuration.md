@@ -3,7 +3,11 @@ title: "Configuration"
 description: "Fields in .code-rules/config.yaml."
 ---
 
-The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules it includes from each, and its exceptions. The **Code Rules directory**, `.code-rules/`, also holds `rules/`, `assets/`, `vendor/`, and `generated/`.
+The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules and skills it includes from each, its exceptions, and where it installs skills. The **Code Rules directory**, `.code-rules/`, also holds `rules/`, `assets/`, `skills/`, `vendor/`, and `generated/`.
+
+:::note[Preview]
+`skillTargets`, `skills.include`, and sources that aren't libraries come in the next Code Rules release.
+:::
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 A project can import rules directly from multiple canonical libraries, choosing versions for each one independently.
@@ -15,11 +19,14 @@ Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are r
 
 ```yaml
 schemaVersion: 2
+skillTargets: [claude, agents]
 sources:
   fabrica:
     repository: https://github.com/fabricahq/public-rules.git
     rules:
       include: [techs/typescript/*, practices/testing/*]
+    skills:
+      include: [skills/build-feature]
       exclude:
         - id: techs/typescript/prefer-type-aliases
           reason: Our public extension API relies on declaration merging.
@@ -32,9 +39,14 @@ sources:
         - id: practices/testing/verify-retry-limits
           version: "1.3.0"
           reason: Waiting on the author's response to acme/.code-rules#45.
+  review-tools:
+    repository: https://github.com/example/review-skills.git
+    ref: v2.1.0
+    skills:
+      include: ["*"]
 ```
 
-Repository names, groups, and rule IDs in examples are illustrative.
+Repository names, groups, rule IDs, and skill IDs in examples are illustrative.
 Replace them with libraries and rules your project can access.
 
 ## Fields
@@ -42,13 +54,15 @@ Replace them with libraries and rules your project can access.
 | Field | Meaning |
 | --- | --- |
 | `schemaVersion` | Configuration format version; Code Rules accepts only `2`. See [Version 1 configuration](#version-1-configuration). |
-| `sources` | Map of stable source names to library configurations. Use an empty object for a project with only its own groups. |
+| `skillTargets` | Optional. Where build and sync install skills: a list of `claude`, for `.claude/skills/`, and `agents`, for `.agents/skills/`. An empty list, or no field, installs no copies. `code-rules project init` writes `[claude, agents]`. See [Skill targets](#skill-targets). |
+| `sources` | Map of stable source names to source configurations. Use an empty object for a project with only its own groups and skills. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
-| `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `rules.pins`. See [Import one revision](#import-one-revision). |
-| `sources.<name>.rules` | Required. The rules to include from this library, and the project's exceptions. |
+| `sources.<name>.ref` | Import the source exactly as it was at one tag or commit. Required for a repository without library releases, such as one that isn't a library. Can't be combined with `rules.pins`. See [Import one revision](#import-one-revision). |
+| `sources.<name>.rules` | The rules to include from this library, and the project's exceptions. A source needs `rules`, `skills`, or both. |
 | `sources.<name>.rules.include` | Required. A list of at least one [selector](#select-rules): whole groups, such as `techs/typescript/*`, every group of a type, such as `practices/*`, everything, `"*"`, or single rule IDs. |
 | `sources.<name>.rules.exclude` | Optional list of entries, each with a selector as its `id`, a `reason` and, for a single rule, optionally a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
+| `sources.<name>.skills.include` | A list of skill IDs, such as `skills/build-feature`, or `"*"` alone for every skill the source offers. See [Select skills](#select-skills). |
 | `library` | Optional. Makes the repository a library that publishes the groups in `rules/`: the library's manifest, which can be empty, `library: {}`, or declare the library's `license`. See [Library section](#library-section). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
@@ -99,6 +113,48 @@ For example, `"practices/*"` requires all practice groups, while `"*"` requires 
 The builder compares discovered groups with the recorded expansion and validates every group and rule within the selected scope.
 An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
 This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
+
+## Skill targets
+
+`skillTargets` names the folders that build and sync install each skill into, so agents that load skills from them find it:
+
+| Target | Folder |
+| --- | --- |
+| `claude` | `.claude/skills/` |
+| `agents` | `.agents/skills/` |
+
+Each installed skill is a folder named by its install name, such as `.claude/skills/build-feature/`. List each target once. With `skillTargets: []`, or without the field, the project still records and lists its skills in `generated/SKILLS.md`, and sync warns that it installed no copy. Code Rules writes only to these folders in the project, never to your home directory, and only to folders it installed; see [Skills](/reference/sync/#skills).
+
+## Select skills
+
+A source's `skills.include` lists the skills to install from it, all from the one revision its record locks:
+
+```yaml
+sources:
+  team:
+    repository: https://github.com/my-team/rules.git
+    rules:
+      include: [techs/go/*]
+    skills:
+      include: [skills/build-feature, skills/review-tests]
+```
+
+A **skill ID** is the path of the skill's folder. A library's skills are the folders directly in its `.code-rules/skills/`, with IDs such as `skills/build-feature`. In a repository that isn't a library, a skill is any folder that holds a `SKILL.md`, other than the repository root and a folder inside another skill's folder, and its ID is its path from the repository root, such as `tools/review`.
+
+`"*"` includes every skill the source offers, except, in a repository that isn't a library, skills in a folder whose name starts with a dot, such as another tool's installed copies in `.claude/skills/`; name one by its ID to include it. `"*"` can't be combined with skill IDs, and skill selectors have no prefixes such as `skills/*`. Each ID may appear once.
+
+A source that isn't a library has only skills, so it needs a `ref` and can't include `rules`:
+
+```yaml
+sources:
+  review-tools:
+    repository: https://github.com/example/review-skills.git
+    ref: v2.1.0
+    skills:
+      include: [tools/review]
+```
+
+Skill levels, such as `recommended`, and the `rename`, `exclude`, and `uses` fields aren't supported yet.
 
 ## Repository addresses
 
@@ -162,6 +218,8 @@ Renaming a source changes its generated project rule IDs and any external refere
 The `id` of each of its `rules.exclude` and `rules.pins` entries remains library-relative.
 Replacing a repository under an existing source name also requires reviewing those entries.
 
+A skill's project ID works the same way: `<source-name>:<skill-id>`, such as `fabrica:skills/build-feature`, while a skill authored in `.code-rules/skills/` keeps its bare ID, such as `skills/release-checklist`. Installed copies are named by install name, not ID, so two skills with the same install name can't both be installed: build and sync fail with `skill-name-clash` until you stop including one of them.
+
 ## Choose versions
 
 Each rule in a library has its own [version](/reference/rule-versions/). By default, a project follows each rule's newest version, but only when someone updates:
@@ -207,7 +265,7 @@ A pin must name a rule the source imports. A pinned rule that its library retire
 
 ### Import one revision
 
-Set a source's `ref` to import the library exactly as it was at one Git revision:
+Set a source's `ref` to import the source exactly as it was at one Git revision. A source whose repository has no `release/<number>` tags, such as one that isn't a library, needs a `ref`; without one, sync fails with `ref-required`:
 
 ```yaml
 sources:

@@ -7,7 +7,11 @@ description: "Where to find a rule's source, imported version, replacement reaso
 
 Read it when you want to understand why a rule is present, investigate a library update, or find out why your project replaced a rule. Tools can also read the JSON to report this information. To find and follow the rules themselves, agents start with [the generated rule index](/reference/files/#where-agents-start).
 
-This page shows where the records live, how Code Rules creates them, and how to trace a rule back to its source.
+This page shows where the records live, how Code Rules creates them, and how to trace a rule or skill back to its source.
+
+:::note[Preview]
+Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields come in the next Code Rules release.
+:::
 
 ## Where to look
 
@@ -84,21 +88,37 @@ The same `generated/provenance.json` file contains four other top-level fields:
 | --- | --- |
 | `generatedNotice` | A reminder that Code Rules generates the file, and how to regenerate it. |
 | `toolVersion` | The Code Rules version that generated the files. |
-| `sources` | Each named library, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, and declared terms. |
+| `sources` | Each named source, its `kind`, `library` or `non-library`, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, declared terms, its `skillInclude`, and the IDs of the `skills` it installs. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
+| `skills` | Each installed skill, as described in [Trace a skill to its source](#trace-a-skill-to-its-source). |
 
 For each source, `groupSelection` and `ruleSelection` record what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed in the imported library.
 
 Within each group record, `guidance` keeps the metadata labeled by source. `effectiveGuidanceSources` identifies which sources supply the guidance agents see. Local group metadata takes precedence when present; otherwise the guidance from all contributing libraries remains effective.
 
+## Trace a skill to its source
+
+Each entry in the `skills` array of `generated/provenance.json` records one skill the project installs:
+
+| Field | What it records |
+| --- | --- |
+| `id` | The skill's project ID, such as `fabrica:skills/build-feature`, or `skills/release-checklist` for a skill authored in `.code-rules/skills/`. |
+| `name` and `type` | The install name, which names its installed folders, and the `metadata.fg-skill-type` its `SKILL.md` declares, or `null`. |
+| `origin` | The `source`, `repository`, `ref`, and `resolvedCommit` that supplied the skill, and its `folder` in that repository's snapshot, such as `skills/build-feature`. An authored skill's source, repository, ref, and commit are `null`, and its folder is its path in `.code-rules/`. `version` and `release` are `null`: skills don't have versions yet. |
+| `level` | `offered` for a library's skill, or `null` for an authored skill or one from a repository that isn't a library. |
+| `targets` | The folders the skill is installed in, such as `.claude/skills/build-feature`, empty when the project has no skill targets. |
+
+Every skill of a source comes from the source's one recorded commit. The installed copy's `SKILL.md` repeats the project ID and the commit in its marker line.
+
 ## Inspect the original imported files
 
-Each library has a separate `vendor/<source-name>/_source.json` file. It describes the **snapshot**: the original library files the project imported, and which version of each rule they belong to. It works like a lockfile: `code-rules project sync` restores exactly what it records. The directory name identifies the source.
+Each source has a separate `vendor/<source-name>/_source.json` file. It describes the **snapshot**: the original files the project imported, which version of each rule they belong to, and the skills they hold. It works like a lockfile: `code-rules project sync` restores exactly what it records. The directory name identifies the source.
 
 ```json
 {
-  "formatVersion": 2,
+  "formatVersion": 3,
   "checksum": "5d1b…c07e",
+  "kind": "library",
   "repository": "https://github.com/fabricahq/public-rules.git",
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
@@ -131,18 +151,32 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
   "retiredRules": [
     "practices/testing/check-retry-backoff"
   ],
+  "skillInclude": [
+    "skills/build-feature"
+  ],
+  "skills": {
+    "skills/build-feature": {
+      "level": "offered"
+    }
+  },
   "files": {
     "practices/testing/verify-retry-limits.md": "4c1f…e9a2",
+    "skills/build-feature/SKILL.md": "a73e…01bd",
+    "skills/build-feature/scripts/check.sh": "19c0…f3d4",
     "…": "…"
-  }
+  },
+  "executable": [
+    "skills/build-feature/scripts/check.sh"
+  ]
 }
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `formatVersion` | The snapshot format version, `2`. An older format, such as `1`, fails with advice to delete `.code-rules/vendor/` and run `code-rules project sync`, which records the sources again. With no record to restore, that sync imports each rule's newest version, except rules you pin and sources that set `ref`, so it can move rules to versions your project didn't use before; pin a rule, or set `ref: release/<number>`, first to keep what you had. A newer format, written by a later Code Rules, fails with `unsupported-source-record` and asks you to upgrade Code Rules instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
+| `formatVersion` | The snapshot format version, `3`. An older format, such as `2`, fails with advice to delete `.code-rules/vendor/` and run `code-rules project sync`, which records the sources again. With no record to restore, that sync imports each rule's newest version, except rules you pin and sources that set `ref`, so it can move rules to versions your project didn't use before; pin a rule, or set `ref: release/<number>`, first to keep what you had. A newer format, written by a later Code Rules, fails with `unsupported-source-record` and asks you to upgrade Code Rules instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
 | `checksum` | The SHA-256 checksum of the record's other fields, as sync wrote them. Offline, `code-rules project build` and `code-rules project check` refuse a record whose checksum doesn't match, or that has none, as changed outside `code-rules project sync`, such as by hand or in a merge resolution, because its versions and releases can't be trusted without the library. `code-rules project sync`, `code-rules project update`, and a [fork](/reference/cli/#fork-a-library-rule) refuse it too and write nothing, as sync does when it removes a source whose record holds the group metadata a local rule needs; a removed source whose record no local rule needs is discarded with the rest of its files: it never records again a record it didn't write, whatever the record says, since no check of individual facts can establish that an edited record is right. Records from earlier preview builds, which have no checksum, are refused the same way. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. To resolve a merge conflict in `_source.json`, take one side of the file rather than combining them, and let sync apply the merged configuration. A record that sync can't read at all, such as one with an unknown field, fails with advice to delete `.code-rules/vendor/<source-name>/` and sync, which imports the source again, with its unpinned rules at their newest versions. |
-| `repository` | The library's repository address. |
+| `kind` | `library`, or `non-library` for a repository without a library manifest at the recorded commit. A `non-library` record has only skills: no `release`, and empty `groupSelection`, `groups`, `rules`, and `retiredRules`. |
+| `repository` | The source's repository address. |
 | `ref` | The source's `ref` from configuration when the snapshot was recorded, omitted when configuration has none. Changing it to another spelling of the same revision, such as `refs/tags/release/2` for `release/2`, keeps the recorded spelling, so the record stays current. Pins and exclusions aren't recorded: configuration owns them, and a pinned rule's `version` in `rules` is the pinned version. So adding, rewording, or removing a pin that moves nothing, or an exclusion, by hand or with a fork, never makes the record out of date, unless the entry names a retired rule that `retiredRules` doesn't list yet; then offline checks ask for `code-rules project sync`, which records the retirement. Generated guidance and `generated/provenance.json` show the configured pins and their reasons. |
 | `release` | The library release that supplied the library-wide files: the group metadata, shared assets, and license files. It is the newest library release when the source was added, selected more rules, or last ran a full `code-rules project update`, and never older than the `release` of any imported rule; plain `code-rules project sync` keeps it. With `ref`, it's the library release your `ref` names, and it's omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
@@ -151,7 +185,10 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `groupSelection` | The groups your `rules.include` selects in full: `"*"`, `"practices/*"`, or `"techs/*"` alone, or a list of group IDs, such as `techs/go` for `techs/go/*`, with any of those selectors. |
 | `ruleSelection` | The rule IDs your `rules.include` lists individually. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
-| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. |
+| `skillInclude` | The source's `skills.include`, sorted, and empty when it includes no skills. |
+| `skills` | Each installed skill's ID, with its `level`: `offered` for a library's skill, and `null` for a skill from a repository that isn't a library. Every skill comes from `resolvedCommit`; `code-rules project sync` never moves it, and fails with `skill-not-in-revision` when `skills.include` names a skill this commit doesn't have. |
+| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. A library's skill files are stored under `skills/<name>/`, as its `.code-rules/skills/` holds them, and another repository's at their path in the repository. |
+| `executable` | The skill files whose executable bit the repository records, sorted. The vendored copies, and the installed copies, carry the same bit, and offline checks compare it. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 

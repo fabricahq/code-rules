@@ -3,7 +3,11 @@ title: "Sync and recovery"
 description: "When to run sync, build, or check, which files they change, and how to recover from problems."
 ---
 
-The `code-rules project sync` command imports your project's library files and regenerates the guidance your agents read. Run it after adding a library, changing its selected groups or rules, pins, or `ref`, or to restore imported files.
+The `code-rules project sync` command imports your project's library files, regenerates the guidance your agents read, and installs your skills. Run it after adding a source, changing its selected rules or skills, pins, or `ref`, or to restore imported files.
+
+:::note[Preview]
+Skills come in the next Code Rules release.
+:::
 
 Sync imports the rule versions recorded for each source, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which previews every change and applies it only after you confirm, offering to pin each major change or retirement instead. See [Update rules](/guides/update/).
 
@@ -13,7 +17,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 
 - **`code-rules project sync`**: Import the recorded rule versions, or choose versions for new and changed sources. Sync validates the library files and regenerates agent guidance.
 - **`code-rules project update`**: Preview newer versions, new rules, and retirements, and apply them after you confirm. Pinned rules and sources that use `ref` don't move. Update then does everything sync does.
-- **`code-rules project build`**: Apply local rule changes or exceptions using the library files you already have. Build regenerates guidance without contacting a repository.
+- **`code-rules project build`**: Apply local rule changes, exceptions, or authored skills using the library files you already have. Build regenerates guidance and reinstalls skills without contacting a repository.
 - **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
 You do not need to run build after a successful sync or update; both already generate the guidance. Run check when you want to verify consistency without making changes.
@@ -32,12 +36,14 @@ In a Git repository, project commands find the nearest repository root and use i
 
 | File or directory | What it contains | What the commands do |
 | --- | --- | --- |
-| `config.yaml` | Your selected libraries, groups, rules, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule at its current version, or an exclusion when you decline a new rule. |
+| `config.yaml` | Your sources, selected rules and skills, pins, exceptions, and skill targets. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule at its current version, or an exclusion when you decline a new rule. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
 | `rules/` | Groups, rules, and replacements you author for this project. | Sync, build, and check preserve these files. Sync and update add `rules/<group-id>/_group.yaml` only when your authored rules in a group would otherwise lose the group's metadata; see [Keep an authored rule's group](#keep-an-authored-rules-group). |
 | `assets/` | Supporting files that several of your rules share. | Sync, build, and check read them without changing them. |
+| `skills/` | Skills you author for this project, one folder per skill. | Sync, build, and check read them without changing them. |
 | `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |
-| `generated/` | Rules and reading indexes for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
+| `generated/` | Rules, reading indexes, and the skills index for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
+| `../.claude/skills/<name>/`, `../.agents/skills/<name>/` | Installed copies of your skills, in each [skill target](/reference/configuration/#skill-targets). | Sync, update, and build replace the folders Code Rules installed and remove those of skills no longer included. They never touch other folders there. |
 
 Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, and unused library folders. Files you add or edit inside `vendor/` or `generated/` can be replaced or removed. Keep your changes in configuration, `rules/`, and `assets/`. Every project command fails while a `local/` directory exists, where earlier versions kept authored rules; its message shows where to move each file.
 
@@ -55,6 +61,7 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 
 - Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion, and both list a `rules/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`.
+- Installed skill files are listed by their path relative to the same directory, such as `../.claude/skills/build-feature/SKILL.md` for sync.
 
 `code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
@@ -83,9 +90,19 @@ Run `code-rules project check` again after repairing the problem.
 
 For each library, Code Rules records each imported rule's version and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
 
-Build and check work offline. They reject missing, changed, or unexpected imported files, invalid source records, rule version records that don't cover exactly the imported rules, and library selections that no longer match your configuration. Sync fetches the recorded library files again, including replacing locally modified copies.
+Build and check work offline. They reject missing, changed, or unexpected imported files, an executable bit that differs from the record, invalid source records, rule version records that don't cover exactly the imported rules, and library selections that no longer match your configuration. Sync fetches the recorded library files again, including replacing locally modified copies.
 
 Checksums detect changes relative to the stored record. They cannot establish that files are authentic if someone also changed that record. For record fields and rule origins, see [Provenance](/reference/provenance/).
+
+## Skills
+
+Sync takes every skill of a source from the one revision its source record locks, the library release or the commit that `ref` names, so skills that call each other always match. It never moves a source for a skill: when `skills.include` newly names a skill that revision doesn't have, sync fails with `skill-not-in-revision` and writes nothing. For a library source, run the `code-rules project update <source>` the message names, which moves the source to its newest library release; for a source with `ref`, set `ref` to a revision that has the skill. A source whose repository has no `release/<number>` tags needs a `ref`, and fails with `ref-required` without one.
+
+Sync, update, and build then install each included skill, and each skill in `.code-rules/skills/`, into every skill target, in the same step that replaces `vendor/` and `generated/`, so recovery restores or finishes them together. Each installed copy is a folder named by the skill's install name, the `name` in its `SKILL.md`, such as `.claude/skills/build-feature/`, with the skill's files, their executable bits, and a marker line after the `SKILL.md` frontmatter that names the skill and, for a source's skill, the commit it came from. Commit the installed copies with the rest of the project, and don't edit them: the next sync or build replaces them. To change a skill you author, edit `.code-rules/skills/<name>/` and run `code-rules project build`.
+
+`generated/installed-skills.json` records the folders Code Rules installed. A later command replaces or removes only those, and removes a skill target's `skills/` folder once it's empty. When a folder it would install already exists and Code Rules didn't install it, such as a personal skill with the same name, the command fails with `skill-folder-not-managed` and changes nothing: move or delete that folder, or stop including the skill. Two skills with the same install name fail with `skill-name-clash`. A skill target folder that is a symbolic link fails with `unsafe-path`.
+
+`generated/SKILLS.md` lists every skill the project installs: what it does, where it came from, and where it's installed. `generated/RULES.md` points to it. With no skill targets, sync records and lists the skills, installs no copies, and warns that it installed none.
 
 ## Keep an authored rule's group
 
