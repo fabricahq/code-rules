@@ -10,7 +10,7 @@ Find each command's syntax and options below. Every command also accepts `--json
 `syllabus project` manages rules and skills for a **project**, the codebase whose rules and skills Syllabus manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
 :::note[Preview]
-Skills, `skillTargets`, `project init --skill-targets`, `project add skill`, and `project add source`, which replaces `project add library`, come in the next Syllabus release.
+Skills, skill levels, `skillTargets`, `project init --skill-targets`, `project add skill`, `project list skills`, and `project add source`, which replaces `project add library`, come in the next Syllabus release.
 :::
 
 Configuration lives in `.syllabus/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
@@ -44,11 +44,11 @@ Record a source in project configuration without fetching it. `NAME` is the sour
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
 | `--rules SELECTOR` | A [rule selector](/reference/configuration/#select-rules) for `rules.include`: a group prefix, such as `practices/testing/*`, a rule ID, such as `practices/testing/verify-retry-limits`, or a wildcard, `*`, `practices/*`, or `techs/*`. Repeat for several. |
-| `--skills SELECTOR` | A [skill selector](/reference/configuration/#select-skills) for `skills.include`: a skill ID, such as `skills/build-feature`, or `*` for every skill the source offers. Repeat for several skill IDs. |
+| `--skills SELECTOR` | A [skill selector](/reference/configuration/#select-skills) for `skills.include`: a skill ID, such as `skills/build-feature`, `recommended` for the skills a library recommends, or `*` for every skill the source offers. Repeat for several selectors. |
 | `--ref REF` | Take the source exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. Required for a repository without `release/<number>` tags, such as one that isn't a library. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--rules` or `--skills`. At a terminal, the command asks for the repository when `--repository` is missing, and for rule and skill selectors when neither option is given. Without `--ref`, the source follows the library's newest library release when the project updates. To pin individual rules, add `rules.pins` to the source in configuration, or use `syllabus project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+Without `--rules` or `--skills`, the source installs only the library's [required skills](/reference/configuration/#skill-levels). At a terminal, the command asks for the repository when `--repository` is missing, and for rule and skill selectors when neither option is given; both answers can be empty. Without `--ref`, the source follows the library's newest library release when the project updates. To pin individual rules, add `rules.pins` to the source in configuration, or use `syllabus project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
 Adding a source preserves existing source exceptions and authored files. Quote `*` and selectors that end in `/*` so your shell does not expand them, and pass each selector as a separate option, rather than a comma-separated flag value:
 
@@ -63,7 +63,7 @@ syllabus project add source team \
 
 The repository address and selectors are illustrative; replace them with a source you can access.
 
-Sync checks the source when it first reads it. A source without `release/<number>` tags and without `ref` fails with `ref-required`. `rules` on a source that isn't a library fails, because it has no rules. A skill ID the source doesn't have fails; see [Sync](/reference/sync/#skills).
+Sync checks the source when it first reads it. A source without `release/<number>` tags and without `ref` fails with `ref-required`. `rules` on a source that isn't a library fails, because it has no rules. A skill ID the source doesn't have fails, and so does a source that isn't a library and includes no skills, since it requires none; see [Sync](/reference/sync/#skills).
 
 ### project add group
 
@@ -147,7 +147,7 @@ The command:
 Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
 :::
 
-It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward to install it. The source's license still applies to the copied files.
+It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source's library [requires](/reference/configuration/#skill-levels), a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward to install it. The source's license still applies to the copied files.
 
 ### project sync
 
@@ -175,7 +175,7 @@ Sync trusts only a record it wrote: a record whose [checksum](/reference/provena
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-Sync takes every skill of a source from the one revision its record locks, never moving the source for a skill: a skill ID that `skills.include` newly names and that revision lacks fails with `skill-not-in-revision`, which names the `syllabus project update SOURCE` that takes it from a newer library release. Sync installs each included skill, and each skill authored in `.syllabus/skills/`, into every [skill target](/reference/configuration/#skill-targets), and removes the folders of skills no longer included. It never replaces a folder in a skill target that Syllabus didn't install, and fails with `skill-folder-not-managed` instead; see [Skills](/reference/sync/#skills). With no skill targets, sync records and lists the skills and warns that it installed no copy.
+Sync takes every skill of a source from the one revision its record locks, never moving the source for a skill: a skill ID that `skills.include` newly names and that revision lacks fails with `skill-not-in-revision`, which names the `syllabus project update SOURCE` that takes it from a newer library release. Sync installs each included skill, each skill the source's library requires, and each skill authored in `.syllabus/skills/`, into every [skill target](/reference/configuration/#skill-targets), and removes the folders of skills no longer included. It never replaces a folder in a skill target that Syllabus didn't install, and fails with `skill-folder-not-managed` instead; see [Skills](/reference/sync/#skills). With no skill targets, sync records and lists the skills and warns that it installed no copy.
 
 When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an entry in `rules.include` that another selector in the list already covers, such as a rule whose group's selector is listed, since the entry changes nothing.
 
@@ -243,7 +243,44 @@ The update never changes your skill or `basedOn`, and a replaced skill alone doe
 Replacing a forked skill with the source's newer copy during an update, as `--update-fork` does for a rule, isn't supported yet: compare the files and edit your skill, then edit `basedOn` to the commit you merged.
 :::
 
+#### Skill level changes
+
+When the library release the update moves a source to changes the [level](/reference/configuration/#skill-levels) of one of its skills, the preview lists the skill as `level`, with its levels before and after, and what that does to the project. It lists every change between two levels, and a required skill the library adds or removes, which installs or uninstalls whatever `skills.include` lists:
+
+```text
+team
+  level     skills/audit   none -> required
+            New required skill: it installs whatever skills.include says.
+  level     skills/review  recommended -> required
+            Now required: it installs whatever skills.include says, and the project can't exclude or fork it.
+  Shared files: release 3 -> 4
+```
+
+In JSON output, each source's `skillLevels` lists these rows, each with its `id`, and `from` and `to`, the levels at the commit the source record locks and at the commit the update takes skills from, empty when the library has no such skill there. A source that uses `ref` doesn't move, so it lists none. When a skill the project excludes becomes required, the update fails like sync does: remove the exclusion, or stop using the source.
+
 See [Update rules](/guides/update/) for the workflow.
+
+### project list skills
+
+```sh
+syllabus project list skills [options]
+```
+
+List each skill the project's sources offer, and the project's own skills, with what the project does with each. Reads the source records the last `syllabus project sync` wrote, so it works offline; run sync first after changing the configuration, or it fails as build does.
+
+```text
+SKILL                     LEVEL        SET BY             STATUS
+fabrica:skills/deploy     offered      fabrica, release 4 excluded
+fabrica:skills/review     recommended  fabrica, release 4 installed
+fabrica:skills/ship       required     fabrica, release 4 installed
+fabrica:skills/write-doc  offered      fabrica, release 4 available
+tools:tools/review        -            tools, not a library installed
+skills/release-checklist  -            this project       installed
+```
+
+`LEVEL` is the skill's [level](/reference/configuration/#skill-levels) in its library, and `SET BY` the source and the library release whose manifest set it, or the commit for a `ref` that isn't a library release. A skill from a repository that isn't a library has no level. `STATUS` is `installed`; `available`, for a skill the project could add to `skills.include`; `excluded`; or `replaced by` the authored skill that installs in its place.
+
+Accepts the [shared options](#shared-options-and-prompts) only. In JSON output, `value.skills` lists the same skills, in the same order, each with its `id`, `source`, unless the project authored it, `level`, and `setBy`, the `source`, `release`, and `commit` that set the level, when it has one, `status`, and `replacedBy` for a replaced skill.
 
 ### project build
 
@@ -359,7 +396,7 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 syllabus library check [options]
 ```
 
-Validate the `library` section of `.syllabus/config.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
+Validate the `library` section of `.syllabus/config.yaml`, including that each skill its [`skills` levels](/reference/configuration/#library-section) name is a folder in `.syllabus/skills/` with a `SKILL.md`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |

@@ -17,6 +17,21 @@ const File = "SKILL.md"
 // Wildcard is the skills.include selector that includes every skill a source offers.
 const Wildcard = "*"
 
+// Recommended is the skills.include selector that includes the skills a library recommends.
+const Recommended = "recommended"
+
+// The levels a library gives its skills. A project that uses the library installs its required skills whatever it
+// includes, its recommended skills when it includes Recommended, and an offered skill when it names it or includes
+// Wildcard.
+const (
+	LevelRequired    = "required"
+	LevelRecommended = "recommended"
+	LevelOffered     = "offered"
+)
+
+// Levels lists the levels from the strongest to the weakest.
+var Levels = []string{LevelRequired, LevelRecommended, LevelOffered}
+
 // Directory is the folder, in a repository's Syllabus directory, that holds the repository's authored skills,
 // and, in a library's vendor snapshot, the skills the library publishes.
 const Directory = "skills"

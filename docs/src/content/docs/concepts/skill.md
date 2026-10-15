@@ -4,7 +4,7 @@ description: "A reusable procedure that tells an agent what to do, step by step,
 ---
 
 :::note[Preview]
-Skills come in the next Syllabus release. Skill levels, versions, borrowed skills, renames, exclusions, and the rules a skill cites aren't supported yet.
+Skills and skill levels come in the next Syllabus release. Skill versions, borrowed skills, renames, and the rules a skill cites aren't supported yet.
 :::
 
 A **skill** is an [Agent Skills](https://agentskills.io) folder: a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
@@ -48,7 +48,7 @@ Other frontmatter fields are kept as they are.
 
 A project gets skills from three places:
 
-- **Libraries.** A [library](/concepts/libraries/) publishes the skills in its `.syllabus/skills/` folder, one folder per skill. Every skill a library publishes is offered: a project installs the ones it names in `skills.include`, or all of them with `"*"`.
+- **Libraries.** A [library](/concepts/libraries/) publishes the skills in its `.syllabus/skills/` folder, one folder per skill, and gives each a level. Every project that uses the library installs its **required** skills. A project installs its **recommended** skills by including `recommended`, and its **offered** skills by naming them in `skills.include`, or all of them with `"*"`. A skill the library doesn't list is offered. See [Skill levels](/reference/configuration/#skill-levels).
 - **Other repositories.** Any Git repository with skill folders and no library manifest, such as a third party's skill collection. Every folder in it that holds a `SKILL.md` is a skill. Because it has no library releases, its source needs a `ref`, a tag or full commit SHA.
 - **Your project.** Skills you author live in `.syllabus/skills/<name>/`.
 
@@ -56,7 +56,7 @@ A skill's ID is its folder's path in the repository that holds it, such as `skil
 
 All of a source's skills come from one revision, the library release or commit the project recorded for that source, so skills that call each other always match. Sync never moves that revision; `syllabus project update` moves a library source to its newest library release.
 
-A project can [exclude](/guides/install-skills/#exclude-a-skill) a source's skill it doesn't want, with a reason, or [fork](/guides/install-skills/#fork-a-skill) it into an authored skill that installs in its place under the same name. Updates list the source's later changes to a skill the project forked, so the project can decide whether its fork needs them.
+A project can [exclude](/guides/install-skills/#exclude-a-skill) a source's skill it doesn't want, with a reason, or [fork](/guides/install-skills/#fork-a-skill) it into an authored skill that installs in its place under the same name, unless the library requires it: to diverge from a required skill, the project stops using the library. Updates list the source's later changes to a skill the project forked, so the project can decide whether its fork needs them.
 
 See [Install skills](/guides/install-skills/) to add skills to a project.
 
@@ -64,7 +64,7 @@ See [Install skills](/guides/install-skills/) to add skills to a project.
 
 Build and sync write a copy of each skill into the folders your agents read, the [skill targets](/reference/configuration/#skill-targets): `.claude/skills/` for Claude Code and `.agents/skills/` for agents that follow the shared convention. You commit these copies, so every checkout and every fresh cloud session has the same skills. Each copy's `SKILL.md` carries a line saying not to edit it, and naming the skill and the commit it came from.
 
-Syllabus also writes `.syllabus/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, and where it's installed. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
+Syllabus also writes `.syllabus/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, its level, and where it's installed. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
 
 Agents find skills by name, so two skills with the same install name can't both be installed. Syllabus writes only into the skill targets in your repository, never into your home directory, and never replaces a folder there that it didn't install.
 

@@ -53,6 +53,20 @@ type SourceUpdate struct {
 	// revision the update takes the source's skills from differs from the copy the replacement is based on. It is
 	// empty, never nil, when there are none.
 	ReplacedSkills []ReplacedSkillUpdate `json:"replacedSkills"`
+	// SkillLevels lists, sorted by ID, the skills whose level the library changes at the revision the update takes
+	// the source's skills from. It is empty, never nil, when there are none.
+	SkillLevels []SkillLevelUpdate `json:"skillLevels"`
+}
+
+// SkillLevelUpdate is a row of the update preview for a skill whose level in its library changes: a skill whose
+// level differs between the revisions, and a required skill the library adds or removes, which installs or
+// uninstalls whatever the project includes.
+type SkillLevelUpdate struct {
+	ID string `json:"id"`
+	// From is the level at the commit the source record locks, and To the level at the commit the update takes
+	// skills from; each is empty when the library has no such skill at that commit.
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -397,7 +411,7 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
-	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}}
+	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}, SkillLevels: []SkillLevelUpdate{}}
 	if !source.Ref.IsZero() {
 		if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, before.commit); err != nil {
 			return plannedSource{}, SourceUpdate{}, nil, err
@@ -425,6 +439,9 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, after.commit); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
+	if preview.SkillLevels, err = repo.skillLevelChanges(ctx, recorded, after.commit); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	preview.Rules = rows

@@ -7,7 +7,7 @@ description: "Install skills from a library, another repository, or your own pro
 Skills come in the next Syllabus release.
 :::
 
-Syllabus installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, write your own, exclude or fork a source's skill, and change what's installed.
+Syllabus installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, see what's installed and what else you could add, write your own, exclude or fork a source's skill, and change what's installed.
 
 ## Choose where skills are installed
 
@@ -21,17 +21,20 @@ Running init again on an existing project changes `skillTargets` only when you p
 
 ## Install skills from a library
 
-Name the skills by ID, the folder's path in the library, such as `skills/build-feature`, or include every skill the library offers with `*`:
+A library marks each of its skills [required, recommended, or offered](/reference/configuration/#skill-levels). Its required skills install as soon as you add the library, whatever you include. Include `recommended` to take the skills it recommends too, name offered skills by ID, the folder's path in the library, such as `skills/build-feature`, or include every skill the library offers with `*`:
 
 ```sh
 syllabus project add source fabrica \
   --repository https://github.com/fabricahq/rules.git \
   --rules 'practices/testing/*' \
+  --skills recommended \
   --skills skills/build-feature
 syllabus project sync
 ```
 
 The repository and skill ID are illustrative; replace them with a source you can access. Sync installs each skill from the same library release as the source's rules, so skills that call each other always match, and writes `.claude/skills/build-feature/` and `.agents/skills/build-feature/`. Commit the installed copies with the rest of `.syllabus/`.
+
+To take only the required skills, add the source with no `--rules` or `--skills`. When a later library release requires another skill, `syllabus project update` installs it, and its preview says so.
 
 To install another skill later, add its ID to the source's `skills.include` and run `syllabus project sync`. Sync never moves the source to a newer library release for it: when the recorded library release doesn't have the skill, sync fails with `skill-not-in-revision` and names the update that takes it:
 
@@ -52,6 +55,14 @@ syllabus project sync
 ```
 
 Without `--ref`, sync fails with `ref-required`. `*` installs every skill in the repository except those in folders whose names start with a dot, such as another tool's installed copies. To take a newer revision, change `ref` and sync. Review a third party's skills, including any scripts they bundle, before installing them: agents follow their instructions.
+
+## See what's installed and what you could add
+
+```sh
+syllabus project list skills
+```
+
+The list shows every skill each source offers, with its level, the library release that set it, and whether the project installs it, excludes it, replaces it with a fork, or could add it. It reads what the last sync recorded, so run `syllabus project sync` first after changing the configuration. See [project list skills](/reference/cli/#project-list-skills).
 
 ## Write your own skill
 
@@ -81,7 +92,7 @@ Build works offline and installs authored skills alongside your sources' skills.
 
 ## Exclude a skill
 
-To leave out a skill that `"*"` brings in, exclude it with a reason:
+To leave out a skill that `recommended` or `"*"` brings in, exclude it with a reason:
 
 ```yaml
 sources:
@@ -95,11 +106,11 @@ sources:
 
 This is a partial snippet, not a complete source definition. Run `syllabus project sync`: the skill isn't installed, and `.syllabus/generated/SKILLS.md` lists it with your reason. It stays in `vendor/`, so updates can compare it with a replacement. See [Exclude or replace a skill](/reference/configuration/#exclude-or-replace-a-skill).
 
-You can't pin a skill to a version: all of a source's skills come from one revision and move together when the source updates. To keep a skill as it is, fork it.
+You can't exclude a skill the library requires: sync fails, and says the project must stop using the source to diverge from it. You can't pin a skill to a version either: all of a source's skills come from one revision and move together when the source updates. To keep a skill as it is, fork it.
 
 ## Fork a skill
 
-To change what a source's skill says, fork it into your project:
+To change what a source's skill says, fork it into your project. A required skill can't be forked:
 
 ```sh
 syllabus project add skill \
@@ -129,7 +140,7 @@ To replace a skill with one you wrote yourself, name your skill's ID, such as `s
 
 ## Stop installing a skill
 
-Remove the skill's ID from `skills.include`, or delete an authored skill's folder, and run `syllabus project sync` or `syllabus project build`. Syllabus removes the installed copies, and a skill target's folder once nothing is left in it.
+Remove the skill's ID, or `recommended`, from `skills.include`, or delete an authored skill's folder, and run `syllabus project sync` or `syllabus project build`. Syllabus removes the installed copies, and a skill target's folder once nothing is left in it.
 
 ## When install fails
 
@@ -137,6 +148,7 @@ Remove the skill's ID from `skills.include`, or delete an authored skill's folde
 | --- | --- |
 | `skill-folder-not-managed` | A folder in a skill target already has the skill's install name, and Syllabus didn't install it, such as a skill you put there by hand. Move or delete that folder, perhaps into `.syllabus/skills/` to make it an authored skill, or stop including the skill. |
 | `skill-name-clash` | Two skills you include have the same install name. Stop including or exclude one of them. |
+| Exclusion of a required skill | The library requires the skill, so the project can't exclude or fork it. Remove the exclusion, or remove the source to stop using the library. |
 | `skill-not-in-revision` | The revision the source record locks doesn't have a skill you named. Run the update the message names, set `ref` to a revision that has it, or check the ID. |
 | `ref-required` | The source's repository has no library releases. Set its `ref`. |
 

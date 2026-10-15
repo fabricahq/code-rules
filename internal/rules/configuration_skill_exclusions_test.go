@@ -55,7 +55,7 @@ func TestParseConfigurationRejectsInvalidSkillExclusions(t *testing.T) {
 	tests := map[string]struct{ exclude, location, problem string }{
 		"not a list":         {"      exclude: skills/review\n", "sources.team.skills.exclude", "expected a list"},
 		"wildcard":           {"      exclude:\n        - id: \"*\"\n          reason: None.\n", "sources.team.skills.exclude[0].id", `not "*"`},
-		"levels":             {"      exclude:\n        - id: recommended\n          reason: None.\n", "sources.team.skills.exclude[0].id", "skill levels aren't supported yet"},
+		"levels":             {"      exclude:\n        - id: recommended\n          reason: None.\n", "sources.team.skills.exclude[0].id", "remove recommended from skills.include"},
 		"invalid ID":         {"      exclude:\n        - id: skills/../x\n          reason: None.\n", "sources.team.skills.exclude[0].id", "expected a skill ID"},
 		"repeated ID":        {entry + "        - id: skills/review\n          reason: Again.\n", at, "listed more than once"},
 		"missing reason":     {"      exclude:\n        - id: skills/review\n", at + ".reason", "expected nonempty text"},

@@ -96,7 +96,11 @@ func TestPublishedManifest(t *testing.T) {
 	if none, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\n"), "config.yaml"); err != nil || none != nil {
 		t.Fatalf("got %s, %v for a project's configuration", none, err)
 	}
-	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {}\n"), "config.yaml"); err == nil {
-		t.Fatal("published a library section with skill levels")
+	levels := "schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    required: [skills/ship]\n"
+	if published, err := rules.PublishedManifest([]byte(levels), "config.yaml"); err != nil || string(published) != `{"library":{"skills":{"required":["skills/ship"]}},"schemaVersion":2,"sources":{}}`+"\n" {
+		t.Fatalf("got %s, %v; want the skill levels published", published, err)
+	}
+	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {required: skills/ship}\n"), "config.yaml"); err == nil {
+		t.Fatal("published invalid skill levels")
 	}
 }

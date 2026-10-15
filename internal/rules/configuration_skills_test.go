@@ -40,6 +40,27 @@ sources:
 	}
 }
 
+func TestParseConfigurationReadsLevelSelectorsAndSourcesThatIncludeNothing(t *testing.T) {
+	config, err := rules.ParseConfigurationYAML([]byte(`schemaVersion: 2
+sources:
+  fabrica:
+    repository: https://example.invalid/fabrica.git
+    skills:
+      include: [skills/deploy, recommended]
+  team:
+    repository: https://example.invalid/team.git
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := config.Sources[0].Skills; !reflect.DeepEqual(got, []string{"recommended", "skills/deploy"}) {
+		t.Fatalf("fabrica includes %v", got)
+	}
+	if got := config.Sources[1]; got.HasRules() || got.Skills == nil || len(got.Skills) != 0 {
+		t.Fatalf("team = %+v; want a source that includes nothing, which still installs its required skills", got)
+	}
+}
+
 func TestParseConfigurationTreatsMissingSkillTargetsAsNone(t *testing.T) {
 	for name, input := range map[string]string{
 		"missing": "schemaVersion: 2\nsources: {}\n",
@@ -57,18 +78,18 @@ func TestParseConfigurationTreatsMissingSkillTargetsAsNone(t *testing.T) {
 func TestParseConfigurationRejectsInvalidSkillFields(t *testing.T) {
 	const source = "schemaVersion: 2\nsources:\n  team:\n    repository: https://example.invalid/team.git\n"
 	tests := map[string]struct{ input, location, problem string }{
-		"unknown target":     {"schemaVersion: 2\nskillTargets: [cursor]\nsources: {}\n", "skillTargets[0]", "expected claude"},
-		"repeated target":    {"schemaVersion: 2\nskillTargets: [claude, claude]\nsources: {}\n", "skillTargets[1]", "more than once"},
-		"targets not a list": {"schemaVersion: 2\nskillTargets: claude\nsources: {}\n", "skillTargets", "expected a list"},
-		"nothing included":   {source, "sources.team", "include rules or skills"},
-		"empty include":      {source + "    skills:\n      include: []\n", "sources.team.skills.include", "select skills"},
-		"missing include":    {source + "    skills: {}\n", "sources.team.skills.include", "select skills"},
-		"unknown field":      {source + "    skills:\n      include: [skills/x]\n      rename: {}\n", "sources.team.skills", "rename"},
-		"levels":             {source + "    skills:\n      include: [recommended]\n", "sources.team.skills.include[0]", "skill levels aren't supported yet"},
-		"prefix":             {source + "    skills:\n      include: [skills/*]\n", "sources.team.skills.include[0]", "no prefixes"},
-		"wildcard and IDs":   {source + "    skills:\n      include: [\"*\", skills/x]\n", "sources.team.skills.include", "already includes every skill"},
-		"repeated ID":        {source + "    skills:\n      include: [skills/x, skills/x]\n", "sources.team.skills.include[1]", "more than once"},
-		"invalid ID":         {source + "    skills:\n      include: [skills/../x]\n", "sources.team.skills.include[0]", "expected a skill ID"},
+		"unknown target":       {"schemaVersion: 2\nskillTargets: [cursor]\nsources: {}\n", "skillTargets[0]", "expected claude"},
+		"repeated target":      {"schemaVersion: 2\nskillTargets: [claude, claude]\nsources: {}\n", "skillTargets[1]", "more than once"},
+		"targets not a list":   {"schemaVersion: 2\nskillTargets: claude\nsources: {}\n", "skillTargets", "expected a list"},
+		"empty include":        {source + "    skills:\n      include: []\n", "sources.team.skills.include", "select skills"},
+		"missing include":      {source + "    skills: {}\n", "sources.team.skills.include", "select skills"},
+		"unknown field":        {source + "    skills:\n      include: [skills/x]\n      rename: {}\n", "sources.team.skills", "rename"},
+		"levels with a prefix": {source + "    skills:\n      include: [recommended/*]\n", "sources.team.skills.include[0]", "recommended is one selector, without /*"},
+		"wildcard and levels":  {source + "    skills:\n      include: [\"*\", recommended]\n", "sources.team.skills.include", "already includes every skill"},
+		"prefix":               {source + "    skills:\n      include: [skills/*]\n", "sources.team.skills.include[0]", "no prefixes"},
+		"wildcard and IDs":     {source + "    skills:\n      include: [\"*\", skills/x]\n", "sources.team.skills.include", "already includes every skill"},
+		"repeated ID":          {source + "    skills:\n      include: [skills/x, skills/x]\n", "sources.team.skills.include[1]", "more than once"},
+		"invalid ID":           {source + "    skills:\n      include: [skills/../x]\n", "sources.team.skills.include[0]", "expected a skill ID"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

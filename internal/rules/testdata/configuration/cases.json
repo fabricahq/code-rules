@@ -768,11 +768,19 @@
     "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\"}}}",
     "location": "configuration",
     "expected": {
-      "ok": false,
-      "error": {
-        "name": "ValidationError",
-        "message": "sources.team: include rules or skills from the source, such as rules: {include: [techs/go/*]} or skills: {include: [skills/build-feature]}",
-        "location": "sources.team"
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "groups": [],
+            "rules": [],
+            "pins": {},
+            "exclude": {},
+            "skills": []
+          }
+        ]
       }
     }
   },
@@ -1798,7 +1806,12 @@
       "value": {
         "sources": [],
         "library": {
-          "license": null
+          "license": null,
+          "skills": {
+            "required": [],
+            "recommended": [],
+            "offered": []
+          }
         }
       }
     }
@@ -1821,6 +1834,11 @@
             "attributionFiles": [
               "assets/NOTICE.md"
             ]
+          },
+          "skills": {
+            "required": [],
+            "recommended": [],
+            "offered": []
           }
         }
       }
@@ -1843,14 +1861,109 @@
   {
     "id": "configuration-library-skills",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"review\": \"required\"}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": [\"skills/ship\"], \"recommended\": [\"skills/review\", \"skills/build\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [],
+        "library": {
+          "license": null,
+          "skills": {
+            "required": [
+              "skills/ship"
+            ],
+            "recommended": [
+              "skills/build",
+              "skills/review"
+            ],
+            "offered": []
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-unknown-level",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"mandatory\": [\"skills/ship\"]}}}",
     "location": "configuration",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library.skills: skill levels aren't supported yet in this version of Syllabus; remove library.skills",
+        "message": "library.skills: unknown field mandatory",
         "location": "library.skills"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-not-a-list",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": \"skills/ship\"}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.required: expected a list of the library's skill IDs, such as [skills/build-feature]",
+        "location": "library.skills.required"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-borrowed",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"recommended\": [\"mattpocock:skills/to-spec\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.recommended[0]: listing another source's skills, such as \"mattpocock\"'s, isn't supported yet in this version of Syllabus; list the library's own skills, such as skills/build-feature",
+        "location": "library.skills.recommended[0]"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-not-authored",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"offered\": [\"tools/review\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.offered[0]: expected the ID of one of the library's skills, skills/<name>, the folder's path in .syllabus/, such as skills/build-feature, got \"tools/review\"",
+        "location": "library.skills.offered[0]"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-two-levels",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": [\"skills/ship\"], \"offered\": [\"skills/ship\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.offered[0]: skills/ship is already required; give each skill one level",
+        "location": "library.skills.offered[0]"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-repeated",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": [\"skills/ship\", \"skills/ship\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.required[1]: skills/ship is listed more than once; list each skill once",
+        "location": "library.skills.required[1]"
       }
     }
   },

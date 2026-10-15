@@ -233,6 +233,9 @@ func folderDigest(folder SkillFiles) string {
 // replaces, and where agents find it, then the skills the project excludes, each with its reason.
 func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.syllabus/skills/` and rebuild."}
+	if slices.ContainsFunc(resolved, func(skill resolvedSkill) bool { return skill.Level != "" }) {
+		sections = append(sections, "A skill's level says how strongly the library that supplies it asks projects to use it: every project that uses the library installs its required skills, and the team chose to install its recommended and offered ones.")
+	}
 	for _, skill := range resolved {
 		lines := []string{"### " + skill.Name}
 		if description := strings.TrimSpace(skill.Description); description != "" {

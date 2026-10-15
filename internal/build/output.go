@@ -14,6 +14,7 @@ import (
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/skills"
 )
 
 // prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
@@ -222,7 +223,12 @@ type provenanceSkill struct {
 	Name   string                `json:"name"`
 	Type   *string               `json:"type"`
 	Origin provenanceSkillOrigin `json:"origin"`
-	Level  *string               `json:"level"`
+	// RequiredBy, RecommendedBy, and OfferedBy name the library that gave a source's skill its level, and its
+	// release; the one for the skill's level is set, and each is null for an authored skill or one from a repository
+	// that isn't a library.
+	RequiredBy    *provenanceLevel `json:"requiredBy"`
+	RecommendedBy *provenanceLevel `json:"recommendedBy"`
+	OfferedBy     *provenanceLevel `json:"offeredBy"`
 	// Targets lists the folders the skill is installed in, by path from the repository root.
 	Targets []string `json:"targets"`
 	// Upstream is the origin of the skill an authored skill replaces, Reason the exclusion's reason, and BasedOn the
@@ -231,6 +237,33 @@ type provenanceSkill struct {
 	Upstream *provenanceSkillOrigin `json:"upstream"`
 	Reason   *string                `json:"replacementReason"`
 	BasedOn  *string                `json:"basedOn"`
+}
+
+// provenanceLevel names the library, by source name, that set a skill's level, and the revision whose manifest set
+// it: its library release, or null for a revision other than a library release, and its commit.
+type provenanceLevel struct {
+	Source  string `json:"source"`
+	Release *int   `json:"release"`
+	Commit  string `json:"commit"`
+}
+
+// setLevel records which library set skill's level in record, when the skill has one.
+func setLevel(record *provenanceSkill, skill resolvedSkill) {
+	if skill.Level == "" {
+		return
+	}
+	by := &provenanceLevel{Source: skill.Source, Commit: skill.Commit}
+	if skill.Release != 0 {
+		by.Release = &skill.Release
+	}
+	switch skill.Level {
+	case skills.LevelRequired:
+		record.RequiredBy = by
+	case skills.LevelRecommended:
+		record.RecommendedBy = by
+	default:
+		record.OfferedBy = by
+	}
 }
 
 // provenanceSkillOrigin identifies the source, repository, and commit that supplied a skill, and its folder there:
@@ -342,7 +375,8 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		}
 	}
 	for _, skill := range resolved.Skills {
-		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Level: nullableText(skill.Level), Targets: skill.Targets}
+		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Targets: skill.Targets}
+		setLevel(&record, skill)
 		if replaced := skill.Replaces; replaced != nil {
 			upstream := skillOrigin(replaced.Upstream)
 			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())

@@ -97,7 +97,7 @@ func TestChooseSkillsTakesEverySkillFromThePlannedRevision(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, err := chooseSkills(test.source(t, test.include...), test.plan, available)
+			got, err := chooseSkills(test.source(t, test.include...), test.plan, available, nil)
 			if test.problem == "" {
 				if err != nil || !slices.Equal(got, test.want) {
 					t.Fatalf("chooseSkills = %v, %v; want %v", got, err, test.want)

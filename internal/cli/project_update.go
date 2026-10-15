@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/code-rules/internal/skills"
 	"github.com/spf13/cobra"
 )
 
@@ -363,7 +365,10 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.ReplacedSkills {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || len(source.ReplacedSkills) > 0 || source.Ref != "" || source.SharedFiles != nil
+		for _, row := range source.SkillLevels {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		listed = listed || len(source.Rules) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -389,10 +394,38 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
+		for _, row := range source.SkillLevels {
+			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "level", idWidth, row.ID, levelSpan(row))
+			fmt.Fprintf(out, "%s%s\n", indent, levelDetail(row))
+		}
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
+}
+
+// levelSpan shows the levels a skill's level row moves between, with "none" for a side where the library has no
+// such skill.
+func levelSpan(row imports.SkillLevelUpdate) string {
+	from, to := cmp.Or(row.From, "none"), cmp.Or(row.To, "none")
+	return from + " -> " + to
+}
+
+// levelDetail returns the line shown under a skill's level row: what the change does to the project.
+func levelDetail(row imports.SkillLevelUpdate) string {
+	switch {
+	case row.From == "":
+		return "New required skill: it installs whatever skills.include says."
+	case row.To == "":
+		return "The library removes this required skill, so it's no longer installed."
+	case row.To == skills.LevelRequired:
+		return "Now required: it installs whatever skills.include says, and the project can't exclude or fork it."
+	case row.From == skills.LevelRequired:
+		return "No longer required: it stays installed only when skills.include selects it."
+	case row.To == skills.LevelRecommended:
+		return "Now recommended: it installs when skills.include has recommended."
+	}
+	return `No longer recommended: it installs only when skills.include names it or has "*".`
 }
 
 // shortCommit returns the first 12 digits of a commit SHA, enough to tell commits apart in a preview.
