@@ -14,6 +14,8 @@ import (
 // tidyWarning is the warning for the personal skill ~/.claude/skills/tidy beside the project's authored tidy.
 const tidyWarning = "your personal skill ~/.claude/skills/tidy has the same name as this project's tidy (skills/tidy, installed at .claude/skills/tidy).\n" +
 	"  Claude Code uses your personal skill.\n" +
+	"  Grok Build reads both, and its docs don't say which it uses.\n" +
+	"  VS Code reads both, and its docs don't say which it uses.\n" +
 	"Rename or remove your personal skill to use the project's."
 
 // writeTestFile writes text to name, a slash-separated path under directory, creating its folders.

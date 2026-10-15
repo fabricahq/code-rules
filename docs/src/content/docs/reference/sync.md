@@ -131,21 +131,22 @@ Some projects make one target folder a symbolic link to the other, such as `.age
 
 ## Personal skills with the same name
 
-People also install **personal skills** for themselves, outside any repository, which their agents load in every repository they work in. When a personal skill has the same name as a skill the repository installs, each agent decides which one to use, and some use the personal skill without saying so:
+People also install **personal skills** for themselves, outside any repository, which their agents load in every repository they work in. When a personal skill has the same name as a skill the repository installs, each agent decides which one to use, and some use the personal skill without saying so. Their docs say:
 
-| Agent | What it does with the pair |
-| --- | --- |
-| Claude Code | Uses the personal skill. |
-| Codex | Shows both. |
-| VS Code | Uses the repository's skill. |
+| Agent | Personal skill folders | Repository skill folders it shares with Code Rules | What it does with the pair |
+| --- | --- | --- | --- |
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` | Uses the personal skill. |
+| Codex | `~/.agents/skills/` | `.agents/skills/` | Shows both. |
+| Grok Build | `~/.grok/skills/`, `~/.agents/skills/`, and Claude Code's | `.claude/skills/`, through its Claude Code compatibility | Not documented. |
+| VS Code | `~/.copilot/skills/`, `~/.claude/skills/`, `~/.agents/skills/` | `.claude/skills/`, `.agents/skills/` | Not documented. |
 
-`code-rules project sync`, `code-rules project update`, and `code-rules project check` read the known personal skill folders, such as `~/.claude/skills/` and `~/.agents/skills/`, and warn about each such pair, naming both paths and what each agent does:
+`code-rules project sync`, `code-rules project update`, and `code-rules project check` read these personal skill folders, and `~/.codex/skills/`, which Codex's current docs no longer list. They warn about each pair, naming both paths and, for each agent that reads both copies, what it does:
 
 ```text
 Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .claude/skills/build-feature).
   Claude Code uses your personal skill.
-  Codex shows both.
-  VS Code uses this project's skill.
+  Grok Build reads both, and its docs don't say which it uses.
+  VS Code reads both, and its docs don't say which it uses.
 Rename or remove your personal skill to use the project's.
 ```
 
