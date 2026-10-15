@@ -31,7 +31,7 @@ build-feature/
 name: build-feature
 description: Build a feature from an agreed spec, one slice at a time. Use when starting a new feature.
 metadata:
-  fg-skill-type: playbook
+  syllabus-skill-type: playbook
 ---
 
 1. Read the spec and name the slice you're building.
@@ -40,7 +40,7 @@ metadata:
 ```
 
 - `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it. The `name` is also the skill's **install name**, the name of its installed folders; without one, the folder's name is used. It uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen.
-- `metadata.fg-skill-type` optionally labels the skill: `playbook`, for ordered steps that carry out a task, or `review`, for examining existing work against stated criteria. Code Rules shows the label in `SKILLS.md` and treats every skill the same way.
+- `metadata.syllabus-skill-type` optionally labels the skill: `playbook`, for ordered steps that carry out a task, or `review`, for examining existing work against stated criteria. Code Rules shows the label in `SKILLS.md` and treats every skill the same way.
 
 Other frontmatter fields are kept as they are.
 
