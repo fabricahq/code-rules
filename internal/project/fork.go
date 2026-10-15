@@ -86,8 +86,8 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 			if err != nil || !imported {
 				return err
 			}
-			if _, excluded := replaces.Exclude[id]; excluded {
-				return &ValidationError{Location: "sources." + replaces.Name + ".rules.exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
+			if _, excluded := replaces.Exclusion(id); excluded {
+				return &ValidationError{Location: "sources." + replaces.Name + ".rules.exclude", Problem: "the source already excludes " + id + ", and a fork never replaces an existing exclusion; delete the entry that excludes it to fork the rule"}
 			}
 			plan.replaces = replaces.Name
 			if pin, pinned := replaces.Pins[id]; pinned {

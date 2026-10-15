@@ -493,7 +493,7 @@ func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease
 		if err != nil {
 			return nil, fmt.Errorf("read %s:%s: %w", latest.tagName(), librarytree.LegacyManifest, err)
 		}
-		return legacyTerms(manifest), nil
+		return LegacyTerms(manifest), nil
 	}
 	location := latest.tagName() + ":" + manifestPath
 	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", latest.object + ":" + manifestPath}, maxFileBytes)
@@ -510,9 +510,9 @@ func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease
 	return rules.LicensePaths(declaration.License), nil
 }
 
-// legacyTerms returns the license and notice paths that a rule-library.yaml written before the layout of version 2
-// declares, which are library paths, or none when it declares no license.
-func legacyTerms(manifest []byte) []string {
+// LegacyTerms returns the license and notice paths that a rule-library.yaml written before the layout of version 2
+// declares, which are library paths, or none when it declares no license or doesn't parse.
+func LegacyTerms(manifest []byte) []string {
 	_, data, err := decode.YAML(manifest, librarytree.LegacyManifest)
 	if err != nil {
 		return nil
