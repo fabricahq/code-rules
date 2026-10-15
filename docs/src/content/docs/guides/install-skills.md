@@ -4,7 +4,7 @@ description: "Install skills from a library, another repository, or your own pro
 ---
 
 :::note[Preview]
-Skills come in the next Code Rules release.
+Skills come in the next Code Rules release. Code Rules checks the form of `fg-skills-used` but doesn't yet install the skills it names.
 :::
 
 Code Rules installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, write your own, and change what's installed.
@@ -65,19 +65,30 @@ Create a folder in `.code-rules/skills/` named after the skill, with its `SKILL.
 ---
 name: release-checklist
 description: Prepare a release. Use when asked to cut a release.
+metadata:
+  fg-skill-type: playbook
+  fg-rules-used: |
+    practices/releases/write-release-notes
+    fabrica:practices/testing/test-behavior-not-implementation
 ---
 
 1. Check that the main branch is green.
 2. ...
 ```
 
-Then install it:
+`name` must equal the folder's name. The `metadata` keys are optional:
+
+- `fg-skill-type` labels the skill `playbook` or `review`.
+- `fg-rules-used` lists the rules the skill applies, one per line, in a block string that starts with `|`. A bare ID, such as `practices/releases/write-release-notes`, names a rule you author in `.code-rules/rules/`; a source's rule takes its source name, such as `fabrica:practices/testing/test-behavior-not-implementation`.
+- `fg-skills-used` lists the skills it calls, in the same form, such as `skills/tag-release` or `fabrica:skills/tdd`.
+
+See [What a skill contains](/concepts/skill/#what-a-skill-contains). Then install it:
 
 ```sh
 code-rules project build
 ```
 
-Build works offline and installs authored skills alongside your sources' skills. Edit the skill in `.code-rules/skills/`, never in an installed copy, and run build again after each change.
+Build works offline and installs authored skills alongside your sources' skills. It fails, naming the skill's `SKILL.md`, when the frontmatter breaks one of these requirements or cites a rule the project doesn't have. Each installed copy ends with a list of links to the project's version of every rule the skill cites; those rules don't join `RULES.md`. Edit the skill in `.code-rules/skills/`, never in an installed copy, and run build again after each change: `code-rules project check` fails while an installed copy differs from what build would write.
 
 ## Stop installing a skill
 
@@ -91,5 +102,12 @@ Remove the skill's ID from `skills.include`, or delete an authored skill's folde
 | `skill-name-clash` | Two skills you include have the same install name. Stop including one of them. |
 | `skill-not-in-revision` | The revision the source record locks doesn't have a skill you named. Run the update the message names, set `ref` to a revision that has it, or check the ID. |
 | `ref-required` | The source's repository has no library releases. Set its `ref`. |
+| An invalid authored skill | Its `name` doesn't match its folder, a `metadata` key is invalid, or `fg-rules-used` names a rule the project doesn't have. Correct the `SKILL.md` the message names. |
+
+## When check fails for a skill
+
+`code-rules project check` reports an installed copy that's missing, edited, or left behind by a skill the project no longer installs, as `missing-skill`, `modified-skill`, or `unexpected-skill`, naming the skill and its folder. Run `code-rules project build` to reinstall every skill from its source; it replaces edits to the installed copies, so move any you want to keep into a skill you author first.
+
+When a skill you author cites a rule its library retired, update, sync, and build warn, and check fails, naming the skill and the rule. Remove the rule from `fg-rules-used`, or cite the rule that replaces it.
 
 For every file sync, update, and build change, see [Sync and recovery](/reference/sync/#skills).

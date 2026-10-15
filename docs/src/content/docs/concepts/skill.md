@@ -4,7 +4,7 @@ description: "A reusable procedure that tells an agent what to do, step by step,
 ---
 
 :::note[Preview]
-Skills come in the next Code Rules release. Skill levels, versions, borrowed skills, renames, exclusions, and the rules a skill cites aren't supported yet.
+Skills come in the next Code Rules release. Skill levels, versions, borrowed skills, renames, exclusions, and installing the skills a skill uses aren't supported yet. A skill links only to the cited rules the project already includes: Code Rules doesn't yet take a cited rule the project's rule `include` leaves out.
 :::
 
 A **skill** is an [Agent Skills](https://agentskills.io) folder: a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
@@ -32,6 +32,11 @@ name: build-feature
 description: Build a feature from an agreed spec, one slice at a time. Use when starting a new feature.
 metadata:
   fg-skill-type: playbook
+  fg-rules-used: |
+    practices/testing/test-behavior-not-implementation
+    practices/verification/verify-on-the-surface-users-touch
+  fg-skills-used: |
+    skills/tdd
 ---
 
 1. Read the spec and name the slice you're building.
@@ -39,10 +44,20 @@ metadata:
 ...
 ```
 
-- `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it. The `name` is also the skill's **install name**, the name of its installed folders; without one, the folder's name is used. It uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen.
+- `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it. The `name` is also the skill's **install name**, the name of its installed folders. It uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen. In a skill your project or library authors, `name` is required and must equal the folder's name; a skill from another repository that has none installs under its folder's name.
 - `metadata.fg-skill-type` optionally labels the skill: `playbook`, for ordered steps that carry out a task, or `review`, for examining existing work against stated criteria. Code Rules shows the label in `SKILLS.md` and treats every skill the same way.
+- `metadata.fg-rules-used` lists the rules the skill applies, one rule ID per line.
+- `metadata.fg-skills-used` lists the other skills it calls, one skill ID per line.
 
-Other frontmatter fields are kept as they are.
+All three `fg-` keys are optional, and each value is a string, as the Agent Skills format requires, so write the two lists as YAML block strings that start with `|`. Other `fg-` keys are reserved for Code Rules and rejected. Other frontmatter fields and `metadata` keys are kept as they are.
+
+## Rules a skill cites
+
+Keep opinions in rules and order in skills. When a skill needs a practice followed, it cites the rule in `fg-rules-used` rather than restating it, so a project's exclusions and replacements, and a rule's new versions, reach every skill that cites it without a change to the skill.
+
+A library's skill cites rules in its library by their library rule ID, such as `practices/testing/test-behavior-not-implementation`, without a source name, because each project chooses its own. A skill you author in a project cites your authored rules by their bare ID and a source's rules by their project ID, such as `fabrica:practices/testing/test-behavior-not-implementation`. `fg-skills-used` names skills the same way: `skills/tdd` in the same repository, or, in a project, `fabrica:skills/tdd` from a source.
+
+Cited rules are for reference: the installed skill links to them, but they don't join `RULES.md`, so installing a skill never widens the rules that apply to all of your project's work. See [How agents use installed skills](#how-agents-use-installed-skills).
 
 ## Where skills come from
 
@@ -62,7 +77,11 @@ See [Install skills](/guides/install-skills/) to add skills to a project.
 
 Build and sync write a copy of each skill into the folders your agents read, the [skill targets](/reference/configuration/#skill-targets): `.claude/skills/` for Claude Code and `.agents/skills/` for agents that follow the shared convention. You commit these copies, so every checkout and every fresh cloud session has the same skills. Each copy's `SKILL.md` carries a line saying not to edit it, and naming the skill and the commit it came from.
 
-Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, and where it's installed. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
+When a skill cites rules, its installed `SKILL.md` ends with a generated section, **Rules this skill applies**, that links to your project's version of every rule the skill cites, including an authored rule that replaces one, and says when the project excluded a cited rule, doesn't include it, or its library retired it. Agents read those rules in full before the step that applies them.
+
+Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every skill the project installs: what it does, where it came from, where it's installed, and how many rules it applies. `RULES.md` points to it, so agents in tools without native skill support can find skills there.
+
+`code-rules project check` fails when an installed copy differs from what build would write, such as after an edit to it, and when a skill you author cites a rule its library retired.
 
 Agents find skills by name, so two skills with the same install name can't both be installed. Code Rules writes only into the skill targets in your repository, never into your home directory, and never replaces a folder there that it didn't install.
 
