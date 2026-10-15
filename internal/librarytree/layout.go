@@ -3,7 +3,10 @@
 
 package librarytree
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // Directory is the Code Rules directory at the repository root. It holds a library's manifest, rules, shared
 // assets, and change notes, beside the project files of the same repository.
@@ -40,6 +43,20 @@ func RepositoryPath(file string) string {
 // outside the Code Rules directory keeps its path relative to the repository root.
 func SnapshotPath(file string) string {
 	return strings.TrimPrefix(RepositoryPath(file), Directory+"/")
+}
+
+// snapshotNames are the top-level names in a project's snapshot of a library that SnapshotPath gives the files of
+// its Code Rules directory, or that the project keeps for its records of the source: _source.json, and borrowed/
+// for the skills the library borrows.
+var snapshotNames = []string{"_source.json", "assets", "borrowed", "changes", Manifest, "rules", "skills"}
+
+// InSnapshotNames reports whether file, the library path of a file outside the Code Rules directory, such as a
+// license file, starts with one of the names a snapshot keeps for the library's Code Rules directory or the project's
+// records of the source, in any letter case. Stored at its repository path, such a file could take the place of one
+// of theirs, as rules/techs/go/errors.md at the repository root would take rule techs/go/errors's.
+func InSnapshotNames(file string) bool {
+	first, _, _ := strings.Cut(file, "/")
+	return slices.ContainsFunc(snapshotNames, func(name string) bool { return strings.EqualFold(first, name) })
 }
 
 // LibraryPath returns the library path of the file or directory at repository path file, the inverse of
