@@ -3,7 +3,7 @@ title: "What is Code Rules?"
 description: "The package manager for the agent skills and engineering rules agents follow when they write and review code."
 ---
 
-Code Rules is the package manager for your agent skills and rules. It records where each skill came from and which version you have, updates it when you choose, shares it across your organization, and installs it for Claude Code, Codex, Cursor, and other agents at once. It also versions, updates, and shares rules: the granular engineering practices that your agents and skills apply.
+Code Rules is the package manager for your agent skills and rules. Skills are clumsy to manage today: it's hard to tell where one came from or which version you have, keep it updated, or share it across your organization's projects and agents. And skills aren't always the best format. They're coarse-grained, bundling many practices that don't all apply every time. Code Rules manages your skills, and lets you write and share **rules**: granular engineering practices that your agents and skills apply.
 
 :::caution[Preview]
 Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
@@ -52,7 +52,7 @@ You organize rules into [rule groups](/concepts/groups/). There are two kinds of
 
 ### Skills
 
-A [skill](/concepts/skill/) is the AI skill you already know, officially an Agent Skills folder: a reusable procedure, such as how to build a feature or review a pull request. Skills are coarse-grained, so a skill cites the rules it applies instead of restating them.
+A [skill](/concepts/skill/) is the AI skill you already know, officially an [Agent Skills](https://agentskills.io) folder: a reusable procedure, such as how to build a feature or review a pull request. Skills are coarse-grained, so a skill cites the rules it applies instead of restating them.
 
 ### Projects
 
