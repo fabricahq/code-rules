@@ -82,7 +82,7 @@ func TestUpdate_PreviewWritesNothingAndApplyInstallsIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !applied.Applied || slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Changed, "vendor/team/techs/go/errors.md") || !slices.Contains(applied.Added, "vendor/team/techs/go/extra.md") {
+	if !applied.Applied || slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Changed, "vendor/team/rules/techs/go/errors.md") || !slices.Contains(applied.Added, "vendor/team/rules/techs/go/extra.md") {
 		t.Fatalf("applied %+v", applied.FileChanges)
 	}
 	if _, got := recordedVersions(t, options); !reflect.DeepEqual(got, map[string]string{"techs/go/errors": "1.1.0@2", "techs/go/extra": "1.0.0@2"}) {
@@ -256,7 +256,7 @@ func TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags(t *testing
 
 // TestUpdate_RefusesAProjectChangedAfterThePreview writes nothing when configuration changed in between.
 func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
-	for _, file := range []string{configurationFile, "rules/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
+	for _, file := range []string{configurationFile, "rules/techs/go/errors.md", "vendor/team/rules/techs/go/errors.md", "generated/RULES.md"} {
 		t.Run(file, func(t *testing.T) {
 			options, git, _ := syncedProject(t)
 			plan, err := PlanUpdate(context.Background(), options, git, nil, nil)

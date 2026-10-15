@@ -5,7 +5,9 @@ package project
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -83,6 +85,33 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	encoded["team/assets/image.bin"][0] = 9
 	if input["team"].Files["assets/image.bin"][0] != 0 {
 		t.Fatal("encoded bytes alias input")
+	}
+}
+
+// TestSnapshotRuleLinkToSharedAssetResolvesInVendor stores a rule where it is in the library's Code Rules directory,
+// under rules/, so its link to a shared asset, written from .code-rules/rules/techs/go/, reaches the vendored asset.
+func TestSnapshotRuleLinkToSharedAssetResolvesInVendor(t *testing.T) {
+	config, input := snapshotFixture(t)
+	link := "../../../assets/image.bin"
+	input["team"].Files["techs/go/errors.md"] = []byte(projectRule + "\nSee [the diagram](" + link + ").\n")
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := "team/rules/techs/go/errors.md"
+	if _, ok := encoded[rule]; !ok {
+		t.Fatalf("no vendored rule at vendor/%s; got %v", rule, slices.Sorted(maps.Keys(encoded)))
+	}
+	target, _, local, err := rules.RelativeTarget(link, "vendor/"+rule)
+	if err != nil || !local || !strings.HasPrefix(target, "vendor/team/") {
+		t.Fatalf("link resolves to %q, %v, %v; want a file in vendor/team/", target, local, err)
+	}
+	if _, ok := encoded[strings.TrimPrefix(target, "vendor/")]; !ok {
+		t.Fatalf("link resolves to %s, which the snapshot doesn't have", target)
+	}
+	got, err := decodeSnapshots(config, encoded)
+	if err != nil || !reflect.DeepEqual(got, input) {
+		t.Fatalf("round trip: %v", err)
 	}
 }
 
@@ -246,7 +275,11 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 	}{
 		{"missing record", func(v map[string][]byte) { delete(v, "team/_source.json") }},
 		{"missing content", func(v map[string][]byte) { delete(v, "team/LICENSE") }},
-		{"missing older rule", func(v map[string][]byte) { delete(v, "team/techs/go/naming.md") }},
+		{"missing older rule", func(v map[string][]byte) { delete(v, "team/rules/techs/go/naming.md") }},
+		{"rule outside rules/", func(v map[string][]byte) {
+			v["team/techs/go/naming.md"] = v["team/rules/techs/go/naming.md"]
+			delete(v, "team/rules/techs/go/naming.md")
+		}},
 		{"changed bytes", func(v map[string][]byte) { v["team/LICENSE"] = []byte("Terms\nPreserved\n") }},
 		{"extra content", func(v map[string][]byte) { v["team/untracked"] = []byte("x") }},
 		{"removed source", func(v map[string][]byte) { v["retired/_source.json"] = []byte("{}") }},
