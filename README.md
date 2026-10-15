@@ -3,8 +3,8 @@
 <h3 align="center">The package manager for your agent skills and&nbsp;rules.</h3>
 
 <p align="center">
-  Write your best practices once. Version them, share them across repositories,
-  and give every coding agent the same guidance <em>before</em> it writes&nbsp;code.
+  Track, update, and share the agent skills you already use, across your
+  repositories and agents. Add the granular rules your skills&nbsp;apply.
 </p>
 
 <p align="center">
@@ -28,32 +28,29 @@ Code Rules is a **package manager** for your agent skills and engineering rules.
 
 That means you can:
 
-- Capture engineering best practices as individual Markdown files
-- Organize and version them in a central Git repo
-- Configure each project to import just the rules it needs, so your agents read the right ones when they write or review code
-- Install versioned skills, the step-by-step procedures your agents follow, into every repo that needs them
-
-Your agents then follow the same rules whether they're writing code or reviewing it.
+- Install skills from libraries and other Git repositories, with a record of where each came from and which version you have
+- Update skills and rules when you choose, after previewing what changed
+- Share skills and rules across your organization, and require the skills every project needs
+- Install each skill for Claude Code, Codex, Cursor, and other agents at once
+- Capture engineering best practices as individual rules, so your skills and agents apply them consistently
 
 ## How is it useful?
 
-Agents are capable of writing testable, maintainable, and well-organized code. But they don't do it by default. They only do it when you tell them how.
+### Skills need a package manager
 
-### Traditional approaches to giving agents guidance
+Most people already guide their agents with skills: folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from a teammate's repository, a vendor's collection, or the last project they worked on. Before long, it's hard to know where each skill came from, keep it up to date, share it across an organization, or use it with more than one agent.
 
-To solve the problem of "how," most teams start by writing guidance into an instruction file like `AGENTS.md` or `CLAUDE.md`. That works for one repository, but the file keeps growing, and when you copy it into the next repo and tweak it, the copies drift apart until nobody knows which one is current.
+Pulling many files from versioned sources into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach to skills. Each project declares its sources in one configuration file, and Code Rules records each skill's source and exact revision, updates it only when you ask, and writes it into the folders your agents read. Your organization can publish shared skills in its own `.code-rules` repository and require or recommend them for every project.
 
-Many teams also deliver guidance through **skills**. Skills are an excellent way to repeat the same procedure in the same situation, but copied skill folders drift just like copied instruction files. A skill that bundles many practices is also coarse-grained, making it hard to use a subset of its guidance on a specific project.
+To publish skills, you put them in a **[library](https://code-rules.fabricahq.com/concepts/libraries/)**: a Git repository whose manifest lists the skills it offers, with a version for each skill and a change note for each change, so tools and projects can read exactly what you publish. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 
-### The Code Rules approach
+### Skills aren't enough
 
-The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
+Skills are coarse-grained. They're good for playbooks, techniques, and coordinating a whole task, such as building a feature or reviewing a pull request. But a skill that bundles many practices makes it hard to use a subset of its guidance on a specific project.
 
-**[Skills](https://code-rules.fabricahq.com/concepts/skill/)** keep the order of the work, such as how to build a feature or review a pull request, and cite the rules each step applies. A project can exclude or replace one rule without forking the skill.
+So Code Rules adds **[rules](https://code-rules.fabricahq.com/concepts/rule/)**: one practice per Markdown file, optionally following the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs, and live in **rule groups**. **[Skills](https://code-rules.fabricahq.com/concepts/skill/)** cite the rules each step applies, so a project can exclude or replace one rule without forking the skill.
 
-You can write your own project-specific rules and skills, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules and skills meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
-
-Pulling many files from versioned libraries into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach, not to reusable code, but to agent guidance.
+Code Rules manages rules and skills together, for libraries that publish them, organizations that standardize on them, and projects that use them. You can write your own project-specific rules and skills, or take them from libraries.
 
 As with packages for code, you can:
 
@@ -204,11 +201,12 @@ sources:
 
 - **It doesn't enforce your rules.** Code Rules gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `code-rules project check` verifies your rule files, not your application code.
 - **It doesn't resolve contradictions automatically.** If two rules disagree, you decide which to exclude or replace. [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/) gives you a prompt that has your agent find the conflicts and propose fixes for you to review.
+- **It doesn't manage personal skills.** Code Rules installs skills into your repositories, not your home directory. It warns when a personal skill has the same name as one your project installs.
 - **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
 
 ## Learn more
 
-- → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, rule groups, projects, and libraries fit together
+- → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how skills, rules, rule groups, projects, and libraries fit together
 - → [**Install**](https://code-rules.fabricahq.com/start-here/install/) Versions, custom directories, checksum verification, and upgrades
 - → [**Write a rule**](https://code-rules.fabricahq.com/guides/write-rules/) Write rules agents can actually follow
 - → [**Configuration**](https://code-rules.fabricahq.com/reference/configuration/) Every field in `config.yaml`

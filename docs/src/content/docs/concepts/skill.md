@@ -7,7 +7,7 @@ description: "A reusable procedure that tells an agent what to do, step by step,
 Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
 :::
 
-A **skill** is an [Agent Skills](https://agentskills.io) folder: a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
+A **skill** is the same kind of skill you may already use with your coding agents: a folder that follows the open [Agent Skills](https://agentskills.io) standard. It holds a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
 
 Rules say what good work looks like. Skills say what to do and in what order. A skill that builds a feature might tell the agent to read the spec, decide where the code lives, write a failing test, implement, and verify the result in the browser. The rules it applies say how each of those steps should be done well.
 

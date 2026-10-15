@@ -15,7 +15,7 @@ A rule's rule group ID plus its own name, unique within its source; the source's
 _Avoid_: Rule name, slug, path
 
 **Rule group**:
-A named collection of related rules that tells agents when to read them. There are two kinds of rule group: technology groups and practice groups.
+A named collection of related rules that tells agents when to read them. There are two kinds of rule groups: technology groups and practice groups.
 _Avoid_: Group on its own, category, rule set, package
 
 **Technology group**:

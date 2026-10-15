@@ -15,7 +15,7 @@ Rule groups hold rules only. [Skills](/concepts/skill/) don't belong to rule gro
 
 ## Rule group types
 
-There are two kinds of rule group: **technology groups** under `techs/` and **practice groups** under `practices/`. Every rule group is one or the other. Both live in the `rules/` folder of the Code Rules directory, `.code-rules/rules/`.
+There are two kinds of rule groups: **technology groups** under `techs/` and **practice groups** under `practices/`. Every rule group is one or the other. Both live in the `rules/` folder of the Code Rules directory, `.code-rules/rules/`.
 
 ### Technologies
 
