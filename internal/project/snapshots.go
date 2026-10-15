@@ -16,34 +16,54 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/skills"
 )
 
 // snapshot is the library-owned value persisted by project snapshot encoding.
 type snapshot = library.Snapshot
 
 // sourceRecordFormat is the only supported _source.json format.
-const sourceRecordFormat = 2
+const sourceRecordFormat = 3
 
-// sourceRecord is the format 2 record in vendor/<source>/_source.json: the source's configuration when it was
-// recorded, the revision that supplied its library-wide files, each imported rule's version, and file digests.
+// The kinds of source a record names: a library, whose repository has a library manifest at the recorded commit, or
+// another repository, which supplies only skills.
+const (
+	libraryKind    = "library"
+	nonLibraryKind = "non-library"
+)
+
+// sourceRecord is the format 3 record in vendor/<source>/_source.json: the source's kind and configuration when it
+// was recorded, the revision that supplied its library-wide files and every skill, each imported rule's version, each
+// installed skill's level, and file digests and modes. A record of a source that isn't a library has no release, and
+// empty group and rule fields.
 type sourceRecord struct {
 	FormatVersion int `json:"formatVersion"`
 	// Checksum is the SHA-256 of the record's other fields, so offline checks can tell a record changed outside
 	// sync, such as by hand or in a merge, from one sync wrote.
-	Checksum      string                `json:"checksum,omitempty"`
-	Repository    string                `json:"repository"`
-	Ref           string                `json:"ref,omitempty"`
-	Release       int                   `json:"release,omitempty"`
-	Commit        string                `json:"resolvedCommit"`
-	Selection     json.RawMessage       `json:"groupSelection"`
-	RuleSelection []string              `json:"ruleSelection,omitempty"`
-	Groups        []string              `json:"groups"`
-	Rules         map[string]recordRule `json:"rules"`
-	RetiredRules  []string              `json:"retiredRules"`
-	Files         map[string]string     `json:"files"`
+	Checksum      string                 `json:"checksum,omitempty"`
+	Kind          string                 `json:"kind"`
+	Repository    string                 `json:"repository"`
+	Ref           string                 `json:"ref,omitempty"`
+	Release       int                    `json:"release,omitempty"`
+	Commit        string                 `json:"resolvedCommit"`
+	Selection     json.RawMessage        `json:"groupSelection"`
+	RuleSelection []string               `json:"ruleSelection,omitempty"`
+	Groups        []string               `json:"groups"`
+	Rules         map[string]recordRule  `json:"rules"`
+	RetiredRules  []string               `json:"retiredRules"`
+	SkillInclude  []string               `json:"skillInclude"`
+	Skills        map[string]recordSkill `json:"skills"`
+	Files         map[string]string      `json:"files"`
+	Executable    []string               `json:"executable"`
+}
+
+// recordSkill is one installed skill's record. Level is null for a skill from a source that isn't a library.
+type recordSkill struct {
+	Level *string `json:"level"`
 }
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
@@ -105,10 +125,21 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		if err != nil {
 			return nil, fmt.Errorf("encode selection for %s: %v", source.Name, err)
 		}
-		record := sourceRecord{FormatVersion: sourceRecordFormat, Repository: snapshot.Repository, Ref: snapshot.Ref.String(), Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: snapshot.Groups, Rules: map[string]recordRule{}, Files: map[string]string{}}
-		record.RetiredRules = snapshot.RetiredRules
-		if record.RetiredRules == nil {
-			record.RetiredRules = []string{}
+		kind := libraryKind
+		if snapshot.NonLibrary {
+			kind = nonLibraryKind
+		}
+		record := sourceRecord{FormatVersion: sourceRecordFormat, Kind: kind, Repository: snapshot.Repository, Ref: snapshot.Ref.String(), Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: nonNil(snapshot.Groups), Rules: map[string]recordRule{}, Files: map[string]string{}}
+		record.RetiredRules = nonNil(snapshot.RetiredRules)
+		record.SkillInclude = nonNil(snapshot.SkillSelection)
+		record.Executable = nonNil(snapshot.Executable)
+		record.Skills = map[string]recordSkill{}
+		for id, skill := range snapshot.Skills {
+			entry := recordSkill{}
+			if skill.Level != "" {
+				entry.Level = &skill.Level
+			}
+			record.Skills[id] = entry
 		}
 		for id, rule := range snapshot.Rules {
 			entry := recordRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
@@ -149,6 +180,43 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		return nil, err
 	}
 	return output, nil
+}
+
+// nonNil returns list, or an empty list for nil, so a record encodes an empty list rather than null.
+func nonNil(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+	return list
+}
+
+// vendorExecutable returns, sorted, the executable files of the snapshots, by path in vendor/.
+func vendorExecutable(snapshots map[string]snapshot) []string {
+	executable := []string{}
+	for name, snapshot := range snapshots {
+		for _, file := range snapshot.Executable {
+			executable = append(executable, name+"/"+file)
+		}
+	}
+	slices.Sort(executable)
+	return executable
+}
+
+// verifyExecutable fails, asking for sync, when the executable files in vendor, the vendor tree, differ from those
+// the decoded snapshots record: a file's mode is part of its content.
+func verifyExecutable(snapshots map[string]snapshot, vendor *filetxn.Tree) error {
+	actual := []string{}
+	if vendor != nil {
+		actual = nonNil(vendor.Executable)
+	}
+	if expected := vendorExecutable(snapshots); !slices.Equal(actual, expected) {
+		for _, file := range slices.Concat(actual, expected) {
+			if !slices.Contains(actual, file) || !slices.Contains(expected, file) {
+				return invalidSnapshot("vendor/"+file, "its executable bit differs from what the source record lists; run code-rules project sync")
+			}
+		}
+	}
+	return nil
 }
 
 // decodeSnapshots verifies every original byte, each record, and its agreement with configuration before
@@ -220,11 +288,11 @@ type parsedRecord struct {
 	digests map[string]string
 }
 
-// parseSourceRecord is the one way to read a source record from disk. It validates a format 2 record's exact fields,
+// parseSourceRecord is the one way to read a source record from disk. It validates a format 3 record's exact fields,
 // value syntax, and complete digest inventory, and refuses, with changedOutsideSync, a record whose checksum doesn't
 // match its fields, or that has none, so no caller can use a record changed outside sync. Relationships to
 // configuration are matchSnapshotSource's. A record it can't read fails validation with advice to import the source
-// again, and so does an older format, such as 1; a newer one fails with code unsupported-source-record, asking to
+// again, and so does an older format, such as 2; a newer one fails with code unsupported-source-record, asking to
 // upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	record, err := readSourceRecord(data, name)
@@ -253,13 +321,13 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
-	allowed := []string{"formatVersion", "checksum", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
+	allowed := []string{"formatVersion", "checksum", "kind", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "skillInclude", "skills", "files", "executable"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
 		}
 	}
-	for _, key := range []string{"repository", "resolvedCommit", "groupSelection", "groups", "rules", "retiredRules", "files"} {
+	for _, key := range []string{"kind", "repository", "resolvedCommit", "groupSelection", "groups", "rules", "retiredRules", "skillInclude", "skills", "files", "executable"} {
 		if _, ok := fields[key]; !ok {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "missing source record field")
 		}
@@ -270,9 +338,12 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, NonLibrary: record.Kind == nonLibraryKind, Skills: map[string]library.ImportedSkill{}}, digests: record.Files}
 	if record.Checksum != recordChecksum(record) {
 		return parsedRecord{}, changedOutsideSync(name)
+	}
+	if record.Kind != libraryKind && record.Kind != nonLibraryKind {
+		return parsedRecord{}, invalidSnapshot(where+".kind", "expected library or non-library")
 	}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
@@ -334,6 +405,20 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if err := rules.ValidatePaths(paths, nil); err != nil {
 		return parsedRecord{}, fmt.Errorf("%s: %w", where, err)
 	}
+	if err := readRecordSkills(record, where, paths, &result.Snapshot); err != nil {
+		return parsedRecord{}, err
+	}
+	if result.NonLibrary {
+		if result.Release != 0 || len(result.Groups) > 0 || len(result.Rules) > 0 || len(result.RetiredRules) > 0 || !result.Selection.IsEmpty() || len(result.RuleSelection) > 0 {
+			return parsedRecord{}, invalidSnapshot(where, "a record of a source that isn't a library has no library release, groups, or rules")
+		}
+		for file := range paths {
+			if !result.IsSkillFile(file) {
+				return parsedRecord{}, invalidSnapshot(where+".files", file+" belongs to no recorded skill")
+			}
+		}
+		return result, nil
+	}
 	if _, ok := paths[librarytree.Manifest]; !ok {
 		if _, legacy := paths[librarytree.LegacyManifest]; legacy {
 			return parsedRecord{}, invalidSnapshot(where, "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, "+reimport(name))
@@ -348,12 +433,68 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	return result, nil
 }
 
+// readRecordSkills validates the record's skill selection, skills, and executable files against its file inventory
+// paths, and stores them in snapshot. A library's skills have the IDs of its skills/ folder and the level offered;
+// another repository's have no level. Each skill needs its SKILL.md.
+func readRecordSkills(record sourceRecord, where string, paths map[string][]byte, snapshot *library.Snapshot) error {
+	snapshot.SkillSelection = []string{}
+	for i, id := range record.SkillInclude {
+		if id != skills.Wildcard {
+			if err := skills.ValidateID(id, where+".skillInclude"); err != nil {
+				return err
+			}
+		}
+		if i > 0 && record.SkillInclude[i-1] >= id {
+			return invalidSnapshot(where+".skillInclude", "expected distinct selectors in sorted order")
+		}
+		snapshot.SkillSelection = append(snapshot.SkillSelection, id)
+	}
+	for _, id := range slices.Sorted(maps.Keys(record.Skills)) {
+		location := where + ".skills." + id
+		if err := skills.ValidateID(id, location); err != nil {
+			return err
+		}
+		level := record.Skills[id].Level
+		name, authored := strings.CutPrefix(id, skills.Directory+"/")
+		if snapshot.NonLibrary && level != nil || !snapshot.NonLibrary && (level == nil || *level != "offered" || !authored || !skills.ValidName(name)) {
+			return invalidSnapshot(location, "expected a library's skill, skills/<name>, with level offered, or a skill from another repository with a null level")
+		}
+		for other := range record.Skills {
+			if strings.HasPrefix(id, other+"/") {
+				return invalidSnapshot(location, "a skill's folder can't be inside another skill's folder, "+other)
+			}
+		}
+		if _, ok := paths[id+"/"+skills.File]; !ok {
+			return invalidSnapshot(location, "missing the skill's SKILL.md from inventory")
+		}
+		imported := library.ImportedSkill{}
+		if level != nil {
+			imported.Level = *level
+		}
+		snapshot.Skills[id] = imported
+	}
+	snapshot.Executable = []string{}
+	for i, file := range record.Executable {
+		if _, ok := paths[file]; !ok || i > 0 && record.Executable[i-1] >= file || !snapshot.IsSkillFile(file) {
+			return invalidSnapshot(where+".executable", "expected distinct skill files from the inventory in sorted order")
+		}
+		snapshot.Executable = append(snapshot.Executable, file)
+	}
+	return nil
+}
+
 // matchSnapshotSource checks a record against its source's configuration without fetching Git, as documented in
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	where := "vendor/" + source.Name + "/_source.json"
-	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || !source.Groups.Equal(record.Selection) || !slices.Equal(source.Rules, record.RuleSelection) {
+	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || !source.Groups.Equal(record.Selection) || !slices.Equal(source.Rules, record.RuleSelection) || !slices.Equal(source.Skills, record.SkillSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
+	}
+	if !slices.Equal(source.Skills, []string{skills.Wildcard}) && !slices.Equal(source.Skills, slices.Sorted(maps.Keys(record.Skills))) {
+		return invalidSnapshot(where, "recorded skills differ from sources."+source.Name+".skills.include; run code-rules project sync")
+	}
+	if record.NonLibrary && source.Ref.IsZero() {
+		return invalidSnapshot(where, "a source that isn't a library needs a ref; run code-rules project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
 		pin := source.Pins[id]

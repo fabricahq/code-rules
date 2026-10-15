@@ -154,10 +154,11 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			}
 			if kind == "missing-manifest" {
 				var validation errs.ValidationError
-				if !errors.As(err, &validation) || validation.ValidationLocation() != ".code-rules/config.yaml" {
+				// Without a manifest the repository isn't a library, so it has no rules to include.
+				if !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{"source team: ", ".code-rules/config.yaml: missing library manifest", "makes the repository a library and declares its optional license"} {
+				for _, detail := range []string{"sources.team.rules: ", "has no library manifest", "include its skills with skills.include"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}

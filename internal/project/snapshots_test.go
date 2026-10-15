@@ -11,6 +11,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -46,7 +47,8 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 			"techs/go/errors.md":   []byte(projectRule),
 			"techs/go/naming.md":   []byte(projectRule),
 			"assets/image.bin":     {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
-		}}}
+		},
+		SkillSelection: []string{}, Skills: map[string]library.ImportedSkill{}, Executable: []string{}}}
 }
 
 // requireSync checks that decoding fails with a validation error that tells the user to sync.
@@ -86,7 +88,7 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	}
 }
 
-// TestSnapshotRecordFormat writes the documented format 2 fields, never pins, and omits ref and ruleSelection when empty.
+// TestSnapshotRecordFormat writes the documented format 3 fields, never pins, and omits ref and ruleSelection when empty.
 func TestSnapshotRecordFormat(t *testing.T) {
 	config, input := snapshotFixture(t)
 	encoded, err := encodeSnapshots(config, input)
@@ -98,7 +100,7 @@ func TestSnapshotRecordFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	for field, want := range map[string]string{
-		"formatVersion": "2", "release": "2", "resolvedCommit": `"` + releaseTwo + `"`, "groupSelection": `["techs/go"]`, "groups": `["techs/go"]`,
+		"formatVersion": "3", "kind": `"library"`, "skillInclude": "[]", "skills": "{}", "executable": "[]", "release": "2", "resolvedCommit": `"` + releaseTwo + `"`, "groupSelection": `["techs/go"]`, "groups": `["techs/go"]`,
 		"rules": `{"techs/go/errors":{"version":"1.1.0","release":2,"commit":"` + releaseTwo + `"},"techs/go/naming":{"version":"1.0.0","release":1,"commit":"` + releaseOne + `","legacyLayout":true}}`,
 	} {
 		var compact strings.Builder
@@ -520,5 +522,97 @@ func TestSnapshotWildcardScope(t *testing.T) {
 	snapshots["team"] = item
 	if got, err := encodeSnapshots(config, snapshots); got != nil || err == nil {
 		t.Fatal("accepted technology group for practices wildcard")
+	}
+}
+
+// skillSnapshots returns a library source, team, that installs skills/build with an executable script, and a source
+// that isn't a library, tools, that installs tools/review from a pinned commit.
+func skillSnapshots(t *testing.T) (rules.Configuration, map[string]snapshot) {
+	t.Helper()
+	_, snapshots := snapshotFixture(t)
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","rules":{"include":["techs/go/*"]},"skills":{"include":["skills/build"]}},"tools":{"repository":"https://github.com/acme/tools","ref":"` + releaseOne + `","skills":{"include":["*"]}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	team := snapshots["team"]
+	team.SkillSelection = []string{"skills/build"}
+	team.Skills = map[string]library.ImportedSkill{"skills/build": {Level: "offered"}}
+	team.Files["skills/build/SKILL.md"] = []byte("---\nname: build\n---\n")
+	team.Files["skills/build/run.sh"] = []byte("#!/bin/sh\n")
+	team.Executable = []string{"skills/build/run.sh"}
+	return config, map[string]snapshot{"team": team, "tools": {Repository: "https://github.com/acme/tools", Ref: gitRef(t, releaseOne), Commit: releaseOne, NonLibrary: true, Selection: rules.GroupSelection{Groups: []string{}},
+		RetiredRules: []string{}, Groups: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, SkillSelection: []string{"*"},
+		Skills: map[string]library.ImportedSkill{"tools/review": {}}, Executable: []string{}, Files: map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")}}}
+}
+
+func TestSnapshotsRoundTripSkillsAndSourcesThatAreNotLibraries(t *testing.T) {
+	config, input := skillSnapshots(t)
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := decodeSnapshots(config, encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, input) {
+		t.Fatalf("round trip:\n%+v\nwant\n%+v", got, input)
+	}
+	if !strings.Contains(string(encoded["tools/_source.json"]), `"kind": "non-library"`) || !strings.Contains(string(encoded["tools/_source.json"]), `"level": null`) {
+		t.Fatalf("record:\n%s", encoded["tools/_source.json"])
+	}
+	if err := verifyExecutable(got, &filetxn.Tree{Files: map[string][]byte{}, Executable: []string{"team/skills/build/run.sh"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyExecutable(got, &filetxn.Tree{Files: map[string][]byte{}}); err == nil || !strings.Contains(err.Error(), "vendor/team/skills/build/run.sh") {
+		t.Fatalf("got %v; want the vendored script's lost executable bit reported", err)
+	}
+}
+
+func TestSnapshotRecordsRejectInvalidSkills(t *testing.T) {
+	tests := map[string]struct {
+		source string
+		edit   func(*sourceRecord)
+		want   string
+	}{
+		"library skill without a level": {"team", func(r *sourceRecord) { r.Skills["skills/build"] = recordSkill{} }, "with level offered"},
+		"library skill outside skills/": {"team", func(r *sourceRecord) {
+			r.Skills["tools/build"] = r.Skills["skills/build"]
+			r.Files["tools/build/SKILL.md"] = r.Files["skills/build/SKILL.md"]
+		}, "with level offered"},
+		"other repository's skill with a level": {"tools", func(r *sourceRecord) { offered := "offered"; r.Skills["tools/review"] = recordSkill{Level: &offered} }, "with a null level"},
+		"nested skill": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/review/inner"] = recordSkill{}
+			r.Files["tools/review/inner/SKILL.md"] = r.Files["tools/review/SKILL.md"]
+		}, "inside another skill's folder"},
+		"skill without SKILL.md":          {"tools", func(r *sourceRecord) { r.Skills["tools/other"] = recordSkill{} }, "missing the skill's SKILL.md"},
+		"executable file outside a skill": {"team", func(r *sourceRecord) { r.Executable = []string{"techs/go/errors.md"} }, "expected distinct skill files"},
+		"unknown kind":                    {"team", func(r *sourceRecord) { r.Kind = "plugin" }, "expected library or non-library"},
+		"non-library record with groups": {"tools", func(r *sourceRecord) {
+			r.Groups = []string{"techs/go"}
+		}, "has no library release, groups, or rules"},
+		"non-library file outside its skills": {"tools", func(r *sourceRecord) { r.Files["README.md"] = r.Files["tools/review/SKILL.md"] }, "belongs to no recorded skill"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			config, input := skillSnapshots(t)
+			vendor, err := encodeSnapshots(config, input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var record sourceRecord
+			if err := json.Unmarshal(vendor[test.source+"/_source.json"], &record); err != nil {
+				t.Fatal(err)
+			}
+			test.edit(&record)
+			record.Checksum = recordChecksum(record)
+			if vendor[test.source+"/_source.json"], err = json.Marshal(record); err != nil {
+				t.Fatal(err)
+			}
+			_, err = decodeSnapshots(config, vendor)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("got %v; want %q", err, test.want)
+			}
+		})
 	}
 }

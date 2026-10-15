@@ -79,7 +79,7 @@ func TestSyncJSON_ReportsRuleVersionCodes(t *testing.T) {
 		name, fields, code string
 		released           bool
 	}{
-		{"no library release", `"rules":{"include":["techs/go/*"]}`, "releases-not-found", false},
+		{"no library release", `"rules":{"include":["techs/go/*"]}`, "ref-required", false},
 		{"pin to an unpublished version", `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"2.0.0","reason":"Typo."}]}`, "version-not-found", true},
 		{"missing ref", `"rules":{"include":["techs/go/*"]},"ref":"release/7"`, "version-not-found", true},
 	} {

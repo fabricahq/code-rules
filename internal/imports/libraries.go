@@ -114,7 +114,8 @@ func withTimeout(ctx context.Context, options Options) (context.Context, context
 
 // importPlan fetches the commits plan names, reads and validates the files it imports, and returns them with the
 // snapshot that records them, and the metadata of each group in groups that the catalog lacks, when the plan's
-// library-wide files have it.
+// library-wide files have it. Every skill comes from the plan's commit. A plan of a repository that isn't a library
+// imports only skills, with an empty catalog.
 func (r *repository) importPlan(ctx context.Context, source rules.Source, plan sourcePlan, groups []string) (Library, error) {
 	commits := []string{plan.commit}
 	for _, rule := range plan.rules {
@@ -122,6 +123,9 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	}
 	if err := r.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or, to keep your rule versions, set sources.%s.ref to a library release tag or commit the library still has that publishes them, then run code-rules project sync. As a last resort, delete vendor/%s and run code-rules project sync, which imports every unpinned rule's newest version.", source.Name, source.Name, source.Name)); err != nil {
 		return Library{}, err
+	}
+	if plan.nonLibrary {
+		return r.importNonLibrary(ctx, source, plan)
 	}
 	individual := slices.Sorted(slices.Values(plan.individual))
 	input, err := r.snapshotFiles(ctx, source, plan)
@@ -171,10 +175,49 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	if err != nil {
 		return Library{}, err
 	}
+	imported, err := r.readSkills(ctx, source, plan, true)
+	if err != nil {
+		return Library{}, err
+	}
+	addSkills(&snapshot, source, imported)
 	if err := ctx.Err(); err != nil {
 		return Library{}, gitexec.ContextFailure(err)
 	}
 	return Library{Catalog: catalog, Snapshot: snapshot, Warnings: plan.warnings, GroupMetadata: metadata}, nil
+}
+
+// importNonLibrary imports the skills of a source whose repository has no library manifest at the plan's commit:
+// a snapshot without rules, groups, or a library release, and an empty catalog.
+func (r *repository) importNonLibrary(ctx context.Context, source rules.Source, plan sourcePlan) (Library, error) {
+	imported, err := r.readSkills(ctx, source, plan, false)
+	if err != nil {
+		return Library{}, err
+	}
+	snapshot := library.Snapshot{
+		Repository:    source.Repository,
+		RetiredRules:  []string{},
+		Ref:           plan.ref,
+		Commit:        plan.commit,
+		Groups:        []string{},
+		RuleSelection: []string{},
+		Rules:         map[string]library.ImportedRule{},
+		Files:         map[string][]byte{},
+		NonLibrary:    true,
+	}
+	addSkills(&snapshot, source, imported)
+	if err := ctx.Err(); err != nil {
+		return Library{}, gitexec.ContextFailure(err)
+	}
+	catalog := library.Catalog{Rules: []string{}, Groups: []library.Group{}, SupportingFiles: map[string][]byte{}}
+	return Library{Catalog: catalog, Snapshot: snapshot, Warnings: plan.warnings, GroupMetadata: map[string][]byte{}}, nil
+}
+
+// addSkills records the source's skill selection and the imported skills, with their files, in snapshot.
+func addSkills(snapshot *library.Snapshot, source rules.Source, imported importedSkills) {
+	snapshot.SkillSelection = slices.Clone(source.Skills)
+	snapshot.Skills = imported.skills
+	snapshot.Executable = imported.executable
+	maps.Copy(snapshot.Files, imported.files)
 }
 
 // requestedGroupMetadata reads, from input, the metadata of each of groups that catalog lacks and input has.
