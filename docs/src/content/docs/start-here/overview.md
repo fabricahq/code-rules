@@ -9,7 +9,16 @@ Most teams today use skills to guide their agents, but skills aren't always the 
 
 Code Rules solves these problems by first adding a second format beyond skills. Skills are coarse-grained: a single skill often bundles many insights, which makes it hard to update, version, and understand. A **rule** is fine-grained: one directive, such as "Never write secrets to logs," in its own Markdown file.
 
-Code Rules then manages both skills and rules the way a package manager manages code. Each project declares the skills and rules it uses and where they come from: public or private libraries, your organization's shared library, or the project itself. Skills can also come from any Git repository of skill folders, even one that doesn't use Code Rules. Code Rules records each skill's and rule's source and version, updates them only when you choose, and installs skills for Claude Code, Codex, Cursor, and other agents at once.
+Code Rules then manages both skills and rules the way a package manager manages code. Each project declares the skills and rules it uses and where they come from: public or private libraries, your organization's shared library, or the project itself. Skills can also come from any Git repository of skill folders, even one that doesn't use Code Rules.
+
+Code Rules records each skill's and rule's source and version, updates them only when you choose, and installs skills for Claude Code, Codex, Cursor, and other agents at once. That makes it easy to:
+
+- Declare the skills and rules your organization uses
+- Add project-specific skills and rules
+- Share your skills and rules with others in a public library
+- Update to the latest version of a skill or rule when you're ready
+
+The real power of Code Rules is that it gives you a place to capture lessons and carry them forward, into your project or across your organization. Say an agent session shows that the agent missed something you expected. You turn that insight into a rule, add it to your project or your organization's library, and from then on every agent gets that guidance when the work calls for it. The same loop lets you refine rules and skills over time when they don't do what you wanted, and it opens the door to tools that review agent sessions and propose rules automatically.
 
 :::caution[Preview]
 Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
