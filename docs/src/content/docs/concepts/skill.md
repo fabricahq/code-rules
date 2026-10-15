@@ -66,4 +66,6 @@ Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every skil
 
 Agents find skills by name, so two skills with the same install name can't both be installed. Code Rules writes only into the skill targets in your repository, never into your home directory, and never replaces a folder there that it didn't install.
 
+A person can also install **personal skills** outside any repository, which their agents load in every repository. When a personal skill has the same name as a skill your project installs, each agent decides which one to use: Claude Code uses the personal skill, Codex shows both, and VS Code uses the project's. Code Rules warns when it finds such a pair; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+
 When a skill and a rule disagree, agents should follow the rule and report the conflict, so someone can fix the skill.
