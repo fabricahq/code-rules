@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -165,6 +166,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		warnings = append(warnings, warning)
 	}
 	warnings = append(warnings, retiredCitationWarnings(output)...)
+	warnings = append(warnings, personalSkillWarnings(in.options.Home, filepath.Dir(root.Name()), output.Files[build.InstalledSkillsFile])...)
 	changes.Warnings = warnings
 	if in.edited != nil {
 		targets[filetxn.Config] = map[string][]byte{configurationFile: in.edited}

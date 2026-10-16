@@ -99,9 +99,9 @@ type skillFolderChange struct {
 // target's folder is a symbolic link.
 func planSkillFolders(ctx context.Context, root *os.Root, generated *filetxn.Tree, output build.Output) (skillInstall, error) {
 	plan := skillInstall{targets: map[filetxn.Target]map[string][]byte{}, executable: map[filetxn.Target][]string{}, read: map[string]*filetxn.Tree{}}
-	installed := build.InstalledSkills(treeFiles(generated)[build.InstalledSkillsFile])
+	installed := build.InstalledSkillIDs(treeFiles(generated)[build.InstalledSkillsFile])
 	owned := slices.Sorted(maps.Keys(installed))
-	installing := build.InstalledSkills(output.Files[build.InstalledSkillsFile])
+	installing := build.InstalledSkillIDs(output.Files[build.InstalledSkillsFile])
 	touched := slices.Sorted(maps.Keys(output.Skills))
 	for _, folder := range owned {
 		if !slices.Contains(touched, folder) {

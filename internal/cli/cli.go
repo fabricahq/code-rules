@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	coderules "github.com/fabricahq/code-rules"
@@ -20,6 +21,22 @@ type Options struct {
 	// Directory anchors relative paths without changing the process working directory.
 	Directory string
 	Git       imports.Options
+	// Home is the home directory whose personal skill folders sync, update, and check read, never write; empty means
+	// the user's home directory, as os.UserHomeDir finds it.
+	Home string
+}
+
+// home returns Home, or the user's home directory, or empty, which reads no personal skills, when it can't be
+// found.
+func (o Options) home() string {
+	if o.Home != "" {
+		return o.Home
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return home
 }
 
 // Streams separates user input, command results, and human diagnostics for each invocation.

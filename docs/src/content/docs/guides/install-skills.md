@@ -282,8 +282,8 @@ People also install skills for themselves, outside any repository, such as in `~
 ```text
 Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .claude/skills/build-feature).
   Claude Code uses your personal skill.
-  Codex shows both.
-  VS Code uses this project's skill.
+  Grok Build reads both, and its docs don't say which it uses.
+  VS Code reads both, and its docs don't say which it uses.
 Rename or remove your personal skill to use the project's.
 ```
 
