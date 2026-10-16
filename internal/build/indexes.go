@@ -223,7 +223,7 @@ func groupTitle(group resolvedGroup) string {
 func indexHeader(groups []resolvedGroup, installsSkills bool) string {
 	blocks := []string{
 		"# Syllabus",
-		"This project uses [Fabrica Syllabus](https://code-rules.fabricahq.com) to declare its adopted engineering practices.",
+		"This project uses [Fabrica Syllabus](https://syllabus.fabricahq.com) to declare its adopted engineering practices.",
 	}
 	if installsSkills {
 		blocks = append(blocks, "This project also installs agent skills. See [SKILLS.md](SKILLS.md) for what each one does and where it's installed.")
