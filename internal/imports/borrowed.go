@@ -335,10 +335,11 @@ func (l lendingSource) missing(id string, revision library.BorrowedSource, kept 
 // or nil. It resolves the ref the library names again, as an update of the whole source does, unless keep is set,
 // which keeps the recorded revision while the library still names its repository and ref, as sync does. A borrowed repository that
 // a project source declares too comes from overridden, that source's revision once the update is applied, by source
-// name. A non-nil only limits the plan to the borrowed sources it reports true for. It returns the revisions it
+// name. A non-nil only limits the plan to the borrowed sources it reports true for, given each one's name and the
+// project source that overrides it, or nil. It returns the revisions it
 // resolved, by borrowed source name, leaving out overridden ones, and a preview row for each borrowed source whose
 // commit or skills differ from those recorded, including one the project no longer takes any skills from.
-func planBorrowed(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, keep bool, overridden map[string]library.Snapshot, only func(name string) bool, options Options) (map[string]library.BorrowedSource, []BorrowedUpdate, error) {
+func planBorrowed(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, keep bool, overridden map[string]library.Snapshot, only func(name string, override *rules.Source) bool, options Options) (map[string]library.BorrowedSource, []BorrowedUpdate, error) {
 	parsed, err := rules.ParseLibraryManifest(manifest, source.Name+"/"+librarytree.RepositoryPath(librarytree.Manifest))
 	if err != nil {
 		return nil, nil, err
@@ -359,10 +360,12 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(names)) {
-		if only != nil && !only(name) {
+		was := before.BorrowedFrom(name)
+		lender := lendingSource{library: source.Name, name: name, declared: parsed.Borrowed[name]}
+		lender.override = overridingSource(configuration, source.Name, lender.declared.Repository)
+		if only != nil && !only(name, lender.override) {
 			continue
 		}
-		was := before.BorrowedFrom(name)
 		if len(selected[name]) == 0 {
 			// The project takes no skills from the source any more, so the update removes those it installed.
 			gone := before.Borrowed[name]
@@ -373,8 +376,6 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 			rows = append(rows, row)
 			continue
 		}
-		lender := lendingSource{library: source.Name, name: name, declared: parsed.Borrowed[name]}
-		lender.override = overridingSource(configuration, source.Name, lender.declared.Repository)
 		if lender.override != nil {
 			lender.overridden = overridden[lender.override.Name]
 		}

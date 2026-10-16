@@ -6,6 +6,8 @@ import (
 	"context"
 	"maps"
 	"slices"
+
+	"github.com/fabricahq/syllabus/internal/library"
 )
 
 // The statuses a listed skill can have.
@@ -51,9 +53,9 @@ type LevelSetter struct {
 }
 
 // ListSkills lists the skills of the project's sources, as their records list them, including borrowed skills
-// installed only because other borrowed skills use them, and its authored skills, without fetching sources or
-// writing files. It fails, as build does, when a source record doesn't match the configuration, so the listing never
-// describes a configuration sync hasn't applied.
+// installed only because other borrowed skills use them, with no level, and its authored skills, without fetching
+// sources or writing files. It fails, as build does, when a source record doesn't match the configuration, so the
+// listing never describes a configuration sync hasn't applied.
 func ListSkills(ctx context.Context, options Options) (SkillListing, error) {
 	if err := ctx.Err(); err != nil {
 		return SkillListing{}, err
@@ -78,11 +80,12 @@ func ListSkills(ctx context.Context, options Options) (SkillListing, error) {
 	listing := SkillListing{Skills: []ListedSkill{}}
 	for _, source := range state.config.Sources {
 		snapshot := snapshots[source.Name]
-		// A borrowed skill installed only because other borrowed skills use it isn't one the library lists.
+		// A borrowed skill installed only because other borrowed skills use it isn't one the library lists, so the
+		// library sets no level for it.
 		levels := maps.Clone(snapshot.AvailableSkills)
-		for id, skill := range snapshot.Skills {
+		for id := range snapshot.Skills {
 			if _, listed := levels[id]; !listed && isBorrowedSkill(id) {
-				levels[id] = skill
+				levels[id] = library.ImportedSkill{}
 			}
 		}
 		for _, id := range slices.Sorted(maps.Keys(levels)) {

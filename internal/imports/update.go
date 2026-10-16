@@ -549,12 +549,20 @@ func namedSources(configuration rules.Configuration, plans map[string]plannedSou
 
 // planOverriddenBorrowing returns the preview rows of the borrowed skills that source, a library source the update
 // doesn't name, whose snapshot is recorded, installs from a source plans names, which overrides the library's ref,
-// so moving that source moves them. overridden is as planBorrowed takes it. It returns no rows when no source the
+// so moving that source moves them, including one the project declared since the last sync. overridden is as planBorrowed takes it. It returns no rows when no source the
 // update names overrides one the library borrows from.
 func planOverriddenBorrowing(ctx context.Context, configuration rules.Configuration, source rules.Source, recorded *library.Snapshot, plans map[string]plannedSource, overridden map[string]library.Snapshot, options Options) (_ []BorrowedUpdate, err error) {
-	if recorded == nil || recorded.NonLibrary || !slices.ContainsFunc(slices.Collect(maps.Values(recorded.Borrowed)), func(borrowed library.BorrowedSource) bool {
-		_, named := plans[borrowed.Source]
+	// The project's current sources decide the override, by repository identity, whatever overrode it at the last
+	// sync.
+	moves := func(override *rules.Source) bool {
+		if override == nil {
+			return false
+		}
+		_, named := plans[override.Name]
 		return named
+	}
+	if recorded == nil || recorded.NonLibrary || !slices.ContainsFunc(slices.Collect(maps.Values(recorded.Borrowed)), func(borrowed library.BorrowedSource) bool {
+		return moves(overridingSource(configuration, source.Name, borrowed.Repository))
 	}) {
 		return []BorrowedUpdate{}, nil
 	}
@@ -580,9 +588,8 @@ func planOverriddenBorrowing(ctx context.Context, configuration rules.Configurat
 		return []BorrowedUpdate{}, err
 	}
 	// Only the borrowed sources a named source overrides move; sync keeps the others where they are.
-	_, rows, err := planBorrowed(ctx, configuration, source, manifest, recorded, true, overridden, func(name string) bool {
-		_, named := plans[recorded.Borrowed[name].Source]
-		return named
+	_, rows, err := planBorrowed(ctx, configuration, source, manifest, recorded, true, overridden, func(_ string, override *rules.Source) bool {
+		return moves(override)
 	}, options)
 	return rows, err
 }

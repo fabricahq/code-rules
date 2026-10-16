@@ -176,8 +176,8 @@ func TestSync_IncludesRecommendedBorrowedSkillsWithTheSkillsTheyUse(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if i := slices.IndexFunc(listing.Skills, func(skill ListedSkill) bool { return skill.ID == "team:pocock:skills/engineering/interview" }); i < 0 || listing.Skills[i].Status != SkillInstalled {
-		t.Errorf("listing = %+v; want the used borrowed skill installed", listing.Skills)
+	if i := slices.IndexFunc(listing.Skills, func(skill ListedSkill) bool { return skill.ID == "team:pocock:skills/engineering/interview" }); i < 0 || listing.Skills[i].Status != SkillInstalled || listing.Skills[i].Level != "" || listing.Skills[i].SetBy != nil {
+		t.Errorf("listing = %+v; want the used borrowed skill installed, with no level, since the library doesn't list it", listing.Skills)
 	}
 }
 
@@ -425,6 +425,13 @@ func TestUpdate_AScopedUpdatePreviewsTheBorrowedSkillsOfTheRevisionItTakes(t *te
 }
 
 func TestUpdate_PreviewsTheBorrowedSkillsAnOverridingSourceMoves(t *testing.T) {
+	t.Run("declared before the last sync", func(t *testing.T) { testOverridingSourceMoves(t, false) })
+	t.Run("declared since the last sync", func(t *testing.T) { testOverridingSourceMoves(t, true) })
+}
+
+// testOverridingSourceMoves updates mine, a project source that overrides the repository team borrows deploy from,
+// after kit, that repository, publishes a release that changes deploy. declaredLater adds mine only after the sync.
+func testOverridingSourceMoves(t *testing.T, declaredLater bool) {
 	ctx := context.Background()
 	kit, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
 		"config.yaml":                      []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    offered: [skills/deploy]\n"),
@@ -461,9 +468,18 @@ func TestUpdate_PreviewsTheBorrowedSkillsAnOverridingSourceMoves(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":"git@fixture.invalid:team","rules":{"include":["techs/go/*"]}},"mine":{"repository":"git@fixture.invalid:kit","rules":{"include":["techs/go/*"]}}}}`)
+	teamSource := `"team":{"repository":"git@fixture.invalid:team","rules":{"include":["techs/go/*"]}}`
+	mine := `"mine":{"repository":"git@fixture.invalid:kit","rules":{"include":["techs/go/*"]}}`
+	if declaredLater {
+		writeFixture(t, root, configurationFile, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{`+teamSource+`}}`)
+	} else {
+		writeFixture(t, root, configurationFile, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{`+teamSource+`,`+mine+`}}`)
+	}
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
+	}
+	if declaredLater {
+		writeFixture(t, root, configurationFile, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{`+teamSource+`,`+mine+`}}`)
 	}
 	if _, err := kit.Commit(ctx, kit.Worktree(), "Improve deploy", gitfixture.Library(map[string][]byte{".syllabus/skills/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))})); err != nil {
 		t.Fatal(err)
