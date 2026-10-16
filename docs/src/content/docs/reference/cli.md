@@ -4,7 +4,7 @@ description: "Syntax, arguments, options, and results for every supported Code R
 ---
 
 :::caution[Preview]
-This page describes the commands as they work with version 2 configuration and skill levels, which aren't in a released version of Code Rules yet. The released CLI has no skill commands, adds a library with `code-rules project add library`, and writes authored rules to `.code-rules/local/`.
+This page describes the commands as they work with version 2 configuration, skill levels, and branch refs, which aren't in a released version of Code Rules yet. The released CLI has no skill commands, adds a library with `code-rules project add library`, writes authored rules to `.code-rules/local/`, and doesn't move a source that uses `ref`.
 :::
 
 Find each command's syntax and options below. Every command also accepts `--json` and `-h` / `--help`; [shared behavior](#shared-options-and-prompts) and [output formats](#command-output) are documented at the end.

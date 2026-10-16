@@ -4,7 +4,7 @@ description: "When to run sync, build, or check, which files they change, who ow
 ---
 
 :::caution[Preview]
-This page describes version 2 configuration and skill support, which aren't in a released version of Code Rules yet.
+This page describes version 2 configuration, skill support, and branch refs, which aren't in a released version of Code Rules yet.
 :::
 
 The `code-rules project sync` command restores your repository's vendor snapshots, regenerates the guidance your agents read, and installs your repository's skills. Run it after adding a source, changing what you include from it, its pins, or its `ref`, changing `skillTargets`, or to restore vendored files.
