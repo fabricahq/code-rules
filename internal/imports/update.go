@@ -52,6 +52,10 @@ type SourceUpdate struct {
 	// Skills compares the skills the source installs once the update is applied with those its source record
 	// locks, as skillChanges does. It is empty, never nil, when they don't differ.
 	Skills []SkillUpdate `json:"skills"`
+	// ReplacedSkills lists, sorted by ID, the skills the project replaces with authored skills whose copy at the
+	// revision the update takes the source's skills from differs from the copy the replacement is based on. It is
+	// empty, never nil, when there are none.
+	ReplacedSkills []ReplacedSkillUpdate `json:"replacedSkills"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -205,6 +209,28 @@ func (s plannedSource) skillRows(kept []string) ([]SkillUpdate, error) {
 		return nil, preview.err
 	}
 	return slices.Clone(preview.rows), nil
+}
+
+// ReplacedSkills returns the replaced skill rows of source, which the update names, once the rules kept lists stay
+// at their versions from before the update, as Skills chooses the revision. It is empty, never nil, when there are
+// none or the update doesn't name source.
+func (u Update) ReplacedSkills(source string, kept []string) []ReplacedSkillUpdate {
+	planned, named := u.plans[source]
+	if !named {
+		return []ReplacedSkillUpdate{}
+	}
+	return planned.replacedRows(kept)
+}
+
+// replacedRows returns a copy of the replaced skill rows of the revision that supplies the source's skills once the
+// rules kept lists stay at their versions from before the update; empty, never nil, when planning read none there.
+func (s plannedSource) replacedRows(kept []string) []ReplacedSkillUpdate {
+	_, commit := s.keeping(kept)
+	rows := slices.Clone(s.skills[commit].replaced)
+	if rows == nil {
+		return []ReplacedSkillUpdate{}
+	}
+	return rows
 }
 
 // keeping returns the library release, and its commit, that supplies the library-wide files and skills once the
@@ -439,7 +465,10 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 
 // planSourceUpdate plans one source within the same deadline as an import, and returns its preview and the
 // warnings that installing it without decisions would give. A nil scope moves every rule and adds new ones;
-// otherwise it moves only the rules scope names. A source that uses ref stays as sync would import it.
+// otherwise it moves only the rules scope names. A source that uses ref stays as sync would import it. Either way,
+// the preview lists the replaced skills whose copy at the revision the update takes skills from, before the
+// project's decisions, differs from the copy their replacement is based on; the plan keeps those rows for every
+// revision the decisions can choose.
 func planSourceUpdate(ctx context.Context, source rules.Source, recorded *library.Snapshot, scope []string, options Options) (_ plannedSource, _ SourceUpdate, _ []string, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
@@ -470,6 +499,7 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 		if preview.Skills, err = planned.skillRows(nil); err != nil {
 			return plannedSource{}, SourceUpdate{}, nil, err
 		}
+		preview.ReplacedSkills = planned.replacedRows(nil)
 		return planned, preview, before.warnings, nil
 	}
 	for _, id := range scope {
@@ -498,6 +528,7 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if preview.Skills, err = planned.skillRows(nil); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
+	preview.ReplacedSkills = planned.replacedRows(nil)
 	preview.Rules = rows
 	return planned, preview, after.warnings, nil
 }

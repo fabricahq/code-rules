@@ -45,8 +45,9 @@ type FileChanges struct {
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
 	// they wrote, then skills installed nowhere for want of skill targets, then, for build too, each rule an
-	// authored skill cites that its library retired, which check rejects. Last, one for each personal skill in
-	// Options.Home with the name of a skill the project installs, which build doesn't report.
+	// authored skill cites that its library retired, which check rejects, and each use of a skill the project
+	// excludes without a replacement. Last, one for each personal skill in Options.Home with the name of a skill the
+	// project installs, which build doesn't report.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
 	// that command's files, which the lists above don't include.
@@ -91,7 +92,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 			return err
 		}
 		changes = compareFiles(treeFiles(before.generated), output.Files)
-		changes.Warnings = retiredCitationWarnings(output)
+		changes.Warnings = append(retiredCitationWarnings(output), output.ExcludedUses...)
 		// Build reports paths relative to generated/, two folders below the repository root.
 		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}

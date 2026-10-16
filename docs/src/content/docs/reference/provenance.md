@@ -14,7 +14,7 @@ Read it when you want to understand why a rule or skill is present, investigate 
 This page shows where the records live, how Code Rules creates them, and how to trace a rule or skill back to its source.
 
 :::note[Preview]
-Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields come in the next Code Rules release.
+Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields, and the `upstream`, `replacementReason`, and `basedOn` fields of a skill, come in the next Code Rules release.
 :::
 
 ## Where to look

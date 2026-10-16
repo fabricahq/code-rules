@@ -373,7 +373,10 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.Rules {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || source.Ref != "" || source.SharedFiles != nil
+		for _, row := range source.ReplacedSkills {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -394,6 +397,12 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 			}
 		}
 		formatSkillRows(out, source.Skills)
+		for _, row := range source.ReplacedSkills {
+			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, imports.UpdateReplaced, idWidth, row.ID, commitSpan(row.From, row.To))
+			for _, line := range replacedSkillDetails(row) {
+				fmt.Fprintf(out, "%s%s\n", indent, line)
+			}
+		}
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
@@ -450,6 +459,32 @@ func skillUpdateDetails(row imports.SkillUpdate) []string {
 		lines = append(lines, "script "+string(script.Change)+": "+script.Path)
 	}
 	return lines
+}
+
+// shortCommit returns the first 12 digits of a commit SHA, enough to tell commits apart in a preview.
+func shortCommit(commit string) string { return commit[:min(len(commit), 12)] }
+
+// commitSpan shows the commits a skill row moves between, or only to when from is empty.
+func commitSpan(from, to string) string {
+	if from == "" || from == to {
+		return "commit " + shortCommit(to)
+	}
+	return "commit " + shortCommit(from) + " -> " + shortCommit(to)
+}
+
+// replacedSkillDetails returns the lines shown under a replaced skill's row: the authored skill that replaces it,
+// what the row compares with, and the files that changed.
+func replacedSkillDetails(row imports.ReplacedSkillUpdate) []string {
+	lines := []string{}
+	if row.BasedOn != "" {
+		lines = append(lines, "Your skill: "+row.LocalSkill+", based on commit "+shortCommit(row.BasedOn)+".", "Changed since commit "+shortCommit(row.BasedOn)+", the copy your skill is based on:")
+	} else {
+		lines = append(lines, "Your skill: "+row.LocalSkill+".", "Changed since the imported commit "+shortCommit(row.From)+"; your skill may already have some of these changes:")
+	}
+	for _, file := range row.Files {
+		lines = append(lines, "  "+file)
+	}
+	return append(lines, "Compare them with your skill: the update doesn't change it.")
 }
 
 // updateVersions shows where a row's rule moves, or the one version it has.

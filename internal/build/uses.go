@@ -18,11 +18,33 @@ import (
 // and a source's skill by its project ID, such as fabrica:skills/tdd. It fails at an authored skill's SKILL.md when
 // it uses a skill the project doesn't install, or when authored skills use each other in a cycle; a source's skill
 // that uses one the project doesn't install fails as invalid output, because its source record, which sync and the
-// offline checks keep complete, can't produce one.
-func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) error {
+// offline checks keep complete, can't produce one. A skill that uses a source's skill the project excludes uses the
+// authored skill that replaces it instead; with no replacement, the use is dropped, and linkSkillUses returns a
+// warning for it, in skill order.
+func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]string, error) {
 	sources := map[string]rules.Source{}
+	// excluded maps the project ID of each source's skill the project excludes to the authored skill that replaces
+	// it, or "" when none does.
+	excluded := map[string]string{}
 	for _, source := range config.Sources {
 		sources[source.Name] = source
+		for id, exclusion := range source.SkillExclude {
+			excluded[source.Name+":"+id] = exclusion.ReplacedBy
+		}
+	}
+	warnings := []string{}
+	// redirect returns the installed skill a use of id reaches, and false when the project excludes id without a
+	// replacement, which it warns about.
+	redirect := func(skill resolvedSkill, id string) (string, bool) {
+		replacement, isExcluded := excluded[id]
+		switch {
+		case !isExcluded:
+			return id, true
+		case replacement != "":
+			return replacement, true
+		}
+		warnings = append(warnings, fmt.Sprintf("%s uses %s, which the project excludes without a replacement, so the skill it uses isn't installed. Add replacedBy to the exclusion, or stop excluding the skill.", skill.ID, id))
+		return "", false
 	}
 	uses := map[string][]string{}
 	for _, skill := range resolved {
@@ -33,18 +55,26 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) error {
 		used := []string{}
 		if skill.Source != "" {
 			for _, id := range slices.Concat(skill.SkillsUsed, sources[skill.Source].SkillUses[skill.Folder]) {
-				if _, installed := uses[skill.Source+":"+id]; !installed {
-					return invalid(location, fmt.Sprintf("the skill uses %s, which the project doesn't install; run code-rules project sync", id))
+				target, kept := redirect(skill, skill.Source+":"+id)
+				if !kept {
+					continue
 				}
-				used = append(used, skill.Source+":"+id)
+				if _, installed := uses[target]; !installed {
+					return nil, invalid(location, fmt.Sprintf("the skill uses %s, which the project doesn't install; run code-rules project sync", id))
+				}
+				used = append(used, target)
 			}
 		} else {
 			for _, line := range skill.SkillsUsed {
 				citation := skills.ParseCitation(line)
-				if _, installed := uses[citation.String()]; !installed {
-					return invalid(location, authoredUseProblem(citation, sources))
+				target, kept := redirect(skill, citation.String())
+				if !kept {
+					continue
 				}
-				used = append(used, citation.String())
+				if _, installed := uses[target]; !installed {
+					return nil, invalid(location, authoredUseProblem(citation, sources))
+				}
+				used = append(used, target)
 			}
 		}
 		uses[skill.ID] = used
@@ -55,10 +85,10 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) error {
 	}
 	installed, err := skills.ResolveUses(ids, uses)
 	if cycle := (*skills.UseCycleError)(nil); errors.As(err, &cycle) {
-		return invalid(cycle.Cycle[0]+"/"+skills.File, fmt.Sprintf("%s forms a cycle: %s. A skill installs with every skill it uses, so uses can't form a cycle; remove one of them", skills.SkillsUsedKey, strings.Join(cycle.Cycle, " -> ")))
+		return nil, invalid(cycle.Cycle[0]+"/"+skills.File, fmt.Sprintf("%s forms a cycle: %s. A skill installs with every skill it uses, so uses can't form a cycle; remove one of them", skills.SkillsUsedKey, strings.Join(cycle.Cycle, " -> ")))
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i, skill := range resolved {
 		resolved[i].UsedBy = installed[skill.ID].UsedBy
@@ -66,7 +96,7 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) error {
 		slices.Sort(used)
 		resolved[i].Uses = slices.Compact(used)
 	}
-	return nil
+	return warnings, nil
 }
 
 // authoredUseProblem explains why an authored skill can't use citation, a line of its syllabus-skills-used that names no
@@ -104,6 +134,8 @@ func useFacts(skill resolvedSkill, resolved []resolvedSkill) []string {
 		return facts
 	}
 	switch {
+	case !skill.Included && len(skill.UsedBy) == 0:
+		facts = append(facts, "- **Installed because:** used by a skill the project excludes")
 	case !skill.Included:
 		facts = append(facts, "- **Installed because:** used by "+names(skill.UsedBy))
 	case len(skill.UsedBy) > 0:

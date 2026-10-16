@@ -162,7 +162,11 @@ Copy a skill the project installs into `.code-rules/skills/` so the project cont
 2. Rewrites the fork's `syllabus-rules-used` and `syllabus-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `syllabus-skills-used`.
 3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
 
-Links in a skill stay inside its folder, so the fork needs no link changes. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
+:::note[Preview]
+Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
+:::
+
+Links in a skill stay inside its folder, so the fork needs no link changes. A `SKILL.md` without frontmatter, which a repository that isn't a library can supply, gets frontmatter with the skill's name, and each list the fork changes becomes a block string. The command refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/skill-format/#validation); fork such a skill by hand. It also refuses a fork whose folder exists or that another exclusion already names as its `replacedBy`. When an update moves the source while the command waits for your reason, it writes nothing; run it again. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
 
 ### project sync
 

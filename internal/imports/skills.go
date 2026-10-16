@@ -241,11 +241,15 @@ type importedSkills struct {
 // readSkills reads the files of the skills the source selects at the plan's commit, a library's when isLibrary is
 // set, and of every skill they use, transitively, recording why each is installed. retained is the bytes the source's
 // import already read, which count toward the same retained limit. It fails for a skill file that is a symbolic link
-// or submodule, over the import byte limits, and as installedSkills does for the skills' uses.
+// or submodule, over the import byte limits, as installedSkills does for the skills' uses, and as
+// requireSkillBasedOn does for a replacement's basedOn.
 func (r *repository) readSkills(ctx context.Context, source rules.Source, plan sourcePlan, isLibrary bool, retained int) (importedSkills, error) {
 	result := importedSkills{files: map[string][]byte{}, executable: []string{}, skills: map[string]library.ImportedSkill{}}
 	if len(source.Skills) == 0 {
 		return result, nil
+	}
+	if err := r.requireSkillBasedOn(ctx, source); err != nil {
+		return importedSkills{}, err
 	}
 	tree, err := r.repositoryTree(ctx, plan.commit)
 	if err != nil {

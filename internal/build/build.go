@@ -29,6 +29,9 @@ type Output struct {
 	// its library retired, in skill order. The output is still complete: build and sync warn about them, and check
 	// fails. It is nil when there are none.
 	RetiredCitations []*ValidationError `json:"retiredCitations"`
+	// ExcludedUses warns, in skill order, about each use of a source's skill that the project excludes without a
+	// replacement, which isn't installed. It is empty, never nil, when there are none.
+	ExcludedUses []string `json:"excludedUses"`
 }
 
 // Options provides the declared tool version and Markdown line limit and inline byte limit.
@@ -55,7 +58,8 @@ func Generate(config rules.Configuration, libraries map[string]Library, localFil
 	if err != nil {
 		return Output{}, err
 	}
-	if resolved.Skills, err = resolveSkills(config, libraries, options.LocalSkills); err != nil {
+	var excludedUses []string
+	if resolved.Skills, excludedUses, err = resolveSkills(config, libraries, options.LocalSkills); err != nil {
 		return Output{}, err
 	}
 	retired, err := citeRules(&resolved, config, libraries)
@@ -69,6 +73,6 @@ func Generate(config rules.Configuration, libraries map[string]Library, localFil
 	if err != nil {
 		return Output{}, err
 	}
-	output.RetiredCitations = retired
+	output.RetiredCitations, output.ExcludedUses = retired, excludedUses
 	return output, nil
 }
