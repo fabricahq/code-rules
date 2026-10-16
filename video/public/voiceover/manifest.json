@@ -540,229 +540,466 @@
         }
       ]
     },
-    "package-manager": {
-      "file": "voiceover/package-manager.mp3",
-      "text": "First, the package manager. Curate your skills, your own and the best from anywhere, in one library for your organization. Mark each one required or recommended. Then any project installs them with one command, into every agent’s folder, and updates only when you choose.",
+    "libraries-and-projects": {
+      "file": "voiceover/libraries-and-projects.mp3",
+      "text": "Trail Guide has libraries and projects. A library is a repository of the skills and rules you want others to use. A project is a codebase that uses them.",
+      "words": [
+        {
+          "text": "Trail",
+          "start": 0,
+          "end": 0.24
+        },
+        {
+          "text": "Guide",
+          "start": 0.32,
+          "end": 0.56
+        },
+        {
+          "text": "has",
+          "start": 0.68,
+          "end": 0.8
+        },
+        {
+          "text": "libraries",
+          "start": 0.88,
+          "end": 1.44
+        },
+        {
+          "text": "and",
+          "start": 1.52,
+          "end": 1.68
+        },
+        {
+          "text": "projects.",
+          "start": 2.24,
+          "end": 2.853
+        },
+        {
+          "text": "A",
+          "start": 2.907,
+          "end": 2.96
+        },
+        {
+          "text": "library",
+          "start": 3.24,
+          "end": 3.52
+        },
+        {
+          "text": "is",
+          "start": 3.6,
+          "end": 3.68
+        },
+        {
+          "text": "a",
+          "start": 3.76,
+          "end": 3.8
+        },
+        {
+          "text": "repository",
+          "start": 3.84,
+          "end": 4.64
+        },
+        {
+          "text": "of",
+          "start": 4.68,
+          "end": 4.72
+        },
+        {
+          "text": "the",
+          "start": 4.8,
+          "end": 4.88
+        },
+        {
+          "text": "skills",
+          "start": 4.96,
+          "end": 5.36
+        },
+        {
+          "text": "and",
+          "start": 5.44,
+          "end": 5.52
+        },
+        {
+          "text": "rules",
+          "start": 5.6,
+          "end": 5.92
+        },
+        {
+          "text": "you",
+          "start": 5.96,
+          "end": 6
+        },
+        {
+          "text": "want",
+          "start": 6.08,
+          "end": 6.24
+        },
+        {
+          "text": "others",
+          "start": 6.32,
+          "end": 6.56
+        },
+        {
+          "text": "to",
+          "start": 6.64,
+          "end": 6.72
+        },
+        {
+          "text": "use.",
+          "start": 6.88,
+          "end": 7.64
+        },
+        {
+          "text": "A",
+          "start": 7.68,
+          "end": 7.76
+        },
+        {
+          "text": "project",
+          "start": 7.84,
+          "end": 8.4
+        },
+        {
+          "text": "is",
+          "start": 8.44,
+          "end": 8.48
+        },
+        {
+          "text": "a",
+          "start": 8.64,
+          "end": 8.747
+        },
+        {
+          "text": "codebase",
+          "start": 8.853,
+          "end": 9.2
+        },
+        {
+          "text": "that",
+          "start": 9.28,
+          "end": 9.36
+        },
+        {
+          "text": "uses",
+          "start": 9.44,
+          "end": 9.76
+        },
+        {
+          "text": "them.",
+          "start": 10.16,
+          "end": 10.64
+        }
+      ]
+    },
+    "a-library": {
+      "file": "voiceover/a-library.mp3",
+      "text": "First, the package manager. Fill your library with skills you write yourself, or curate them from others, even from repositories that don’t use Trail Guide.",
       "words": [
         {
           "text": "First,",
           "start": 0,
-          "end": 0.64
+          "end": 0.72
         },
         {
           "text": "the",
-          "start": 0.72,
-          "end": 0.8
+          "start": 0.8,
+          "end": 0.88
         },
         {
           "text": "package",
-          "start": 1,
-          "end": 1.2
+          "start": 1.08,
+          "end": 1.28
         },
         {
           "text": "manager.",
-          "start": 1.44,
-          "end": 2.24
+          "start": 1.36,
+          "end": 2.4
         },
         {
-          "text": "Curate",
-          "start": 2.36,
+          "text": "Fill",
+          "start": 2.48,
           "end": 2.64
         },
         {
           "text": "your",
           "start": 2.72,
-          "end": 2.8
-        },
-        {
-          "text": "skills,",
-          "start": 2.88,
-          "end": 3.68
-        },
-        {
-          "text": "your",
-          "start": 3.8,
-          "end": 3.92
-        },
-        {
-          "text": "own",
-          "start": 4,
-          "end": 4.4
-        },
-        {
-          "text": "and",
-          "start": 4.52,
-          "end": 4.64
-        },
-        {
-          "text": "the",
-          "start": 4.72,
-          "end": 4.8
-        },
-        {
-          "text": "best",
-          "start": 4.96,
-          "end": 5.12
-        },
-        {
-          "text": "from",
-          "start": 5.24,
-          "end": 5.36
-        },
-        {
-          "text": "anywhere,",
-          "start": 5.44,
-          "end": 6.24
-        },
-        {
-          "text": "in",
-          "start": 6.32,
-          "end": 6.4
-        },
-        {
-          "text": "one",
-          "start": 6.48,
-          "end": 6.64
+          "end": 2.88
         },
         {
           "text": "library",
-          "start": 6.92,
-          "end": 7.2
-        },
-        {
-          "text": "for",
-          "start": 7.28,
-          "end": 7.44
-        },
-        {
-          "text": "your",
-          "start": 7.52,
-          "end": 7.68
-        },
-        {
-          "text": "organization.",
-          "start": 7.76,
-          "end": 9
-        },
-        {
-          "text": "Mark",
-          "start": 9.04,
-          "end": 9.28
-        },
-        {
-          "text": "each",
-          "start": 9.36,
-          "end": 9.52
-        },
-        {
-          "text": "one",
-          "start": 9.6,
-          "end": 9.76
-        },
-        {
-          "text": "required",
-          "start": 9.84,
-          "end": 10.48
-        },
-        {
-          "text": "or",
-          "start": 10.56,
-          "end": 10.72
-        },
-        {
-          "text": "recommended.",
-          "start": 11.28,
-          "end": 12
-        },
-        {
-          "text": "Then",
-          "start": 12.16,
-          "end": 12.32
-        },
-        {
-          "text": "any",
-          "start": 12.4,
-          "end": 12.64
-        },
-        {
-          "text": "project",
-          "start": 12.84,
-          "end": 13.04
-        },
-        {
-          "text": "installs",
-          "start": 13.2,
-          "end": 13.52
-        },
-        {
-          "text": "them",
-          "start": 13.6,
-          "end": 13.68
+          "start": 3.12,
+          "end": 3.36
         },
         {
           "text": "with",
-          "start": 13.76,
-          "end": 14
+          "start": 3.48,
+          "end": 3.6
         },
         {
-          "text": "one",
-          "start": 14.08,
-          "end": 14.24
-        },
-        {
-          "text": "command,",
-          "start": 14.32,
-          "end": 15.067
-        },
-        {
-          "text": "into",
-          "start": 15.173,
-          "end": 15.28
-        },
-        {
-          "text": "every",
-          "start": 15.36,
-          "end": 15.6
-        },
-        {
-          "text": "agent’s",
-          "start": 15.68,
-          "end": 16
-        },
-        {
-          "text": "folder,",
-          "start": 16.08,
-          "end": 16.693
-        },
-        {
-          "text": "and",
-          "start": 16.747,
-          "end": 16.8
-        },
-        {
-          "text": "updates",
-          "start": 17.08,
-          "end": 17.36
-        },
-        {
-          "text": "only",
-          "start": 17.44,
-          "end": 17.76
-        },
-        {
-          "text": "when",
-          "start": 17.88,
-          "end": 18
+          "text": "skills",
+          "start": 3.8,
+          "end": 4
         },
         {
           "text": "you",
-          "start": 18.08,
-          "end": 18.24
+          "start": 4.08,
+          "end": 4.16
         },
         {
-          "text": "choose.",
-          "start": 18.32,
-          "end": 19.28
+          "text": "write",
+          "start": 4.24,
+          "end": 4.32
+        },
+        {
+          "text": "yourself,",
+          "start": 4.44,
+          "end": 5.16
+        },
+        {
+          "text": "or",
+          "start": 5.2,
+          "end": 5.44
+        },
+        {
+          "text": "curate",
+          "start": 5.52,
+          "end": 5.84
+        },
+        {
+          "text": "them",
+          "start": 5.92,
+          "end": 6
+        },
+        {
+          "text": "from",
+          "start": 6.08,
+          "end": 6.24
+        },
+        {
+          "text": "others,",
+          "start": 6.6,
+          "end": 7
+        },
+        {
+          "text": "even",
+          "start": 7.04,
+          "end": 7.28
+        },
+        {
+          "text": "from",
+          "start": 7.36,
+          "end": 7.44
+        },
+        {
+          "text": "repositories",
+          "start": 7.84,
+          "end": 8.24
+        },
+        {
+          "text": "that",
+          "start": 8.32,
+          "end": 8.56
+        },
+        {
+          "text": "don’t",
+          "start": 8.6,
+          "end": 8.8
+        },
+        {
+          "text": "use",
+          "start": 8.96,
+          "end": 9.12
+        },
+        {
+          "text": "Trail",
+          "start": 9.24,
+          "end": 9.36
+        },
+        {
+          "text": "Guide.",
+          "start": 9.52,
+          "end": 10.24
+        }
+      ]
+    },
+    "package-manager": {
+      "file": "voiceover/package-manager.mp3",
+      "text": "Mark each skill required or recommended, and a project installs them with one command, into every agent’s folder. When the library adds a skill, every project picks it up on its next trailguide project update.",
+      "words": [
+        {
+          "text": "Mark",
+          "start": 0,
+          "end": 0.24
+        },
+        {
+          "text": "each",
+          "start": 0.4,
+          "end": 0.56
+        },
+        {
+          "text": "skill",
+          "start": 0.64,
+          "end": 0.88
+        },
+        {
+          "text": "required",
+          "start": 0.96,
+          "end": 1.6
+        },
+        {
+          "text": "or",
+          "start": 1.68,
+          "end": 1.76
+        },
+        {
+          "text": "recommended,",
+          "start": 1.92,
+          "end": 2.88
+        },
+        {
+          "text": "and",
+          "start": 2.92,
+          "end": 2.96
+        },
+        {
+          "text": "a",
+          "start": 3.04,
+          "end": 3.12
+        },
+        {
+          "text": "project",
+          "start": 3.32,
+          "end": 3.52
+        },
+        {
+          "text": "installs",
+          "start": 3.68,
+          "end": 4
+        },
+        {
+          "text": "them",
+          "start": 4.08,
+          "end": 4.24
+        },
+        {
+          "text": "with",
+          "start": 4.32,
+          "end": 4.56
+        },
+        {
+          "text": "one",
+          "start": 4.64,
+          "end": 4.8
+        },
+        {
+          "text": "command,",
+          "start": 4.88,
+          "end": 5.653
+        },
+        {
+          "text": "into",
+          "start": 5.787,
+          "end": 5.92
+        },
+        {
+          "text": "every",
+          "start": 6,
+          "end": 6.24
+        },
+        {
+          "text": "agent’s",
+          "start": 6.32,
+          "end": 6.64
+        },
+        {
+          "text": "folder.",
+          "start": 6.72,
+          "end": 7.72
+        },
+        {
+          "text": "When",
+          "start": 7.76,
+          "end": 7.84
+        },
+        {
+          "text": "the",
+          "start": 7.88,
+          "end": 7.92
+        },
+        {
+          "text": "library",
+          "start": 8,
+          "end": 8.48
+        },
+        {
+          "text": "adds",
+          "start": 8.56,
+          "end": 8.72
+        },
+        {
+          "text": "a",
+          "start": 8.76,
+          "end": 8.8
+        },
+        {
+          "text": "skill,",
+          "start": 8.88,
+          "end": 9.48
+        },
+        {
+          "text": "every",
+          "start": 9.52,
+          "end": 9.84
+        },
+        {
+          "text": "project",
+          "start": 10.08,
+          "end": 10.32
+        },
+        {
+          "text": "picks",
+          "start": 10.36,
+          "end": 10.56
+        },
+        {
+          "text": "it",
+          "start": 10.6,
+          "end": 10.64
+        },
+        {
+          "text": "up",
+          "start": 10.72,
+          "end": 10.88
+        },
+        {
+          "text": "on",
+          "start": 10.96,
+          "end": 11.04
+        },
+        {
+          "text": "its",
+          "start": 11.16,
+          "end": 11.28
+        },
+        {
+          "text": "next",
+          "start": 11.44,
+          "end": 11.6
+        },
+        {
+          "text": "trailguide",
+          "start": 11.72,
+          "end": 12.08
+        },
+        {
+          "text": "project",
+          "start": 12.28,
+          "end": 12.48
+        },
+        {
+          "text": "update.",
+          "start": 12.56,
+          "end": 13.52
         }
       ]
     },
@@ -1443,7 +1680,7 @@
     },
     "skills-as-playbooks": {
       "file": "voiceover/skills-as-playbooks.mp3",
-      "text": "Skills still matter. They become playbooks that cite the rules they apply, so one verification skill can walk your agent through the whole task, rule by rule.",
+      "text": "Skills still matter. Trail Guide installs skills from any repository, library or not. But in a Trail Guide library, a skill can declare the rules it uses, so you can improve the playbook and each rule separately, and every skill that uses a rule gets the update.",
       "words": [
         {
           "text": "Skills",
@@ -1458,127 +1695,227 @@
         {
           "text": "matter.",
           "start": 1.12,
-          "end": 2
+          "end": 2.08
         },
         {
-          "text": "They",
-          "start": 2.08,
-          "end": 2.16
+          "text": "Trail",
+          "start": 2.2,
+          "end": 2.32
         },
         {
-          "text": "become",
-          "start": 2.24,
-          "end": 2.48
+          "text": "Guide",
+          "start": 2.4,
+          "end": 2.56
         },
         {
-          "text": "playbooks",
-          "start": 2.64,
+          "text": "installs",
+          "start": 2.68,
           "end": 3.04
         },
         {
-          "text": "that",
-          "start": 3.12,
-          "end": 3.28
+          "text": "skills",
+          "start": 3.24,
+          "end": 3.44
         },
         {
-          "text": "cite",
-          "start": 3.36,
-          "end": 3.52
-        },
-        {
-          "text": "the",
+          "text": "from",
           "start": 3.6,
-          "end": 3.68
+          "end": 3.76
         },
         {
-          "text": "rules",
-          "start": 3.76,
+          "text": "any",
+          "start": 3.84,
           "end": 4
         },
         {
-          "text": "they",
-          "start": 4.08,
-          "end": 4.16
+          "text": "repository,",
+          "start": 4.36,
+          "end": 5.04
         },
         {
-          "text": "apply,",
-          "start": 4.6,
-          "end": 5.08
-        },
-        {
-          "text": "so",
+          "text": "library",
           "start": 5.12,
-          "end": 5.44
+          "end": 5.6
         },
         {
-          "text": "one",
-          "start": 5.52,
-          "end": 5.68
+          "text": "or",
+          "start": 5.68,
+          "end": 5.84
         },
         {
-          "text": "verification",
-          "start": 6.04,
-          "end": 6.4
+          "text": "not.",
+          "start": 6,
+          "end": 6.64
         },
         {
-          "text": "skill",
-          "start": 6.48,
-          "end": 6.72
-        },
-        {
-          "text": "can",
-          "start": 6.8,
+          "text": "But",
+          "start": 6.72,
           "end": 6.96
         },
         {
-          "text": "walk",
+          "text": "in",
           "start": 7.04,
+          "end": 7.08
+        },
+        {
+          "text": "a",
+          "start": 7.12,
           "end": 7.2
         },
         {
-          "text": "your",
+          "text": "Trail",
           "start": 7.28,
-          "end": 7.36
+          "end": 7.44
         },
         {
-          "text": "agent",
-          "start": 7.44,
-          "end": 7.76
+          "text": "Guide",
+          "start": 7.52,
+          "end": 7.68
         },
         {
-          "text": "through",
-          "start": 7.84,
-          "end": 7.92
-        },
-        {
-          "text": "the",
-          "start": 8.04,
-          "end": 8.16
-        },
-        {
-          "text": "whole",
-          "start": 8.28,
+          "text": "library,",
+          "start": 7.76,
           "end": 8.4
         },
         {
-          "text": "task,",
+          "text": "a",
           "start": 8.48,
-          "end": 9.2
+          "end": 8.56
         },
         {
-          "text": "rule",
-          "start": 9.28,
+          "text": "skill",
+          "start": 8.64,
+          "end": 8.88
+        },
+        {
+          "text": "can",
+          "start": 8.96,
+          "end": 9.04
+        },
+        {
+          "text": "declare",
+          "start": 9.12,
           "end": 9.52
         },
         {
-          "text": "by",
+          "text": "the",
           "start": 9.6,
-          "end": 9.76
+          "end": 9.68
         },
         {
-          "text": "rule.",
+          "text": "rules",
           "start": 9.84,
-          "end": 10.8
+          "end": 10
+        },
+        {
+          "text": "it",
+          "start": 10.08,
+          "end": 10.16
+        },
+        {
+          "text": "uses,",
+          "start": 10.24,
+          "end": 10.96
+        },
+        {
+          "text": "so",
+          "start": 11.04,
+          "end": 11.12
+        },
+        {
+          "text": "you",
+          "start": 11.2,
+          "end": 11.28
+        },
+        {
+          "text": "can",
+          "start": 11.32,
+          "end": 11.36
+        },
+        {
+          "text": "improve",
+          "start": 11.44,
+          "end": 11.76
+        },
+        {
+          "text": "the",
+          "start": 11.8,
+          "end": 11.84
+        },
+        {
+          "text": "playbook",
+          "start": 11.92,
+          "end": 12.4
+        },
+        {
+          "text": "and",
+          "start": 12.56,
+          "end": 12.8
+        },
+        {
+          "text": "each",
+          "start": 12.88,
+          "end": 13.04
+        },
+        {
+          "text": "rule",
+          "start": 13.12,
+          "end": 13.36
+        },
+        {
+          "text": "separately,",
+          "start": 13.44,
+          "end": 14.32
+        },
+        {
+          "text": "and",
+          "start": 14.4,
+          "end": 14.48
+        },
+        {
+          "text": "every",
+          "start": 14.56,
+          "end": 14.8
+        },
+        {
+          "text": "skill",
+          "start": 14.88,
+          "end": 15.12
+        },
+        {
+          "text": "that",
+          "start": 15.2,
+          "end": 15.28
+        },
+        {
+          "text": "uses",
+          "start": 15.36,
+          "end": 15.6
+        },
+        {
+          "text": "a",
+          "start": 15.68,
+          "end": 15.76
+        },
+        {
+          "text": "rule",
+          "start": 15.96,
+          "end": 16.16
+        },
+        {
+          "text": "gets",
+          "start": 16.28,
+          "end": 16.4
+        },
+        {
+          "text": "the",
+          "start": 16.44,
+          "end": 16.48
+        },
+        {
+          "text": "update.",
+          "start": 16.56,
+          "end": 17.52
         }
       ]
     },
@@ -1725,7 +2062,7 @@
     },
     "close": {
       "file": "voiceover/close.mp3",
-      "text": "Trail Guide. Agent guidance, one small insight at a time.",
+      "text": "Trail Guide. The package manager for agent skills and rules.",
       "words": [
         {
           "text": "Trail",
@@ -1735,47 +2072,47 @@
         {
           "text": "Guide.",
           "start": 0.32,
-          "end": 0.88
+          "end": 1.04
         },
         {
-          "text": "Agent",
+          "text": "The",
           "start": 1.12,
-          "end": 1.44
+          "end": 1.2
         },
         {
-          "text": "guidance,",
-          "start": 1.52,
-          "end": 2.4
+          "text": "package",
+          "start": 1.4,
+          "end": 1.6
         },
         {
-          "text": "one",
+          "text": "manager",
+          "start": 1.84,
+          "end": 2.08
+        },
+        {
+          "text": "for",
+          "start": 2.2,
+          "end": 2.32
+        },
+        {
+          "text": "agent",
           "start": 2.48,
           "end": 2.64
         },
         {
-          "text": "small",
-          "start": 2.8,
+          "text": "skills",
+          "start": 2.72,
           "end": 3.12
         },
         {
-          "text": "insight",
+          "text": "and",
           "start": 3.2,
-          "end": 3.6
+          "end": 3.36
         },
         {
-          "text": "at",
-          "start": 3.68,
-          "end": 3.76
-        },
-        {
-          "text": "a",
-          "start": 3.84,
-          "end": 3.88
-        },
-        {
-          "text": "time.",
-          "start": 3.92,
-          "end": 4.56
+          "text": "rules.",
+          "start": 3.6,
+          "end": 4.16
         }
       ]
     }
