@@ -15,7 +15,7 @@ export function Close(props: SceneProps) {
           <Wordmark fontSize={112} />
         </Reveal>
         <Reveal at={12}>
-          <Headline style={{ fontSize: 64 }}>Agent guidance, one small insight at a time.</Headline>
+          <Headline style={{ fontSize: 64 }}>The package manager for agent skills and rules</Headline>
         </Reveal>
         <Reveal at={24}>
           <div style={{ fontFamily: FONTS.mono, fontSize: 32, color: COLORS.muted }}>trailguide.fabricahq.com</div>

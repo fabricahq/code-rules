@@ -52,7 +52,7 @@ export const SCENES = [
   {
     id: 'libraries-and-projects',
     narration:
-      'Trail Guide has libraries and projects. A library is a repository of the skills and rules you want others to use, with its own library commands. A project is a codebase that uses them, with its own project commands.',
+      'Trail Guide has libraries and projects. A library is a repository of the skills and rules you want others to use. A project is a codebase that uses them.',
   },
   {
     id: 'a-library',
@@ -101,7 +101,7 @@ export const SCENES = [
   },
   {
     id: 'close',
-    narration: 'Trail Guide. Agent guidance, one small insight at a time.',
+    narration: 'Trail Guide. The package manager for agent skills and rules.',
   },
 ] as const satisfies ReadonlyArray<SceneScript>;
 
