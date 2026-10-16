@@ -4,7 +4,7 @@ description: "How a repository's sources become vendor snapshots, generated guid
 ---
 
 :::caution[Preview]
-This page describes version 2 configuration and skill support, which aren't in a released version of Code Rules yet.
+This page describes version 2 configuration, skill support, and branch refs, which aren't in a released version of Code Rules yet.
 :::
 
 A **source** is a Git repository that your repository takes rules or skills from: a library, such as your organization's, or any other repository that holds skills.
