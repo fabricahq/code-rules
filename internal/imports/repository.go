@@ -41,8 +41,10 @@ type repository struct {
 	// present lists the commits already fetched, so later fetches request only missing ones.
 	present map[string]bool
 	// trees caches each fetched commit's parsed file tree by library path, and owned indexes it by the rule each
-	// file belongs to. legacy lists the commits that keep the library in the layout before version 2.
+	// file belongs to. legacy lists the commits that keep the library in the layout before version 2. raw caches
+	// each fetched commit's parsed file tree by repository path.
 	trees  map[string]map[string]treeEntry
+	raw    map[string]map[string]treeEntry
 	owned  map[string]map[string]map[string]treeEntry
 	legacy map[string]bool
 }
@@ -68,7 +70,7 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
-	repo := &repository{source: source.Name, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}, legacy: map[string]bool{}}
+	repo := &repository{source: source.Name, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, raw: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}, legacy: map[string]bool{}}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, repo.Close())
@@ -218,6 +220,20 @@ func (r *repository) tree(ctx context.Context, commit string) (map[string]treeEn
 	if entries, ok := r.trees[commit]; ok {
 		return entries, nil
 	}
+	parsed, err := r.repositoryTree(ctx, commit)
+	if err != nil {
+		return nil, err
+	}
+	entries, legacy := libraryTree(parsed)
+	r.trees[commit], r.legacy[commit] = entries, legacy
+	return entries, nil
+}
+
+// repositoryTree returns the parsed file tree of a fetched commit by repository path, listing it once.
+func (r *repository) repositoryTree(ctx context.Context, commit string) (map[string]treeEntry, error) {
+	if entries, ok := r.raw[commit]; ok {
+		return entries, nil
+	}
 	data, err := r.runner.Output(ctx, r.directory, []string{"ls-tree", "-r", "-z", "--full-tree", commit}, maxTreeBytes)
 	if err != nil {
 		return nil, err
@@ -226,9 +242,8 @@ func (r *repository) tree(ctx context.Context, commit string) (map[string]treeEn
 	if err != nil {
 		return nil, err
 	}
-	entries, legacy := libraryTree(parsed)
-	r.trees[commit], r.legacy[commit] = entries, legacy
-	return entries, nil
+	r.raw[commit] = parsed
+	return parsed, nil
 }
 
 // prefetch fetches the blobs among entries that aren't present yet in one request, so reading them later needs

@@ -65,7 +65,7 @@ func TestAuthoringReportSharesNextSteps(t *testing.T) {
 							args = append(args, "--body-file", "body.md")
 						}
 					case "source":
-						args = []string{scope, "add", "library", "team", "--repository", "https://example.invalid/rules.git", "--ref", "v1.0.0", "--groups", "*"}
+						args = []string{scope, "add", "source", "team", "--repository", "https://example.invalid/rules.git", "--ref", "v1.0.0", "--rules", "*"}
 					}
 					if i == 1 {
 						args = append(args, "--json")

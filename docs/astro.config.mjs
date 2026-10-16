@@ -60,6 +60,7 @@ export default defineConfig({
         { label: 'Rule group', slug: 'concepts/groups' },
         { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Library', slug: 'concepts/libraries' },
+        { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [

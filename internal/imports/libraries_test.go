@@ -154,10 +154,11 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			}
 			if kind == "missing-manifest" {
 				var validation errs.ValidationError
-				if !errors.As(err, &validation) || validation.ValidationLocation() != ".code-rules/config.yaml" {
+				// Without a manifest the repository isn't a library, so it has no rules to include.
+				if !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{"source team: ", ".code-rules/config.yaml: missing library manifest", "makes the repository a library and declares its optional license"} {
+				for _, detail := range []string{"sources.team.rules: ", "has no library manifest", "include its skills with skills.include"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}
@@ -255,6 +256,29 @@ func TestGitTreeAndRetainedLimits(t *testing.T) {
 	requireCode(t, err, "limit-exceeded")
 	g := &gitFiles{ctx: context.Background(), total: maxRetainedBytes, entries: map[string]treeEntry{"x": {name: "x", mode: 0644}}}
 	_, err = g.ReadFile("x")
+	requireCode(t, err, "limit-exceeded")
+}
+
+// TestImportRejectsALibraryWhoseRulesAndSkillsTogetherExceedTheRetainedLimit reads the selected rule files and the
+// selected skill files of one source against one 64 MiB budget, though each half fits on its own.
+func TestImportRejectsALibraryWhoseRulesAndSkillsTogetherExceedTheRetainedLimit(t *testing.T) {
+	files := libraryFiles()
+	blob := bytes.Repeat([]byte("x"), maxBlobBytes)
+	files[".code-rules/skills/big/SKILL.md"] = []byte("---\nname: big\ndescription: Carry large files.\n---\n# Big\n")
+	for i := range maxRetainedBytes / maxBlobBytes / 2 {
+		files[fmt.Sprintf("techs/go/assets/errors/big-%d.bin", i)] = blob
+		files[fmt.Sprintf(".code-rules/skills/big/big-%d.bin", i)] = blob
+	}
+	f := newLibraryFixture(t, files)
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.2.0", "rules": map[string]any{"include": []string{"techs/go/*"}}, "skills": map[string]any{"include": []string{"skills/big"}}}}})
+	config, err := rules.ParseConfiguration(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
+	if result != nil {
+		t.Fatal("over-limit import returned usable libraries")
+	}
 	requireCode(t, err, "limit-exceeded")
 }
 

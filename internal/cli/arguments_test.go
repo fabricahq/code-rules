@@ -13,7 +13,7 @@ import (
 func TestAuthoringArgumentErrors(t *testing.T) {
 	binary := buildCLI(t)
 	for _, test := range []struct{ command, name, example string }{
-		{"project add library", "library alias", "team"},
+		{"project add source", "source name", "team"},
 		{"project add group", "group path", "practices/testing"},
 		{"project add rule", "rule path", "practices/testing/my-rule"},
 		{"library add group", "group path", "practices/testing"},

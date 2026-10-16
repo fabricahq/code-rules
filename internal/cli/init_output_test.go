@@ -25,7 +25,7 @@ func TestProjectInitGuidance(t *testing.T) {
 		if !strings.Contains(out, "Added:\n  .code-rules/config.yaml\n  .code-rules/rules/README.md\n  .code-rules/README.md\n") || strings.Contains(out, "Project configuration:") {
 			t.Fatal("init doesn't list the files it added", out)
 		}
-		if !strings.Contains(out, "Or use a shared library") || !strings.Contains(out, "code-rules project sync") {
+		if !strings.Contains(out, "Or use a shared library or skills repository") || !strings.Contains(out, "code-rules project sync") {
 			t.Fatal("missing shared-library path", out)
 		}
 		// Without this step, a user who follows only the CLI output has rules that no agent reads.

@@ -559,13 +559,16 @@ func TestImport_RefSelectsIndividualRulesAtItsRevision(t *testing.T) {
 	}
 }
 
-// TestImport_WithoutLibraryReleasesFailsWithoutARef reports releases-not-found before the first library release.
+// TestImport_WithoutLibraryReleasesFailsWithoutARef reports ref-required before the first library release.
 func TestImport_WithoutLibraryReleasesFailsWithoutARef(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
 	config.Sources[0].Ref = rules.GitRef{}
 	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
-	requireCode(t, err, "releases-not-found")
+	requireCode(t, err, "ref-required")
+	if !strings.Contains(err.Error(), "Set sources.team.ref to the tag or full commit SHA") {
+		t.Fatalf("got %v; want the ref to set", err)
+	}
 }
 
 // TestImport_RejectsAReleaseTagWithoutARecord refuses a lightweight or unparseable release/<number> tag.

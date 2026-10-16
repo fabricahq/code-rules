@@ -14,7 +14,7 @@ func TestRemovedCommandsAreRejected(t *testing.T) {
 	for _, path := range []string{
 		"init", "add", "add source team", "local", "local add group techs/go",
 		"local add rule techs/go/errors", "build", "sync", "check", "help", "completion",
-		"project add source team", "project local", "library sync", "library add source",
+		"project add library team", "project add repository team", "project local", "library sync", "library add source",
 		"__complete", "__completeNoDesc",
 	} {
 		for _, suffix := range [][]string{nil, {"-h"}, {"--help"}, {"--json"}, {"--json", "--help"}} {

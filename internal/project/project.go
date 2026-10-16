@@ -15,6 +15,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/skills"
 )
 
 // Options identifies the project root and controls rendering.
@@ -79,11 +80,21 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
+		installs, err := planSkillFolders(ctx, root, before.generated, output)
+		if err != nil {
+			return err
+		}
 		changes = compareFiles(treeFiles(before.generated), output.Files)
+		// Build reports paths relative to generated/, two folders below the repository root.
+		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
+		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)
-		return w.Apply(targets, func() error {
+		return w.ApplyModes(targets, installs.executable, func() error {
 			if err := requireUnchanged(ctx, root, before); err != nil {
+				return err
+			}
+			if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
 				return err
 			}
 			return requireGuideUnchanged(ctx, root, guide)
@@ -164,11 +175,11 @@ func requireCheckUnchanged(ctx context.Context, root *os.Root, before projectSta
 
 // projectState holds original bytes and inventories for optimistic change detection before writing. local is the
 // rules/ folder, with files keyed by their path in it, and assets the assets/ folder, with files keyed by their path
-// in it; authoredFiles combines them.
+// in it; authoredFiles combines them. skills is the skills/ folder of authored skills.
 type projectState struct {
-	config                           rules.Configuration
-	configBytes                      []byte
-	local, assets, vendor, generated *filetxn.Tree
+	config                                   rules.Configuration
+	configBytes                              []byte
+	local, assets, skills, vendor, generated *filetxn.Tree
 }
 
 // readProject validates configuration and retains every authored and managed byte used for change detection. It
@@ -185,7 +196,7 @@ func readProject(ctx context.Context, root *os.Root) (projectState, error) {
 	for _, item := range []struct {
 		name  string
 		value **filetxn.Tree
-	}{{"rules", &state.local}, {"assets", &state.assets}, {"vendor", &state.vendor}, {"generated", &state.generated}} {
+	}{{"rules", &state.local}, {"assets", &state.assets}, {skills.Directory, &state.skills}, {"vendor", &state.vendor}, {"generated", &state.generated}} {
 		tree, err := filetxn.ReadTree(ctx, root, item.name)
 		if err != nil {
 			return projectState{}, err
@@ -202,6 +213,9 @@ func prepareProject(ctx context.Context, state projectState, options Options) (b
 	if err != nil {
 		return build.Output{}, err
 	}
+	if err := verifyExecutable(snapshots, state.vendor); err != nil {
+		return build.Output{}, err
+	}
 	libraries := map[string]build.Library{}
 	for _, source := range state.config.Sources {
 		snapshot := snapshots[source.Name]
@@ -215,8 +229,16 @@ func prepareProject(ctx context.Context, state projectState, options Options) (b
 }
 
 // loadSnapshot validates the library content of a verified snapshot, assembling each rule from the library
-// release that published it, and checks that it holds exactly the recorded rules and files.
+// release that published it, and checks that it holds exactly the recorded rules and files besides its skills'. A
+// snapshot of a repository that isn't a library has an empty catalog.
 func loadSnapshot(ctx context.Context, source rules.Source, snapshot snapshot) (library.Catalog, error) {
+	if snapshot.NonLibrary {
+		return library.Catalog{Rules: []string{}, Groups: []library.Group{}, SupportingFiles: map[string][]byte{}}, nil
+	}
+	ruleFiles := snapshot
+	ruleFiles.Files = maps.Clone(snapshot.Files)
+	maps.DeleteFunc(ruleFiles.Files, func(file string, _ []byte) bool { return snapshot.IsSkillFile(file) })
+	snapshot = ruleFiles
 	// An individually selected rule the snapshot doesn't import was retired when it was recorded.
 	individual := []string{}
 	for _, id := range source.Rules {
@@ -247,9 +269,13 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 	if err != nil {
 		return build.Output{}, err
 	}
-	output, err := build.Generate(state.config, libraries, authored, build.Options{ToolVersion: version, IndexMaxLines: options.IndexMaxLines, GroupInlineMaxBytes: options.GroupInlineMaxBytes})
+	local, err := authoredSkills(state.skills)
 	if err != nil {
 		return build.Output{}, err
+	}
+	output, err := build.Generate(state.config, libraries, authored, build.Options{ToolVersion: version, IndexMaxLines: options.IndexMaxLines, GroupInlineMaxBytes: options.GroupInlineMaxBytes, LocalSkills: local})
+	if err != nil {
+		return build.Output{}, clashFailure(err)
 	}
 	if err := ctx.Err(); err != nil {
 		return build.Output{}, err
@@ -269,10 +295,10 @@ func requireUnchanged(ctx context.Context, root *os.Root, before projectState) e
 	return nil
 }
 
-// sameProject reports whether two reads hold the same configuration bytes and rules, assets, vendor, and generated
-// trees.
+// sameProject reports whether two reads hold the same configuration bytes and rules, assets, skills, vendor, and
+// generated trees.
 func sameProject(a, b projectState) bool {
-	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.assets.Digest() == b.assets.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
+	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.assets.Digest() == b.assets.Digest() && a.skills.Digest() == b.skills.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
 }
 
 // authoredFiles returns the project's authored files keyed as build.Generate takes them: each file in rules/ by its

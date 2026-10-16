@@ -1,5 +1,6 @@
-// Adapt managed directories, the two project-guide filenames, the configuration, and the authored files under rules/
-// that sync and update write to the same recoverable transaction.
+// Adapt managed directories, the two project-guide filenames, the configuration, the authored files under rules/,
+// and the installed skill folders in the repository's skill targets that sync and update write to the same
+// recoverable transaction.
 
 package filetxn
 
@@ -10,10 +11,12 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/skills"
 )
 
 // GuideReadme and GuideStandalone are managed files, not permission to replace a general project README.
@@ -52,6 +55,35 @@ func LocalRuleAssets(file string) Target {
 // maxLocalRules bounds the local rules one transaction can replace, each with its asset directory, so its journal
 // stays small enough to read during recovery.
 const maxLocalRules = 1000
+
+// SkillFolder is the installed skill folder at folder, a path relative to the repository root, the parent of the
+// Code Rules directory: a skill target's folder and an install name, such as .claude/skills/build-feature. Sync,
+// update, and build replace or, with a nil file map, remove it together with generated output, so recovery restores
+// or finishes them together. Apply creates its missing parent directories. Callers must establish that Code Rules
+// installed an existing folder before replacing or removing it.
+func SkillFolder(folder string) Target { return Target(skillPrefix + folder) }
+
+// skillPrefix begins every SkillFolder target, whose folder is outside the Code Rules directory.
+const skillPrefix = "../"
+
+// maxSkillFolders bounds the skill folders one transaction can replace or remove, so its journal stays small enough
+// to read during recovery.
+const maxSkillFolders = 2000
+
+// skillFolderTarget returns the repository-relative folder of a SkillFolder target, reporting whether target is
+// one: a skill target's folder and a valid install name.
+func skillFolderTarget(target Target) (string, bool) {
+	folder, ok := strings.CutPrefix(string(target), skillPrefix)
+	if !ok || !skills.ValidName(path.Base(folder)) {
+		return "", false
+	}
+	for _, parent := range rules.SkillTargetFolders {
+		if path.Dir(folder) == parent {
+			return folder, true
+		}
+	}
+	return "", false
+}
 
 func guideTarget(target Target) bool { return target == GuideReadme || target == GuideStandalone }
 
@@ -93,14 +125,67 @@ func fileTarget(target Target) bool {
 }
 
 func validTarget(target Target) bool {
-	return target == Vendor || target == Generated || fileTarget(target) || localRuleAssetsTarget(target)
+	_, skill := skillFolderTarget(target)
+	return target == Vendor || target == Generated || fileTarget(target) || localRuleAssetsTarget(target) || skill
 }
 
-// requireRealParents fails with unsafe-path when a parent directory of target, such as rules/techs for authored group
-// metadata, is a symbolic link or not a directory, so publication and recovery never reach another file through
-// it. A missing parent passes: the target is absent.
-func requireRealParents(root *os.Root, target Target) error {
-	parts := strings.Split(string(target), "/")
+// removable reports whether a nil file map may remove target: a local rule's asset directory or a skill folder.
+func removable(target Target) bool {
+	_, skill := skillFolderTarget(target)
+	return localRuleAssetsTarget(target) || skill
+}
+
+// place is where a target and its transaction entries are: the root that holds them, the target's path in it, and
+// the transaction directory's path in it. Rename publishes within one root, so a skill folder, which is outside the
+// Code Rules directory, uses the repository root for its staged output and backup too.
+type place struct {
+	root *os.Root
+	live string
+	txn  string
+}
+
+// entry returns the path in p.root of the transaction entry named prefix plus target's entry name, such as its
+// staged output, new-<name>, or its backup.
+func (p place) entry(prefix string, target Target) string {
+	return path.Join(p.txn, prefix+entryName(target))
+}
+
+// roots resolves targets to places. project is the Code Rules directory; repository, its parent, is opened when a
+// skill folder first needs it, and close releases it.
+type roots struct {
+	project    *os.Root
+	repository *os.Root
+}
+
+// place returns where target is.
+func (r *roots) place(target Target) (place, error) {
+	folder, skill := skillFolderTarget(target)
+	if !skill {
+		return place{r.project, string(target), transactionName}, nil
+	}
+	if r.repository == nil {
+		repository, err := os.OpenRoot(filepath.Dir(r.project.Name()))
+		if err != nil {
+			return place{}, fmt.Errorf("open the repository root for %s: %w", folder, err)
+		}
+		r.repository = repository
+	}
+	return place{r.repository, folder, path.Join(filepath.Base(r.project.Name()), transactionName)}, nil
+}
+
+// close releases the repository root when place opened it.
+func (r *roots) close() error {
+	if r.repository == nil {
+		return nil
+	}
+	return r.repository.Close()
+}
+
+// requireRealParents fails with unsafe-path when a parent directory of live, a target's path in root, such as
+// rules/techs for authored group metadata, is a symbolic link or not a directory, so publication and recovery never
+// reach another file through it. A missing parent passes: the target is absent.
+func requireRealParents(root *os.Root, live string) error {
+	parts := strings.Split(live, "/")
 	for i := 1; i < len(parts); i++ {
 		parent := strings.Join(parts[:i], "/")
 		info, err := root.Lstat(parent)
@@ -136,10 +221,11 @@ func readTarget(ctx context.Context, root *os.Root, target Target, location stri
 	return &Tree{Files: map[string][]byte{string(target): data}}, nil
 }
 
-// writeTarget creates staged output exclusively; file payloads must contain exactly their declared filename.
-func writeTarget(ctx context.Context, root *os.Root, target Target, location string, files map[string][]byte) error {
+// writeTarget creates staged output exclusively; file payloads must contain exactly their declared filename. A
+// tree's executable files are those executable lists.
+func writeTarget(ctx context.Context, root *os.Root, target Target, location string, files map[string][]byte, executable []string) error {
 	if !fileTarget(target) {
-		return writeTree(ctx, root, location, files)
+		return writeTree(ctx, root, location, files, executable)
 	}
 	if err := ctx.Err(); err != nil {
 		return err

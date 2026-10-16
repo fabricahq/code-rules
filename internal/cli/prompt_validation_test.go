@@ -60,7 +60,8 @@ func TestInteractiveImpactRetry(t *testing.T) {
 	}
 }
 
-// TestSourceAnswerRetry corrects constrained library inputs before the declaration is saved.
+// TestSourceAnswerRetry corrects constrained source inputs, including a source that would include nothing, before
+// the declaration is saved.
 func TestSourceAnswerRetry(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	binary := buildCLI(t)
@@ -68,15 +69,17 @@ func TestSourceAnswerRetry(t *testing.T) {
 	if _, stderr, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(stderr)
 	}
-	groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
 	steps := []terminalfixture.Step{
 		{Prompt: "Git repository URL:", Answer: "acme/rules"},
 		{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
-		{Prompt: groupPrompt, Answer: "techs/go, techs/go"},
-		{Prompt: groupPrompt, Answer: "techs/*"},
+		{Prompt: rulesPrompt, Answer: "techs/go/*, techs/go/*"},
+		{Prompt: rulesPrompt, Answer: ""},
+		{Prompt: skillsPrompt, Answer: ""},
+		{Prompt: skillsPrompt, Answer: "skills/*"},
+		{Prompt: skillsPrompt, Answer: "*"},
 	}
-	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "library", "team"}, steps)
-	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 2 {
+	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "source", "team"}, steps)
+	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 4 {
 		t.Fatal(err, result)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
@@ -88,7 +91,7 @@ func TestSourceAnswerRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := config.Sources["team"]
-	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || !reflect.DeepEqual(source["rules"], map[string]any{"include": []any{"techs/*"}}) {
+	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || source["rules"] != nil || !reflect.DeepEqual(source["skills"], map[string]any{"include": []any{"*"}}) {
 		t.Fatal(string(data))
 	}
 }

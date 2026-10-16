@@ -33,6 +33,10 @@ type sourcePlan struct {
 	// the configured one, such as release/2 for refs/tags/release/2, so an equivalent spelling never rewrites the
 	// record; otherwise the configured one.
 	ref rules.GitRef
+	// nonLibrary reports that commit holds no library manifest, so the source imports only skills.
+	nonLibrary bool
+	// locked is the commit the source's record holds, which sync keeps, or empty for a source without one.
+	locked string
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
@@ -81,6 +85,13 @@ func (p *planner) choose() (sourcePlan, error) {
 	chosen.ref = p.source.Ref
 	if p.recorded != nil && p.recorded.Ref.Equal(p.source.Ref) {
 		chosen.ref = p.recorded.Ref
+	}
+	if p.recorded != nil {
+		chosen.locked = p.recorded.Commit
+	}
+	if chosen.nonLibrary {
+		chosen.retired = []string{}
+		return chosen, nil
 	}
 	chosen.retired, err = p.retiredRules(chosen)
 	return chosen, err
@@ -177,14 +188,15 @@ func (p *planner) releases() (releaseHistory, error) {
 	return *p.history, nil
 }
 
-// versioned returns the release history, failing with code releases-not-found before the first library release.
+// versioned returns the release history, failing with code ref-required when the repository has no library release
+// to follow: a library before its first library release, or a repository that isn't a library.
 func (p *planner) versioned() (releaseHistory, error) {
 	history, err := p.releases()
 	if err != nil {
 		return releaseHistory{}, err
 	}
 	if history.newest() == nil {
-		return releaseHistory{}, fail("releases-not-found", fmt.Sprintf("The library that source %s imports has no release/<number> tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with sources.%s.ref.", p.source.Name, p.source.Name), nil)
+		return releaseHistory{}, fail("ref-required", fmt.Sprintf("the repository has no release/<number> tags, so Code Rules can't choose a library release to take the source from: it isn't a library, or hasn't published its first library release. Set sources.%s.ref to the tag or full commit SHA to take it from.", p.source.Name), nil)
 	}
 	return history, nil
 }
@@ -349,6 +361,17 @@ func (p *planner) planRevision() (sourcePlan, error) {
 		if plan.release, plan.commit, err = p.resolveRef(); err != nil {
 			return sourcePlan{}, err
 		}
+	}
+	isLibrary, err := p.repo.isLibrary(p.ctx, plan.commit)
+	if err != nil {
+		return sourcePlan{}, err
+	}
+	if !isLibrary {
+		if p.source.HasRules() {
+			return sourcePlan{}, &ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: fmt.Sprintf("the repository has no library manifest, a .code-rules/config.yaml with a library section, at %s, so it isn't a library and has no rules to include; remove rules, and include its skills with skills.include", revisionName(plan.release, plan.commit))}
+		}
+		plan.nonLibrary = true
+		return plan, nil
 	}
 	tree, err := p.repo.tree(p.ctx, plan.commit)
 	if err != nil {

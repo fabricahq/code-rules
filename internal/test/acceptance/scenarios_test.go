@@ -196,7 +196,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		return report, err
 	}
 	report.Verified = append(report.Verified, "code-rules library release publishes the first library release, giving every rule 1.0.0")
-	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--groups", "techs/go"}} {
+	for _, args := range [][]string{{"project", "init"}, {"project", "add", "source", "team", "--repository", fixture.Repository, "--rules", "techs/go/*"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
 		}

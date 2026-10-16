@@ -11,7 +11,11 @@ This page describes the records Code Rules writes for version 2 configuration, w
 
 Read it when you want to understand why a rule or skill is present, investigate a library update, or find out why your project replaced a rule or skill. Tools can also read the JSON to report this information. To find and follow the rules themselves, agents start with [the generated rule index](/reference/files/#where-agents-start).
 
-This page shows where the records live, how Code Rules creates them, and how to trace a rule back to its source.
+This page shows where the records live, how Code Rules creates them, and how to trace a rule or skill back to its source.
+
+:::note[Preview]
+Skills, source record format 3, and the `kind`, `skillInclude`, `skills`, and `executable` fields come in the next Code Rules release.
+:::
 
 ## Where to look
 
@@ -159,6 +163,7 @@ A library's snapshot mirrors its Code Rules directory, so its files keep their p
   "formatVersion": 3,
   "kind": "library",
   "checksum": "5d1b…c07e",
+  "kind": "library",
   "repository": "https://github.com/fabricahq/public-rules.git",
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",

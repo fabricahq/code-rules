@@ -534,7 +534,7 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 		},
 	}
 	for name, operation := range operations {
-		for _, format := range []int{1, 3} {
+		for _, format := range []int{2, 4} {
 			t.Run(name+"/format "+strconv.Itoa(format), func(t *testing.T) {
 				_, options, git := syncProject(t)
 				if _, err := Sync(context.Background(), options, git); err != nil {
@@ -552,17 +552,17 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 				// A newer format can also hold fields and values this version can't decode, such as a number no
 				// Go type holds.
 				replacement := `"formatVersion": ` + strconv.Itoa(format)
-				if format > 2 {
+				if format > 3 {
 					replacement += `, "future": {"limit": 1e999, "rules": "another shape"}`
 				}
-				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 2`, replacement, 1))
+				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 3`, replacement, 1))
 				err = operation(options, git)
 				var failure *filetxn.Error
 				var invalid errs.ValidationError
 				switch {
-				case format > 2 && (!errors.As(err, &failure) || failure.Code != "unsupported-source-record" || !strings.Contains(err.Error(), "upgrade Code Rules") || strings.Contains(err.Error(), "delete")):
+				case format > 3 && (!errors.As(err, &failure) || failure.Code != "unsupported-source-record" || !strings.Contains(err.Error(), "upgrade Code Rules") || strings.Contains(err.Error(), "delete")):
 					t.Fatalf("got %v; want unsupported-source-record asking to upgrade", err)
-				case format < 2 && (!errors.As(err, &invalid) || !strings.Contains(err.Error(), "delete .code-rules/vendor/ and run code-rules project sync")):
+				case format < 3 && (!errors.As(err, &invalid) || !strings.Contains(err.Error(), "delete .code-rules/vendor/ and run code-rules project sync")):
 					t.Fatalf("got %v; want the advice to delete vendor/ and sync", err)
 				}
 			})
@@ -570,7 +570,7 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 	}
 }
 
-// TestSync_ReportsCodesForMissingLibraryReleases surfaces releases-not-found before the first library release.
+// TestSync_ReportsCodesForMissingLibraryReleases surfaces ref-required before the first library release.
 func TestSync_ReportsCodesForMissingLibraryReleases(t *testing.T) {
 	f, err := gitfixture.New(context.Background(), gitfixture.Library(map[string][]byte{"config.yaml": []byte(`{"schemaVersion":2,"sources":{},"library":{}}`)}))
 	if err != nil {
@@ -581,7 +581,7 @@ func TestSync_ReportsCodesForMissingLibraryReleases(t *testing.T) {
 	configure(t, options, f, `"rules":{"include":["*"]}`)
 	_, err = Sync(context.Background(), options, imports.Options{GitPath: f.GitPath, Environment: f.Environment})
 	var failure *imports.Error
-	if !errors.As(err, &failure) || failure.Code != "releases-not-found" {
+	if !errors.As(err, &failure) || failure.Code != "ref-required" {
 		t.Fatalf("got %v", err)
 	}
 }

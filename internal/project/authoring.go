@@ -39,8 +39,18 @@ type RuleOptions struct {
 }
 
 // Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and authored
-// files are preserved. It fails, writing nothing, when the project still has a local/ folder.
+// files are preserved. A new configuration installs skills into both skill targets, claude and agents. It fails,
+// writing nothing, when the project still has a local/ folder.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
+	return InitializeWithSkillTargets(ctx, options, nil)
+}
+
+// DefaultSkillTargets are the skill targets a new configuration installs skills into.
+var DefaultSkillTargets = []string{"claude", "agents"}
+
+// InitializeWithSkillTargets is Initialize, except that a non-nil skillTargets, a list of skill target names that
+// may be empty, sets skillTargets in a new configuration and replaces it in an existing one.
+func InitializeWithSkillTargets(ctx context.Context, options Options, skillTargets []string) (AuthoringResult, error) {
 	root, err := openProject(ctx, options, true)
 	if err != nil {
 		return AuthoringResult{}, err
@@ -53,8 +63,16 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old != nil {
-			if _, err = rules.ParseConfigurationYAML(old); err != nil {
+			config, err := rules.ParseConfigurationYAML(old)
+			if err != nil {
 				return nil, err
+			}
+			if skillTargets != nil && !slices.Equal(config.SkillTargets, skillTargets) {
+				data, err := rules.SetConfigurationSkillTargets(old, skillTargets)
+				if err != nil {
+					return nil, err
+				}
+				files = append(files, filetxn.File{Path: configurationFile, Content: data, Previous: old})
 			}
 		}
 		if _, err = filetxn.ReadTree(ctx, root, "rules"); err != nil {
@@ -69,7 +87,13 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old == nil {
-			data := []byte("schemaVersion: 2\nsources: {}\n")
+			if skillTargets == nil {
+				skillTargets = DefaultSkillTargets
+			}
+			data, err := rules.SetConfigurationSkillTargets([]byte("schemaVersion: 2\nsources: {}\n"), skillTargets)
+			if err != nil {
+				return nil, err
+			}
 			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {

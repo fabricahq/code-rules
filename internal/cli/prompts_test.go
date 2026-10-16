@@ -80,7 +80,14 @@ func TestInteractiveAuthoring(t *testing.T) {
 	}
 }
 
-// TestInteractiveSource prompts for the repository and, unless --rules selects rules, groups; never for the optional ref.
+// The prompts for a source's rule and skill selectors.
+const (
+	rulesPrompt  = "Rules (comma-separated selectors, or empty for none):"
+	skillsPrompt = "Skills (comma-separated skill IDs or *, or empty for none):"
+)
+
+// TestInteractiveSource prompts for the repository and, unless --rules or --skills selects something, rules and skills;
+// never for the optional ref.
 func TestInteractiveSource(t *testing.T) {
 	binary := buildCLI(t)
 	repository := terminalfixture.Step{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}
@@ -90,9 +97,11 @@ func TestInteractiveSource(t *testing.T) {
 		steps []terminalfixture.Step
 		want  map[string]any
 	}{
-		{"groups", nil, []terminalfixture.Step{repository, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}},
+		{"rules", nil, []terminalfixture.Step{repository, {Prompt: rulesPrompt, Answer: "techs/go/*, techs/rust/*"}, {Prompt: skillsPrompt, Answer: ""}},
 			map[string]any{"repository": "https://github.com/acme/rules", "rules": map[string]any{"include": []any{"techs/go/*", "techs/rust/*"}}}},
-		{"rules", []string{"--rules", "techs/go/wrap-errors"}, []terminalfixture.Step{repository},
+		{"skills", nil, []terminalfixture.Step{repository, {Prompt: rulesPrompt, Answer: ""}, {Prompt: skillsPrompt, Answer: "skills/review, skills/build-feature"}},
+			map[string]any{"repository": "https://github.com/acme/rules", "skills": map[string]any{"include": []any{"skills/build-feature", "skills/review"}}}},
+		{"rule flag", []string{"--rules", "techs/go/wrap-errors"}, []terminalfixture.Step{repository},
 			map[string]any{"repository": "https://github.com/acme/rules", "rules": map[string]any{"include": []any{"techs/go/wrap-errors"}}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -100,7 +109,7 @@ func TestInteractiveSource(t *testing.T) {
 			if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 				t.Fatal(stderr)
 			}
-			result, err := terminalfixture.Run(context.Background(), binary, directory, append([]string{"project", "add", "library", "team"}, test.flags...), test.steps)
+			result, err := terminalfixture.Run(context.Background(), binary, directory, append([]string{"project", "add", "source", "team"}, test.flags...), test.steps)
 			if err != nil || result.ExitCode != 0 {
 				t.Fatal(err, result)
 			}

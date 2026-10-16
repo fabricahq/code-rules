@@ -20,8 +20,8 @@ func TestScopedCommandHelp(t *testing.T) {
 		{nil, []string{"  project ", "  library "}, []string{"\n  help ", "  init ", "  add ", "  local ", "  build ", "  sync ", "  check "}},
 		{[]string{"project"}, []string{"Main commands:", "Utility commands:", "  init ", "  add ", "  sync ", "  build ", "  check "}, []string{"  local ", "Available Commands:", "Additional Commands:"}},
 		{[]string{"project", "--help"}, []string{"Main commands:", "Utility commands:"}, []string{"Available Commands:"}},
-		{[]string{"project", "add"}, []string{"  rule ", "  group ", "  library "}, []string{"  source ", "  local "}},
-		{[]string{"project", "add", "library", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--groups"}, nil},
+		{[]string{"project", "add"}, []string{"  rule ", "  group ", "  source "}, []string{"  library ", "  repository ", "  local "}},
+		{[]string{"project", "add", "source", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--rules", "--skills"}, nil},
 		{[]string{"project", "check", "--help"}, []string{"not whether application code follows"}, []string{"--config"}},
 		{[]string{"project", "add", "rule", "-h"}, []string{"code-rules project add rule RULE_PATH", "--body-file"}, nil},
 		{[]string{"library"}, []string{"  init ", "  add ", "  check "}, nil},
@@ -69,11 +69,11 @@ func TestScopedUsageErrors(t *testing.T) {
 	for _, args := range [][]string{
 		{"project", "build", "--config", "--json"},
 		{"--json", "project", "build", "--config", "one", "--config", "two"},
-		{"project", "--json", "add", "library", "team"},
+		{"project", "--json", "add", "source", "team"},
 		{"project", "add", "group", "techs/go", "--json"},
 		{"project", "check", "unexpected", "--json"},
 		{"project", "build", "--bad", "--json"},
-		{"project", "add", "library", "team", "--version", ">= 1.0.0", "--json"},
+		{"project", "add", "source", "team", "--version", ">= 1.0.0", "--json"},
 	} {
 		out, diagnostic, code := runCLI(t, binary, directory, args...)
 		var result response

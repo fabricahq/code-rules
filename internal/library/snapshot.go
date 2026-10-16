@@ -8,6 +8,7 @@ import (
 	"maps"
 	"path"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/fabricahq/code-rules/coderules"
@@ -40,8 +41,60 @@ type Snapshot struct {
 	Rules map[string]ImportedRule `json:"rules"`
 	// Files maps each library path to its original bytes, excluding _source.json, except config.yaml, which holds
 	// what the library publishes of its manifest, as rules.PublishedManifest gives it. The snapshot holds one version
-	// of each imported rule, so every file is stored at its library path.
+	// of each imported rule, so every file is stored at its library path. Each skill's files are stored in the
+	// folder its ID names, such as skills/build-feature/SKILL.md.
 	Files map[string][]byte `json:"files"`
+	// NonLibrary reports that the source's repository has no library manifest at Commit, so the snapshot holds only
+	// skills, at their paths in the repository, and no rules, release, or catalog files.
+	NonLibrary bool `json:"nonLibrary,omitempty"`
+	// SkillSelection repeats the source's skills.include selectors when the snapshot was recorded, sorted; it is
+	// empty, never nil, when there are none.
+	SkillSelection []string `json:"skillSelection"`
+	// Skills maps the ID of each skill the source installs to its record; it is empty, never nil, when there are
+	// none. Every skill comes from Commit.
+	Skills map[string]ImportedSkill `json:"skills"`
+	// Executable lists, sorted, the paths in Files whose executable bit the repository records; it is empty, never
+	// nil, when there are none.
+	Executable []string `json:"executable"`
+}
+
+// ImportedSkill records one installed skill from a source.
+type ImportedSkill struct {
+	// Level is the skill's level in its library, which is "offered" for every skill a library publishes, or empty
+	// for a skill from a repository that isn't a library.
+	Level string `json:"level,omitempty"`
+}
+
+// SkillFiles returns the files of skill id, by path in its folder. The bytes are shared with the snapshot.
+func (s Snapshot) SkillFiles(id string) map[string][]byte {
+	files := map[string][]byte{}
+	for name, data := range s.Files {
+		if relative, ok := strings.CutPrefix(name, id+"/"); ok {
+			files[relative] = data
+		}
+	}
+	return files
+}
+
+// SkillExecutable returns, sorted, the executable files of skill id, by path in its folder.
+func (s Snapshot) SkillExecutable(id string) []string {
+	executable := []string{}
+	for _, name := range s.Executable {
+		if relative, ok := strings.CutPrefix(name, id+"/"); ok {
+			executable = append(executable, relative)
+		}
+	}
+	return executable
+}
+
+// IsSkillFile reports whether file, a path in Files, belongs to one of the snapshot's skills.
+func (s Snapshot) IsSkillFile(file string) bool {
+	for id := range s.Skills {
+		if strings.HasPrefix(file, id+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // ImportedRule records one imported rule's version and the library release that published it.

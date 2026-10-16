@@ -12,7 +12,7 @@ go build -o ./dist/code-rules ./cmd/code-rules
 ./dist/code-rules --help
 ```
 
-The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules project init`, create a local group and rule, then `code-rules project build`. To adopt a library, use `code-rules project add library` with its repository and groups, then run `code-rules project sync`.
+The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules project init`, create a local group and rule, then `code-rules project build`. To adopt a library or a repository of skills, use `code-rules project add source` with its repository and rule or skill selectors, then run `code-rules project sync`.
 
 Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `code-rules project check` reports status and problems without writing files.
 
@@ -95,6 +95,7 @@ Use a new output directory for each attempt. Verify archive checksums against a 
 - `internal/errs`: error contracts several packages share, such as the `ValidationError` interface that each package's own validation error satisfies.
 - `internal/decode`: the strict rules every format shares for decoding YAML and JSON text into generic values, before the format's own parser reads them.
 - `internal/librarytree`: the structure of files and directories in a library, and the group and rule IDs derived from positions in that tree.
+- `internal/skills`: skill IDs, install names, the `SKILL.md` fields generated guidance shows, and the marker line of an installed copy.
 - `internal/rules`: validated configuration, change notes, license declarations, Git references, links, and rendering of authored rules and groups.
 - `internal/library`: initialize, author, check, load, and publish rule libraries.
 - `internal/imports`: choose rule versions from library release tags, import libraries with verified Git provenance, and read published rule versions for forks.

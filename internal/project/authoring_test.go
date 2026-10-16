@@ -71,7 +71,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if !bytes.Contains(draft, []byte("### Validation")) || !bytes.Contains(draft, []byte("<State one concrete obligation.>")) || bytes.Count(draft, []byte(rules.DraftMarker)) != 1 {
 		t.Fatal("canonical draft missing")
 	}
-	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "refs/tags/a&<b>", Groups: []string{"techs/*"}}
+	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "refs/tags/a&<b>", Rules: []string{"techs/*"}}
 	result, err = AddSource(ctx, "team", source, options)
 	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
@@ -171,7 +171,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "v1.0.0", Groups: []string{"techs/go"}}
+	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "v1.0.0", Rules: []string{"techs/go/*"}}
 	if _, err := AddSource(ctx, "team", source, options); err != nil {
 		t.Fatal(err)
 	}

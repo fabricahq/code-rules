@@ -38,7 +38,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 	run("project", "add", "rule", "techs/go/errors", "--title", "Return errors", "--when-to-read", "When calling functions", "--impact", "HIGH", "--impact-description", "Preserve failures", "--body-file", body, "--non-interactive")
 	run("project", "build")
 	run("project", "check")
-	run("project", "add", "library", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--groups", "*", "--non-interactive")
+	run("project", "add", "source", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--rules", "*", "--non-interactive")
 	data, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 	if err := os.WriteFile(name, []byte(text), 0600); err != nil {
 		t.Fatal(err)
 	}
-	run("project", "add", "library", "security", "--repository", "https://example.invalid/security.git", "--ref", "v2.0.0", "--groups", "practices/*", "--non-interactive")
+	run("project", "add", "source", "security", "--repository", "https://example.invalid/security.git", "--ref", "v2.0.0", "--rules", "practices/*", "--non-interactive")
 	data, err = os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 		t.Fatal(config)
 	}
 	before := projectFileContents(t, directory)
-	out, diagnostic, code := runCLI(t, binary, directory, "project", "add", "library", "team", "--non-interactive")
+	out, diagnostic, code := runCLI(t, binary, directory, "project", "add", "source", "team", "--non-interactive")
 	if code == 0 || !strings.Contains(diagnostic, "already exists") {
 		t.Fatal(code, out, diagnostic)
 	}
@@ -99,7 +99,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 		}
 	}
 	run("project", "init")
-	run("project", "add", "library", "existing", "--repository", "https://example.invalid/existing.git", "--ref", "v1.0.0", "--groups", "*", "--non-interactive")
+	run("project", "add", "source", "existing", "--repository", "https://example.invalid/existing.git", "--ref", "v1.0.0", "--rules", "*", "--non-interactive")
 	name := filepath.Join(directory, ".code-rules/config.yaml")
 	data, err := os.ReadFile(name)
 	if err != nil {
@@ -115,7 +115,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 	}
 	want := before.Sources[0].Exclude["techs/go/old"].Reason
 	for _, alias := range []string{"second", "third"} {
-		run("project", "add", "library", alias, "--repository", "https://example.invalid/"+alias+".git", "--ref", "v1.0.0", "--groups", "*", "--non-interactive")
+		run("project", "add", "source", alias, "--repository", "https://example.invalid/"+alias+".git", "--ref", "v1.0.0", "--rules", "*", "--non-interactive")
 		data, err = os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)
@@ -168,7 +168,7 @@ func TestProjectCommands_RejectAVersionOneConfiguration(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := projectFileContents(t, directory)
-	for _, args := range [][]string{{"project", "check"}, {"project", "sync"}, {"project", "build"}, {"project", "add", "library", "other", "--repository", "https://example.invalid/other.git", "--groups", "techs/go", "--non-interactive"}} {
+	for _, args := range [][]string{{"project", "check"}, {"project", "sync"}, {"project", "build"}, {"project", "add", "source", "other", "--repository", "https://example.invalid/other.git", "--rules", "techs/go/*", "--non-interactive"}} {
 		out, diagnostic, code := runCLI(t, binary, directory, args...)
 		if code != 1 || out != "" || !strings.HasPrefix(diagnostic, "Error: version 1 configuration is no longer supported") || !strings.Contains(diagnostic, "\n\nschemaVersion: 2\nsources:\n") || !strings.Contains(diagnostic, "\nLocation: schemaVersion\n") {
 			t.Errorf("%v: exit %d\n%s%s", args, code, out, diagnostic)

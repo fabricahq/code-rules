@@ -19,7 +19,7 @@ func TestAuthoringCLIProcess(t *testing.T) {
 		{"project", "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go."},
 		{"project", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions.", "--body-file", "body.md"},
 		{"project", "build"}, {"project", "check"},
-		{"project", "add", "library", "team", "--repository", "https://github.com/acme/rules", "--ref", "v1.2.3", "--groups", "techs/go"},
+		{"project", "add", "source", "team", "--repository", "https://github.com/acme/rules", "--ref", "v1.2.3", "--rules", "techs/go/*"},
 	} {
 		if err := os.WriteFile(filepath.Join(directory, "body.md"), []byte("# Return errors\n\nReturn failures to callers.\n"), 0600); err != nil {
 			t.Fatal(err)
@@ -29,7 +29,7 @@ func TestAuthoringCLIProcess(t *testing.T) {
 			t.Fatalf("%v: exit%d stdout=%s stderr=%s", args, code, stdout, stderr)
 		}
 	}
-	for _, args := range [][]string{{"project", "add", "group", "techs/rust"}, {"project", "add", "library", "missing", "--repository", "https://github.com/acme/other"}} {
+	for _, args := range [][]string{{"project", "add", "group", "techs/rust"}, {"project", "add", "source", "missing", "--repository", "https://github.com/acme/other"}} {
 		stdout, stderr, code := runCLI(t, binary, directory, args...)
 		if code != 2 || stdout != "" || !strings.Contains(stderr, "usage") {
 			t.Fatal(args, code, stdout, stderr)

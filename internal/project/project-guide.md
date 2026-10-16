@@ -82,21 +82,26 @@ Confirm that `.code-rules/rules/techs/go/return-errors.md` contains the complete
 
 Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions in the configuration, optionally naming an authored rule by its rule ID as `replacedBy`, when overriding imported rules; adding an authored rule does not automatically replace an imported rule.
 
-#### Add a third-party library
+#### Add a source
 
-Obtain the publisher's Git repository address and the group paths you intend to adopt. Inspect the library's guidance and license terms before adopting it. Replace this illustrative repository and selection:
+A source is a library, or any other Git repository with skill folders. Obtain the publisher's Git repository address, the rules you intend to adopt, and the skills you intend to install. Inspect the source's guidance, skills, and license terms before adopting it. Replace this illustrative repository and selection:
 
 ```sh
-code-rules project add library team \
+code-rules project add source team \
   --repository 'https://github.com/example/engineering-rules' \
-  --groups techs/go
+  --rules 'techs/go/*' \
+  --skills skills/build-feature
 code-rules project sync
 code-rules project check
 ```
 
-`code-rules project add library` records the declaration without fetching. `code-rules project sync` imports each selected rule's newest version from the library's releases, validates it, and installs vendor and generated files together. It records every rule's version in `.code-rules/vendor/team/_source.json`, and later syncs import those same versions. If any source fails, the previous complete output stays in place. Inspect the rule versions and retained terms in `.code-rules/generated/libraries/team/README.md` and `.code-rules/vendor/team/`.
+`code-rules project add source` records the declaration without fetching. `code-rules project sync` imports each selected rule's newest version from the library's releases, and every selected skill from the same library release, validates them, and installs vendor and generated files and the skills' installed copies together. It records every rule's version and every skill in `.code-rules/vendor/team/_source.json`, and later syncs take everything from that same record: to take a skill a newer library release adds, run `code-rules project update`. If any source fails, the previous complete output stays in place. Inspect the rule versions and retained terms in `.code-rules/generated/libraries/team/README.md` and `.code-rules/vendor/team/`.
 
-Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`. The configuration records each group in the source's `rules.include` as a selector, such as `techs/go/*`, so rules the library adds to a selected group later arrive with `code-rules project update`. To import single rules without the rest of their group, repeat `--rules` with library rule IDs such as `techs/go/shared`; supply at least one `--groups` or `--rules`. `--ref` imports the library exactly as it was at one tag, such as a library release tag `release/5`, or a full commit SHA. Branch names and abbreviated commits aren't supported.
+Repeat `--rules` for each rule selector: a group prefix such as `techs/go/*`, which also takes rules the library adds to the group later, on `code-rules project update`, a single rule ID such as `techs/go/shared`, or a wildcard. Quote wildcards: `--rules 'techs/*'` or `--rules '*'`. Repeat `--skills` for each skill ID, such as `skills/build-feature`, or pass `--skills '*'` for every skill the source offers; supply at least one `--rules` or `--skills`. `--ref` takes the source exactly as it was at one tag, such as a library release tag `release/5`, or a full commit SHA; a repository without library releases, such as one that isn't a library, needs it. Branch names and abbreviated commits aren't supported.
+
+#### Install skills
+
+Sync and build install each included skill, and each skill you author in `.code-rules/skills/<name>/SKILL.md`, into every skill target that `skillTargets` in `.code-rules/config.yaml` names: `claude` for `.claude/skills/` and `agents` for `.agents/skills/`. Commit the installed copies with the rest of the project. Don't edit them: sync and build replace them, and they never replace a folder in a skill target that Code Rules didn't install. `.code-rules/generated/SKILLS.md` lists every skill, what it does, and where it's installed.
 
 #### Keep a rule at its current version
 

@@ -177,10 +177,10 @@ Once a rule proves itself, you may want to move it into a **library**: a Git rep
 We recommend publishing your team's default rules in a repository such as `acme/.code-rules`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
 
 ```sh
-code-rules project add library fabrica \
+code-rules project add source fabrica \
   --repository https://github.com/fabricahq/public-rules.git \
-  --groups practices/testing \
-  --groups techs/go
+  --rules 'practices/testing/*' \
+  --rules 'techs/go/*'
 code-rules project sync
 ```
 
@@ -188,6 +188,7 @@ The dependency lands in `.code-rules/config.yaml`, the file you review and commi
 
 ```yaml
 schemaVersion: 2
+skillTargets: [claude, agents]
 sources:
   fabrica:
     repository: https://github.com/fabricahq/public-rules.git

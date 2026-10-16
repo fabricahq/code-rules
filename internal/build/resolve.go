@@ -73,16 +73,23 @@ type resolvedSource struct {
 	// Configured is the source's configuration, whose exclusions the library README marks in its rule versions table.
 	Configured rules.Source `json:"-"`
 	// Retired lists the rules the library retired, as the source record does, so the README marks one it imports.
-	Retired []string                  `json:"-"`
-	License *rules.LicenseDeclaration `json:"license"`
-	Paths   []string                  `json:"paths"`
-	Files   map[string][]byte         `json:"retainedFiles"`
+	Retired []string `json:"-"`
+	// NonLibrary marks a source whose repository isn't a library; SkillSelection is its skills.include, and Skills
+	// lists the IDs of the skills it installs, sorted.
+	NonLibrary     bool                      `json:"-"`
+	SkillSelection []string                  `json:"-"`
+	Skills         []string                  `json:"-"`
+	License        *rules.LicenseDeclaration `json:"license"`
+	Paths          []string                  `json:"paths"`
+	Files          map[string][]byte         `json:"retainedFiles"`
 }
 
 // resolution owns effective rules; supporting bytes are shared read-only with the input catalogs.
 // LocalPaths lists every supplied local path for link resolution, including metadata and attachments.
 // LocalFiles holds supporting bytes; active rules own their documents.
 type resolution struct {
+	// Skills lists the skills the project installs, by project ID.
+	Skills     []resolvedSkill   `json:"skills"`
 	Groups     []resolvedGroup   `json:"groups"`
 	Sources    []resolvedSource  `json:"sources"`
 	LocalPaths []string          `json:"localPaths"`
@@ -211,7 +218,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Configured: source, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Configured: source, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained, NonLibrary: snapshot.NonLibrary, SkillSelection: source.Skills, Skills: slices.Sorted(maps.Keys(snapshot.Skills))})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {

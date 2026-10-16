@@ -25,8 +25,9 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 
 // AppendConfigurationSource adds a source without dropping existing comments or reordering entries. Its rules.include
 // lists the source's wildcard, then its groups as selectors such as techs/go/*, then its individually selected rules;
-// its pins and exclude lists follow in rule ID order, and are omitted when empty, as ref is.
-// Pinned versions are written quoted, such as version: "1.3.0".
+// its pins and exclude lists follow in rule ID order, and are omitted when empty, as ref is. rules is omitted for a
+// source that includes no rules, and skills.include, which lists the source's skill selectors, for one that includes
+// no skills. Pinned versions are written quoted, such as version: "1.3.0".
 // Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
@@ -49,27 +50,66 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 		include = append(include, group+"/*")
 	}
 	include = append(include, source.Rules...)
+	type selection struct {
+		Include []string `yaml:"include"`
+	}
 	declaration := struct {
-		Repository string `yaml:"repository"`
-		Ref        string `yaml:"ref,omitempty"`
-		Rules      struct {
-			Include []string `yaml:"include"`
-		} `yaml:"rules"`
+		Repository string     `yaml:"repository"`
+		Ref        string     `yaml:"ref,omitempty"`
+		Rules      *selection `yaml:"rules,omitempty"`
+		Skills     *selection `yaml:"skills,omitempty"`
 	}{Repository: source.Repository, Ref: source.Ref.String()}
-	declaration.Rules.Include = include
+	if len(include) > 0 {
+		declaration.Rules = &selection{include}
+	}
+	if len(source.Skills) > 0 {
+		declaration.Skills = &selection{source.Skills}
+	}
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {
 		return nil, err
 	}
-	ruleFields := mappingValue(&entry, "rules")
-	if err := addEntries(ruleFields, "pins", pinNodes(source.Pins), "sources."+alias+".rules"); err != nil {
-		return nil, err
-	}
-	if err := addEntries(ruleFields, "exclude", exclusionNodes(source.Exclude), "sources."+alias+".rules"); err != nil {
-		return nil, err
+	if ruleFields := mappingValue(&entry, "rules"); ruleFields != nil {
+		if err := addEntries(ruleFields, "pins", pinNodes(source.Pins), "sources."+alias+".rules"); err != nil {
+			return nil, err
+		}
+		if err := addEntries(ruleFields, "exclude", exclusionNodes(source.Exclude), "sources."+alias+".rules"); err != nil {
+			return nil, err
+		}
 	}
 	sources.Content = append(sources.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: alias}, &entry)
 	sources.Style = 0
+	return encodeConfiguration(document)
+}
+
+// SetConfigurationSkillTargets sets skillTargets to targets, keys of SkillTargetFolders in the order given, replacing
+// the field, or adding it after schemaVersion, without dropping other comments or reordering entries. The complete
+// resulting configuration is validated before any bytes are returned.
+func SetConfigurationSkillTargets(input []byte, targets []string) ([]byte, error) {
+	document, data, err := decode.YAML(input, "configuration")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := ParseConfiguration(data); err != nil {
+		return nil, err
+	}
+	list := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Style: yaml.FlowStyle}
+	for _, target := range targets {
+		list.Content = append(list.Content, textNode(target))
+	}
+	root := document.Content[0]
+	if existing := mappingValue(root, "skillTargets"); existing != nil {
+		*existing = *list
+		return encodeConfiguration(document)
+	}
+	at := 0
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value == "schemaVersion" {
+			at = i + 2
+		}
+	}
+	root.Content = slices.Insert(root.Content, at, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "skillTargets"}, list)
+	root.Style = 0
 	return encodeConfiguration(document)
 }
 
@@ -129,10 +169,15 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
-	// A parsed configuration's source always has rules, which holds its include.
-	ruleFields := mappingValue(source, "rules")
-	ruleFields.Style = 0
 	where := "sources." + alias + ".rules"
+	ruleFields := mappingValue(source, "rules")
+	if ruleFields == nil {
+		if len(edit.Pins)+len(edit.Exclude)+len(edit.Unpin)+len(edit.BasedOn) > 0 {
+			return nil, invalid(where, "the source includes no rules, so it has no rules to pin or exclude")
+		}
+		return encodeConfiguration(document)
+	}
+	ruleFields.Style = 0
 	if err := removeEntries(ruleFields, "pins", edit.Unpin, where); err != nil {
 		return nil, err
 	}

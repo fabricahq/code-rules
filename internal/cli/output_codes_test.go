@@ -19,7 +19,7 @@ func TestSyncJSON_ReportsGitFailureCode(t *testing.T) {
 	directory := t.TempDir()
 	for _, args := range [][]string{
 		{"project", "init"},
-		{"project", "add", "library", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--groups", "*", "--non-interactive"},
+		{"project", "add", "source", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--rules", "*", "--non-interactive"},
 	} {
 		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
 			t.Fatal(args, code, out, diagnostic)
@@ -79,7 +79,7 @@ func TestSyncJSON_ReportsRuleVersionCodes(t *testing.T) {
 		name, fields, code string
 		released           bool
 	}{
-		{"no library release", `"rules":{"include":["techs/go/*"]}`, "releases-not-found", false},
+		{"no library release", `"rules":{"include":["techs/go/*"]}`, "ref-required", false},
 		{"pin to an unpublished version", `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"2.0.0","reason":"Typo."}]}`, "version-not-found", true},
 		{"missing ref", `"rules":{"include":["techs/go/*"]},"ref":"release/7"`, "version-not-found", true},
 	} {
