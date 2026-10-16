@@ -17,7 +17,7 @@ In this walkthrough, you'll:
 2. Build the files your agent will read from that rule.
 3. Add a rule written by someone else. You'll get it from a **library**, a collection of rules and skills maintained separately for projects to reuse. We'll use Fabrica's public library as an example.
 4. Install a **skill** from the same library: a step-by-step procedure your agent can follow, which applies the library's rules.
-5. Tell your coding agent where to find and read the rules, then try a task.
+5. See how your coding agent finds the rules, then try a task.
 6. Commit the guidance and skills so everyone working on the project can use them.
 
 Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Syllabus installed](/start-here/install/), and Git to fetch the library. To publish rules for other projects to use instead, follow [Create your first library](/start-here/create-library/).
@@ -28,7 +28,7 @@ Start in the **project root**, the top-level directory of the codebase you want 
 syllabus project init
 ```
 
-This creates the **Syllabus directory**, `.syllabus/`, with your **project configuration** in `.syllabus/config.yaml` and a place for the rules and skills you write yourself in `rules/` and `skills/`. The configuration also sets `skillTargets: [claude, agents]`, so skills you install later are written where Claude Code and other agents look for them. Initializing Syllabus does not change your project's `README.md` or agent instructions, and writes nothing outside `.syllabus/` until you install a skill.
+This creates the **Syllabus directory**, `.syllabus/`, with your **project configuration** in `.syllabus/config.yaml` and a place for the rules and skills you write yourself in `rules/` and `skills/`. The configuration also sets `skillTargets: [claude, agents]`, so skills you install later are written where Claude Code and other agents look for them. It also adds a section to your project's `AGENTS.md`, creating the file if needed, which you'll look at in step 6. Initializing Syllabus doesn't change your project's `README.md` or your own text in `AGENTS.md`.
 
 Later, when you add a library, Syllabus saves a copy of its files, at the rule versions your configuration chooses, in `vendor/`. Syllabus prepares your own rules and the ones you include from libraries in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
@@ -169,12 +169,10 @@ Open `.claude/skills/build-feature/SKILL.md`. The steps come from the library. T
 
 ## 6. Give the rules to your agent
 
-Your own rules and the library's are now available in the repository, but you haven't yet told your coding agent to read them. Let's add that instruction. Agents that support skills find installed skills on their own; for other agents, `RULES.md` points to `SKILLS.md`.
-
-Add this section to your existing `AGENTS.md`, or the equivalent project instruction file your coding agent reads. Create that file if you don't have one; preserve any existing instructions.
+Your own rules and the library's are now available in the repository. Your coding agent reads them because `syllabus project init` added this section to `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers. Agents that support skills also find installed skills on their own.
 
 ```markdown
-## Engineering rules
+## Skills and Rules
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 
@@ -190,7 +188,13 @@ Before planning, implementing, reviewing, testing, or debugging a change:
 
 If required rule files are unavailable or give conflicting instructions,
 report the issue rather than silently skipping them or choosing a policy.
+
+To add, change, or update rules or skills, follow `.syllabus/README.md`.
 ```
+
+Step 2 points every agent to the [skills](/concepts/skill/) you installed. Syllabus keeps the section current whenever you run `init`, `build`, `sync`, or `update`, and never changes your text outside the markers. Don't edit the section itself; write your own instructions above or below it. To manage `AGENTS.md` yourself instead, turn the section off with [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section).
+
+If your agent reads a different instruction file, have it import or link `AGENTS.md`. For Claude Code, add the line `@AGENTS.md` to `CLAUDE.md`.
 
 Now ask your agent for a change as you normally would. For example, in a checkout project:
 
@@ -202,7 +206,7 @@ For your first task, check that the agent reads the relevant rules and validates
 
 ## 7. Commit the guidance for your team
 
-Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.syllabus/` directory, the installed skills in `.claude/skills/` and `.agents/skills/`, and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, your own rules, the library's vendored files, and generated guidance. If your `.gitignore` excludes `/.claude/`, change that line to `/.claude/*` and add `!/.claude/skills/`, because Git can't re-include a folder inside an excluded one.
+Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.syllabus/` directory, the installed skills in `.claude/skills/` and `.agents/skills/`, and `AGENTS.md` together. This includes your configuration, your own rules, the library's vendored files, and generated guidance. If your `.gitignore` excludes `/.claude/`, change that line to `/.claude/*` and add `!/.claude/skills/`, because Git can't re-include a folder inside an excluded one.
 
 Anyone who checks out the repository, including a fresh cloud session, will then have the same rules, skills, and instructions for their agent on future tasks.
 

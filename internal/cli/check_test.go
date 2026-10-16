@@ -23,8 +23,8 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 			t.Fatal(code, out, diagnostic)
 		}
 	}
-	for _, name := range []string{"README.md", "generated/groups/README.md"} {
-		if err := os.Remove(filepath.Join(directory, ".syllabus", name)); err != nil {
+	for _, name := range []string{".syllabus/README.md", ".syllabus/generated/groups/README.md", "AGENTS.md"} {
+		if err := os.Remove(filepath.Join(directory, name)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -60,6 +60,8 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		"stale-contents":  "generated/RULES.md",
 		"unexpected-file": "generated/unexpected.md",
 		"outdated-readme": "README.md",
+		// Paths are relative to the Syllabus directory.
+		"outdated-agents-section": "../AGENTS.md",
 	}
 	if !reflect.DeepEqual(kinds, want) {
 		t.Fatal(kinds, want)
@@ -89,8 +91,12 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		script := strings.Replace(repair, "syllabus", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
 		command := exec.Command("/bin/sh", "-eu", "-c", script)
 		command.Dir = directory
-		if output, err := command.CombinedOutput(); err != nil {
+		output, err := command.CombinedOutput()
+		if err != nil {
 			t.Fatal(repair, err, string(output))
+		}
+		if !strings.Contains(string(output), "Syllabus section added to a new file: AGENTS.md\n") {
+			t.Fatal("build didn't report the AGENTS.md it created", string(output))
 		}
 	}
 	out, diagnostic, code = runCLI(t, binary, directory, "project", "check", "--json")

@@ -36,12 +36,14 @@ type Options struct {
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
 // names, list rules/<group>/_group.yaml when they add an authored group's metadata, and update also lists
 // config.yaml when it writes pins or exclusions.
-// Empty lists mean matching tree output; Guide reports a separate managed-guide update.
+// Empty lists mean matching tree output; Guide reports a separate managed-guide update, and Agents a change to the
+// Syllabus section of the repository's AGENTS.md.
 type FileChanges struct {
-	Added   []string     `json:"added"`
-	Changed []string     `json:"changed"`
-	Removed []string     `json:"removed"`
-	Guide   *GuideChange `json:"guide,omitempty"`
+	Added   []string      `json:"added"`
+	Changed []string      `json:"changed"`
+	Removed []string      `json:"removed"`
+	Guide   *GuideChange  `json:"guide,omitempty"`
+	Agents  *AgentsChange `json:"agents,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
 	// they wrote, then skills installed nowhere for want of skill targets, then, for build too, each rule an
@@ -60,8 +62,9 @@ type GuideChange struct {
 	Created bool   `json:"created"`
 }
 
-// Build generates rules offline and refreshes the managed project guide in one recoverable transaction.
-// Cancellation, validation failure, or detected edits preserve existing output; errors return no changes.
+// Build generates rules offline and refreshes the managed project guide and the Syllabus section of the repository's
+// AGENTS.md in one recoverable transaction. Cancellation, validation failure, or detected edits preserve existing
+// output; errors return no changes.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
@@ -91,6 +94,11 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
+		agents, err := planAgentsSection(ctx, root, before.config, options)
+		if err != nil {
+			return err
+		}
+		defer agents.close()
 		changes = compareFiles(treeFiles(before.generated), output.Files)
 		changes.Warnings = append(retiredCitationWarnings(output), output.ExcludedUses...)
 		// Build reports paths relative to generated/, two folders below the repository root.
@@ -98,8 +106,12 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
 		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)
+		agents.include(targets, &changes)
 		return w.ApplyModes(targets, installs.executable, func() error {
 			if err := requireUnchanged(ctx, root, before); err != nil {
+				return err
+			}
+			if err := agents.requireUnchanged(ctx); err != nil {
 				return err
 			}
 			if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
@@ -128,6 +140,12 @@ type checkedProject struct {
 // folder in a skill target that Syllabus would install into but didn't install, and a rule an authored skill cites
 // that its library retired are errors.
 func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (checkedProject, error) {
+	return checkProjectFiles(ctx, options, expected, nil)
+}
+
+// checkProjectFiles is checkWithFiles, also calling inspect, when not nil, with the Syllabus directory and the
+// project's configuration before it rechecks the snapshot, for checks of files outside the Syllabus directory.
+func checkProjectFiles(ctx context.Context, options Options, expected map[string][]byte, inspect func(*os.Root, rules.Configuration) error) (checkedProject, error) {
 	if err := ctx.Err(); err != nil {
 		return checkedProject{}, err
 	}
@@ -160,6 +178,11 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	installs, err := planSkillFolders(ctx, root, before.generated, output)
 	if err != nil {
 		return checkedProject{}, err
+	}
+	if inspect != nil {
+		if err := inspect(root, before.config); err != nil {
+			return checkedProject{}, err
+		}
 	}
 	if err := requireCheckUnchanged(ctx, root, before, expected, files); err != nil {
 		return checkedProject{}, err
@@ -291,10 +314,7 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 	if err := ctx.Err(); err != nil {
 		return build.Output{}, err
 	}
-	version := options.ToolVersion
-	if version == "" {
-		version = "0.0.0-development"
-	}
+	version := toolVersion(options)
 	authored, err := authoredFiles(state)
 	if err != nil {
 		return build.Output{}, err

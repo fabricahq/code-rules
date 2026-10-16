@@ -28,9 +28,9 @@ type checkProblem struct {
 	NextSteps []nextStep `json:"nextSteps"`
 }
 
-// rebuild is the repair of every problem project check reports about generated files and the managed guide:
-// regenerating them.
-var rebuild = nextStep{Instruction: "Regenerate the project's generated files and Syllabus guide:", Commands: []string{"syllabus project build"}}
+// rebuild is the repair of every problem project check reports about generated files, the managed guide, and the
+// AGENTS.md section: regenerating them.
+var rebuild = nextStep{Instruction: "Regenerate the project's generated files, Syllabus guide, and AGENTS.md section:", Commands: []string{"syllabus project build"}}
 
 // reinstallSkills is the repair of every problem project check reports about an installed skill folder: installing
 // fresh copies from each skill's source.
@@ -56,6 +56,8 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 			message = "Unexpected generated file"
 		case project.OutdatedGuide:
 			message = "Syllabus guide is missing or outdated; preserve any manual edits before refreshing"
+		case project.OutdatedAgents:
+			message = "AGENTS.md is missing the Syllabus section, or holds an outdated one"
 		case project.MissingSkill:
 			message, repair = "Installed skill "+problem.Skill+" is missing", reinstallSkills
 		case project.ModifiedSkill:

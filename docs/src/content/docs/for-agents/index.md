@@ -9,10 +9,10 @@ See [product scope](/start-here/overview/#what-syllabus-does-not-do).
 
 ## Project instructions
 
-To use this workflow, add the following section to the project's existing `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, or use it as a starting point for a direct agent prompt. `syllabus project init` also writes it into the project's `.syllabus/README.md`.
+`syllabus project init`, `build`, `sync`, and `update` keep this section in the project's `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers. If your agent reads another instruction file, have it import or link `AGENTS.md`, or use the section as a starting point for a direct agent prompt.
 
 ```markdown
-## Engineering rules
+## Skills and Rules
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 
@@ -28,6 +28,8 @@ Before planning, implementing, reviewing, testing, or debugging a change:
 
 If required rule files are unavailable or give conflicting instructions,
 report the issue rather than silently skipping them or choosing a policy.
+
+To add, change, or update rules or skills, follow `.syllabus/README.md`.
 ```
 
 `.syllabus/generated/RULES.md` then tells the agent how to select rule groups, read rules, and report findings, so these instructions stay short.
