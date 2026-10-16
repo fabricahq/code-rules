@@ -11,10 +11,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // PublishedRule is one published version of a library rule, as the library release that published it holds it.
@@ -23,7 +23,7 @@ type PublishedRule struct {
 	Release int
 	Commit  string
 	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
-	// their library paths from the repository root rather than in .code-rules/rules/.
+	// their library paths from the repository root rather than in .syllabus/rules/.
 	LegacyLayout bool
 	// Files holds original bytes by library path: the rule's Markdown file, its asset directory's files, and each
 	// file in the shared assets/ directory that those files link to, directly or through other shared assets.
@@ -37,13 +37,13 @@ type PublishedRule struct {
 // without writing outside temporary storage. The library release that published the version is found from the
 // release records in its release/<number> tags. It fails with code releases-not-found before the library's first
 // library release, and version-not-found when the rule never published version.
-func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version coderules.RuleVersion, options Options) (PublishedRule, error) {
+func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version syllabus.RuleVersion, options Options) (PublishedRule, error) {
 	return readPublishedRule(ctx, source, id, version, options, nil)
 }
 
 // readPublishedRule is ReadPublishedRule, failing with expect's error, when expect isn't nil, before reading any rule
 // file of the library release it finds.
-func readPublishedRule(ctx context.Context, source rules.Source, id string, version coderules.RuleVersion, options Options, expect func(*libraryRelease) error) (_ PublishedRule, err error) {
+func readPublishedRule(ctx context.Context, source rules.Source, id string, version syllabus.RuleVersion, options Options, expect func(*libraryRelease) error) (_ PublishedRule, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return PublishedRule{}, err
@@ -114,7 +114,7 @@ func readPublishedRule(ctx context.Context, source rules.Source, id string, vers
 
 // publishingRelease returns the library release that published version of rule id. Its errors name the versions
 // the rule did publish.
-func publishingRelease(history releaseHistory, id string, version coderules.RuleVersion) (*libraryRelease, error) {
+func publishingRelease(history releaseHistory, id string, version syllabus.RuleVersion) (*libraryRelease, error) {
 	if history.newest() == nil {
 		return nil, fail("releases-not-found", "The library has no release/<number> tags, because it hasn't published its first library release, so its rules have no versions to fork. Ask the maintainer to publish a library release.", nil)
 	}

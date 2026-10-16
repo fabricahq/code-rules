@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/filetxn"
 )
 
 // TestCheckWithFiles reports guide drift together with generated drift without writing repairs.
@@ -94,7 +94,7 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 			case "config-edited":
 				writeFixture(t, root, "config.yaml", "{\n\"schemaVersion\":2,\"sources\":{}}\n")
 			case "writer-started":
-				if err := root.Mkdir(".code-rules-lock", 0700); err != nil {
+				if err := root.Mkdir(".syllabus-lock", 0700); err != nil {
 					t.Fatal(err)
 				}
 			}

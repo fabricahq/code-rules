@@ -1,11 +1,11 @@
 // The validation error this package reports for invalid input, and its translation of internal packages' errors.
 
-package coderules
+package syllabus
 
 import (
 	"errors"
 
-	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/syllabus/internal/errs"
 )
 
 // ValidationError reports invalid input at a location, such as a field of a release record or a rule file. Every
@@ -36,7 +36,7 @@ func invalid(location, problem string) error {
 }
 
 // translate returns err with the validation error of an internal package, such as decode or librarytree, replaced
-// by a *ValidationError with the same location and problem, keeping err's text, so callers outside Code Rules only
+// by a *ValidationError with the same location and problem, keeping err's text, so callers outside Syllabus only
 // ever see this package's error types. It returns other errors, and nil, as they are.
 func translate(err error) error {
 	var internal errs.ValidationError

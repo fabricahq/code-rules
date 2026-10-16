@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // TestRuleRequiresExistingGroup exercises the same refusal in unattended and real-terminal use.
@@ -27,7 +27,7 @@ func TestRuleRequiresExistingGroup(t *testing.T) {
 			}
 			before := projectFileContents(t, directory)
 			args := []string{family, "add", "rule", "techs/go/errors"}
-			want := "code-rules " + family + " add group techs/go"
+			want := "syllabus " + family + " add group techs/go"
 			out, diagnostic, code := runCLI(t, binary, directory, append(args, "--json")...)
 			if code == 0 || !strings.Contains(out, want) || diagnostic != "" {
 				t.Fatal(code, out, diagnostic)

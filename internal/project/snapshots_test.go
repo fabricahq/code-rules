@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // Commits of the fixture's two library releases.
@@ -40,7 +40,7 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"rules":{"include":["techs/go/*"]}`)
-	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
+	one, two := syllabus.RuleVersion{Major: 1}, syllabus.RuleVersion{Major: 1, Minor: 1}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne, LegacyLayout: true}},
 		Files: map[string][]byte{
@@ -57,7 +57,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 func requireSync(t *testing.T, got map[string]snapshot, err error) {
 	t.Helper()
 	var validation errs.ValidationError
-	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v, %v; want a failure that asks for sync", got, err)
 	}
 }
@@ -90,8 +90,8 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	}
 }
 
-// TestSnapshotRuleLinkToSharedAssetResolvesInVendor stores a rule where it is in the library's Code Rules directory,
-// under rules/, so its link to a shared asset, written from .code-rules/rules/techs/go/, reaches the vendored asset.
+// TestSnapshotRuleLinkToSharedAssetResolvesInVendor stores a rule where it is in the library's Syllabus directory,
+// under rules/, so its link to a shared asset, written from .syllabus/rules/techs/go/, reaches the vendored asset.
 func TestSnapshotRuleLinkToSharedAssetResolvesInVendor(t *testing.T) {
 	config, input := snapshotFixture(t)
 	link := "../../../assets/image.bin"
@@ -264,7 +264,7 @@ func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
 	}
 	got, err := decodeSnapshots(snapshotConfig(t, `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/erorrs","reason":"Typo."}]}`), vendor)
 	var validation errs.ValidationError
-	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v, %v; want a failure naming the entry that asks for sync", got, err)
 	}
 }
@@ -395,7 +395,7 @@ func TestSnapshotOfALibraryInTheLayoutBeforeVersion2IsUnsupported(t *testing.T) 
 	delete(encoded, "team/config.yaml")
 	got, err := decodeSnapshots(config, encoded)
 	var validation errs.ValidationError
-	want := "records a library in the layout from before this version of Code Rules, with rule-library.yaml, which this version can't read. Once the library has moved its files into .code-rules/ and published a library release, delete .code-rules/vendor/team/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
+	want := "records a library in the layout from before this version of Syllabus, with rule-library.yaml, which this version can't read. Once the library has moved its files into .syllabus/ and published a library release, delete .syllabus/vendor/team/ and run syllabus project sync to import the source again, which imports its unpinned rules at their newest versions"
 	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/team/_source.json" || validation.ValidationProblem() != want {
 		t.Fatalf("got %v, %v; want %s", got, err, want)
 	}
@@ -410,7 +410,7 @@ func TestSnapshotFormatOneIsUnsupported(t *testing.T) {
 		"sync":    func() error { _, err := recordedSnapshots(config, vendor); return err },
 	} {
 		var validation errs.ValidationError
-		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .code-rules/vendor/ and run code-rules project sync") {
+		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .syllabus/vendor/ and run syllabus project sync") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
@@ -442,7 +442,7 @@ func TestRecordedSnapshotsReadRecordsWithoutCheckingConfiguration(t *testing.T) 
 // TestSnapshotRefChecks verifies what offline checks can about ref: the commit a SHA names, the library release
 // a release tag names, and no library release for any other tag.
 func TestSnapshotRefChecks(t *testing.T) {
-	one := coderules.RuleVersion{Major: 1}
+	one := syllabus.RuleVersion{Major: 1}
 	for _, test := range []struct {
 		name, ref string
 		release   int

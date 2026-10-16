@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // SkillExclusion leaves one skill a source would install out of the installed skills, with the project's reason.
 type SkillExclusion struct {
 	Reason string `json:"reason"`
 	// ReplacedBy is empty, or the ID of the authored skill installed in the excluded skill's place, skills/<name>,
-	// which is also its folder's path in the Code Rules directory.
+	// which is also its folder's path in the Syllabus directory.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// BasedOn is the commit of the source's repository whose copy of the skill the replacement was made from, which
 	// updates compare the source's newer revisions with. It is the zero GitRef when the project doesn't record one,
@@ -36,7 +37,7 @@ func parseSkillExclusions(input json.RawMessage, location string) (map[string]Sk
 		case skills.Wildcard:
 			return invalid(where, `an exclusion names one skill by ID, such as skills/build-feature, not "*"; to install none of the source's skills, remove skills.include`)
 		case "recommended":
-			return invalid(where, "skill levels aren't supported yet in this version of Code Rules; name the skill to exclude by ID, such as skills/build-feature")
+			return invalid(where, "skill levels aren't supported yet in this version of Syllabus; name the skill to exclude by ID, such as skills/build-feature")
 		}
 		return skills.ValidateID(id, where)
 	})
@@ -83,11 +84,11 @@ func parseSkillReplacement(raw json.RawMessage, location string) (string, error)
 	if isID && skills.ValidName(name) {
 		return text, nil
 	}
-	named := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(text, ".code-rules/"), "/"+skills.File), "/")
+	named := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(librarytree.Upgrade(text), librarytree.Directory+"/"), "/"+skills.File), "/")
 	if bare := strings.TrimPrefix(named, skills.Directory+"/"); skills.ValidName(bare) {
 		return "", invalid(location, "replacedBy names the authored skill by its ID, "+skills.AuthoredID(bare)+", not "+decode.Quote(text))
 	}
-	return "", invalid(location, "expected the ID of an authored skill in .code-rules/skills/, such as skills/build-feature, got "+decode.Quote(text))
+	return "", invalid(location, "expected the ID of an authored skill in .syllabus/skills/, such as skills/build-feature, got "+decode.Quote(text))
 }
 
 // parseBasedOnCommit reads a skill replacement's basedOn: a full commit SHA, in quotes.

@@ -4,12 +4,12 @@ description: "Choose clear terms for rules and skills, and preserve them when pr
 ---
 
 :::caution[Preview]
-This guide uses the version 2 manifest and describes skill licensing, which aren't in a released version of Code Rules yet. The released CLI reads the license declaration from `rule-library.yaml`.
+This guide uses the version 2 manifest and describes skill licensing, which aren't in a released version of Syllabus yet. The released CLI reads the license declaration from `rule-library.yaml`.
 :::
 
 A library's **license** states the terms for using, copying, modifying, and sharing its rules and skills. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
 
-This guide walks through choosing what your terms should cover, declaring them in your library's manifest, and checking what Code Rules preserves when projects take your rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
+This guide walks through choosing what your terms should cover, declaring them in your library's manifest, and checking what Syllabus preserves when projects take your rules. Syllabus carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
 
 ## Decide what the license covers
 
@@ -33,10 +33,10 @@ Have the chosen terms reviewed for the rights and restrictions you intend before
 
 ## Declare the library's terms
 
-The Code Rules format does not require a particular license.
+The Syllabus format does not require a particular license.
 
 Keep the actual license text in `LICENSE.md` at the repository root, or another explicitly named file.
-The `library.license` section of the [manifest](/reference/library-format/#the-manifest), in `.code-rules/config.yaml`, identifies the terms for the whole library and any accompanying notice files:
+The `library.license` section of the [manifest](/reference/library-format/#the-manifest), in `.syllabus/config.yaml`, identifies the terms for the whole library and any accompanying notice files:
 
 ```yaml
 library:
@@ -46,12 +46,12 @@ library:
     notices: []
 ```
 
-Paths resolve from the repository root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
+Paths resolve from the repository root and identify source files only. Syllabus copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
 For example, list `NOTICE.md` in `notices` when the library supplies a notice that must accompany copies of its content.
 No extra notice file is required when the license and rule files already contain the necessary notices.
 The [file reference](/reference/library-format/#license-metadata) defines these fields.
 
-Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules validates the `library.license.spdxExpression` syntax and identifiers and preserves your declaration. It does not verify that the declaration matches the retained terms or grants the permissions you need.
+Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Syllabus validates the `library.license.spdxExpression` syntax and identifiers and preserves your declaration. It does not verify that the declaration matches the retained terms or grants the permissions you need.
 
 A library has one license declaration covering all its rules and rule groups. Overrides for a single rule or rule group are unsupported.
 Keep attribution with each rule, in its body or [structured attribution](/reference/rule-format/#rule-attribution). List required notices in the library manifest.
@@ -62,13 +62,13 @@ Before adapting material from a book, article, or another library, establish the
 
 ## What sync preserves
 
-Sync copies license and declared notice files, like other library-wide files, from the library release that supplies the source's library-wide files, which `code-rules project update` moves to the newest library release, or from the revision a source's `ref` names. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
+Sync copies license and declared notice files, like other library-wide files, from the library release that supplies the source's library-wide files, which `syllabus project update` moves to the newest library release, or from the revision a source's `ref` names. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
 The offline builder accepts preassembled snapshots and checks that declared files are present.
 It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
 The consuming project retains them alongside the vendored rules:
 
 ```text
-.code-rules/
+.syllabus/
   vendor/
     fabrica/
       LICENSE.md
@@ -97,7 +97,7 @@ The repository and commit in this example are illustrative.
 ```markdown
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/.code-rules/rules/practices/testing/verify-retry-limits.md)
+**Rule source:** [Original rule](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/.syllabus/rules/practices/testing/verify-retry-limits.md)
 
 **Declared license:** MIT
 
@@ -117,7 +117,7 @@ A library's license declaration covers its [skills](/concepts/skill/) as it cove
 
 ### Skills in a library
 
-The Agent Skills format gives `SKILL.md` an optional `license` field. In a library, that field is informational: the library's declaration in its manifest is what applies, and Code Rules keeps the field unchanged. When the field differs from the library's `spdxExpression`, or the library declares no license, `code-rules library check` warns:
+The Agent Skills format gives `SKILL.md` an optional `license` field. In a library, that field is informational: the library's declaration in its manifest is what applies, and Syllabus keeps the field unchanged. When the field differs from the library's `spdxExpression`, or the library declares no license, `syllabus library check` warns:
 
 ```text
 Warning: skills/build-feature/SKILL.md: license is Apache-2.0, but the library declares MIT. The library's license applies to its skills; make them match.
@@ -125,21 +125,21 @@ Warning: skills/build-feature/SKILL.md: license is Apache-2.0, but the library d
 
 Make the field match the library's expression, or leave it out. A skill whose material needs different terms belongs in a separate library, as a rule's would. A license or notice file inside a skill folder is part of the skill's content, not a declared library file; a library can't declare a file in a skill folder as its license or notice file.
 
-Sync retains the library's license and notice files for skills exactly as it does for rules, at the same generated paths, and `generated/libraries/<source-name>/README.md` lists the source's installed skills with its declared terms. Forking a skill with `code-rules project add skill --from` copies its text into `.code-rules/skills/`, where the library's license still applies to it.
+Sync retains the library's license and notice files for skills exactly as it does for rules, at the same generated paths, and `generated/libraries/<source-name>/README.md` lists the source's installed skills with its declared terms. Forking a skill with `syllabus project add skill --from` copies its text into `.syllabus/skills/`, where the library's license still applies to it.
 
-A skill a library [borrows](/reference/configuration/#borrowed-skills) from another repository keeps that repository's terms, not the borrowing library's: Code Rules finds them from that repository's own declaration when it's a library, and otherwise as it does for a non-library source, below.
+A skill a library [borrows](/reference/configuration/#borrowed-skills) from another repository keeps that repository's terms, not the borrowing library's: Syllabus finds them from that repository's own declaration when it's a library, and otherwise as it does for a non-library source, below.
 
 ### Skills from a non-library source
 
-A non-library source, a repository without a manifest, has no license declaration. For each skill it installs, Code Rules looks for terms in this order:
+A non-library source, a repository without a manifest, has no license declaration. For each skill it installs, Syllabus looks for terms in this order:
 
 1. The `license` field in the skill's `SKILL.md`, which can name a license or a license file the skill bundles.
 2. A file whose name starts with `LICENSE` in the skill's own folder, such as `LICENSE.txt`.
 3. Files whose names start with `LICENSE` or `NOTICE` at the repository root.
 
-Code Rules records what it finds in [provenance](/reference/provenance/), and retains the root files, when present, under `generated/libraries/<source-name>/licenses/`, like a library's declared files. It doesn't infer an SPDX identifier from a file name, or decide whether the terms permit your use. See [Non-library sources](/reference/imports/#non-library-sources).
+Syllabus records what it finds in [provenance](/reference/provenance/), and retains the root files, when present, under `generated/libraries/<source-name>/licenses/`, like a library's declared files. It doesn't infer an SPDX identifier from a file name, or decide whether the terms permit your use. See [Non-library sources](/reference/imports/#non-library-sources).
 
-When a skill has none of these, `code-rules project sync` fails with `license-not-found`, names the source and the skill, and writes nothing:
+When a skill has none of these, `syllabus project sync` fails with `license-not-found`, names the source and the skill, and writes nothing:
 
 ```text
 Error: source pstack: skills/how has no license terms: its SKILL.md has no license field, its folder has no LICENSE file, and the repository has no LICENSE or NOTICE file at its root. Ask the repository's owner to add a license, or exclude the skill. No files were written.
@@ -149,7 +149,7 @@ A repository's visibility isn't a license. Don't install a skill until you know 
 
 ## What a consuming project should understand
 
-Code Rules leaves the consuming repository's root license unchanged.
+Syllabus leaves the consuming repository's root license unchanged.
 Vendored content remains separately identified under its applicable terms.
 The index should explain that boundary so the root license does not appear to relicense rules from sources.
 Whether a particular combination or redistribution is permitted depends on the actual licenses and use.

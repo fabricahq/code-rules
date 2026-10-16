@@ -1,4 +1,4 @@
-// Check the frontmatter of the skills a library authors: each folder's name, and the metadata keys Code Rules defines.
+// Check the frontmatter of the skills a library authors: each folder's name, and the metadata keys Syllabus defines.
 
 package library
 
@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // skillsDirectory is where a library's skills live in its repository.
-const skillsDirectory = ".code-rules/" + skills.Directory
+const skillsDirectory = ".syllabus/" + skills.Directory
 
 // skillProblems returns every problem in the skills tree holds, by path in the library's skills/ folder, in path
 // order, each starting with the file or folder it's about: a file directly in skills/, a folder whose name breaks the

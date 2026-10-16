@@ -9,13 +9,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Options selects trusted process settings. Zero values use Git from PATH and a 120-second deadline.
@@ -66,7 +68,7 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if err != nil {
 		return nil, err
 	}
-	dir, err := os.MkdirTemp("", "code-rules-git-*")
+	dir, err := os.MkdirTemp("", "syllabus-git-*")
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
@@ -229,7 +231,9 @@ func (r *repository) tree(ctx context.Context, commit string) (map[string]treeEn
 	return entries, nil
 }
 
-// repositoryTree returns the parsed file tree of a fetched commit by repository path, listing it once.
+// repositoryTree returns the parsed file tree of a fetched commit by repository path, listing it once. A commit that
+// keeps its Syllabus directory under the name from before the rename lists it as .syllabus/, as librarytree.Upgrade
+// spells it.
 func (r *repository) repositoryTree(ctx context.Context, commit string) (map[string]treeEntry, error) {
 	if entries, ok := r.raw[commit]; ok {
 		return entries, nil
@@ -241,6 +245,14 @@ func (r *repository) repositoryTree(ctx context.Context, commit string) (map[str
 	parsed, err := parseTree(data)
 	if err != nil {
 		return nil, err
+	}
+	if librarytree.UsesLegacyDirectory(maps.Keys(parsed)) {
+		upgraded := make(map[string]treeEntry, len(parsed))
+		for name, entry := range parsed {
+			entry.name = librarytree.Upgrade(name)
+			upgraded[entry.name] = entry
+		}
+		parsed = upgraded
 	}
 	r.raw[commit] = parsed
 	return parsed, nil

@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 const selectionFormat = `expected one of "*", "techs/*", "practices/*", or an array of group IDs and those wildcards`

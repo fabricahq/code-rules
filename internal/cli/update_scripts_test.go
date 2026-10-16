@@ -1,4 +1,4 @@
-// Exercise how code-rules project update shows the scripts an update adds or changes in a skill, in human output,
+// Exercise how syllabus project update shows the scripts an update adds or changes in a skill, in human output,
 // JSON, and a terminal, against libraries whose later releases change a skill's scripts.
 
 package cli
@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // newScriptUpdateFixture syncs a project that installs the skill build-feature from a library's release/1, then
@@ -23,19 +23,19 @@ func newScriptUpdateFixture(t *testing.T) updateFixture {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                                          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                                 []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
-		"techs/go/errors.md":                                   updateRule("errors 1.0.0"),
-		".code-rules/skills/build-feature/SKILL.md":            []byte("---\nname: build-feature\ndescription: Build a feature from a spec.\n---\n# Build a feature\n"),
-		".code-rules/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build\n"),
-		".code-rules/skills/build-feature/scripts/lint.sh":     []byte("#!/bin/sh\necho lint\n"),
-		".code-rules/skills/build-feature/references/notes.md": []byte("Notes.\n"),
+		"config.yaml":                                        []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                               []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
+		"techs/go/errors.md":                                 updateRule("errors 1.0.0"),
+		".syllabus/skills/build-feature/SKILL.md":            []byte("---\nname: build-feature\ndescription: Build a feature from a spec.\n---\n# Build a feature\n"),
+		".syllabus/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build\n"),
+		".syllabus/skills/build-feature/scripts/lint.sh":     []byte("#!/bin/sh\necho lint\n"),
+		".syllabus/skills/build-feature/references/notes.md": []byte("Notes.\n"),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	chmodExecutable(t, f, ".code-rules/skills/build-feature/scripts/run.sh", ".code-rules/skills/build-feature/scripts/lint.sh")
+	chmodExecutable(t, f, ".syllabus/skills/build-feature/scripts/run.sh", ".syllabus/skills/build-feature/scripts/lint.sh")
 	if _, err := f.Commit(ctx, f.Worktree(), "First release", nil); err != nil {
 		t.Fatal(err)
 	}
@@ -51,14 +51,14 @@ func newScriptUpdateFixture(t *testing.T) updateFixture {
 		t.Fatal(code, out, diagnostic)
 	}
 	if _, err := f.Commit(ctx, f.Worktree(), "Change the scripts", gitfixture.Library(map[string][]byte{
-		"techs/go/errors.md":                                   updateRule("errors 1.1.0"),
-		".code-rules/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build everything\n"),
-		".code-rules/skills/build-feature/scripts/setup.sh":    []byte("#!/bin/sh\necho setup\n"),
-		".code-rules/skills/build-feature/references/notes.md": []byte("More notes.\n"),
+		"techs/go/errors.md":                                 updateRule("errors 1.1.0"),
+		".syllabus/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build everything\n"),
+		".syllabus/skills/build-feature/scripts/setup.sh":    []byte("#!/bin/sh\necho setup\n"),
+		".syllabus/skills/build-feature/references/notes.md": []byte("More notes.\n"),
 	})); err != nil {
 		t.Fatal(err)
 	}
-	chmodExecutable(t, f, ".code-rules/skills/build-feature/scripts/setup.sh")
+	chmodExecutable(t, f, ".syllabus/skills/build-feature/scripts/setup.sh")
 	if _, err := f.Commit(ctx, f.Worktree(), "Make setup.sh executable", nil); err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ const scriptUpdatePreview = "team\n" +
 	"            script added: scripts/setup.sh\n" +
 	"  Shared files: release 1 -> 2\n" +
 	"\n" +
-	"Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.\n"
+	"Warning: some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm.\n"
 
 func TestUpdate_PreviewFlagsEachScriptAndWarns(t *testing.T) {
 	u := newScriptUpdateFixture(t)
@@ -109,8 +109,8 @@ func TestUpdate_JSONReportsEachScriptAndTheWarning(t *testing.T) {
 		applied bool
 		warning string
 	}{
-		{[]string{"project", "update", "--json"}, false, "some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm."},
-		{[]string{"project", "update", "--json", "--yes"}, true, "some skills in this update added or changed scripts. Code Rules never runs them, but your agents may; read them before you commit the update."},
+		{[]string{"project", "update", "--json"}, false, "some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm."},
+		{[]string{"project", "update", "--json", "--yes"}, true, "some skills in this update added or changed scripts. Syllabus never runs them, but your agents may; read them before you commit the update."},
 	} {
 		out, diagnostic, code := u.run(t, run.args...)
 		var result struct {
@@ -164,11 +164,11 @@ func newScriptRevisionFixture(t *testing.T) updateFixture {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                               []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                      []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
-		"techs/go/errors.md":                        updateRule("errors 1.0.0"),
-		"techs/go/naming.md":                        updateRule("naming 1.0.0"),
-		".code-rules/skills/build-feature/SKILL.md": []byte("---\nname: build-feature\ndescription: Build a feature from a spec.\n---\n# Build a feature\n"),
+		"config.yaml":                             []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                    []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
+		"techs/go/errors.md":                      updateRule("errors 1.0.0"),
+		"techs/go/naming.md":                      updateRule("naming 1.0.0"),
+		".syllabus/skills/build-feature/SKILL.md": []byte("---\nname: build-feature\ndescription: Build a feature from a spec.\n---\n# Build a feature\n"),
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -189,12 +189,12 @@ func newScriptRevisionFixture(t *testing.T) updateFixture {
 		t.Fatal(code, out, diagnostic)
 	}
 	if _, err := f.Commit(ctx, f.Worktree(), "Add a setup script", gitfixture.Library(map[string][]byte{
-		"techs/go/naming.md": updateRule("naming 2.0.0"),
-		".code-rules/skills/build-feature/scripts/setup.sh": []byte("#!/bin/sh\necho setup\n"),
+		"techs/go/naming.md":                              updateRule("naming 2.0.0"),
+		".syllabus/skills/build-feature/scripts/setup.sh": []byte("#!/bin/sh\necho setup\n"),
 	})); err != nil {
 		t.Fatal(err)
 	}
-	chmodExecutable(t, f, ".code-rules/skills/build-feature/scripts/setup.sh")
+	chmodExecutable(t, f, ".syllabus/skills/build-feature/scripts/setup.sh")
 	if _, err := f.Commit(ctx, f.Worktree(), "Make setup.sh executable", nil); err != nil {
 		t.Fatal(err)
 	}
@@ -202,8 +202,8 @@ func newScriptRevisionFixture(t *testing.T) updateFixture {
 		t.Fatal(err)
 	}
 	if _, err := f.Commit(ctx, f.Worktree(), "Remove the setup script", gitfixture.Library(map[string][]byte{
-		"techs/go/errors.md": updateRule("errors 2.0.0"),
-		".code-rules/skills/build-feature/scripts/setup.sh": nil,
+		"techs/go/errors.md":                              updateRule("errors 2.0.0"),
+		".syllabus/skills/build-feature/scripts/setup.sh": nil,
 	})); err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestUpdate_ShowsTheScriptsAnswersChooseBeforeConfirming(t *testing.T) {
 		"            Changed: scripts/setup.sh\n" +
 		"            script added: scripts/setup.sh\n" +
 		"\n" +
-		"Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.\n" +
+		"Warning: some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm.\n" +
 		"\n"
 	keepNaming := "\nYour answers:\n" +
 		"  Keep team:techs/go/naming at 1.0.0.\n" +

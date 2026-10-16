@@ -4,7 +4,7 @@ description: "Turn a repeatable task into ordered steps that cite the rules each
 ---
 
 :::caution[Preview]
-Skill support isn't in a released version of Code Rules yet. This guide describes how it will work.
+Skill support isn't in a released version of Syllabus yet. This guide describes how it will work.
 :::
 
 A **skill** tells an agent how to carry out one kind of task, step by step. Writing a skill turns a workflow you keep explaining, such as how your team fixes a bug or reviews tests, into steps every agent follows the same way. A useful skill names the task that should trigger it, orders the steps, and cites the rules each step applies.
@@ -40,23 +40,23 @@ A skill can declare one [type](/concepts/skill/#skill-types) in `syllabus-skill-
 - **`playbook`**: ordered steps for carrying out one kind of engineering task, citing the rules each step applies, such as building a feature or fixing a bug.
 - **`review`**: examines existing work, such as a diff, a plan, or a test suite, against stated criteria and reports findings.
 
-Ask what the skill's main job is: a playbook changes the work, and a review judges work that already exists. A playbook can include a review step, and a review can offer to fix what it found. If neither fits, leave the type out. The type is a label for people and for filters such as `code-rules project list skills --type review`; Code Rules treats every skill the same way.
+Ask what the skill's main job is: a playbook changes the work, and a review judges work that already exists. A playbook can include a review step, and a review can offer to fix what it found. If neither fits, leave the type out. The type is a label for people and for filters such as `syllabus project list skills --type review`; Syllabus treats every skill the same way.
 
 ## Create the skill
 
-Skills you author live in `.code-rules/skills/`, in a library and in a project alike.
+Skills you author live in `.syllabus/skills/`, in a library and in a project alike.
 
 ### In a library
 
 Create a draft:
 
 ```sh
-code-rules library add skill fix-bug \
+syllabus library add skill fix-bug \
   --description 'Fix a reported bug and prove it with a regression test. Use when a task starts from a bug report, a failing behavior, or an error someone saw.' \
   --type playbook
 ```
 
-This writes `.code-rules/skills/fix-bug/SKILL.md`, with your name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. `code-rules library check` fails until you replace the body and remove the marker.
+This writes `.syllabus/skills/fix-bug/SKILL.md`, with your name, description, and type in its frontmatter, and a body with the `syllabus:draft` marker. `syllabus library check` fails until you replace the body and remove the marker.
 
 The folder's path becomes the skill's ID, `skills/fix-bug`, and its name becomes the folder name of every installed copy, unless a project renames it. Use 1 to 64 lowercase letters, digits, and hyphens, and keep the name stable once projects install the skill; see [Skill IDs](/reference/skill-format/#skill-ids).
 
@@ -67,21 +67,21 @@ Write the description for an agent deciding whether to load the skill: say what 
 A skill that only one project needs can stay in that project:
 
 ```sh
-code-rules project add skill release-checklist \
+syllabus project add skill release-checklist \
   --description "Prepare this service's release pull request. Use when asked to cut or prepare a release." \
   --type playbook
 ```
 
-This writes `.code-rules/skills/release-checklist/SKILL.md`. A skill in a repository that isn't a library has no version. It can cite rules from your sources by project ID, with the source name, such as `fabrica:practices/testing/verify-retry-limits`, and your own rules by their bare ID, such as `practices/release/tag-from-main`.
+This writes `.syllabus/skills/release-checklist/SKILL.md`. A skill in a repository that isn't a library has no version. It can cite rules from your sources by project ID, with the source name, such as `fabrica:practices/testing/verify-retry-limits`, and your own rules by their bare ID, such as `practices/release/tag-from-main`.
 
 To change a skill you include from a source for one project, fork it instead of starting over:
 
 ```sh
-code-rules project add skill --from fabrica:skills/fix-bug \
+syllabus project add skill --from fabrica:skills/fix-bug \
   --reason 'We fix bugs behind a feature flag first.'
 ```
 
-The fork copies the version the project installs into `.code-rules/skills/fix-bug/`, rewrites its citations to project IDs, and excludes the source's skill in favor of the fork. A required skill can't be forked. See [project add skill](/reference/cli/#project-add-skill).
+The fork copies the version the project installs into `.syllabus/skills/fix-bug/`, rewrites its citations to project IDs, and excludes the source's skill in favor of the fork. A required skill can't be forked. See [project add skill](/reference/cli/#project-add-skill).
 
 ## Write the steps
 
@@ -92,7 +92,7 @@ Replace the draft's body with the skill's instructions:
 - **Say when to stop.** Tell the agent what to do when a step can't be completed, such as a bug it can't reproduce, instead of leaving it to improvise.
 - **Say what to report.** End with what the agent hands back: what it changed, what it verified, and what it couldn't.
 - **Keep `SKILL.md` short.** Agents load the whole file when they use the skill. Move long background, examples, and checklists into `references/`, and link to them from the step that needs them. The Agent Skills format recommends keeping `SKILL.md` under 500 lines.
-- **Put repeatable commands in scripts.** A script in `scripts/` runs the same way every time. Make it executable and commit it with its mode; Code Rules keeps the mode when it installs the skill.
+- **Put repeatable commands in scripts.** A script in `scripts/` runs the same way every time. Make it executable and commit it with its mode; Syllabus keeps the mode when it installs the skill.
 
 Links must stay inside the skill's folder or be absolute URLs, because each installed copy stands alone. Cite rules in `syllabus-rules-used` instead of linking to them.
 
@@ -114,11 +114,11 @@ A bare ID names a rule or skill this repository authors. A library's skills cite
 
 The cited rules are for the skill. They don't join the project's `RULES.md`, so installing your skill never adds rules to unrelated work. Cite every rule a step depends on, including rules from rule groups you'd expect projects to include anyway: a project may not have included them.
 
-A library's skill can't cite a rule or call a skill from another library. If your skill depends on another library's practice, write or adapt the rule in your library first. A skill in a repository that isn't a library can cite its sources' rules with project IDs, such as `fabrica:practices/testing/verify-retries`; `code-rules project check` fails when one of those rules is retired, so your skill never points at a rule that's gone.
+A library's skill can't cite a rule or call a skill from another library. If your skill depends on another library's practice, write or adapt the rule in your library first. A skill in a repository that isn't a library can cite its sources' rules with project IDs, such as `fabrica:practices/testing/verify-retries`; `syllabus project check` fails when one of those rules is retired, so your skill never points at a rule that's gone.
 
 ## Example: a playbook
 
-This original example is a complete playbook in a library, `.code-rules/skills/fix-bug/SKILL.md`:
+This original example is a complete playbook in a library, `.syllabus/skills/fix-bug/SKILL.md`:
 
 ```markdown
 ---
@@ -170,7 +170,7 @@ Each step has one outcome, names the rules it applies, and says what to do when 
 
 ## Example: a review
 
-A review skill states what it examines, the criteria, and what it reports, and leaves the work unchanged. This is `.code-rules/skills/review-tests/SKILL.md` in the same library:
+A review skill states what it examines, the criteria, and what it reports, and leaves the work unchanged. This is `.syllabus/skills/review-tests/SKILL.md` in the same library:
 
 ```markdown
 ---
@@ -197,7 +197,7 @@ metadata:
 In a library, check every skill, along with the rest of the library:
 
 ```sh
-code-rules library check
+syllabus library check
 ```
 
 Check validates the folder, the frontmatter, the `syllabus-` keys, the rules and skills they name, and every link, and lists each problem it finds:
@@ -210,13 +210,13 @@ Error: skills don't pass library check:
 
 [Validation](/reference/skill-format/#validation) lists every check and its message.
 
-In a project, run `code-rules project build`, which validates your skills and installs them into the project's skill targets, then `code-rules project check`.
+In a project, run `syllabus project build`, which validates your skills and installs them into the project's skill targets, then `syllabus project check`.
 
 Check validates the format, not the guidance. Before publishing, try the skill: ask an agent to carry out a real task with it, and revise any step the agent skipped, misread, or had to ask about.
 
 ## Set the skill's level
 
-In a library, decide how strongly projects should take the skill, and list it in the manifest in `.code-rules/config.yaml`:
+In a library, decide how strongly projects should take the skill, and list it in the manifest in `.syllabus/config.yaml`:
 
 ```yaml
 library:
@@ -229,23 +229,23 @@ library:
 - **Recommended** skills install in projects that include `recommended`.
 - **Offered** skills install only when a project names them or includes `"*"`. A skill you don't list is offered, so list only the skills you have an opinion about.
 
-Levels are library-wide settings, like rule group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `code-rules library check` fails when two skills you list, including skills you [borrow](/reference/configuration/#borrowed-skills) from other repositories, have the same name, so your projects never inherit a clash.
+Levels are library-wide settings, like rule group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `syllabus library check` fails when two skills you list, including skills you [borrow](/reference/configuration/#borrowed-skills) from other repositories, have the same name, so your projects never inherit a clash.
 
 ## Record a change note
 
-Skills are versioned like rules. Before your library's first library release, skills need no change notes; the first library release gives every skill version `1.0.0`. After it, record every new or changed skill with `code-rules library change`, in the same pull request as the change.
+Skills are versioned like rules. Before your library's first library release, skills need no change notes; the first library release gives every skill version `1.0.0`. After it, record every new or changed skill with `syllabus library change`, in the same pull request as the change.
 
 For a new skill, leave out `--bump`:
 
 ```sh
-code-rules library change skills/fix-bug \
+syllabus library change skills/fix-bug \
   --summary 'Add a playbook for fixing a reported bug with a regression test.'
 ```
 
 For a changed skill, choose the level from what the change does to what the skill produces and requires:
 
 ```sh
-code-rules library change skills/fix-bug \
+syllabus library change skills/fix-bug \
   --bump minor \
   --summary 'Add a step that reviews the changed tests.'
 ```
@@ -263,13 +263,13 @@ Skills in a repository that isn't a library have no versions and need no notes.
 To stop publishing a library skill, delete its folder, remove it from any level in the manifest, and record the retirement. Name the skill that replaces it, when there is one:
 
 ```sh
-code-rules library change skills/triage-bug \
+syllabus library change skills/triage-bug \
   --retire \
   --replaced-by skills/fix-bug \
   --summary 'Covered by the fix-bug playbook, which also writes the regression test.'
 ```
 
-Only a skill can replace a skill. A retired skill's ID can't be reused, and projects see the retirement, with its replacement, in their update preview. Update any skill that names the retired one in `syllabus-skills-used` in the same pull request; `code-rules library check` fails until you do.
+Only a skill can replace a skill. A retired skill's ID can't be reused, and projects see the retirement, with its replacement, in their update preview. Update any skill that names the retired one in `syllabus-skills-used` in the same pull request; `syllabus library check` fails until you do.
 
 To rename a skill, rename its folder and its `name` field, then record one note that retires the old ID, replaced by the new one, and adds the new ID:
 
@@ -282,7 +282,7 @@ skills:
   skills/fix-bug: new
 ```
 
-In a project, replace a skill you include from a source by forking it with `code-rules project add skill --from`, or by writing your own and excluding the source's skill with `replacedBy: skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-skill). To remove one of your own skills, delete its folder and any exclusion that names it as `replacedBy`, then run `code-rules project build`.
+In a project, replace a skill you include from a source by forking it with `syllabus project add skill --from`, or by writing your own and excluding the source's skill with `replacedBy: skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-skill). To remove one of your own skills, delete its folder and any exclusion that names it as `replacedBy`, then run `syllabus project build`.
 
 ## Next steps
 

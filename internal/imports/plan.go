@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // sourcePlan is what one source imports: the revision that supplies its library-wide files, and each imported
@@ -196,7 +196,7 @@ func (p *planner) versioned() (releaseHistory, error) {
 		return releaseHistory{}, err
 	}
 	if history.newest() == nil {
-		return releaseHistory{}, fail("ref-required", fmt.Sprintf("the repository has no release/<number> tags, so Code Rules can't choose a library release to take the source from: it isn't a library, or hasn't published its first library release. Set sources.%s.ref to the tag or full commit SHA to take it from.", p.source.Name), nil)
+		return releaseHistory{}, fail("ref-required", fmt.Sprintf("the repository has no release/<number> tags, so Syllabus can't choose a library release to take the source from: it isn't a library, or hasn't published its first library release. Set sources.%s.ref to the tag or full commit SHA to take it from.", p.source.Name), nil)
 	}
 	return history, nil
 }
@@ -352,7 +352,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	recorded := p.recorded
 	if recorded != nil && p.source.Ref.Equal(recorded.Ref) {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
-		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or set sources.%s.ref to a tag or commit the library still has, then run code-rules project sync. As a last resort, delete vendor/%s and run code-rules project sync to resolve the ref again, which may import different content.", p.source.Name, p.source.Name, p.source.Name, p.source.Name)); err != nil {
+		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or set sources.%s.ref to a tag or commit the library still has, then run syllabus project sync. As a last resort, delete vendor/%s and run syllabus project sync to resolve the ref again, which may import different content.", p.source.Name, p.source.Name, p.source.Name, p.source.Name)); err != nil {
 			return sourcePlan{}, err
 		}
 	} else {
@@ -368,7 +368,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	}
 	if !isLibrary {
 		if p.source.HasRules() {
-			return sourcePlan{}, &ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: fmt.Sprintf("the repository has no library manifest, a .code-rules/config.yaml with a library section, at %s, so it isn't a library and has no rules to include; remove rules, and include its skills with skills.include", revisionName(plan.release, plan.commit))}
+			return sourcePlan{}, &ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: fmt.Sprintf("the repository has no library manifest, a .syllabus/config.yaml with a library section, at %s, so it isn't a library and has no rules to include; remove rules, and include its skills with skills.include", revisionName(plan.release, plan.commit))}
 		}
 		plan.nonLibrary = true
 		return plan, nil
@@ -424,7 +424,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 // library release tag. A missing tag or commit fails with code version-not-found.
 func (p *planner) resolveRef() (int, string, error) {
 	if ref := p.source.Ref; ref.Kind() == rules.GitRefTag {
-		if number, err := coderules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
+		if number, err := syllabus.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
 			history, err := p.releases()
 			if err != nil {
 				return 0, "", err
@@ -497,7 +497,7 @@ func (p *planner) newestVersion(id string) (library.ImportedRule, error) {
 }
 
 // publishedVersion returns version of rule id with the library release that published it.
-func (p *planner) publishedVersion(id string, version coderules.RuleVersion) (library.ImportedRule, error) {
+func (p *planner) publishedVersion(id string, version syllabus.RuleVersion) (library.ImportedRule, error) {
 	history, err := p.releases()
 	if err != nil {
 		return library.ImportedRule{}, err
@@ -636,7 +636,7 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 	}
 	record := "vendor/" + p.source.Name + "/_source.json"
 	missing := func(location string, number int) error {
-		return &ValidationError{Location: location, Problem: fmt.Sprintf("records library release %d, which the library doesn't have; restore %s, such as from version control, or, if the library deleted its release/%d tag, ask the library's maintainer to restore it; then run code-rules project sync again", number, record, number)}
+		return &ValidationError{Location: location, Problem: fmt.Sprintf("records library release %d, which the library doesn't have; restore %s, such as from version control, or, if the library deleted its release/%d tag, ask the library's maintainer to restore it; then run syllabus project sync again", number, record, number)}
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
 		rule := plan.rules[id]
@@ -655,7 +655,7 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 			if ok {
 				publishes = "which publishes version " + published.String() + " of the rule"
 			}
-			return &ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run code-rules project sync again", rule.Version, rule.Release, publishes, record)}
+			return &ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run syllabus project sync again", rule.Version, rule.Release, publishes, record)}
 		}
 	}
 	if plan.release != 0 && history.release(plan.release) == nil && !usesRef {
@@ -666,12 +666,12 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 		return nil
 	}
 	if release := history.release(plan.release); plan.release != 0 && release != nil && release.commit != plan.commit {
-		return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for the library's shared files. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", plan.release, p.source.Name, p.source.Name), nil)
+		return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for the library's shared files. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run syllabus project sync to use the tag's current commit.", plan.release, p.source.Name, p.source.Name), nil)
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
 		rule := plan.rules[id]
 		if release := history.release(rule.Release); release != nil && release.commit != rule.Commit {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for %s. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", rule.Release, p.source.Name, id, p.source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for %s. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run syllabus project sync to use the tag's current commit.", rule.Release, p.source.Name, id, p.source.Name), nil)
 		}
 	}
 	return nil

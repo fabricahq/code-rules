@@ -1,4 +1,4 @@
-// Check that library commands refuse the layout before version 2, share the writer of the repository's Code Rules
+// Check that library commands refuse the layout before version 2, share the writer of the repository's Syllabus
 // directory, and compare a moved library with a library release made before the move.
 
 package library
@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // TestLibraryCommands_RefuseTheLayoutBeforeVersion2 refuses rule-library.yaml and rule folders at the repository
@@ -26,15 +26,15 @@ import (
 func TestLibraryCommands_RefuseTheLayoutBeforeVersion2(t *testing.T) {
 	ctx := context.Background()
 	for name, want := range map[string]struct{ location, moves string }{
-		"rule-library.yaml":  {"rule-library.yaml", ":\n\n  rule-library.yaml  ->  the library section of .code-rules/config.yaml\n\nThen delete rule-library.yaml."},
-		"techs/go/errors.md": {"techs/", ":\n\n  techs/go/errors.md  ->  .code-rules/rules/techs/go/errors.md\n\nRule IDs and versions don't change."},
-		"practices":          {"practices", ":\n\n  practices  ->  .code-rules/rules/practices\n\nRule IDs and versions don't change."},
+		"rule-library.yaml":  {"rule-library.yaml", ":\n\n  rule-library.yaml  ->  the library section of .syllabus/config.yaml\n\nThen delete rule-library.yaml."},
+		"techs/go/errors.md": {"techs/", ":\n\n  techs/go/errors.md  ->  .syllabus/rules/techs/go/errors.md\n\nRule IDs and versions don't change."},
+		"practices":          {"practices", ":\n\n  practices  ->  .syllabus/rules/practices\n\nRule IDs and versions don't change."},
 	} {
 		commands := map[string]func(Options) error{
 			"init":  func(options Options) error { _, err := Initialize(ctx, options, nil, "1.2.3"); return err },
 			"check": func(options Options) error { _, err := Check(ctx, options); return err },
 			"group": func(options Options) error {
-				_, err := AddGroup(ctx, "techs/rust", coderules.GroupMetadata{Name: "Rust", Description: "Rust guidance.", WhenToRead: "When editing Rust."}, options)
+				_, err := AddGroup(ctx, "techs/rust", syllabus.GroupMetadata{Name: "Rust", Description: "Rust guidance.", WhenToRead: "When editing Rust."}, options)
 				return err
 			},
 			"rule": func(options Options) error {
@@ -91,7 +91,7 @@ func TestCheck_ListsTheMovesOfALibrarysOwnFiles(t *testing.T) {
 		name := fmt.Sprintf("practices/testing/rule-%02d.md", index+1)
 		manyRules[name] = ruleText("Test it.")
 		if index < legacyLayoutMoves-1 {
-			manyMoves = append(manyMoves, "  "+name+"  ->  .code-rules/rules/"+name)
+			manyMoves = append(manyMoves, "  "+name+"  ->  .syllabus/rules/"+name)
 		}
 	}
 	for _, test := range []struct {
@@ -115,29 +115,29 @@ func TestCheck_ListsTheMovesOfALibrarysOwnFiles(t *testing.T) {
 				"practices/testing/a.md":                ruleText("Test the retry limit."),
 				"practices/testing/assets/a/example.go": "package example\n",
 				"techs/go/errors.md":                    ruleText("Return errors."),
-				".code-rules/config.yaml":               "schemaVersion: 2\nsources: {}\n",
+				".syllabus/config.yaml":                 "schemaVersion: 2\nsources: {}\n",
 			},
 			want: []string{
-				"  rule-library.yaml                      ->  the library section of .code-rules/config.yaml",
-				"  assets/retry.svg                       ->  .code-rules/assets/retry.svg",
-				"  changes/2026-10-01-retry.yaml          ->  .code-rules/changes/2026-10-01-retry.yaml",
-				"  practices/testing/_group.yaml          ->  .code-rules/rules/practices/testing/_group.yaml",
-				"  practices/testing/a.md                 ->  .code-rules/rules/practices/testing/a.md",
-				"  practices/testing/assets/a/example.go  ->  .code-rules/rules/practices/testing/assets/a/example.go",
-				"  techs/go/errors.md                     ->  .code-rules/rules/techs/go/errors.md",
+				"  rule-library.yaml                      ->  the library section of .syllabus/config.yaml",
+				"  assets/retry.svg                       ->  .syllabus/assets/retry.svg",
+				"  changes/2026-10-01-retry.yaml          ->  .syllabus/changes/2026-10-01-retry.yaml",
+				"  practices/testing/_group.yaml          ->  .syllabus/rules/practices/testing/_group.yaml",
+				"  practices/testing/a.md                 ->  .syllabus/rules/practices/testing/a.md",
+				"  practices/testing/assets/a/example.go  ->  .syllabus/rules/practices/testing/assets/a/example.go",
+				"  techs/go/errors.md                     ->  .syllabus/rules/techs/go/errors.md",
 			},
 			manifest: true,
 		},
 		{
 			name:     "more files than the list shows",
 			files:    manyRules,
-			want:     append(append([]string{"  rule-library.yaml" + strings.Repeat(" ", 13) + "->  the library section of .code-rules/config.yaml"}, manyMoves...), "  and 6 more files, moved the same way"),
+			want:     append(append([]string{"  rule-library.yaml" + strings.Repeat(" ", 13) + "->  the library section of .syllabus/config.yaml"}, manyMoves...), "  and 6 more files, moved the same way"),
 			manifest: true,
 		},
 		{
 			name:  "rule folders without a manifest",
 			files: map[string]string{"techs/go/errors.md": ruleText("Return errors.")},
-			want:  []string{"  techs/go/errors.md  ->  .code-rules/rules/techs/go/errors.md"},
+			want:  []string{"  techs/go/errors.md  ->  .syllabus/rules/techs/go/errors.md"},
 		},
 		{name: "an empty rule folder", empty: true},
 	} {
@@ -163,7 +163,7 @@ func TestCheck_ListsTheMovesOfALibrarysOwnFiles(t *testing.T) {
 				t.Fatalf("got %v; want the layout refused", err)
 			}
 			if test.empty {
-				if want := "The rule folders there hold no files: delete them, then run code-rules library check."; invalid.Location != "techs/" || !strings.HasSuffix(invalid.Problem, want) {
+				if want := "The rule folders there hold no files: delete them, then run syllabus library check."; invalid.Location != "techs/" || !strings.HasSuffix(invalid.Problem, want) {
 					t.Fatalf("got %v; want a problem ending %q", err, want)
 				}
 				return
@@ -221,43 +221,43 @@ func tree(t *testing.T, dir string) []string {
 	return names
 }
 
-// TestLibraryCommands_ShareTheWriterOfTheCodeRulesDirectory refuses library check while a project command holds
-// the writer of the repository's Code Rules directory, and records no change note while it waits.
-func TestLibraryCommands_ShareTheWriterOfTheCodeRulesDirectory(t *testing.T) {
+// TestLibraryCommands_ShareTheWriterOfTheSyllabusDirectory refuses library check while a project command holds
+// the writer of the repository's Syllabus directory, and records no change note while it waits.
+func TestLibraryCommands_ShareTheWriterOfTheSyllabusDirectory(t *testing.T) {
 	ctx := context.Background()
 	_, options := authorClone(t, libraryFiles(), releaseOne)
 	edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed.")})
-	lock := filepath.Join(options.Directory, ".code-rules", ".code-rules-lock")
+	lock := filepath.Join(options.Directory, ".syllabus", ".syllabus-lock")
 	if err := os.WriteFile(lock, []byte("held by a project command\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Check(ctx, options); errorCode(err) != "busy" {
 		t.Fatalf("check while a writer holds the directory: %v", err)
 	}
-	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: coderules.ChangePatch, Summary: "Fix a."}, options)
+	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: syllabus.ChangePatch, Summary: "Fix a."}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	waiting, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
-	if _, err := plan.Commit(waiting, coderules.ChangePatch, "Fix a.", noteDay); err == nil {
+	if _, err := plan.Commit(waiting, syllabus.ChangePatch, "Fix a.", noteDay); err == nil {
 		t.Fatal("recorded a change note while a project command held the writer")
 	}
-	if notes, err := os.ReadDir(filepath.Join(options.Directory, ".code-rules", "changes")); err == nil && len(notes) != 0 {
+	if notes, err := os.ReadDir(filepath.Join(options.Directory, ".syllabus", "changes")); err == nil && len(notes) != 0 {
 		t.Fatalf("wrote %d notes", len(notes))
 	}
 }
 
 // legacyFiles is libraryFiles in the layout before version 2, at the repository root, with a license, a shared
 // asset that rule a links to with an absolute link and rule b with a relative one, and a project configuration in
-// .code-rules/, which that layout didn't read.
+// .syllabus/, which that layout didn't read.
 func legacyFiles() map[string][]byte {
 	files := map[string][]byte{
-		"rule-library.yaml":            []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices: []\n"),
-		"LICENSE.md":                   []byte("MIT License\n"),
-		"assets/retry.svg":             []byte("<svg/>\n"),
-		".code-rules/config.yaml":      []byte("schemaVersion: 2\nsources: {}\n"),
-		".code-rules/generated/OUT.md": []byte("generated\n"),
+		"rule-library.yaml":          []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices: []\n"),
+		"LICENSE.md":                 []byte("MIT License\n"),
+		"assets/retry.svg":           []byte("<svg/>\n"),
+		".syllabus/config.yaml":      []byte("schemaVersion: 2\nsources: {}\n"),
+		".syllabus/generated/OUT.md": []byte("generated\n"),
 	}
 	for name, data := range libraryFiles() {
 		if name != "config.yaml" {
@@ -273,7 +273,7 @@ func legacyFiles() map[string][]byte {
 // relative link one more ../, and commits the move.
 func moveLibrary(t *testing.T, fixture *gitfixture.Fixture, dir string) {
 	t.Helper()
-	moved := map[string][]byte{"rule-library.yaml": nil, ".code-rules/config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.md\n    notices: []\n")}
+	moved := map[string][]byte{"rule-library.yaml": nil, ".syllabus/config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.md\n    notices: []\n")}
 	for name, data := range legacyFiles() {
 		if first, _, _ := strings.Cut(name, "/"); first == "techs" || first == "practices" || first == "assets" {
 			moved[name] = nil
@@ -283,7 +283,7 @@ func moveLibrary(t *testing.T, fixture *gitfixture.Fixture, dir string) {
 			maps.Copy(moved, gitfixture.Library(map[string][]byte{name: data}))
 		}
 	}
-	if _, err := fixture.Commit(context.Background(), dir, "Move the library into .code-rules", moved); err != nil {
+	if _, err := fixture.Commit(context.Background(), dir, "Move the library into .syllabus", moved); err != nil {
 		t.Fatal(err)
 	}
 	// Committing deletions leaves the emptied folders, which git mv would have removed.

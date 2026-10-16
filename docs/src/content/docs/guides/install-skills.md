@@ -4,47 +4,47 @@ description: "Install skills from libraries and other repositories into the fold
 ---
 
 :::caution[Preview]
-Skill support isn't in a released version of Code Rules yet. This guide describes how it will work.
+Skill support isn't in a released version of Syllabus yet. This guide describes how it will work.
 :::
 
-A **[skill](/concepts/skill/)** tells an agent how to carry out one kind of task, step by step, and which rules each step applies. Installing skills with Code Rules gives every checkout of your project the same skills, from the revisions you choose, beside the rules they cite.
+A **[skill](/concepts/skill/)** tells an agent how to carry out one kind of task, step by step, and which rules each step applies. Installing skills with Syllabus gives every checkout of your project the same skills, from the revisions you choose, beside the rules they cite.
 
 Skills come from **sources**: the repositories your project takes skills and rules from. A source is usually a [library](/concepts/libraries/), but any Git repository of skill folders works too.
 
 In this guide, you'll see which skills your sources offer, install a library's required and recommended skills, and find out where they land. You'll also install skills from a repository that isn't a library, resolve a name clash, exclude or fork a skill, write your own, and commit the result.
 
-Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/). To choose rules as well, see [Include rules](/guides/select-rules/).
+Start with a project that already has a `.syllabus/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/). To choose rules as well, see [Include rules](/guides/select-rules/).
 
 ## Check your skill targets
 
-Code Rules installs a copy of each skill into the folders your agents read. `skillTargets` in `.code-rules/config.yaml` names them:
+Syllabus installs a copy of each skill into the folders your agents read. `skillTargets` in `.syllabus/config.yaml` names them:
 
 ```yaml
 schemaVersion: 2
 skillTargets: [claude, agents]
 ```
 
-`claude` installs into `.claude/skills/`, which Claude Code reads. `agents` installs into `.agents/skills/`, which Codex, Cursor, and other agents that follow the shared convention read. `code-rules project init` writes both, and nothing is written to either folder until the project installs a skill.
+`claude` installs into `.claude/skills/`, which Claude Code reads. `agents` installs into `.agents/skills/`, which Codex, Cursor, and other agents that follow the shared convention read. `syllabus project init` writes both, and nothing is written to either folder until the project installs a skill.
 
-To record which skills your sources require before you choose agent folders, set `skillTargets: []`. Code Rules still records and checks every skill and lists it in `.code-rules/generated/SKILLS.md`, but writes no installed copies, and sync warns that it installed nothing. See [Skill targets](/reference/configuration/#skill-targets).
+To record which skills your sources require before you choose agent folders, set `skillTargets: []`. Syllabus still records and checks every skill and lists it in `.syllabus/generated/SKILLS.md`, but writes no installed copies, and sync warns that it installed nothing. See [Skill targets](/reference/configuration/#skill-targets).
 
 ## Add a library
 
 Add your organization's library as a source:
 
 ```sh
-code-rules project add source fabrica \
-  --repository https://github.com/fabricahq/.code-rules.git \
+syllabus project add source fabrica \
+  --repository https://github.com/fabricahq/.syllabus.git \
   --skills recommended \
   --non-interactive
 ```
 
-This records the source in `.code-rules/config.yaml`:
+This records the source in `.syllabus/config.yaml`:
 
 ```yaml
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules.git
+    repository: https://github.com/fabricahq/.syllabus.git
     skills:
       include: [recommended]
 ```
@@ -52,7 +52,7 @@ sources:
 Then sync:
 
 ```sh
-code-rules project sync
+syllabus project sync
 ```
 
 What a library's skills install depends on the **level** the library sets for each one:
@@ -70,14 +70,14 @@ skills:
 
 Including a rule group's rules never installs a skill, and including a skill never includes a rule group's rules. See [Skill selectors](/reference/configuration/#skill-selectors).
 
-Sync takes the source's newest library release, records it in `.code-rules/vendor/fabrica/_source.json`, and installs every skill from that one release. Later syncs keep that release, even for skills you include later: a skill that isn't in the recorded release makes sync fail and name `code-rules project update fabrica`, the command that moves the source. See [Update skills](/guides/update/#update-skills).
+Sync takes the source's newest library release, records it in `.syllabus/vendor/fabrica/_source.json`, and installs every skill from that one release. Later syncs keep that release, even for skills you include later: a skill that isn't in the recorded release makes sync fail and name `syllabus project update fabrica`, the command that moves the source. See [Update skills](/guides/update/#update-skills).
 
 ## See what's available
 
 List every skill your sources offer, with its level:
 
 ```sh
-code-rules project list skills
+syllabus project list skills
 ```
 
 ```text
@@ -105,34 +105,34 @@ See [project list skills](/reference/cli/#project-list-skills) for every option.
 
 ## What lands where
 
-After sync, each installed skill appears in several places. Code Rules writes all of them, so don't edit them by hand:
+After sync, each installed skill appears in several places. Syllabus writes all of them, so don't edit them by hand:
 
 - **`.claude/skills/build-feature/`** and **`.agents/skills/build-feature/`**: the installed copies your agents load, one folder per target.
-- **`.code-rules/vendor/fabrica/skills/build-feature/`**: the original files, as the library published that version.
-- **`.code-rules/generated/SKILLS.md`**: one entry per installed skill, with its description, ID and version, level and the library that set it, type, installed paths, how many rules it applies, the skills it calls, and why it's installed.
-- **`.code-rules/generated/installed-skills.json`**: which folders in the targets Code Rules installed.
+- **`.syllabus/vendor/fabrica/skills/build-feature/`**: the original files, as the library published that version.
+- **`.syllabus/generated/SKILLS.md`**: one entry per installed skill, with its description, ID and version, level and the library that set it, type, installed paths, how many rules it applies, the skills it calls, and why it's installed.
+- **`.syllabus/generated/installed-skills.json`**: which folders in the targets Syllabus installed.
 
 An installed copy matches the library's folder, scripts and their executable bits included, with two additions to `SKILL.md`:
 
-- A marker comment as the first line after the frontmatter, naming the skill's project ID and version, such as `<!-- code-rules:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with code-rules project add skill --from. -->`.
+- A marker comment as the first line after the frontmatter, naming the skill's project ID and version, such as `<!-- syllabus:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with syllabus project add skill --from. -->`.
 - When the skill cites rules, a generated section at the end, **Rules this skill applies**, which links to your project's version of each rule the skill cites, and a **Skills this skill uses** line when it calls others.
 
-Don't edit installed copies: the next sync replaces them, and `code-rules project check` reports the difference. To change a skill, [fork it](#fork-a-skill).
+Don't edit installed copies: the next sync replaces them, and `syllabus project check` reports the difference. To change a skill, [fork it](#fork-a-skill).
 
-Code Rules writes only the skill folders it installs. Other folders in `.claude/skills/` and `.agents/skills/`, such as a skill another tool installed, stay as they are. When one of them has the name of a skill you install, sync fails with `skill-folder-not-managed` instead of overwriting it. See [Installed skills](/reference/files/#installed-skills) and [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+Syllabus writes only the skill folders it installs. Other folders in `.claude/skills/` and `.agents/skills/`, such as a skill another tool installed, stay as they are. When one of them has the name of a skill you install, sync fails with `skill-folder-not-managed` instead of overwriting it. See [Installed skills](/reference/files/#installed-skills) and [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
 
 `generated/RULES.md` gains one line pointing to `SKILLS.md`, so agents whose tools don't load skills from the target folders still find them through the instructions in your `AGENTS.md`.
 
 ## Skills a skill calls, and the rules it cites
 
-A skill can call other skills and cite rules. When you install it, Code Rules installs those too:
+A skill can call other skills and cite rules. When you install it, Syllabus installs those too:
 
 - **Skills it calls.** Every skill in its `syllabus-skills-used` list, and the skills those call, from the same repository and revision. `SKILLS.md` says each was installed because another skill uses it.
 - **Rules it cites.** Every rule in its `syllabus-rules-used` list, from the same library, even ones your rule `include` doesn't name. These cited rules are reference-only: each gets its generated rule file, and the installed skill links to it, but `RULES.md` doesn't list it. Installing a skill never widens the rules your agents apply to all work.
 
 If you exclude or replace a cited rule, the installed skill follows your choice: it links to your replacement, or says the rule is excluded by this project, with your reason. A cited rule your project also includes is an ordinary rule.
 
-When a skill calls another without saying so in `syllabus-skills-used`, as many third-party skills do, declare the call under `skills.uses`, so Code Rules installs both:
+When a skill calls another without saying so in `syllabus-skills-used`, as many third-party skills do, declare the call under `skills.uses`, so Syllabus installs both:
 
 ```yaml
 skills:
@@ -140,14 +140,14 @@ skills:
     skills/architect: [skills/how]
 ```
 
-Code Rules doesn't search skill text for calls it wasn't told about. See [Declare the skills a skill calls](/reference/configuration/#declare-the-skills-a-skill-calls).
+Syllabus doesn't search skill text for calls it wasn't told about. See [Declare the skills a skill calls](/reference/configuration/#declare-the-skills-a-skill-calls).
 
 ## Install skills from a repository that isn't a library
 
 Not every useful skill lives in a library. Any Git repository that holds skill folders works as a source, such as a third party's collection. Add it the same way:
 
 ```sh
-code-rules project add source pstack \
+syllabus project add source pstack \
   --repository https://github.com/example/pstack.git \
   --ref main \
   --skills skills/architect \
@@ -163,15 +163,15 @@ sources:
       include: [skills/architect]
 ```
 
-Then run `code-rules project sync`. You don't declare what kind of source it is: Code Rules finds that the repository has no library manifest, so it's a **non-library source**.
+Then run `syllabus project sync`. You don't declare what kind of source it is: Syllabus finds that the repository has no library manifest, so it's a **non-library source**.
 
 - **Every skill is offered.** Nothing installs until you name it, or include `"*"` for every skill in the repository.
-- **A ref is required.** A non-library source has no library releases, so `ref` must name a branch, tag, or commit. With a branch, sync installs the newest commit on it the first time and records it; later syncs keep that commit, and `code-rules project update` moves to the branch's newest commit and shows which skill folders and files changed.
+- **A ref is required.** A non-library source has no library releases, so `ref` must name a branch, tag, or commit. With a branch, sync installs the newest commit on it the first time and records it; later syncs keep that commit, and `syllabus project update` moves to the branch's newest commit and shows which skill folders and files changed.
 - **IDs are paths.** Each folder with a `SKILL.md` is a skill, and its ID is the folder's path in the repository, such as `skills/architect`.
-- **Expect warnings, not failures.** Code Rules checks these skills leniently: where one doesn't follow the Agent Skills format, sync warns and installs it as it is. A non-library source has no rules or versions, so `rules` is rejected on it.
-- **Check the license.** Code Rules looks for terms in the skill's `license` field, then a `LICENSE*` file in its folder, then `LICENSE*` and `NOTICE*` files at the repository root, and records what it finds in provenance. When a skill has none, sync fails with `license-not-found`; ask the owner to add a license, or stop including the skill.
+- **Expect warnings, not failures.** Syllabus checks these skills leniently: where one doesn't follow the Agent Skills format, sync warns and installs it as it is. A non-library source has no rules or versions, so `rules` is rejected on it.
+- **Check the license.** Syllabus looks for terms in the skill's `license` field, then a `LICENSE*` file in its folder, then `LICENSE*` and `NOTICE*` files at the repository root, and records what it finds in provenance. When a skill has none, sync fails with `license-not-found`; ask the owner to add a license, or stop including the skill.
 
-Code Rules never runs a skill's scripts. Before you install or update a skill from a repository you don't control, read its files, scripts included: your agents may run them. To help, the `code-rules project update` preview flags each new or changed executable script and warns you to read it; see [Update skills](/guides/update/#update-skills).
+Syllabus never runs a skill's scripts. Before you install or update a skill from a repository you don't control, read its files, scripts included: your agents may run them. To help, the `syllabus project update` preview flags each new or changed executable script and warns you to read it; see [Update skills](/guides/update/#update-skills).
 
 ## Try a newer version of a borrowed skill
 
@@ -180,7 +180,7 @@ A library chooses the `ref` it tracks for each repository it borrows skills from
 ```yaml
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules.git
+    repository: https://github.com/fabricahq/.syllabus.git
     skills:
       include: [recommended]
   mattpocock:
@@ -203,14 +203,14 @@ Rename one of them:
 ```yaml
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules.git
+    repository: https://github.com/fabricahq/.syllabus.git
     skills:
       include: [recommended, skills/review-change]
       rename:
         skills/review-change: fabrica-review
 ```
 
-The installed copy is now `fabrica-review`, in `.claude/skills/fabrica-review/`. Its ID stays `fabrica:skills/review-change`. Code Rules doesn't rewrite the old name where other skills mention it, so every sync that applies the rename warns:
+The installed copy is now `fabrica-review`, in `.claude/skills/fabrica-review/`. Its ID stays `fabrica:skills/review-change`. Syllabus doesn't rewrite the old name where other skills mention it, so every sync that applies the rename warns:
 
 ```text
 Warning: fabrica:skills/review-change is installed as fabrica-review. Mentions of review-change in skill text aren't rewritten; check the skills that call it by that name.
@@ -243,13 +243,13 @@ You can't pin a skill to a version either: all of a source's skills come from on
 To change what an included skill says, fork it into your project:
 
 ```sh
-code-rules project add skill \
+syllabus project add skill \
   --from fabrica:skills/fix-bug \
   --reason 'We use our own bug workflow.' \
   --non-interactive
 ```
 
-The command copies the version your project installs into `.code-rules/skills/fix-bug/`, and adds an exclusion that names the fork:
+The command copies the version your project installs into `.syllabus/skills/fix-bug/`, and adds an exclusion that names the fork:
 
 ```yaml
 skills:
@@ -260,24 +260,24 @@ skills:
       basedOn: "1.0.0"
 ```
 
-Edit the fork, then run `code-rules project build`. Agents get your fork in place of the library's skill. With `basedOn`, `code-rules project update` lists the library's later changes to the skill, so you can decide whether your fork needs them, or replace it with a fork of the newest version with `--update-fork fabrica:skills/fix-bug`. The library's license still applies to the copied text. See [project add skill](/reference/cli/#project-add-skill).
+Edit the fork, then run `syllabus project build`. Agents get your fork in place of the library's skill. With `basedOn`, `syllabus project update` lists the library's later changes to the skill, so you can decide whether your fork needs them, or replace it with a fork of the newest version with `--update-fork fabrica:skills/fix-bug`. The library's license still applies to the copied text. See [project add skill](/reference/cli/#project-add-skill).
 
 ## Write your own skill
 
 Create a skill for this project alone:
 
 ```sh
-code-rules project add skill review-migration \
+syllabus project add skill review-migration \
   --description 'Review a database migration for safety before it merges. Use when a change adds or edits a migration.' \
   --type review \
   --non-interactive
 ```
 
-The command writes a draft `.code-rules/skills/review-migration/SKILL.md`. Authored skills have no versions; they change when you edit them. In `syllabus-rules-used`, an authored skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `practices/testing/test-project-contracts` for one of your own, because it can cite rules from any source. Run `code-rules project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
+The command writes a draft `.syllabus/skills/review-migration/SKILL.md`. Authored skills have no versions; they change when you edit them. In `syllabus-rules-used`, an authored skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `practices/testing/test-project-contracts` for one of your own, because it can cite rules from any source. Run `syllabus project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
 
 ## Personal skills with the same name
 
-People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which to use, and some use the personal one without saying so. `code-rules project sync`, `update`, and `check` read the known personal skill folders and warn about each pair, naming both paths and what each agent does:
+People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which to use, and some use the personal one without saying so. `syllabus project sync`, `update`, and `check` read the known personal skill folders and warn about each pair, naming both paths and what each agent does:
 
 ```text
 Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .claude/skills/build-feature).
@@ -287,17 +287,17 @@ Warning: your personal skill ~/.claude/skills/build-feature has the same name as
 Rename or remove your personal skill to use the project's.
 ```
 
-Code Rules never writes to your home directory, and the warning doesn't fail the command. See [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+Syllabus never writes to your home directory, and the warning doesn't fail the command. See [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
 
 ## Commit the installed skills
 
-Commit `.code-rules/` and the installed skill folders together:
+Commit `.syllabus/` and the installed skill folders together:
 
 ```sh
-git add .code-rules .claude/skills .agents/skills
+git add .syllabus .claude/skills .agents/skills
 ```
 
-Committed copies give every checkout, CI job, and fresh cloud session the same skills without running sync. Run `code-rules project check` in CI: it fails when an installed copy differs from what sync would write, when a folder Code Rules installed is missing, or when `generated/installed-skills.json` is out of date.
+Committed copies give every checkout, CI job, and fresh cloud session the same skills without running sync. Run `syllabus project check` in CI: it fails when an installed copy differs from what sync would write, when a folder Syllabus installed is missing, or when `generated/installed-skills.json` is out of date.
 
 If your `.gitignore` excludes a target folder, such as with `/.claude/`, check reports the folders as missing in every fresh checkout. Add an exception for the skills folder. Git can't re-include a folder inside an excluded folder, so first change the ignore line to exclude the folder's contents instead:
 

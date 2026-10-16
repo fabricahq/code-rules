@@ -14,12 +14,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // libraryFiles supplies original rules, complete owned assets, shared dependencies, and exact license bytes, keyed
@@ -264,10 +264,10 @@ func TestGitTreeAndRetainedLimits(t *testing.T) {
 func TestImportRejectsALibraryWhoseRulesAndSkillsTogetherExceedTheRetainedLimit(t *testing.T) {
 	files := libraryFiles()
 	blob := bytes.Repeat([]byte("x"), maxBlobBytes)
-	files[".code-rules/skills/big/SKILL.md"] = []byte("---\nname: big\ndescription: Carry large files.\n---\n# Big\n")
+	files[".syllabus/skills/big/SKILL.md"] = []byte("---\nname: big\ndescription: Carry large files.\n---\n# Big\n")
 	for i := range maxRetainedBytes / maxBlobBytes / 2 {
 		files[fmt.Sprintf("techs/go/assets/errors/big-%d.bin", i)] = blob
-		files[fmt.Sprintf(".code-rules/skills/big/big-%d.bin", i)] = blob
+		files[fmt.Sprintf(".syllabus/skills/big/big-%d.bin", i)] = blob
 	}
 	f := newLibraryFixture(t, files)
 	raw, _ := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.2.0", "rules": map[string]any{"include": []string{"techs/go/*"}}, "skills": map[string]any{"include": []string{"skills/big"}}}}})

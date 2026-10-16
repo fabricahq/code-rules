@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/syllabus/internal/library"
 )
 
 func TestSkillChanges_FlagsOnlyExecutableFilesTheUpdateAddsOrChanges(t *testing.T) {

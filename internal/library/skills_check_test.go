@@ -1,4 +1,4 @@
-// Test that library check reports every problem in the name and Code Rules metadata keys of the library's skills.
+// Test that library check reports every problem in the name and Syllabus metadata keys of the library's skills.
 
 package library
 
@@ -8,17 +8,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 	current := []string{"practices/testing/a", "practices/testing/c"}
 	changes := libraryChanges{
 		history: releaseHistory{retired: map[string]int{"practices/testing/old": 2, "practices/testing/b": 3}, replacedBy: map[string]string{"practices/testing/b": "practices/testing/a"}},
-		pending: []pendingNote{{path: "changes/retire.yaml", note: rules.ChangeNote{Rules: map[string]rules.NoteChange{"practices/testing/d": {Change: coderules.ChangeRetired, ReplacedBy: "practices/testing/c"}}}}},
+		pending: []pendingNote{{path: "changes/retire.yaml", note: rules.ChangeNote{Rules: map[string]rules.NoteChange{"practices/testing/d": {Change: syllabus.ChangeRetired, ReplacedBy: "practices/testing/c"}}}}},
 	}
 	skill := func(metadata string) string {
 		return "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n" + metadata + "---\n# Fix\n"
@@ -83,7 +83,7 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 func TestCheck_RejectsASkillThatCitesARuleTheLibraryRetired(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	edit(t, options.Directory, map[string]string{".code-rules/skills/fix/SKILL.md": "---\nname: fix\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/a\n    practices/testing/b\n---\n# Fix\n"})
+	edit(t, options.Directory, map[string]string{".syllabus/skills/fix/SKILL.md": "---\nname: fix\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/a\n    practices/testing/b\n---\n# Fix\n"})
 	if _, err := Check(ctx, options); err != nil {
 		t.Fatalf("check rejected a valid skill: %v", err)
 	}
@@ -100,14 +100,14 @@ func TestCheck_RejectsASkillThatUsesASkillTheLibraryDoesntHave(t *testing.T) {
 	ctx := context.Background()
 	_, options := authorClone(t, libraryFiles(), releaseOne)
 	edit(t, options.Directory, map[string]string{
-		".code-rules/skills/fix/SKILL.md":    "---\nname: fix\nmetadata:\n  syllabus-skills-used: |\n    skills/review\n    skills/tdd\n---\n# Fix\n",
-		".code-rules/skills/review/SKILL.md": "---\nname: review\n---\n# Review\n",
+		".syllabus/skills/fix/SKILL.md":    "---\nname: fix\nmetadata:\n  syllabus-skills-used: |\n    skills/review\n    skills/tdd\n---\n# Fix\n",
+		".syllabus/skills/review/SKILL.md": "---\nname: review\n---\n# Review\n",
 	})
 	_, err := Check(ctx, options)
 	if errorCode(err) != "invalid-skill" || !strings.HasSuffix(err.Error(), "skills don't pass library check:\n  - skills/fix/SKILL.md: syllabus-skills-used names skills/tdd, which isn't a skill in this library") {
 		t.Fatalf("got %v; want invalid-skill naming the skill and the skill it uses", err)
 	}
-	edit(t, options.Directory, map[string]string{".code-rules/skills/tdd/SKILL.md": "---\nname: tdd\n---\n# TDD\n"})
+	edit(t, options.Directory, map[string]string{".syllabus/skills/tdd/SKILL.md": "---\nname: tdd\n---\n# TDD\n"})
 	if _, err := Check(ctx, options); err != nil {
 		t.Fatalf("check rejected a skill that uses skills the library has: %v", err)
 	}

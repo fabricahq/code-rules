@@ -551,7 +551,7 @@
       "ok": false,
       "error": {
         "location": "release/2.formatVersion",
-        "message": "release/2.formatVersion: the release record uses format 2, but this version of Code Rules reads only format 1; upgrade Code Rules to read this library release",
+        "message": "release/2.formatVersion: the release record uses format 2, but this version of Syllabus reads only format 1; upgrade Syllabus to read this library release",
         "kind": "unsupported"
       }
     }
@@ -694,7 +694,7 @@
       "error": {
         "kind": "unsupported",
         "location": "release/2.formatVersion",
-        "message": "release/2.formatVersion: the release record uses format 2, but this version of Code Rules reads only format 1; upgrade Code Rules to read this library release"
+        "message": "release/2.formatVersion: the release record uses format 2, but this version of Syllabus reads only format 1; upgrade Syllabus to read this library release"
       }
     }
   },

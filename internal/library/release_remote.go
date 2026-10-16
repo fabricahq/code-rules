@@ -15,12 +15,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // maxRemoteListing bounds the output of listing the remote's default branch and release tags.
@@ -68,7 +68,7 @@ func (g *libraryGit) upstream(ctx context.Context) (upstream, error) {
 	ref := strings.TrimSpace(string(symbolic.Output))
 	branch, onBranch := strings.CutPrefix(ref, "refs/heads/")
 	if symbolic.Status != 0 || !onBranch {
-		return upstream{}, failure("detached-head", "HEAD isn't on a branch. Check out the library's default branch, then run code-rules library release again.", nil)
+		return upstream{}, failure("detached-head", "HEAD isn't on a branch. Check out the library's default branch, then run syllabus library release again.", nil)
 	}
 	listing, err := g.runner.Output(ctx, g.dir, []string{"for-each-ref", "--format=%(upstream:remotename)%00%(upstream:remoteref)%00%(upstream)", ref}, 64*1024)
 	if err != nil {
@@ -77,7 +77,7 @@ func (g *libraryGit) upstream(ctx context.Context) (upstream, error) {
 	fields := strings.Split(strings.TrimSuffix(string(listing), "\n"), "\x00")
 	// The remote-tracking branch, fields[2], is empty unless the remote's fetch refspec maps the upstream branch.
 	if len(fields) != 3 || fields[0] == "" || fields[0] == "." || !strings.HasPrefix(fields[1], "refs/heads/") || fields[2] == "" {
-		return upstream{}, failure("no-upstream", branch+" has no upstream branch on a remote, so there's nothing to compare it with. Push it with git push --set-upstream, then run code-rules library release again.", nil)
+		return upstream{}, failure("no-upstream", branch+" has no upstream branch on a remote, so there's nothing to compare it with. Push it with git push --set-upstream, then run syllabus library release again.", nil)
 	}
 	result := upstream{branch: branch, remote: fields[0], ref: fields[1], tracking: fields[2]}
 	url, err := g.runner.Output(ctx, g.dir, []string{"remote", "get-url", "--", result.remote}, 64*1024)
@@ -101,10 +101,10 @@ func (g *libraryGit) pushDestination(ctx context.Context, remote, fetchURL strin
 	}
 	urls := strings.Fields(string(listing))
 	if len(urls) != 1 {
-		return "", failure("push-destination", remote+" pushes to "+strconv.Itoa(len(urls))+" URLs, so a library release could reach only some of them. Configure a single push URL for "+remote+", such as with git config --unset-all remote."+remote+".pushurl, then run code-rules library release again.", nil)
+		return "", failure("push-destination", remote+" pushes to "+strconv.Itoa(len(urls))+" URLs, so a library release could reach only some of them. Configure a single push URL for "+remote+", such as with git config --unset-all remote."+remote+".pushurl, then run syllabus library release again.", nil)
 	}
 	if !sameRepository(fetchURL, urls[0]) {
-		return "", failure("push-destination", remote+" fetches from "+displayRepository(fetchURL)+" but pushes to "+displayRepository(urls[0])+". A library release is checked against the repository it's fetched from, so it must be pushed there too. Remove the push URL with git config --unset-all remote."+remote+".pushurl, or set it to the fetch repository, then run code-rules library release again.", nil)
+		return "", failure("push-destination", remote+" fetches from "+displayRepository(fetchURL)+" but pushes to "+displayRepository(urls[0])+". A library release is checked against the repository it's fetched from, so it must be pushed there too. Remove the push URL with git config --unset-all remote."+remote+".pushurl, or set it to the fetch repository, then run syllabus library release again.", nil)
 	}
 	return urls[0], nil
 }
@@ -134,7 +134,7 @@ func (g *libraryGit) requireCommitterIdentity(ctx context.Context) (string, erro
 		return "", fmt.Errorf("find Git's committer identity: %w", err)
 	}
 	if result.Status != 0 {
-		return "", failure("git-identity", "Git doesn't know your name and email, which the release tag records as its tagger. Set user.name and user.email, or GIT_COMMITTER_NAME and GIT_COMMITTER_EMAIL, then run code-rules library release again.", nil)
+		return "", failure("git-identity", "Git doesn't know your name and email, which the release tag records as its tagger. Set user.name and user.email, or GIT_COMMITTER_NAME and GIT_COMMITTER_EMAIL, then run syllabus library release again.", nil)
 	}
 	return strings.TrimSpace(string(result.Output)), nil
 }
@@ -150,7 +150,7 @@ func requireTagSize(name string, size int) error {
 	if size <= releasetag.MaxBytes {
 		return nil
 	}
-	return failure("release-too-large", name+" would be a tag of "+strconv.Itoa(size)+" bytes, but release tags can be at most 8 MiB (8,388,608 bytes), or later library releases couldn't read it. Publish the pending changes in smaller library releases, or shorten their change notes' summaries, then run code-rules library release again.", nil)
+	return failure("release-too-large", name+" would be a tag of "+strconv.Itoa(size)+" bytes, but release tags can be at most 8 MiB (8,388,608 bytes), or later library releases couldn't read it. Publish the pending changes in smaller library releases, or shorten their change notes' summaries, then run syllabus library release again.", nil)
 }
 
 // headCommit returns the checked-out commit; a branch without commits fails.
@@ -161,7 +161,7 @@ func (g *libraryGit) headCommit(ctx context.Context) (string, error) {
 	}
 	head := strings.TrimSpace(string(result.Output))
 	if result.Status != 0 || !objectID.MatchString(head) {
-		return "", failure("no-commits", "the library has no commits yet. Commit and push it, then run code-rules library release again.", nil)
+		return "", failure("no-commits", "the library has no commits yet. Commit and push it, then run syllabus library release again.", nil)
 	}
 	return head, nil
 }
@@ -209,16 +209,16 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 				return remoteState{}, failure("limit-exceeded", u.remote+"'s listing of release tags exceeds 20,000 records", nil)
 			}
 		}
-		// Code Rules ignores other tags under release/, such as release/01, and peeled ^{} entries.
-		if number, err := coderules.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
+		// Syllabus ignores other tags under release/, such as release/01, and peeled ^{} entries.
+		if number, err := syllabus.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
 			state.tags[number] = value
 		}
 	}
 	if state.defaultBranch == "" {
-		return remoteState{}, failure("not-default-branch", u.remote+" doesn't report a default branch, so code-rules library release can't confirm it's publishing from it.", nil)
+		return remoteState{}, failure("not-default-branch", u.remote+" doesn't report a default branch, so syllabus library release can't confirm it's publishing from it.", nil)
 	}
 	if u.ref != state.defaultBranch {
-		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+", which isn't it. Check out the default branch, which git remote show "+u.remote+" names, then run code-rules library release again.", nil)
+		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+", which isn't it. Check out the default branch, which git remote show "+u.remote+" names, then run syllabus library release again.", nil)
 	}
 	return state, nil
 }
@@ -265,7 +265,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		}
 		name := "release/" + strconv.Itoa(number)
 		if number != remote.latest()+1 || local[number].Target != head {
-			return releasetag.Tag{}, failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
+			return releasetag.Tag{}, failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only syllabus library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run syllabus library release again.", nil)
 		}
 		unpublished = number
 	}
@@ -283,15 +283,15 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 }
 
 // requireFetched refuses when what the fetch brought differs from what listing the remote showed: the branch
-// moved, or a release tag changed, while code-rules library release was reading the remote.
+// moved, or a release tag changed, while syllabus library release was reading the remote.
 func (g *libraryGit) requireFetched(ctx context.Context, u upstream, remote remoteState) error {
-	changed := u.remote + " changed while code-rules library release was reading it: "
+	changed := u.remote + " changed while syllabus library release was reading it: "
 	tip, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--verify", "--end-of-options", u.tracking + "^{commit}"}, 4096)
 	if err != nil {
 		return fmt.Errorf("read the fetched branch=%q: %w", u.tracking, err)
 	}
 	if strings.TrimSpace(string(tip)) != remote.head {
-		return failure("remote-changed", changed+"someone pushed to "+strings.TrimPrefix(u.ref, "refs/heads/")+". Pull their changes, then run code-rules library release again.", nil)
+		return failure("remote-changed", changed+"someone pushed to "+strings.TrimPrefix(u.ref, "refs/heads/")+". Pull their changes, then run syllabus library release again.", nil)
 	}
 	local, err := g.localReleaseTags(ctx)
 	if err != nil {
@@ -299,7 +299,7 @@ func (g *libraryGit) requireFetched(ctx context.Context, u upstream, remote remo
 	}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
 		if local[number].Object != remote.tags[number] {
-			return failure("remote-changed", changed+"release/"+strconv.Itoa(number)+" changed. Release tags must never change; find out who changed it, then run code-rules library release again.", nil)
+			return failure("remote-changed", changed+"release/"+strconv.Itoa(number)+" changed. Release tags must never change; find out who changed it, then run syllabus library release again.", nil)
 		}
 	}
 	return nil
@@ -309,7 +309,7 @@ func (g *libraryGit) requireFetched(ctx context.Context, u upstream, remote remo
 func (g *libraryGit) requireCurrent(ctx context.Context, u upstream, remoteHead, head string) error {
 	remoteName := u.remote + "/" + strings.TrimPrefix(u.ref, "refs/heads/")
 	if remoteHead == "" {
-		return failure("branch-differs", remoteName+" doesn't exist. Push "+u.branch+", then run code-rules library release again.", nil)
+		return failure("branch-differs", remoteName+" doesn't exist. Push "+u.branch+", then run syllabus library release again.", nil)
 	}
 	if remoteHead == head {
 		return nil
@@ -329,11 +329,11 @@ func (g *libraryGit) requireCurrent(ctx context.Context, u upstream, remoteHead,
 	}
 	switch {
 	case behind == 0:
-		return failure("branch-differs", u.branch+" has "+commits(ahead)+" that "+remoteName+" doesn't. A library release publishes only pushed commits: push them, then run code-rules library release again.", nil)
+		return failure("branch-differs", u.branch+" has "+commits(ahead)+" that "+remoteName+" doesn't. A library release publishes only pushed commits: push them, then run syllabus library release again.", nil)
 	case ahead == 0:
-		return failure("branch-differs", remoteName+" has "+commits(behind)+" that "+u.branch+" doesn't. Pull them, then run code-rules library release again.", nil)
+		return failure("branch-differs", remoteName+" has "+commits(behind)+" that "+u.branch+" doesn't. Pull them, then run syllabus library release again.", nil)
 	}
-	return failure("branch-differs", u.branch+" and "+remoteName+" have diverged: each has commits the other doesn't. Reconcile them, then run code-rules library release again.", nil)
+	return failure("branch-differs", u.branch+" and "+remoteName+" have diverged: each has commits the other doesn't. Reconcile them, then run syllabus library release again.", nil)
 }
 
 // commits counts commits in prose, such as "1 commit" or "3 commits".
@@ -394,7 +394,7 @@ func (g *libraryGit) requireCommitted(ctx context.Context, head string, input ch
 	}
 	if len(problems) > 0 {
 		slices.Sort(problems)
-		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but these library files differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
+		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but these library files differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run syllabus library release again.", nil)
 	}
 	return nil
 }
@@ -496,7 +496,11 @@ func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease
 		return LegacyTerms(manifest), nil
 	}
 	location := latest.tagName() + ":" + manifestPath
-	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", latest.object + ":" + manifestPath}, maxFileBytes)
+	entry, ok := entries[manifestPath]
+	if !ok {
+		return nil, failure("invalid-library", location+": missing library manifest", nil)
+	}
+	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", entry.object}, maxFileBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", location, err)
 	}
@@ -568,7 +572,7 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 		return "", fmt.Errorf("create tag=%q: %w", name, err)
 	}
 	if result.Status != 0 {
-		return "", failure("tag-failed", "Git couldn't create the tag "+name+". Check that it doesn't already exist and that tag signing, if configured, works, then run code-rules library release again.", nil)
+		return "", failure("tag-failed", "Git couldn't create the tag "+name+". Check that it doesn't already exist and that tag signing, if configured, works, then run syllabus library release again.", nil)
 	}
 	listing, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--verify", "refs/tags/" + name}, 4096)
 	if err != nil {
@@ -596,8 +600,8 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 	return object, nil
 }
 
-// noExternalText ends each failure that Git's or a server's messages would explain, which Code Rules never shows.
-const noExternalText = "Code Rules doesn't show messages from Git or the server; to read them, "
+// noExternalText ends each failure that Git's or a server's messages would explain, which Syllabus never shows.
+const noExternalText = "Syllabus doesn't show messages from Git or the server; to read them, "
 
 // ruleRefusals are the texts servers print when a repository rule or tag protection refuses a tag, such as
 // GitHub's rulesets and GitLab's protected tags.
@@ -630,7 +634,7 @@ func pushRefusal(name, remote string, diagnostics []byte) string {
 	case slices.Contains(gitHubRuleCodes, code):
 		problem += ": a repository rule refused the tag (GitHub error " + code + "). Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
 	case code != "":
-		problem += ": the server refused the tag for a reason Code Rules doesn't recognize (GitHub error " + code + "). Check the repository's rules for tags and its server-side hooks"
+		problem += ": the server refused the tag for a reason Syllabus doesn't recognize (GitHub error " + code + "). Check the repository's rules for tags and its server-side hooks"
 	case gitexec.Mentions(diagnostics, ruleRefusals...):
 		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
 	case !refused && gitexec.Mentions(diagnostics, gitexec.HTTPSCertificateFailures...):
@@ -644,11 +648,11 @@ func pushRefusal(name, remote string, diagnostics []byte) string {
 	case gitexec.Mentions(diagnostics, "hook declined"):
 		problem += ": a hook on the server declined the tag. Check the repository's server-side hooks, such as pre-receive and update hooks, or ask its administrator"
 	case refused:
-		problem += ": the server refused the tag for a reason Code Rules doesn't recognize. Check the repository's rules for tags and its server-side hooks"
+		problem += ": the server refused the tag for a reason Syllabus doesn't recognize. Check the repository's rules for tags and its server-side hooks"
 	default:
 		problem += ". Check your network connection, your access to the repository, and any pre-push hook"
 	}
-	return problem + ", then run code-rules library release again. " + noExternalText + "push a test tag with git push."
+	return problem + ", then run syllabus library release again. " + noExternalText + "push a test tag with git push."
 }
 
 // fetchFailure explains why Git couldn't read or fetch from remote, as action says, with a static cause chosen
@@ -668,7 +672,7 @@ func fetchFailure(action, remote string, diagnostics []byte) error {
 	default:
 		problem += ". Check your network connection and access to the repository"
 	}
-	return failure("fetch-failed", problem+", then run code-rules library release again. "+noExternalText+"run git fetch "+remote+".", nil)
+	return failure("fetch-failed", problem+", then run syllabus library release again. "+noExternalText+"run git fetch "+remote+".", nil)
 }
 
 // pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local tag
@@ -681,7 +685,7 @@ func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object strin
 	if err == nil && pushed.Status == 0 {
 		return nil
 	}
-	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your network connection, your access to the repository, and any pre-push hook, then run code-rules library release again.", err)
+	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your network connection, your access to the repository, and any pre-push hook, then run syllabus library release again.", err)
 	if err == nil {
 		problem = failure("push-failed", pushRefusal(name, u.remote, pushed.Diagnostics), nil)
 	}
@@ -691,7 +695,7 @@ func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object strin
 		case strings.HasPrefix(string(remote.Output), object+"\t"):
 			return nil
 		case len(remote.Output) > 0:
-			problem = failure("release-conflict", "someone else published "+name+" to "+u.remote+" first. Pull their changes, then run code-rules library release again if anything remains to publish.", nil)
+			problem = failure("release-conflict", "someone else published "+name+" to "+u.remote+" first. Pull their changes, then run syllabus library release again if anything remains to publish.", nil)
 		}
 	}
 	if !created {

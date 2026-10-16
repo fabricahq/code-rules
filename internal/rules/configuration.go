@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -78,8 +78,8 @@ func (c Configuration) SkillFolders() []string {
 
 // Pin keeps one rule at an exact published version, with the project's reason.
 type Pin struct {
-	Version coderules.RuleVersion `json:"version" yaml:"version"`
-	Reason  string                `json:"reason" yaml:"reason"`
+	Version syllabus.RuleVersion `json:"version" yaml:"version"`
+	Reason  string               `json:"reason" yaml:"reason"`
 }
 
 // Exclusion leaves one rule, or every rule a selector matches, out of generated guidance, with the project's reason.
@@ -90,7 +90,7 @@ type Exclusion struct {
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
 	// one. Configuration alone owns it.
-	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
+	BasedOn *syllabus.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 // Exclusion returns the exclusion that leaves rule id out of generated guidance: the entry for id itself, or else
@@ -112,7 +112,7 @@ func (s Source) Exclusion(id string) (Exclusion, bool) {
 	return Exclusion{}, false
 }
 
-// ReplacementFile returns the path, relative to the Code Rules directory, of the authored rule that replaces the
+// ReplacementFile returns the path, relative to the Syllabus directory, of the authored rule that replaces the
 // excluded rule, such as rules/techs/go/wrap-errors.md for ReplacedBy techs/go/wrap-errors, or "" when nothing
 // replaces it.
 func (e Exclusion) ReplacementFile() string {
@@ -124,8 +124,8 @@ func (e Exclusion) ReplacementFile() string {
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// versionOneProblem explains how to rewrite a version 1 configuration, which Code Rules no longer reads, as version 2.
-const versionOneProblem = `version 1 configuration is no longer supported, and Code Rules doesn't convert it. Rewrite .code-rules/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .code-rules/local/ to .code-rules/rules/, and shared assets from .code-rules/local/assets/ to .code-rules/assets/.
+// versionOneProblem explains how to rewrite a version 1 configuration, which Syllabus no longer reads, as version 2.
+const versionOneProblem = `version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.
 
 schemaVersion: 2
 sources:
@@ -141,7 +141,7 @@ sources:
           version: "1.3.0"
           reason: Waiting on the author's answer.
 
-After rewriting it, run code-rules project check.`
+After rewriting it, run syllabus project check.`
 
 // ParseConfiguration validates schema version 2, rejecting unknown fields and contradictory source declarations,
 // and a version 1 configuration with an example of the version 2 shape. A library section is the manifest, which
@@ -376,7 +376,7 @@ func ParseSkillSelection(input json.RawMessage, location string) ([]string, erro
 		}
 		switch {
 		case id == "recommended":
-			return nil, invalid(where, `skill levels aren't supported yet in this version of Code Rules; name skills by ID, such as skills/build-feature, or include "*"`)
+			return nil, invalid(where, `skill levels aren't supported yet in this version of Syllabus; name skills by ID, such as skills/build-feature, or include "*"`)
 		case id != skills.Wildcard && strings.HasSuffix(id, "/*"):
 			return nil, invalid(where, `skill selectors have no prefixes; name each skill by ID, such as skills/build-feature, or include "*" for every skill the source offers`)
 		case id != skills.Wildcard:
@@ -497,12 +497,12 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 }
 
 // quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
-func quotedVersion(raw json.RawMessage, location string) (coderules.RuleVersion, error) {
+func quotedVersion(raw json.RawMessage, location string) (syllabus.RuleVersion, error) {
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
-		return coderules.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+		return syllabus.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
 	}
-	return coderules.ParseRuleVersion(text, location)
+	return syllabus.ParseRuleVersion(text, location)
 }
 
 // parseExclusions validates each exclusion's selector, reason, and, for a rule ID, the optional ID of the local rule

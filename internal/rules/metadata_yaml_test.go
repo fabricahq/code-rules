@@ -5,12 +5,12 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 func TestYAMLMetadata(t *testing.T) {
 	manifest := "schemaVersion: 2\nsources: {}\n# Library terms\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: LICENSE.md\n    notices:\n      - NOTICE.md\n"
-	library, err := rules.ParseLibraryManifest([]byte(manifest), "library/.code-rules/config.yaml")
+	library, err := rules.ParseLibraryManifest([]byte(manifest), "library/.syllabus/config.yaml")
 	if err != nil || library == nil || library.License == nil || *library.License.SPDXExpression != "MIT" || len(library.License.AttributionFiles) != 1 {
 		t.Fatal(library, err)
 	}
@@ -24,7 +24,7 @@ func TestYAMLMetadataRejectsAmbiguousInput(t *testing.T) {
 		"nested-duplicate": "schemaVersion: 2\nsources: {}\nlibrary:\n  license: {file: LICENSE.md, file: NOTICE.md, notices: []}",
 	} {
 		t.Run("library/"+name, func(t *testing.T) {
-			if _, err := rules.ParseLibraryManifest([]byte(input), "library/.code-rules/config.yaml"); err == nil {
+			if _, err := rules.ParseLibraryManifest([]byte(input), "library/.syllabus/config.yaml"); err == nil {
 				t.Fatal("accepted invalid metadata")
 			}
 		})

@@ -1,15 +1,15 @@
 ---
 title: "Configuration"
-description: "Fields in .code-rules/config.yaml, the one configuration file of every project and library."
+description: "Fields in .syllabus/config.yaml, the one configuration file of every project and library."
 ---
 
 :::caution[Preview]
-This page describes version 2 configuration and branch refs, which aren't in a released version of Code Rules yet. The released CLI reads version 1 configuration, and its `ref` takes only a tag or a full commit SHA.
+This page describes version 2 configuration and branch refs, which aren't in a released version of Syllabus yet. The released CLI reads version 1 configuration, and its `ref` takes only a tag or a full commit SHA.
 :::
 
-Every repository that uses Code Rules has one configuration file, `.code-rules/config.yaml`. It records the repository's sources, the rules and skills it includes from each, its exceptions, and where to install skills. A repository whose configuration also has a [`library` section](#library-manifest) is a **library**, and publishes its authored rules and skills for other repositories. A repository can be a project, a library, or both, with the same file and the same [layout](/reference/files/).
+Every repository that uses Syllabus has one configuration file, `.syllabus/config.yaml`. It records the repository's sources, the rules and skills it includes from each, its exceptions, and where to install skills. A repository whose configuration also has a [`library` section](#library-manifest) is a **library**, and publishes its authored rules and skills for other repositories. A repository can be a project, a library, or both, with the same file and the same [layout](/reference/files/).
 
-Initialize from the repository root. In Git repositories, other commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the repository root. See [Working directories](/reference/cli/#working-directories).
+Initialize from the repository root. In Git repositories, other commands find the nearest Git root and use its `.syllabus/config.yaml`. Outside Git, run commands from the repository root. See [Working directories](/reference/cli/#working-directories).
 Sync, build, and check validate the fields below.
 
 Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote selectors that start with `*`, such as `"*"`.
@@ -21,7 +21,7 @@ schemaVersion: 2
 skillTargets: [claude, agents]
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules.git
+    repository: https://github.com/fabricahq/.syllabus.git
     rules:
       include: [techs/go/*, practices/testing/*]
       exclude:
@@ -30,7 +30,7 @@ sources:
       pins:
         - id: practices/testing/verify-retry-limits
           version: "1.3.0"
-          reason: Waiting on the author's response to fabricahq/.code-rules#45.
+          reason: Waiting on the author's response to fabricahq/.syllabus#45.
     skills:
       include: [recommended, skills/deploy-preview]
       rename:
@@ -69,7 +69,7 @@ Replace them with libraries, rules, and skills your project can access.
 
 Unknown fields are rejected, at every level.
 Every part of a source except `repository` is optional. A source with no `include` still installs the skills its library [requires](#skill-levels).
-Authored rules, rule groups, and skills are discovered from `rules/` and `skills/` in the Code Rules directory; they need no configuration entry. See [Project files](/reference/files/).
+Authored rules, rule groups, and skills are discovered from `rules/` and `skills/` in the Syllabus directory; they need no configuration entry. See [Project files](/reference/files/).
 
 ## Selectors
 
@@ -132,7 +132,7 @@ Because required skills install with no `include`, a source declared with only a
 ```yaml
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules.git
+    repository: https://github.com/fabricahq/.syllabus.git
 ```
 
 Renaming a required skill is allowed, since it stays installed.
@@ -157,11 +157,11 @@ rules:
 | `id` | Required. A [rule selector](#rule-selectors). |
 | `reason` | Required non-blank text explaining why the repository leaves the rule out. |
 | `replacedBy` | Optional, with a single rule ID only. The ID of an authored rule in `rules/` that agents read in place of the excluded rule. It must be in the same rule group as the rule it replaces, and each authored rule can replace only one rule. |
-| `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
+| `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `syllabus project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
 
-An excluded rule is still kept in the source's vendor snapshot, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your rule needs the same change:
+An excluded rule is still kept in the source's vendor snapshot, so you can review its changes. The `syllabus project update` preview lists a replaced rule as `replaced` so you can decide whether your rule needs the same change:
 
-- With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project includes. The preview lists every change after `basedOn`. To replace your rule with a fork of the newest version, overwriting your edits, pass `code-rules project update --update-fork SOURCE:RULE`, or answer `replace` to the terminal question; either sets `basedOn` to that version. If you merge the changes into your rule by hand instead, edit `basedOn` to the version you merged. Code Rules never advances it otherwise, because only you know whether your rule took the changes in.
+- With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project includes. The preview lists every change after `basedOn`. To replace your rule with a fork of the newest version, overwriting your edits, pass `syllabus project update --update-fork SOURCE:RULE`, or answer `replace` to the terminal question; either sets `basedOn` to that version. If you merge the changes into your rule by hand instead, edit `basedOn` to the version you merged. Syllabus never advances it otherwise, because only you know whether your rule took the changes in.
 - Without `basedOn`, such as for a replacement you wrote yourself, whenever the library's newest version of the rule is newer than the version the project includes, also when a pin holds the vendored copy there. The preview lists the changes since that version, which your rule may already have. Replacing your rule with a fork, as above, also records `basedOn`.
 
 ## Exclude or replace a skill
@@ -181,7 +181,7 @@ An excluded skill isn't installed into the target folders or listed in `generate
 
 Excluding or forking a [required skill](#skill-levels) fails validation and names the library that requires it. To stop using a required skill, stop using the source.
 
-When another installed skill calls a skill you exclude without a replacement, `code-rules project sync` warns that the skill it calls isn't installed. With a replacement, the calling skill's installed copy lists your skill instead in its "Skills this skill uses" line.
+When another installed skill calls a skill you exclude without a replacement, `syllabus project sync` warns that the skill it calls isn't installed. With a replacement, the calling skill's installed copy lists your skill instead in its "Skills this skill uses" line.
 
 You can also exclude a rule that an installed skill cites, such as one outside your rule `include`. The skill's installed copy then says the rule is excluded by this repository, with your reason.
 
@@ -192,7 +192,7 @@ Agents find skills by their install name, the `name` in `SKILL.md`, so two insta
 ```yaml
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules.git
+    repository: https://github.com/fabricahq/.syllabus.git
     skills:
       include: [skills/review-change]
       rename:
@@ -201,7 +201,7 @@ sources:
 
 The installed copy's `name` becomes `fabrica-review`, and it's installed in `<target>/fabrica-review/`. The skill's ID doesn't change, so configuration, provenance, and update previews still call it `fabrica:skills/review-change`. Each key must be a skill this source installs, and each new name follows the [name grammar](/reference/skill-format/#skill-ids).
 
-Code Rules doesn't rewrite the old name where skill text mentions it, such as in a skill that tells the agent to use `review-change`. Every sync, update, and build that applies a rename prints the same warning:
+Syllabus doesn't rewrite the old name where skill text mentions it, such as in a skill that tells the agent to use `review-change`. Every sync, update, and build that applies a rename prints the same warning:
 
 ```text
 Warning: fabrica:skills/review-change is installed as fabrica-review. Mentions of review-change in skill text aren't rewritten; check the skills that call it by that name.
@@ -219,11 +219,11 @@ skills:
     skills/architect: [skills/how]
 ```
 
-Each key is a skill ID the source installs, and each value lists skill IDs in the same repository. Every ID must exist there. `uses` adds to what the skill declares itself; it can't remove a call the skill declares. Code Rules installs the listed skills alongside the skill that calls them, and the installed copy's "Skills this skill uses" line includes them. Calls can't form a cycle. Code Rules doesn't look for calls a skill doesn't declare: `syllabus-skills-used` and `uses` are the only ways it learns of them.
+Each key is a skill ID the source installs, and each value lists skill IDs in the same repository. Every ID must exist there. `uses` adds to what the skill declares itself; it can't remove a call the skill declares. Syllabus installs the listed skills alongside the skill that calls them, and the installed copy's "Skills this skill uses" line includes them. Calls can't form a cycle. Syllabus doesn't look for calls a skill doesn't declare: `syllabus-skills-used` and `uses` are the only ways it learns of them.
 
 ## Refs
 
-A source's `ref` names where to take it from. Each project resolves the ref to a commit when it runs `code-rules project update`, records that commit in the source's vendor snapshot, and keeps it on every `code-rules project sync`:
+A source's `ref` names where to take it from. Each project resolves the ref to a commit when it runs `syllabus project update`, records that commit in the source's vendor snapshot, and keeps it on every `syllabus project sync`:
 
 | `ref` | Sync takes | Update moves to |
 | --- | --- | --- |
@@ -234,16 +234,16 @@ A source's `ref` names where to take it from. Each project resolves the ref to a
 
 When a bare name is both a branch and a tag, sync and update fail with `ambiguous-ref`; write `refs/heads/<name>` or `refs/tags/<name>` to say which one you mean. Abbreviated SHAs aren't accepted.
 
-Sources have no declared type. Code Rules decides when it fetches a source:
+Sources have no declared type. Syllabus decides when it fetches a source:
 
 - A source whose repository has a [manifest](#library-manifest) is a **library**. It publishes skill levels, and versioned rules and skills once it has library releases. A library without `release/<number>` tags must have a `ref`.
 - A source without a manifest is a **non-library source**, such as a third party's skill collection. Every skill in it is offered, it has no rules or versions, and it must have a `ref`, because it has no library releases to follow. `rules` is rejected on it.
 
-All of a source's skills come from its one recorded revision, so skills that call each other always come from the same commit. Skills have no pins. To hold a skill back, exclude or fork it, or set the source's `ref`, which holds everything from that source. When a source's repository gains or loses its manifest, so that the source's fields no longer fit it, `code-rules project update` fails and names the fields to change.
+All of a source's skills come from its one recorded revision, so skills that call each other always come from the same commit. Skills have no pins. To hold a skill back, exclude or fork it, or set the source's `ref`, which holds everything from that source. When a source's repository gains or loses its manifest, so that the source's fields no longer fit it, `syllabus project update` fails and names the fields to change.
 
 ### Take one revision
 
-Taking a library at a revision other than a library release, such as a branch with unreleased changes, opts that source out of versions for what changed: rules and skills whose files match a published version record that version, and the rest record `null`, have no version to cite, and update previews list the files that changed but no summaries of the changes. `code-rules project sync` and `code-rules project update` warn about such a source, naming its unreleased rules and skills, and the generated library summary in `generated/libraries/<source-name>/README.md` says so. `code-rules project check` still passes.
+Taking a library at a revision other than a library release, such as a branch with unreleased changes, opts that source out of versions for what changed: rules and skills whose files match a published version record that version, and the rest record `null`, have no version to cite, and update previews list the files that changed but no summaries of the changes. `syllabus project sync` and `syllabus project update` warn about such a source, naming its unreleased rules and skills, and the generated library summary in `generated/libraries/<source-name>/README.md` says so. `syllabus project check` still passes.
 
 A source can use `rules.pins` or `ref`, not both.
 
@@ -254,22 +254,22 @@ rules:
   pins:
     - id: practices/testing/verify-retry-limits
       version: "1.3.0"
-      reason: Waiting on the author's response to acme/.code-rules#45.
+      reason: Waiting on the author's response to acme/.syllabus#45.
 ```
 
 | Field | Meaning |
 | --- | --- |
 | `id` | Required. One rule ID the source includes. Prefixes aren't accepted. |
 | `version` | Required. An exact published version of the rule, such as `"1.3.0"`. Quote it so YAML reads it as text. |
-| `reason` | Required non-blank text explaining why the rule stays at this version. `code-rules project update` shows it next to any newer version, so the decision keeps its context. |
+| `reason` | Required non-blank text explaining why the rule stays at this version. `syllabus project update` shows it next to any newer version, so the decision keeps its context. |
 
 A pin holds the rule at exactly that version:
 
-- `code-rules project update` never moves a pinned rule. Its preview lists the pin, the newest available version, and your reason.
-- When you add or change a pin, `code-rules project sync` moves the rule to the pinned version, up or down, when the source's recorded library release or an earlier one published it. Sync never moves the source, so a pin to a version published after the recorded library release fails and names `code-rules project update SOURCE`, which takes it.
-- Removing a pin doesn't move the rule; the next `code-rules project update` offers its newest version.
+- `syllabus project update` never moves a pinned rule. Its preview lists the pin, the newest available version, and your reason.
+- When you add or change a pin, `syllabus project sync` moves the rule to the pinned version, up or down, when the source's recorded library release or an earlier one published it. Sync never moves the source, so a pin to a version published after the recorded library release fails and names `syllabus project update SOURCE`, which takes it.
+- Removing a pin doesn't move the rule; the next `syllabus project update` offers its newest version.
 
-To hold a rule at the version you have, pin it to the version recorded in the source's `_source.json`, which also appears in the rule's generated file. `code-rules project update --keep` writes that pin for you. Skills can't be pinned; see [Refs](#refs).
+To hold a rule at the version you have, pin it to the version recorded in the source's `_source.json`, which also appears in the rule's generated file. `syllabus project update --keep` writes that pin for you. Skills can't be pinned; see [Refs](#refs).
 
 A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it.
 
@@ -287,18 +287,18 @@ schemaVersion: 2
 skillTargets: [claude, agents]
 ```
 
-`code-rules project init` writes `[claude, agents]`; `--skill-targets claude`, `agents`, or `none` changes it. Each value can appear once.
+`syllabus project init` writes `[claude, agents]`; `--skill-targets claude`, `agents`, or `none` changes it. Each value can appear once.
 
-`skillTargets: []` is valid, and so is leaving the field out. With no targets, Code Rules still records every skill the repository includes, required skills too, lists them in `generated/SKILLS.md`, and checks them, but writes no installed copies, and sync warns that it installed nothing. Use it to record what your sources require before you choose agent folders.
+`skillTargets: []` is valid, and so is leaving the field out. With no targets, Syllabus still records every skill the repository includes, required skills too, lists them in `generated/SKILLS.md`, and checks them, but writes no installed copies, and sync warns that it installed nothing. Use it to record what your sources require before you choose agent folders.
 
-Each installed skill gets a folder `<target>/<install-name>/`. Code Rules writes and removes only the skill folders it installed, and leaves every other folder in the target alone, such as a skill another tool installed. Code Rules never writes to your home directory. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+Each installed skill gets a folder `<target>/<install-name>/`. Syllabus writes and removes only the skill folders it installed, and leaves every other folder in the target alone, such as a skill another tool installed. Syllabus never writes to your home directory. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
 
 ## Library manifest
 
 The `library` section makes a repository a library. It publishes the repository's authored rules, rule groups, skills, and assets, and sets the level of each skill it offers:
 
 ```yaml
-# fabricahq/.code-rules: .code-rules/config.yaml
+# fabricahq/.syllabus: .syllabus/config.yaml
 schemaVersion: 2
 sources:
   mattpocock:
@@ -327,7 +327,7 @@ library:
 
 An empty `library: {}` makes a repository a library with no levels and no declared license. Each level is an optional list. Each entry is either an authored skill's ID, such as `skills/ship-service`, or a borrowed skill, `<source>:<skill-id>`, where `<source>` names an entry in this repository's own `sources`. A skill can appear in one level only. An authored skill that no level lists is offered.
 
-`code-rules library check` validates the manifest, and fails when two listed skills, authored or borrowed, have the same install name, so projects never inherit a clash from one library. See [Library format](/reference/library-format/).
+`syllabus library check` validates the manifest, and fails when two listed skills, authored or borrowed, have the same install name, so projects never inherit a clash from one library. See [Library format](/reference/library-format/).
 
 The manifest replaces the separate `rule-library.yaml` that earlier versions used. A repository with a `rule-library.yaml` fails to load; see [No backward compatibility](#no-backward-compatibility).
 
@@ -337,7 +337,7 @@ A library can list skills from another repository in its levels, such as a third
 
 - **Every borrowed skill is listed.** A skill from a borrowed source reaches projects only when a level lists it.
 - **Files come from the original repository.** A skill's identity is its repository plus its path. Projects fetch a borrowed skill's files from the borrowed source, not from the library, and provenance records which library required, recommended, or offered it.
-- **Refs resolve per project.** A library release doesn't lock a borrowed source's `ref`. Each project resolves it when it runs `code-rules project update` and records the commit in the library source's `_source.json`, so `ref: main` gives each project the newest commit at its own update, without a new library release. `code-rules project sync` keeps the recorded commit.
+- **Refs resolve per project.** A library release doesn't lock a borrowed source's `ref`. Each project resolves it when it runs `syllabus project update` and records the commit in the library source's `_source.json`, so `ref: main` gives each project the newest commit at its own update, without a new library release. `syllabus project sync` keeps the recorded commit.
 - **A project can override the ref.** When a project declares a source with the same repository as a borrowed source, its own `ref` decides which commit the borrowed skills come from. Repository identity decides the match, not the source name; see [Repository addresses](#repository-addresses).
 
 The library repository is a project too: it installs the required skills of the sources it borrows from, as any project would, and whatever it includes from them for its own use.
@@ -368,11 +368,11 @@ Repository addresses do not accept query strings, fragments, `git::` prefixes, g
 Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper protocols are outside this format.
 The `owner/name` shorthand isn't accepted; use `https://github.com/owner/name.git` instead.
 
-Code Rules preserves the supplied address in provenance and requires the snapshot to match it exactly.
+Syllabus preserves the supplied address in provenance and requires the snapshot to match it exactly.
 Two addresses name the same repository when they match after normalizing host spelling, standard GitHub.com and GitLab.com transport aliases, and optional `.git` suffixes. This decides duplicate sources, and which project source overrides a [borrowed source's](#borrowed-skills) ref.
 GitHub path matching ignores case; generic repository paths and GitLab paths retain case.
 Other hosts retain their transport, username, port, and path distinctions.
-For example, `git@host:rules.git` is home-relative, while `ssh://git@host/rules.git` is absolute. Code Rules does not equate them.
+For example, `git@host:rules.git` is home-relative, while `ssh://git@host/rules.git` is absolute. Syllabus does not equate them.
 
 Validation rejects ambiguous paths, including dot segments, encoded separators in URLs, malformed URI escapes, raw whitespace, and backslashes.
 SCP paths are literal Git paths, so percent signs in that form are not URI escapes.
@@ -381,7 +381,7 @@ Syntax validation does not fetch or authenticate a repository.
 Generated source links use pinned GitHub.com or GitLab.com URLs for recognized standard endpoints.
 For other hosts, they point to the retained source file under `vendor/<source>/`.
 If a relative document or image is missing from that snapshot, generation fails with instructions to retain it or supply an explicit URL.
-Code Rules does not infer a host's web interface from its name. See [How sources work](/reference/imports/).
+Syllabus does not infer a host's web interface from its name. See [How sources work](/reference/imports/).
 
 ## Source names and IDs
 
@@ -389,7 +389,7 @@ Choose stable source names such as `fabrica` or `acme`.
 Names must match `[a-z][a-z0-9-]*`. `techs` and `practices` are reserved, because authored rules use those names in `generated/rules/`.
 Declare each repository once.
 
-Inside a source's configuration, rule and skill IDs are relative to that source, without its name. Everywhere else, in generated files, provenance, review findings, and commands such as `code-rules project update fabrica:skills/build-feature`, an included rule or skill has a **project ID** that starts with its source name:
+Inside a source's configuration, rule and skill IDs are relative to that source, without its name. Everywhere else, in generated files, provenance, review findings, and commands such as `syllabus project update fabrica:skills/build-feature`, an included rule or skill has a **project ID** that starts with its source name:
 
 ```text
 fabrica:practices/testing/verify-retry-limits
@@ -413,10 +413,10 @@ The installed copy of a skill goes in a folder named only by its install name, b
 
 Each rule and skill in a library has its own [version](/reference/rule-versions/). A project takes each source from one library release or commit, its **lock**, and moves it only when someone updates:
 
-- `vendor/<source-name>/_source.json` records the library release or commit, and the exact version of every included rule and skill. [`code-rules project sync`](/reference/cli/#project-sync) restores exactly that, so every checkout has the same content.
-- [`code-rules project update`](/reference/cli/#project-update) previews newer versions, new rules and skills, level changes, and retirements, and applies them after you confirm.
+- `vendor/<source-name>/_source.json` records the library release or commit, and the exact version of every included rule and skill. [`syllabus project sync`](/reference/cli/#project-sync) restores exactly that, so every checkout has the same content.
+- [`syllabus project update`](/reference/cli/#project-update) previews newer versions, new rules and skills, level changes, and retirements, and applies them after you confirm.
 
-`code-rules project sync` never moves a source. A rule or skill you newly include comes from the recorded library release or commit. When it isn't there, such as a skill the library published after your last update, sync fails and names the command that moves the source, `code-rules project update SOURCE`.
+`syllabus project sync` never moves a source. A rule or skill you newly include comes from the recorded library release or commit. When it isn't there, such as a skill the library published after your last update, sync fails and names the command that moves the source, `syllabus project update SOURCE`.
 
 A project chooses rule versions one by one, with pins, but not skill versions. All of a source's skills come from its one recorded revision, and move together when it moves. A skill's version still says what changed, in release notes, `generated/SKILLS.md`, the installed copy's marker line, provenance, and the update preview.
 
@@ -424,7 +424,7 @@ A project chooses rule versions one by one, with pins, but not skill versions. A
 
 Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as rule group metadata, shared assets, the manifest, and license files, and every skill's whole folder come from the source's one recorded library release, or from the revision your `ref` names. That library release is never older than the one that published any included rule version. When it no longer has the metadata of an included rule's rule group, such as the rule group of a retired rule you pinned, that rule group's metadata comes from the newest library release among its included rule versions that still has it.
 
-Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
+Offline `syllabus project build`, `syllabus project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
 ## Rule groups
 
@@ -443,13 +443,13 @@ Provenance retains all rule group metadata and identifies the sources supplying 
 Authored rules without either authored or included rule group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last source supplying an authored rule's rule group, it writes that rule group's last vendored metadata to `rules/<group-id>/_group.yaml` instead of failing; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 
 The generated index shows rule group names, applicability guidance, and explicit **Open group** links. Without authored metadata, guidance from multiple libraries remains labeled by source.
-Code Rules does not silently choose one library's description over another's.
+Syllabus does not silently choose one library's description over another's.
 
 ## Conflicting rules
 
 Source-qualified IDs prevent naming collisions, but distinct rules can still require incompatible behavior in the same situation.
 Both remain active unless the repository explicitly excludes or replaces a rule under its owning source.
-Code Rules does not infer priority from source order or interpret prose to resolve contradictions.
+Syllabus does not infer priority from source order or interpret prose to resolve contradictions.
 
 See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an agent review prompt, and ways to resolve competing instructions.
 
@@ -457,14 +457,14 @@ See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an 
 
 Skill decisions layer in this order, each overriding the ones before it: a library's levels, then an org library's, then the project's configuration, then each person's [personal skills](/reference/sync/#personal-skills-with-the-same-name). Required skills are a floor: the project can add, rename, and replace around them, but can't remove them.
 
-A personal skill with the same name as a skill the repository installs wins in some agents, even over a required skill. Code Rules can't prevent that, and doesn't write to your home directory. It warns instead; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+A personal skill with the same name as a skill the repository installs wins in some agents, even over a required skill. Syllabus can't prevent that, and doesn't write to your home directory. It warns instead; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
 
 ## No backward compatibility
 
-Code Rules reads only version 2 configuration. A version 1 configuration, or a repository with a `rule-library.yaml`, fails to load, with a message that shows the version 2 shape:
+Syllabus reads only version 2 configuration. A version 1 configuration, or a repository with a `rule-library.yaml`, fails to load, with a message that shows the version 2 shape:
 
 ```text
-Error: .code-rules/config.yaml uses schemaVersion 1, which this version of Code Rules doesn't read. Rewrite it in the version 2 shape, for example:
+Error: .syllabus/config.yaml uses schemaVersion 1, which this version of Syllabus doesn't read. Rewrite it in the version 2 shape, for example:
 
   schemaVersion: 2
   skillTargets: [claude, agents]
@@ -489,15 +489,15 @@ There's no upgrade command. Rewrite the file by hand:
 | `rules: [techs/go/wrap-errors]` | Add the IDs to `rules.include`. |
 | `exclude` and `pins` maps keyed by rule ID | `rules.exclude` and `rules.pins` lists, each entry with an `id`. |
 | `replacedBy: local/techs/go/x.md` | `replacedBy: techs/go/x`, the authored rule's ID. |
-| `.code-rules/local/<group-id>/` | `.code-rules/rules/<group-id>/` |
-| `rule-library.yaml` and root-level `techs/`, `practices/`, and `assets/` | A `library` section in `.code-rules/config.yaml`, and `.code-rules/rules/` and `.code-rules/assets/`. |
+| `.syllabus/local/<group-id>/` | `.syllabus/rules/<group-id>/` |
+| `rule-library.yaml` and root-level `techs/`, `practices/`, and `assets/` | A `library` section in `.syllabus/config.yaml`, and `.syllabus/rules/` and `.syllabus/assets/`. |
 
 ## Version boundaries
 
 `schemaVersion` describes this configuration.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-Each source's pins, and its `ref` when present, state which versions the project wants; every other rule and skill follows the source's lock, which only `code-rules project update` moves.
-Vendored provenance records each included rule's and skill's version, library release, and commit, or a non-library source's commit, used by offline commands. It is output Code Rules owns, not a second version the project chooses.
+Each source's pins, and its `ref` when present, state which versions the project wants; every other rule and skill follows the source's lock, which only `syllabus project update` moves.
+Vendored provenance records each included rule's and skill's version, library release, and commit, or a non-library source's commit, used by offline commands. It is output Syllabus owns, not a second version the project chooses.
 
 See [Library format](/reference/library-format/) for library contents and [Include rules](/guides/select-rules/#adapt-the-selection-to-your-project) for examples of exceptions.

@@ -60,7 +60,7 @@ func TestSourceSelectionFlags(t *testing.T) {
 				}
 				return
 			}
-			data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
+			data, err := os.ReadFile(filepath.Join(dir, ".syllabus/config.yaml"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -68,7 +68,7 @@ func TestSourceSelectionFlags(t *testing.T) {
 			if err := yaml.Unmarshal(data, &config); err != nil || !reflect.DeepEqual(config.Sources["team"], tc.want) {
 				t.Fatal(string(data), err)
 			}
-			if _, err := os.Stat(filepath.Join(dir, ".code-rules/vendor")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(dir, ".syllabus/vendor")); !os.IsNotExist(err) {
 				t.Fatal("add source fetched files", err)
 			}
 		})

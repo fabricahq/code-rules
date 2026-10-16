@@ -1,15 +1,15 @@
 ---
 title: "Rule and rule group format"
-description: "What Code Rules accepts in rule files, rule group metadata, and supporting assets."
+description: "What Syllabus accepts in rule files, rule group metadata, and supporting assets."
 ---
 
 :::caution[Preview]
-The `.code-rules/rules/` and `.code-rules/assets/` paths on this page are the version 2 layout, which isn't in a released version of Code Rules yet. The released CLI reads a library's rule groups and shared assets at the repository root, and a project's own rule groups in `.code-rules/local/`.
+The `.syllabus/rules/` and `.syllabus/assets/` paths on this page are the version 2 layout, which isn't in a released version of Syllabus yet. The released CLI reads a library's rule groups and shared assets at the repository root, and a project's own rule groups in `.syllabus/local/`.
 :::
 
-This page defines what Code Rules accepts in a rule file and in rule group metadata. The same format applies to rules in a library and to a project's own rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
+This page defines what Syllabus accepts in a rule file and in rule group metadata. The same format applies to rules in a library and to a project's own rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
 
-Each rule is a Markdown file, and related rules belong to a **rule group**: a directory under `.code-rules/rules/techs/` or `.code-rules/rules/practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where rule groups live in a library.
+Each rule is a Markdown file, and related rules belong to a **rule group**: a directory under `.syllabus/rules/techs/` or `.syllabus/rules/practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where rule groups live in a library.
 
 Rule group metadata and rule frontmatter use YAML. Duplicate keys, anchors, aliases, and explicit tags are rejected.
 
@@ -36,7 +36,7 @@ Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#wri
 Each rule requires YAML frontmatter containing `title`, `whenToRead`, `impact`, and `impactDescription`, followed by a non-blank Markdown body.
 The builder rejects duplicate YAML keys and aliases. Unknown frontmatter fields are rejected. Accepted fields are `title`, `whenToRead`, `impact`, `impactDescription`, `tags`, and `attribution`.
 `tags` is optional: use a non-blank string of comma-separated topics or an array of unique, non-blank strings. An empty array is also accepted.
-Tags provide search terms, such as `testing` on a Go rule. Code Rules preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
+Tags provide search terms, such as `testing` on a Go rule. Syllabus preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
 Impact describes the significance of the consequence a rule helps prevent.
 Follow the canonical [impact authoring guidance](/reference/rule-authoring/#describe-impact-through-consequences) for level definitions and examples.
@@ -50,7 +50,7 @@ Existing snapshots and a project's own replacements must add rule-level `whenToR
 
 See [Write a rule](/guides/write-rules/) for a complete example.
 
-Rules have no `version` field, and you never set a version by hand. The first library release gives every rule version `1.0.0`, and later library releases assign versions from the change notes that authors record with `code-rules library change`; see [Change rules after the first library release](/guides/version-rules/#change-rules-after-the-first-library-release) and [Rule and skill versions](/reference/rule-versions/).
+Rules have no `version` field, and you never set a version by hand. The first library release gives every rule version `1.0.0`, and later library releases assign versions from the change notes that authors record with `syllabus library change`; see [Change rules after the first library release](/guides/version-rules/#change-rules-after-the-first-library-release) and [Rule and skill versions](/reference/rule-versions/).
 
 ## Rule attribution
 
@@ -67,14 +67,14 @@ Use a commit-pinned URL and describe the adaptation. These citations identify so
 Attribution in the Markdown body remains preserved. Unknown attribution-object fields are rejected.
 
 Keep attribution with the rule in metadata or prose; a separate attribution file is not required by the format.
-Declare accompanying license and notice files in the [library manifest](/reference/library-format/#license-metadata) so Code Rules can retain them and their links.
+Declare accompanying license and notice files in the [library manifest](/reference/library-format/#license-metadata) so Syllabus can retain them and their links.
 
 ## Supporting assets
 
-Use two optional locations for supporting files, both in the Code Rules directory, `.code-rules/`, of a library or a project:
+Use two optional locations for supporting files, both in the Syllabus directory, `.syllabus/`, of a library or a project:
 
 ```text
-.code-rules/
+.syllabus/
   assets/                            # Shared across the library
     retry-lifecycle.svg
   rules/
@@ -94,10 +94,10 @@ Markdown within assets is supporting text and does not need rule frontmatter.
 
 Keep the rule's obligations and exceptions in the rule itself. Use assets for explanations, images, sample data, and other supporting material.
 Link from the rule with ordinary Markdown, such as `[Explanation](assets/verify-retries/explanation.md)`.
-Use `../../../assets/retry-lifecycle.svg` from this rule to reference a shared image in `.code-rules/assets/`.
+Use `../../../assets/retry-lifecycle.svg` from this rule to reference a shared image in `.syllabus/assets/`.
 
-Code Rules preserves each included rule's complete asset directory, including files that are not individually linked.
-From the library's `.code-rules/assets/` directory, Code Rules takes only the files an included rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `code-rules project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
+Syllabus preserves each included rule's complete asset directory, including files that are not individually linked.
+From the library's `.syllabus/assets/` directory, Syllabus takes only the files an included rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `syllabus project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
 Other shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the size and file-type limits for reading a source.
 No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
 

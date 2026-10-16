@@ -14,16 +14,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // GuideReadme and GuideStandalone are managed files, not permission to replace a general project README.
 // Callers must establish guide ownership and recheck its original bytes before publication.
 const (
 	GuideReadme     Target = "README.md"
-	GuideStandalone Target = "CODE_RULES.md"
+	GuideStandalone Target = "SYLLABUS.md"
 )
 
 // Config is the project configuration. Only project update replaces it, together with vendor and generated output,
@@ -57,13 +57,13 @@ func LocalRuleAssets(file string) Target {
 const maxLocalRules = 1000
 
 // SkillFolder is the installed skill folder at folder, a path relative to the repository root, the parent of the
-// Code Rules directory: a skill target's folder and an install name, such as .claude/skills/build-feature. Sync,
+// Syllabus directory: a skill target's folder and an install name, such as .claude/skills/build-feature. Sync,
 // update, and build replace or, with a nil file map, remove it together with generated output, so recovery restores
-// or finishes them together. Apply creates its missing parent directories. Callers must establish that Code Rules
+// or finishes them together. Apply creates its missing parent directories. Callers must establish that Syllabus
 // installed an existing folder before replacing or removing it.
 func SkillFolder(folder string) Target { return Target(skillPrefix + folder) }
 
-// skillPrefix begins every SkillFolder target, whose folder is outside the Code Rules directory.
+// skillPrefix begins every SkillFolder target, whose folder is outside the Syllabus directory.
 const skillPrefix = "../"
 
 // maxSkillFolders bounds the skill folders one transaction can replace or remove, so its journal stays small enough
@@ -137,7 +137,7 @@ func removable(target Target) bool {
 
 // place is where a target and its transaction entries are: the root that holds them, the target's path in it, and
 // the transaction directory's path in it. Rename publishes within one root, so a skill folder, which is outside the
-// Code Rules directory, uses the repository root for its staged output and backup too.
+// Syllabus directory, uses the repository root for its staged output and backup too.
 type place struct {
 	root *os.Root
 	live string
@@ -150,7 +150,7 @@ func (p place) entry(prefix string, target Target) string {
 	return path.Join(p.txn, prefix+entryName(target))
 }
 
-// roots resolves targets to places. project is the Code Rules directory; repository, its parent, is opened when a
+// roots resolves targets to places. project is the Syllabus directory; repository, its parent, is opened when a
 // skill folder first needs it, and close releases it.
 type roots struct {
 	project    *os.Root

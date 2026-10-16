@@ -4,14 +4,14 @@ description: "Package external guidance in a compatible library with one library
 ---
 
 :::caution[Preview]
-This guide uses the version 2 library layout, which isn't in a released version of Code Rules yet. The released CLI reads the license declaration from `rule-library.yaml` and rules at the repository root.
+This guide uses the version 2 library layout, which isn't in a released version of Syllabus yet. The released CLI reads the license declaration from `rule-library.yaml` and rules at the repository root.
 :::
 
-**Adapting a rule** means turning guidance from another source, such as a linter or style guide, into a Code Rules rule. You can reuse useful advice even when its author hasn't published a compatible library. The adapted rule needs to preserve the original meaning, attribution, and applicable terms.
+**Adapting a rule** means turning guidance from another source, such as a linter or style guide, into a Syllabus rule. You can reuse useful advice even when its author hasn't published a compatible library. The adapted rule needs to preserve the original meaning, attribution, and applicable terms.
 
 In this guide, you'll adapt a JavaScript rule from ESLint Unicorn. You'll check the source and its terms, create a library for the adaptation, write the rule, and inspect the result in a consuming project.
 
-Code Rules takes rules from compatible libraries; it does not automatically convert arbitrary documents. If the source already provides a compatible library, follow [Include rules](/guides/select-rules/) instead.
+Syllabus takes rules from compatible libraries; it does not automatically convert arbitrary documents. If the source already provides a compatible library, follow [Include rules](/guides/select-rules/) instead.
 
 ## 1. Identify the material and its terms
 
@@ -20,7 +20,7 @@ This example uses ESLint Unicorn at commit `5d9d745c5365b6fdb824db1122ff982dd824
 Select the specific document and record its repository, file path, and exact revision.
 Read the source and applicable license files before adapting it.
 Follow [License rules](/guides/license-rules/) to record the terms for your intended use.
-Code Rules preserves declarations; it does not establish permission for you.
+Syllabus preserves declarations; it does not establish permission for you.
 
 ## 2. Create a compatible library
 
@@ -31,7 +31,7 @@ The library uses this layout:
 adapted-rules/
   LICENSE.md
   NOTICE.md
-  .code-rules/
+  .syllabus/
     config.yaml
     rules/
       techs/javascript/
@@ -39,7 +39,7 @@ adapted-rules/
         prefer-for-of.md
 ```
 
-Declare one license covering the whole library in the manifest, the `library` section of `.code-rules/config.yaml`:
+Declare one license covering the whole library in the manifest, the `library` section of `.syllabus/config.yaml`:
 
 ```yaml
 schemaVersion: 2
@@ -80,7 +80,7 @@ Do not put edited material in `vendor/` and label it an unchanged vendor snapsho
 ## 4. Review, include, and generate
 
 Review the definition against the authoring rubric and the original source.
-`code-rules library check` validates the library format.
+`syllabus library check` validates the library format.
 Publish the compatible library to a Git repository and add it to the consuming project's `sources`, with `techs/javascript/*` in `rules.include`.
 Sync fetches the included rules, generates resolved rules and license links, and applies those files to the consuming project.
 See [Configuration](/reference/configuration/) for adding a source and choosing rules.

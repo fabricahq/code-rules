@@ -13,9 +13,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // authoredSkills returns the authored skills in tree, the project's skills/ folder, by ID, skills/<name>, each with
@@ -35,7 +35,7 @@ func authoredSkills(tree *filetxn.Tree) (map[string]build.SkillFiles, error) {
 	for _, name := range slices.Sorted(maps.Keys(tree.Files)) {
 		folder, _, inFolder := strings.Cut(name, "/")
 		if !inFolder {
-			return nil, &ValidationError{Location: ".code-rules/skills/" + name, Problem: "skills/ holds one folder per skill, each with a SKILL.md; move this file into a skill's folder"}
+			return nil, &ValidationError{Location: ".syllabus/skills/" + name, Problem: "skills/ holds one folder per skill, each with a SKILL.md; move this file into a skill's folder"}
 		}
 		if !slices.Contains(folders, folder) {
 			folders = append(folders, folder)
@@ -43,7 +43,7 @@ func authoredSkills(tree *filetxn.Tree) (map[string]build.SkillFiles, error) {
 	}
 	slices.Sort(folders)
 	for _, folder := range folders {
-		location := ".code-rules/skills/" + folder + "/"
+		location := ".syllabus/skills/" + folder + "/"
 		if !skills.ValidName(folder) {
 			return nil, &ValidationError{Location: location, Problem: "a skill's folder name is its name, which uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen; rename the folder"}
 		}
@@ -92,10 +92,10 @@ type skillFolderChange struct {
 }
 
 // planSkillFolders plans the installed skill folders of output, given generated, the generated tree before the
-// write, whose installed-skills.json lists the folders Code Rules installed. It replaces each folder output
-// installs whose files differ, and removes each folder Code Rules installed that output no longer installs. root is
-// the project's Code Rules directory, whose parent is the repository root. It fails with skill-folder-not-managed
-// when a folder output installs already exists and Code Rules didn't install it, and with unsafe-path when a skill
+// write, whose installed-skills.json lists the folders Syllabus installed. It replaces each folder output
+// installs whose files differ, and removes each folder Syllabus installed that output no longer installs. root is
+// the project's Syllabus directory, whose parent is the repository root. It fails with skill-folder-not-managed
+// when a folder output installs already exists and Syllabus didn't install it, and with unsafe-path when a skill
 // target's folder is a symbolic link.
 func planSkillFolders(ctx context.Context, root *os.Root, generated *filetxn.Tree, output build.Output) (skillInstall, error) {
 	plan := skillInstall{targets: map[filetxn.Target]map[string][]byte{}, executable: map[filetxn.Target][]string{}, read: map[string]*filetxn.Tree{}}
@@ -124,7 +124,7 @@ func planSkillFolders(ctx context.Context, root *os.Root, generated *filetxn.Tre
 		current := read[folder]
 		want, installs := output.Skills[folder]
 		if current != nil && !slices.Contains(owned, folder) {
-			return skillInstall{}, failure("skill-folder-not-managed", fmt.Sprintf("%s already exists, and Code Rules didn't install it, so it won't replace it. Move or delete the folder, or stop including the skill that installs there, then run the command again.", folder), nil)
+			return skillInstall{}, failure("skill-folder-not-managed", fmt.Sprintf("%s already exists, and Syllabus didn't install it, so it won't replace it. Move or delete the folder, or stop including the skill that installs there, then run the command again.", folder), nil)
 		}
 		if current != nil {
 			for name, data := range current.Files {
@@ -238,7 +238,7 @@ func noSkillTargetsWarning(output build.Output, targets []string) string {
 	if len(targets) > 0 || len(output.SkillIDs) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("The project has no skill targets, so no copy of its %d skill(s) was installed. Agents can find them through .code-rules/generated/SKILLS.md. To install copies, set skillTargets in .code-rules/config.yaml, such as [claude, agents], then run code-rules project build.", len(output.SkillIDs))
+	return fmt.Sprintf("The project has no skill targets, so no copy of its %d skill(s) was installed. Agents can find them through .syllabus/generated/SKILLS.md. To install copies, set skillTargets in .syllabus/config.yaml, such as [claude, agents], then run syllabus project build.", len(output.SkillIDs))
 }
 
 // retiredCitationWarnings returns a warning for each rule an authored skill in output cites that its library

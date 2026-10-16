@@ -1,4 +1,4 @@
-# Code Rules agent guide
+# Syllabus agent guide
 
 Use this file to understand the product we are building and the decisions it should guide.
 [CONTRIBUTING.md](CONTRIBUTING.md) owns repository setup and validation commands.
@@ -8,11 +8,11 @@ Use this file to understand the product we are building and the decisions it sho
 ### Motivation
 
 Most people already guide their coding agents with skills, the AI skills everyone knows, officially folders that follow the open [Agent Skills](https://agentskills.io) standard. They install skills from many places, and it's hard to know where each skill came from, keep it updated, share it across an organization, or use it with more than one agent.
-Skills need a package manager. Code Rules records each skill's source and revision, updates it only when a project asks, shares it through libraries and an organization's `.code-rules` repository, and installs it into the folders each of the project's agents reads.
+Skills need a package manager. Syllabus records each skill's source and revision, updates it only when a project asks, shares it through libraries and an organization's `.syllabus` repository, and installs it into the folders each of the project's agents reads.
 Publishers need a formal format that tools can read in a structured way: a library manifest, a version for each skill, change notes, and skill metadata.
 
 Skills alone aren't enough. They're coarse-grained: suited to playbooks, techniques, and coordinating a whole task. Teams also need granular engineering rules that a project can adopt, exclude, or replace one at a time.
-Code Rules adds rules, organizes them in rule groups, lets skills cite the rules they apply, and manages both together, for libraries that publish them, organizations that standardize on them, and projects that use them.
+Syllabus adds rules, organizes them in rule groups, lets skills cite the rules they apply, and manages both together, for libraries that publish them, organizations that standardize on them, and projects that use them.
 
 Without that guidance, agents generate code that conflicts with the team's practices, and review turns into rework: reviewers explain expectations, request changes, and check the revision. Giving agents the right skills and rules before they write code avoids that rework.
 
@@ -70,13 +70,13 @@ Rule groups guide selection; individual rules determine applicability. A testing
 
 A skill is the AI skill people already know, officially a folder that follows the open Agent Skills standard, whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Skills are coarse-grained: suited to playbooks, techniques, and coordinating a whole task. Rules are the granular layer: one best practice each, adopted and versioned on its own. A skill cites the rules it applies instead of restating them. Skills don't belong to rule groups. A skill may declare a type, `playbook` or `review`, as a label only.
 
-Code Rules installs included skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. It installs skills into repositories, never into a person's home directory; it only warns when a personal skill has the same name as one a project installs. See [Skill](docs/src/content/docs/concepts/skill.md).
+Syllabus installs included skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. It installs skills into repositories, never into a person's home directory; it only warns when a personal skill has the same name as one a project installs. See [Skill](docs/src/content/docs/concepts/skill.md).
 
 #### Library
 
-A library is a Git repository whose manifest publishes its rule groups and skills. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. A library sets a level for each skill it offers: required, recommended, or offered. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`, whose required skills install in every project that uses it and whose recommended skills install in projects that include them; a project explicitly chooses which sources, rules, and skills to include.
+A library is a Git repository whose manifest publishes its rule groups and skills. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. A library sets a level for each skill it offers: required, recommended, or offered. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.syllabus`, whose required skills install in every project that uses it and whose recommended skills install in projects that include them; a project explicitly chooses which sources, rules, and skills to include.
 
-Projects may take from multiple sources, move to each rule's published versions, and each source's skills, on their own schedule, and add or replace rules and skills of their own. A source can also be a Git repository of skills that isn't a library. One configuration file and one `.code-rules/` layout serve projects and libraries alike.
+Projects may take from multiple sources, move to each rule's published versions, and each source's skills, on their own schedule, and add or replace rules and skills of their own. A source can also be a Git repository of skills that isn't a library. One configuration file and one `.syllabus/` layout serve projects and libraries alike.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
 See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](docs/src/content/docs/reference/configuration.md).
 
@@ -104,19 +104,19 @@ See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](d
 
 ### Ownership and boundaries
 
-This public repository owns the Code Rules conventions, importer, authoring tools, and documentation.
+This public repository owns the Syllabus conventions, importer, authoring tools, and documentation.
 Independently owned libraries supply the engineering policies.
 Keep Fabrica's private rule corpus separate; public examples must be original or authorized for redistribution.
 
 Projects retain their product vision, domain knowledge, and architecture context.
-Code Rules manages which versioned rules and skills a codebase adopts, delivers the rules' resolved definitions, and installs the skills.
-Code Rules supplies a Skills and Rules section that projects add to `AGENTS.md`; it tells agents to read `RULES.md`, which links to `SKILLS.md`. Code Rules never edits `AGENTS.md`, and it can't guarantee that agents follow the rules or use the skills.
+Syllabus manages which versioned rules and skills a codebase adopts, delivers the rules' resolved definitions, and installs the skills.
+Syllabus supplies a Skills and Rules section that projects add to `AGENTS.md`; it tells agents to read `RULES.md`, which links to `SKILLS.md`. Syllabus never edits `AGENTS.md`, and it can't guarantee that agents follow the rules or use the skills.
 Projects can add their own guidance on how agents apply rules and skills, in other procedures, skills, or elsewhere in `AGENTS.md`, and choose their own validation and enforcement.
-Rule and skill input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
+Rule and skill input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-syllabus-does-not-do).
 
 ## Working in this repository
 
-This repository uses Code Rules to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules) and to keep its own conventions as local rules; [its guide](.code-rules/README.md) explains how to manage them.
+This repository uses Syllabus to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules) and to keep its own conventions as local rules; [its guide](.code-rules/README.md) explains how to manage them.
 Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant rule groups and read their rules in full.
 Follow the applicable rules and their exceptions, and check your work against them before finishing.
 If required rule files are unavailable or give conflicting instructions, report the issue rather than silently skipping a rule or choosing a policy.

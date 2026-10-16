@@ -1,4 +1,4 @@
-// Validate the frontmatter of a skill a repository authors: its name, and the metadata keys Code Rules defines.
+// Validate the frontmatter of a skill a repository authors: its name, and the metadata keys Syllabus defines.
 
 package skills
 
@@ -7,18 +7,18 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
-// The metadata keys Code Rules defines. Every other key that starts with syllabus- is reserved.
+// The metadata keys Syllabus defines. Every other key that starts with syllabus- is reserved.
 const (
 	TypeKey       = "syllabus-skill-type"
 	RulesUsedKey  = "syllabus-rules-used"
 	SkillsUsedKey = "syllabus-skills-used"
 )
 
-// Types lists the values syllabus-skill-type accepts. A type is a label only: Code Rules shows it and treats every skill
+// Types lists the values syllabus-skill-type accepts. A type is a label only: Syllabus shows it and treats every skill
 // the same way.
 var Types = []string{"playbook", "review"}
 
@@ -68,7 +68,7 @@ func Check(folder string, metadata Metadata, qualified bool) []string {
 		problems = append(problems, fmt.Sprintf("%s is %s; use %s, or leave it out", TypeKey, decode.Quote(metadata.Type), strings.Join(Types, " or ")))
 	}
 	for _, key := range metadata.ReservedKeys {
-		problems = append(problems, fmt.Sprintf("metadata.%s isn't a Code Rules key; use %s, %s, or %s", decode.Quote(key), TypeKey, RulesUsedKey, SkillsUsedKey))
+		problems = append(problems, fmt.Sprintf("metadata.%s isn't a Syllabus key; use %s, %s, or %s", decode.Quote(key), TypeKey, RulesUsedKey, SkillsUsedKey))
 	}
 	problems = append(problems, checkLines(RulesUsedKey, metadata.RulesUsed, qualified, "", ruleProblem)...)
 	return append(problems, checkLines(SkillsUsedKey, metadata.SkillsUsed, qualified, AuthoredID(folder), skillProblem)...)

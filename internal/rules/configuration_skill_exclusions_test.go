@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // skillSource is a configuration whose source team includes every skill, followed by the YAML of its skills.exclude
@@ -61,9 +61,9 @@ func TestParseConfigurationRejectsInvalidSkillExclusions(t *testing.T) {
 		"missing reason":     {"      exclude:\n        - id: skills/review\n", at + ".reason", "expected nonempty text"},
 		"blank reason":       {"      exclude:\n        - id: skills/review\n          reason: \" \"\n", at + ".reason", "expected nonempty text"},
 		"unknown field":      {entry + "          version: 1.0.0\n", at, "version"},
-		"replacement folder": {entry + "          replacedBy: .code-rules/skills/our-review/\n", at + ".replacedBy", "replacedBy names the authored skill by its ID, skills/our-review"},
+		"replacement folder": {entry + "          replacedBy: .syllabus/skills/our-review/\n", at + ".replacedBy", "replacedBy names the authored skill by its ID, skills/our-review"},
 		"replacement name":   {entry + "          replacedBy: our-review\n", at + ".replacedBy", "replacedBy names the authored skill by its ID, skills/our-review"},
-		"replacement path":   {entry + "          replacedBy: skills/a/b\n", at + ".replacedBy", "expected the ID of an authored skill in .code-rules/skills/"},
+		"replacement path":   {entry + "          replacedBy: skills/a/b\n", at + ".replacedBy", "expected the ID of an authored skill in .syllabus/skills/"},
 		"basedOn alone":      {entry + "          basedOn: \"" + commit + "\"\n", at + ".basedOn", "so it needs replacedBy"},
 		"basedOn short":      {entry + "          replacedBy: skills/r\n          basedOn: \"0123456\"\n", at + ".basedOn", `the full 40-character commit SHA the replacement was copied from, in quotes, got "0123456"`},
 		"basedOn a version":  {entry + "          replacedBy: skills/r\n          basedOn: 1.0.0\n", at + ".basedOn", `the full 40-character commit SHA the replacement was copied from, in quotes, got "1.0.0"`},

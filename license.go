@@ -1,5 +1,5 @@
-// Package coderules provides the tool license embedded from the repository's canonical notice.
-package coderules
+// Package syllabus provides the tool license embedded from the repository's canonical notice.
+package syllabus
 
 import _ "embed"
 

@@ -4,22 +4,22 @@ description: "A suggested workflow for agents using the project\u2019s resolved 
 ---
 
 This page suggests an agent workflow for using the project's committed resolved rules during planning, implementation, and review.
-Adapt it to your project, or use your own prompts and tooling. Code Rules supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
-See [product scope](/start-here/overview/#what-code-rules-does-not-do).
+Adapt it to your project, or use your own prompts and tooling. Syllabus supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
+See [product scope](/start-here/overview/#what-syllabus-does-not-do).
 
 ## Project instructions
 
-To use this workflow, add the following section to the project's existing `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, or use it as a starting point for a direct agent prompt. `code-rules project init` also writes it into the project's `.code-rules/README.md`.
+To use this workflow, add the following section to the project's existing `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, or use it as a starting point for a direct agent prompt. `syllabus project init` also writes it into the project's `.syllabus/README.md`.
 
 ```markdown
 ## Engineering rules
 
 Before planning, implementing, reviewing, testing, or debugging a change:
 
-1. Read `.code-rules/generated/RULES.md` and follow its instructions to
+1. Read `.syllabus/generated/RULES.md` and follow its instructions to
    select relevant groups and read their rules in full, including linked
    files and additional index pages.
-2. If `.code-rules/generated/SKILLS.md` exists, read it and use the skills
+2. If `.syllabus/generated/SKILLS.md` exists, read it and use the skills
    relevant to the task. Read each skill's instructions and the rules it
    cites before performing the steps that apply them.
 3. Follow the applicable rules and their exceptions while doing the work.
@@ -30,7 +30,7 @@ If required rule files are unavailable or give conflicting instructions,
 report the issue rather than silently skipping them or choosing a policy.
 ```
 
-`.code-rules/generated/RULES.md` then tells the agent how to select rule groups, read rules, and report findings, so these instructions stay short.
+`.syllabus/generated/RULES.md` then tells the agent how to select rule groups, read rules, and report findings, so these instructions stay short.
 The generated index is an explicit entry point.
 Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules.
 
@@ -60,7 +60,7 @@ Reading the index alone is not enough.
 
 ## Use installed skills
 
-A project can also install [skills](/concepts/skill/): step-by-step procedures for one kind of task, such as building a feature or reviewing a pull request. Code Rules writes them into `.claude/skills/` and `.agents/skills/`, where tools with native skill support find them. When the project has skills, `RULES.md` links to `.code-rules/generated/SKILLS.md`, which lists each installed skill with its description, type, and installed path. If your tool doesn't load skills on its own, read `SKILLS.md` and open a skill's `SKILL.md` when its description matches the task.
+A project can also install [skills](/concepts/skill/): step-by-step procedures for one kind of task, such as building a feature or reviewing a pull request. Syllabus writes them into `.claude/skills/` and `.agents/skills/`, where tools with native skill support find them. When the project has skills, `RULES.md` links to `.syllabus/generated/SKILLS.md`, which lists each installed skill with its description, type, and installed path. If your tool doesn't load skills on its own, read `SKILLS.md` and open a skill's `SKILL.md` when its description matches the task.
 
 When you use a skill:
 
@@ -73,9 +73,9 @@ Some rules a skill cites aren't listed in `RULES.md`, because the project takes 
 
 If a skill's step and a rule disagree, follow the rule and report the conflict, naming the skill's ID and version from its marker line and the rule's ID and version, so someone can fix the skill. If a step can't be followed, such as when it names a script or rule that isn't there, stop and report it rather than improvising a substitute.
 
-Don't edit installed copies; sync rewrites them. To change a skill for this project, fork it with `code-rules project add skill --from`, which copies it into `.code-rules/skills/`; see [Write a skill](/guides/write-skills/). A skill the project's library requires can't be forked or excluded; report the problem to the user instead.
+Don't edit installed copies; sync rewrites them. To change a skill for this project, fork it with `syllabus project add skill --from`, which copies it into `.syllabus/skills/`; see [Write a skill](/guides/write-skills/). A skill the project's library requires can't be forked or excluded; report the problem to the user instead.
 
-When `code-rules project sync`, `update`, or `check` warns that a personal skill has the same name as one the project installs, tell the user: some agents use the personal skill instead of the project's. Don't rename or remove the user's personal skills yourself.
+When `syllabus project sync`, `update`, or `check` warns that a personal skill has the same name as one the project installs, tell the user: some agents use the personal skill instead of the project's. Don't rename or remove the user's personal skills yourself.
 
 ## Review independently
 
@@ -86,25 +86,25 @@ Impact describes the consequence a rule helps prevent; it does not determine app
 Read **Why it matters** for context and assess the actual consequence of each finding.
 
 Separate confirmed failures from hypotheses that need verification.
-`code-rules project check` establishes file consistency, not application compliance.
+`syllabus project check` establishes file consistency, not application compliance.
 
 ## Handle gaps and conflicts
 
 If a relevant rule group is missing, report the missing coverage.
 If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
-Keep the recorded rules and skills during ordinary work. Taking changes from the project's sources is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.
-When asked to keep a rule from a source at its current version, read the rule's version from `.code-rules/vendor/<source-name>/_source.json` and add a pin under that source's `rules.pins`, with the version and the reason you were given, such as `{id: practices/testing/verify-retry-limits, version: "1.3.0", reason: "…"}`. Then run `code-rules project sync`.
+Keep the recorded rules and skills during ordinary work. Taking changes from the project's sources is a separate step, `syllabus project update`, and major changes need the project owner's consent; don't run it as part of another task.
+When asked to keep a rule from a source at its current version, read the rule's version from `.syllabus/vendor/<source-name>/_source.json` and add a pin under that source's `rules.pins`, with the version and the reason you were given, such as `{id: practices/testing/verify-retry-limits, version: "1.3.0", reason: "…"}`. Then run `syllabus project sync`.
 Skills can't be pinned. When asked to keep a skill from a source as it is, ask whether to fork it, exclude it, or hold its whole source with `ref`; see [Install skills](/guides/install-skills/#exclude-a-skill).
 
 ## Write or review rules and skills themselves
 
 When the task changes a rule, use the [authoring rubric and template](/reference/rule-authoring/).
-Follow those documents directly. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
+Follow those documents directly. The [Syllabus authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
 
 Read the target library's conventions and evaluate each rule against every rubric criterion.
-In a library that has published its first library release, add or update the rule's change note with `code-rules library change` in the same change, and choose `major` whenever work that complied with the previous version could fail the new one. See [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule).
+In a library that has published its first library release, add or update the rule's change note with `syllabus library change` in the same change, and choose `major` whenever work that complied with the previous version could fail the new one. See [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule).
 Report unmet criteria with the relevant passage and a concrete revision.
 Separate unclear wording from unresolved engineering policy; ask the author to resolve the latter.
 
-When the task changes a skill, follow [Write a skill](/guides/write-skills/) and the [Skill format](/reference/skill-format/). Keep each practice in a rule: when a step needs a practice followed, cite the rule in `syllabus-rules-used` instead of restating it, and propose a rule when none exists. In a library that has published its first library release, record the skill's change note with `code-rules library change skills/<name>` in the same change.
+When the task changes a skill, follow [Write a skill](/guides/write-skills/) and the [Skill format](/reference/skill-format/). Keep each practice in a rule: when a step needs a practice followed, cite the rule in `syllabus-rules-used` instead of restating it, and propose a rule when none exists. In a library that has published its first library release, record the skill's change note with `syllabus library change skills/<name>` in the same change.

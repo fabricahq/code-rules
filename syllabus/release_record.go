@@ -1,6 +1,6 @@
 // Parse the release record in a library release tag's message without accessing Git.
 
-package coderules
+package syllabus
 
 import (
 	"encoding/json"
@@ -10,8 +10,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // ReleaseRecord is the permanent record of one library release, read from its release/<number> tag's message. Rule
@@ -47,13 +47,13 @@ type RetiredRule struct {
 	Summaries   []string    `json:"summaries"`
 }
 
-// ReleaseRecordFormat is the newest release record format this version of Code Rules writes and reads, recorded in
+// ReleaseRecordFormat is the newest release record format this version of Syllabus writes and reads, recorded in
 // each record's formatVersion. It changes only for incompatible changes: readers ignore fields they don't know, so new
 // optional fields keep the format.
 const ReleaseRecordFormat = 1
 
 // UnsupportedReleaseRecordError reports a release record whose formatVersion is above ReleaseRecordFormat: a newer
-// Code Rules published it, and only a version of Code Rules, and of this package, that supports its format can read
+// Syllabus published it, and only a version of Syllabus, and of this package, that supports its format can read
 // it. Check for it with errors.As.
 type UnsupportedReleaseRecordError struct {
 	// Location is the record's formatVersion field, such as release/4.formatVersion.
@@ -62,9 +62,9 @@ type UnsupportedReleaseRecordError struct {
 	FormatVersion int
 }
 
-// Error names the record's format and asks the reader to upgrade Code Rules.
+// Error names the record's format and asks the reader to upgrade Syllabus.
 func (e *UnsupportedReleaseRecordError) Error() string {
-	return e.Location + ": the release record uses format " + strconv.Itoa(e.FormatVersion) + ", but this version of Code Rules reads only format " + strconv.Itoa(ReleaseRecordFormat) + "; upgrade Code Rules to read this library release"
+	return e.Location + ": the release record uses format " + strconv.Itoa(e.FormatVersion) + ", but this version of Syllabus reads only format " + strconv.Itoa(ReleaseRecordFormat) + "; upgrade Syllabus to read this library release"
 }
 
 // Limits on a release record's collections bound the work of reading a record from a library nobody vetted. A

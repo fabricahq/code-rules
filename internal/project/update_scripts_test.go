@@ -13,14 +13,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // The warnings an update gives when its skill rows flag a script, before and after it is applied.
 const (
-	previewScriptsWarning = "some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm."
-	appliedScriptsWarning = "some skills in this update added or changed scripts. Code Rules never runs them, but your agents may; read them before you commit the update."
+	previewScriptsWarning = "some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm."
+	appliedScriptsWarning = "some skills in this update added or changed scripts. Syllabus never runs them, but your agents may; read them before you commit the update."
 )
 
 // scriptLibrary returns a library whose release/1 publishes techs/go/errors 1.0.0 and the skill build-feature, with
@@ -29,19 +29,19 @@ func scriptLibrary(t *testing.T) *gitfixture.Fixture {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                                          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                                 []byte(projectMetadata),
-		"techs/go/errors.md":                                   []byte(projectRule),
-		".code-rules/skills/build-feature/SKILL.md":            []byte(buildSkill),
-		".code-rules/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build\n"),
-		".code-rules/skills/build-feature/scripts/lint.sh":     []byte("#!/bin/sh\necho lint\n"),
-		".code-rules/skills/build-feature/references/notes.md": []byte("Notes.\n"),
+		"config.yaml":                                        []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                               []byte(projectMetadata),
+		"techs/go/errors.md":                                 []byte(projectRule),
+		".syllabus/skills/build-feature/SKILL.md":            []byte(buildSkill),
+		".syllabus/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build\n"),
+		".syllabus/skills/build-feature/scripts/lint.sh":     []byte("#!/bin/sh\necho lint\n"),
+		".syllabus/skills/build-feature/references/notes.md": []byte("Notes.\n"),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	makeExecutable(t, f, ".code-rules/skills/build-feature/scripts/run.sh", ".code-rules/skills/build-feature/scripts/lint.sh")
+	makeExecutable(t, f, ".syllabus/skills/build-feature/scripts/run.sh", ".syllabus/skills/build-feature/scripts/lint.sh")
 	if _, err := f.Commit(ctx, f.Worktree(), "Make the scripts executable", nil); err != nil {
 		t.Fatal(err)
 	}
@@ -58,16 +58,16 @@ func publishScriptRelease(t *testing.T, f *gitfixture.Fixture) {
 	t.Helper()
 	ctx := context.Background()
 	if _, err := f.Commit(ctx, f.Worktree(), "Change the scripts", gitfixture.Library(map[string][]byte{
-		"techs/go/errors.md":                                   []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors to the caller, wrapped.", 1)),
-		".code-rules/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build everything\n"),
-		".code-rules/skills/build-feature/scripts/setup.sh":    []byte("#!/bin/sh\necho setup\n"),
-		".code-rules/skills/build-feature/references/notes.md": []byte("More notes.\n"),
-		".code-rules/skills/plan/SKILL.md":                     []byte("---\nname: plan\ndescription: Plan a change.\n---\n# Plan\n"),
-		".code-rules/skills/plan/scripts/plan.sh":              []byte("#!/bin/sh\necho plan\n"),
+		"techs/go/errors.md":                                 []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors to the caller, wrapped.", 1)),
+		".syllabus/skills/build-feature/scripts/run.sh":      []byte("#!/bin/sh\necho build everything\n"),
+		".syllabus/skills/build-feature/scripts/setup.sh":    []byte("#!/bin/sh\necho setup\n"),
+		".syllabus/skills/build-feature/references/notes.md": []byte("More notes.\n"),
+		".syllabus/skills/plan/SKILL.md":                     []byte("---\nname: plan\ndescription: Plan a change.\n---\n# Plan\n"),
+		".syllabus/skills/plan/scripts/plan.sh":              []byte("#!/bin/sh\necho plan\n"),
 	})); err != nil {
 		t.Fatal(err)
 	}
-	makeExecutable(t, f, ".code-rules/skills/build-feature/scripts/setup.sh", ".code-rules/skills/plan/scripts/plan.sh")
+	makeExecutable(t, f, ".syllabus/skills/build-feature/scripts/setup.sh", ".syllabus/skills/plan/scripts/plan.sh")
 	if _, err := f.Commit(ctx, f.Worktree(), "Make the new scripts executable", nil); err != nil {
 		t.Fatal(err)
 	}

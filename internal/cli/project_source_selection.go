@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 // collectSource prompts only for a missing repository and, when neither rule nor skill selectors were supplied, for

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
@@ -45,7 +45,7 @@ func TestRenderRules(t *testing.T) {
 }
 
 // TestRenderLinksSharedAuthoredAssets links a rule in rules/ to a shared asset in assets/ through its place in the
-// Code Rules directory, three levels up.
+// Syllabus directory, three levels up.
 func TestRenderLinksSharedAuthoredAssets(t *testing.T) {
 	output, err := renderFixture(t, "[diagram](../../../assets/diagram.svg)", map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestRenderRejectsLinksOutsideAuthoredFolders(t *testing.T) {
 		t.Run(test.target, func(t *testing.T) {
 			output, err := renderFixture(t, test.body, map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
 			var validation errs.ValidationError
-			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .code-rules/rules/ and .code-rules/assets/; link to this rule's own assets directory, or to a shared asset in .code-rules/assets/" || output != nil {
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .syllabus/rules/ and .syllabus/assets/; link to this rule's own assets directory, or to a shared asset in .syllabus/assets/" || output != nil {
 				t.Fatalf("got %v, %v", output, err)
 			}
 		})
@@ -110,7 +110,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			if state == "unselected" {
 				target = "techs/rust/other.md"
 			} else {
-				other, err := coderules.ParseRule(document, target, "team")
+				other, err := syllabus.ParseRule(document, target, "team")
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -11,10 +11,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
@@ -90,7 +90,7 @@ func libraryReadme(source resolvedSource) string {
 	sections := []string{"# " + escapeText(source.Name)}
 	// Only a library that declares license or notice files has copies here to describe.
 	if source.License != nil && len(licenseMappings(source.Name, source.License)) > 0 {
-		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.")
+		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `syllabus project sync`.")
 	}
 	sections = append(sections, "**Repository:** "+escapeText(source.Repository))
 	if source.NonLibrary {
@@ -124,7 +124,7 @@ func libraryReadme(source resolvedSource) string {
 		sections = append(sections, "## Skills", "This source supplies these skills from the resolved commit, and the project installs each one it doesn't exclude or replace. [SKILLS.md](../../SKILLS.md) says what each one does, where it's installed, and why the project excludes or replaces one.", strings.Join(items, "\n"))
 	}
 	if len(source.Pins) > 0 {
-		sections = append(sections, "## Pins", "`code-rules project update` keeps these rules at their pinned versions.", pinList(source.Pins))
+		sections = append(sections, "## Pins", "`syllabus project update` keeps these rules at their pinned versions.", pinList(source.Pins))
 	}
 	sections = append(sections, "## License terms")
 	if source.License == nil {
@@ -242,7 +242,7 @@ type provenanceSkill struct {
 
 // provenanceSkillOrigin identifies the source, repository, and commit that supplied a skill, and its folder there:
 // in the source's repository, or, for an authored skill, whose source, repository, and commit are null, in the
-// Code Rules directory. Version and release are null until skills have versions.
+// Syllabus directory. Version and release are null until skills have versions.
 type provenanceSkillOrigin struct {
 	Source     *string `json:"source"`
 	Repository *string `json:"repository"`
@@ -272,15 +272,15 @@ type provenanceGroup struct {
 
 // provenanceRule records effective origin, replacement history, and declared attribution.
 type provenanceRule struct {
-	ID           string                  `json:"id"`
-	Group        string                  `json:"group"`
-	Origin       provenanceOrigin        `json:"origin"`
-	Upstream     *provenanceOrigin       `json:"upstream"`
-	Reason       *string                 `json:"replacementReason"`
-	BasedOn      *coderules.RuleVersion  `json:"basedOn"`
-	LicenseBasis string                  `json:"licenseBasis"`
-	License      *provenanceLicense      `json:"license"`
-	Attribution  []coderules.Attribution `json:"attribution"`
+	ID           string                 `json:"id"`
+	Group        string                 `json:"group"`
+	Origin       provenanceOrigin       `json:"origin"`
+	Upstream     *provenanceOrigin      `json:"upstream"`
+	Reason       *string                `json:"replacementReason"`
+	BasedOn      *syllabus.RuleVersion  `json:"basedOn"`
+	LicenseBasis string                 `json:"licenseBasis"`
+	License      *provenanceLicense     `json:"license"`
+	Attribution  []syllabus.Attribution `json:"attribution"`
 }
 
 // termProvenance maps declared source terms to retained workspace and generated paths. The original paths are
@@ -379,13 +379,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 // the commit that supplied the rule's files; Version and Release are null for local rules and for imported
 // files that aren't a published version.
 type provenanceOrigin struct {
-	Source     string                 `json:"source"`
-	File       string                 `json:"file"`
-	Repository *string                `json:"repository"`
-	Ref        *string                `json:"ref"`
-	Commit     *string                `json:"resolvedCommit"`
-	Version    *coderules.RuleVersion `json:"version"`
-	Release    *int                   `json:"release"`
+	Source     string                `json:"source"`
+	File       string                `json:"file"`
+	Repository *string               `json:"repository"`
+	Ref        *string               `json:"ref"`
+	Commit     *string               `json:"resolvedCommit"`
+	Version    *syllabus.RuleVersion `json:"version"`
+	Release    *int                  `json:"release"`
 }
 
 // nonNilList returns list, or an empty list for nil, so JSON shows an empty list rather than null.

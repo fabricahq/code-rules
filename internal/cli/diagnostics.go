@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/project"
 	"golang.org/x/term"
 )
 

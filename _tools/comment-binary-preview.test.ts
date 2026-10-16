@@ -20,11 +20,11 @@ const workflow = parse(
   readFileSync('.github/workflows/comment-binary-preview.yml', 'utf8'),
 );
 const script = workflow.jobs.comment.steps[0].with.script;
-const marker = '<!-- code-rules-binary-preview -->';
+const marker = '<!-- syllabus-binary-preview -->';
 const targets = ['darwin-arm64', 'darwin-amd64', 'linux-arm64', 'linux-amd64'];
 const artifacts = targets.map((target, index) => ({
   id: 70 + index,
-  name: `code-rules-${target}`,
+  name: `syllabus-${target}`,
   expired: false,
   size_in_bytes: 100,
   expires_at: '2026-09-24T12:00:00Z',
@@ -128,7 +128,7 @@ async function preview(
       notice: () => {},
     },
     context: {
-      repo: { owner: 'fabricahq', repo: 'code-rules' },
+      repo: { owner: 'fabricahq', repo: 'syllabus' },
       serverUrl: 'https://github.com',
       actor: 'maintainer',
       eventName: options.trigger ?? 'workflow_dispatch',
@@ -157,7 +157,7 @@ test('advertises a maintainer-approved commit for an open fork PR', async () => 
     'Linux Intel/AMD',
   ].entries()) {
     expect(writes[0]!.body).toContain(
-      `[${label}](https://github.com/fabricahq/code-rules/actions/runs/500/artifacts/${70 + index})`,
+      `[${label}](https://github.com/fabricahq/syllabus/actions/runs/500/artifacts/${70 + index})`,
     );
   }
   expect(writes[0]!.body).toContain('### CLI preview ready');
@@ -169,10 +169,10 @@ test('advertises a maintainer-approved commit for an open fork PR', async () => 
   );
   expect(writes[0]!.body).toContain('**Manual testing is optional.**');
   expect(writes[0]!.body).toContain('gh auth login');
-  expect(writes[0]!.body).toContain('Then run `./code-rules --help`.');
-  expect(writes[0]!.body).toContain('It replaces any existing `./code-rules`');
+  expect(writes[0]!.body).toContain('Then run `./syllabus --help`.');
+  expect(writes[0]!.body).toContain('It replaces any existing `./syllabus`');
   expect(writes[0]!.body).toContain(
-    `[\`aaaaaaa\`](https://github.com/fabricahq/code-rules/commit/${'a'.repeat(40)})`,
+    `[\`aaaaaaa\`](https://github.com/fabricahq/syllabus/commit/${'a'.repeat(40)})`,
   );
   expect(writes[0]!.body).toMatch(
     /Downloads expire Sep 24, 2026(?:,| at) 12:00\sPM UTC\./,
@@ -222,7 +222,7 @@ for (const options of [
 
 for (const target of targets) {
   test(`does not advertise incomplete or unavailable ${target} downloads`, async () => {
-    const selected = artifacts.find((a) => a.name === `code-rules-${target}`)!;
+    const selected = artifacts.find((a) => a.name === `syllabus-${target}`)!;
     const others = artifacts.filter((a) => a !== selected);
     for (const invalid of [
       others,
@@ -302,7 +302,7 @@ test('uploads four unarchived executables with seven-day retention', () => {
   expect(
     uploads.map((step: { with: { path: string } }) => step.with.path).sort(),
   ).toEqual(
-    targets.map((target) => `native-previews/code-rules-${target}`).sort(),
+    targets.map((target) => `native-previews/syllabus-${target}`).sort(),
   );
   for (const step of uploads) {
     expect(step.with.archive).toBe(false);
@@ -319,21 +319,21 @@ const extract = parse(
 
 // Package fixture archives in a fresh directory, run the extract step there, and return what it produced.
 function extractPackaged(packaged: string[]) {
-  const directory = mkdtempSync(join(tmpdir(), 'code-rules-preview-'));
+  const directory = mkdtempSync(join(tmpdir(), 'syllabus-preview-'));
   try {
     mkdirSync(join(directory, 'native-artifacts'));
     const expected = new Map<string, Buffer<ArrayBuffer>>();
     for (const target of packaged) {
       const bytes = Buffer.from(`executable for ${target}\0\xff`, 'latin1');
       expected.set(target, bytes);
-      writeFileSync(join(directory, 'code-rules'), bytes);
+      writeFileSync(join(directory, 'syllabus'), bytes);
       writeFileSync(join(directory, 'LICENSE.md'), 'Fixture license');
       execFileSync(
         'tar',
         [
           '-czf',
-          `native-artifacts/code-rules_candidate_${target.replaceAll('-', '_')}.tar.gz`,
-          'code-rules',
+          `native-artifacts/syllabus_candidate_${target.replaceAll('-', '_')}.tar.gz`,
+          'syllabus',
           'LICENSE.md',
         ],
         { cwd: directory },
@@ -347,9 +347,7 @@ function extractPackaged(packaged: string[]) {
       result.status === 0
         ? targets.map((target) => [
             target,
-            readFileSync(
-              join(directory, `native-previews/code-rules-${target}`),
-            ),
+            readFileSync(join(directory, `native-previews/syllabus-${target}`)),
           ])
         : [],
     );
@@ -461,13 +459,13 @@ for (const shell of ['sh', 'bash']) {
           'github.com',
           '-H',
           'Accept: application/vnd.github.raw+json',
-          `/repos/fabricahq/code-rules/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}`,
+          `/repos/fabricahq/syllabus/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}`,
         ];
         const binaryRequest = [
           'api',
           '--hostname',
           'github.com',
-          '/repos/fabricahq/code-rules/actions/artifacts/70/zip',
+          '/repos/fabricahq/syllabus/actions/artifacts/70/zip',
         ];
         // Replace network responses only; the generated command runs the real installer.
         const ghCalls = fakeGitHubCLI(bin, [
@@ -489,7 +487,7 @@ for (const shell of ['sh', 'bash']) {
             stdout: '#!/bin/sh\nprintf "preview works\\n"\n',
           },
         ]);
-        writeFileSync(join(directory, 'code-rules'), 'old executable');
+        writeFileSync(join(directory, 'syllabus'), 'old executable');
         const result = spawnSync(shell, ['-c', command], {
           cwd: directory,
           env: {
@@ -501,14 +499,14 @@ for (const shell of ['sh', 'bash']) {
         });
         if (mode === 'success') {
           expect(result.status).toBe(0);
-          expect(result.stdout).toBe('Downloaded and wrote ./code-rules\n');
+          expect(result.stdout).toBe('Downloaded and wrote ./syllabus\n');
           expect(
-            execFileSync(join(directory, 'code-rules'), { encoding: 'utf8' }),
+            execFileSync(join(directory, 'syllabus'), { encoding: 'utf8' }),
           ).toBe('preview works\n');
         } else {
           expect(result.status).not.toBe(0);
           expect(result.stdout).toBe('');
-          expect(readFileSync(join(directory, 'code-rules'), 'utf8')).toBe(
+          expect(readFileSync(join(directory, 'syllabus'), 'utf8')).toBe(
             'old executable',
           );
         }

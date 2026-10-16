@@ -1,6 +1,6 @@
 // Check that every exported parser reports invalid input as *ValidationError, whichever rule the input breaks.
 
-package coderules_test
+package syllabus_test
 
 import (
 	"errors"
@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 const ruleDocument = "---\ntitle: Handle errors\nimpact: HIGH\nimpactDescription: Unhandled errors hide failures.\nwhenToRead: Before returning errors.\n---\n\nCheck every error.\n"
 
 // TestParsers_ReportInvalidInputAsValidationError covers the shared decoding rules and the rule and group ID rules
-// that Code Rules checks in internal packages: each failure reaches callers as *ValidationError at the input's
+// that Syllabus checks in internal packages: each failure reaches callers as *ValidationError at the input's
 // location, keeps its text, and carries no error type from outside this package.
 func TestParsers_ReportInvalidInputAsValidationError(t *testing.T) {
 	for _, test := range []struct {
@@ -44,49 +44,49 @@ func TestParsers_ReportInvalidInputAsValidationError(t *testing.T) {
 		{
 			name: "invalid Unicode in a release message", location: "release/2", problem: "expected UTF-8 YAML",
 			parse: func() error {
-				_, _, err := coderules.ParseReleaseMessage("release/2", []byte("Notes.\n---\nformatVersion: 1\nrelease: 2\nrules: {}\n#\xff\n"))
+				_, _, err := syllabus.ParseReleaseMessage("release/2", []byte("Notes.\n---\nformatVersion: 1\nrelease: 2\nrules: {}\n#\xff\n"))
 				return err
 			},
 		},
 		{
 			name: "invalid Unicode in group metadata", location: "techs/go/_group.yaml", problem: "expected UTF-8 YAML",
 			parse: func() error {
-				_, err := coderules.ParseGroupMetadata([]byte("name: Go\ndescription: Go.\nwhenToRead: \xff\n"), "techs/go/_group.yaml")
+				_, err := syllabus.ParseGroupMetadata([]byte("name: Go\ndescription: Go.\nwhenToRead: \xff\n"), "techs/go/_group.yaml")
 				return err
 			},
 		},
 		{
 			name: "unknown canonical group field", location: "list.techs/go", problem: "unknown field icon",
 			parse: func() error {
-				_, err := coderules.ParseCanonicalGroups([]byte("techs/go:\n  name: Go\n  description: Go.\n  icon: go.svg\n"), "list")
+				_, err := syllabus.ParseCanonicalGroups([]byte("techs/go:\n  name: Go\n  description: Go.\n  icon: go.svg\n"), "list")
 				return err
 			},
 		},
 		{
 			name: "invalid canonical group ID", location: "list.techs/Go", problem: "invalid group ID",
 			parse: func() error {
-				_, err := coderules.ParseCanonicalGroups([]byte("techs/Go:\n  name: Go\n  description: Go.\n"), "list")
+				_, err := syllabus.ParseCanonicalGroups([]byte("techs/Go:\n  name: Go\n  description: Go.\n"), "list")
 				return err
 			},
 		},
 		{
 			name: "uncontained rule path", location: "fabrica:../a.md", problem: "expected a contained relative path",
 			parse: func() error {
-				_, err := coderules.ParseRule(ruleDocument, "../a.md", "fabrica")
+				_, err := syllabus.ParseRule(ruleDocument, "../a.md", "fabrica")
 				return err
 			},
 		},
 		{
 			name: "duplicate frontmatter key", location: "fabrica:techs/go/a.md", problem: "duplicate mapping key",
 			parse: func() error {
-				_, err := coderules.ParseRule(strings.Replace(ruleDocument, "impact: HIGH\n", "impact: HIGH\nimpact: LOW\n", 1), "techs/go/a.md", "fabrica")
+				_, err := syllabus.ParseRule(strings.Replace(ruleDocument, "impact: HIGH\n", "impact: HIGH\nimpact: LOW\n", 1), "techs/go/a.md", "fabrica")
 				return err
 			},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.parse()
-			var invalid *coderules.ValidationError
+			var invalid *syllabus.ValidationError
 			if !errors.As(err, &invalid) || invalid.Location != test.location || !strings.Contains(invalid.Problem, test.problem) {
 				t.Fatalf("got %v; want a *ValidationError at %s about %q", err, test.location, test.problem)
 			}
@@ -98,8 +98,8 @@ func TestParsers_ReportInvalidInputAsValidationError(t *testing.T) {
 // TestParseRule_KeepsTheRulePathAroundAnInvalidGroupID reports a rule path whose group isn't a valid group ID with
 // the path's context in the text and a *ValidationError for the group ID beneath it.
 func TestParseRule_KeepsTheRulePathAroundAnInvalidGroupID(t *testing.T) {
-	_, err := coderules.ParseRule(ruleDocument, "techs/Go/a.md", "fabrica")
-	var invalid *coderules.ValidationError
+	_, err := syllabus.ParseRule(ruleDocument, "techs/Go/a.md", "fabrica")
+	var invalid *syllabus.ValidationError
 	if !errors.As(err, &invalid) || invalid.Location != "fabrica:techs/Go/a.md" || !strings.HasPrefix(invalid.Problem, `invalid group ID "techs/Go"`) {
 		t.Fatalf("got %v; want the group ID refused", err)
 	}
@@ -112,12 +112,12 @@ func TestParseRule_KeepsTheRulePathAroundAnInvalidGroupID(t *testing.T) {
 // record returns a function that parses input as the release record of release/2.
 func record(input string) func() error {
 	return func() error {
-		_, err := coderules.ParseReleaseRecord([]byte(input), "release/2")
+		_, err := syllabus.ParseReleaseRecord([]byte(input), "release/2")
 		return err
 	}
 }
 
-// requireOnlyPublicErrors fails when any error in err's chain comes from one of Code Rules' internal packages, whose
+// requireOnlyPublicErrors fails when any error in err's chain comes from one of Syllabus's internal packages, whose
 // types callers outside the module can't name.
 func requireOnlyPublicErrors(t *testing.T, err error) {
 	t.Helper()

@@ -12,11 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Sync imports the rule versions each source's snapshot records, choosing versions only where configuration asks
@@ -128,7 +128,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		return FileChanges{}, err
 	}
 	changes := compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
-	// The report's paths are relative to the Code Rules directory, one folder below the repository root.
+	// The report's paths are relative to the Syllabus directory, one folder below the repository root.
 	mergeChanges(&changes, prefixChanges(installs.changes, "../"))
 	targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
 	maps.Copy(targets, installs.targets)
@@ -276,7 +276,7 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 			file := record.name + "/" + librarytree.SnapshotPath(group+"/_group.yaml")
 			data, ok := vendored[file]
 			if !ok || digest(data) != recorded {
-				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become rules/%s/_group.yaml, the metadata your authored rules in the group need. Restore it: run code-rules project sync with the previous configuration, then change the configuration and sync again; or write rules/%s/_group.yaml yourself", group, group))
+				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become rules/%s/_group.yaml, the metadata your authored rules in the group need. Restore it: run syllabus project sync with the previous configuration, then change the configuration and sync again; or write rules/%s/_group.yaml yourself", group, group))
 			}
 			kept[group] = data
 			break

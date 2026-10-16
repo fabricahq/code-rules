@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/syllabus/internal/decode"
 )
 
 // File is the file whose presence makes a folder a skill folder.
@@ -19,7 +19,7 @@ const File = "SKILL.md"
 // Wildcard is the skills.include selector that includes every skill a source offers.
 const Wildcard = "*"
 
-// Directory is the folder, in a repository's Code Rules directory, that holds the repository's authored skills,
+// Directory is the folder, in a repository's Syllabus directory, that holds the repository's authored skills,
 // and, in a library's vendor snapshot, the skills the library publishes.
 const Directory = "skills"
 
@@ -63,7 +63,7 @@ type Metadata struct {
 	// surrounding whitespace, without blank lines, in the order written; nil when the key is absent. Their IDs are
 	// unchecked: Check validates them.
 	RulesUsed, SkillsUsed []string
-	// ReservedKeys lists, sorted, the metadata keys that start with syllabus- but aren't one of the three Code Rules
+	// ReservedKeys lists, sorted, the metadata keys that start with syllabus- but aren't one of the three Syllabus
 	// defines, which only Check rejects; nil when there are none.
 	ReservedKeys []string
 	// Frontmatter reports whether the file starts with a frontmatter block.
@@ -158,7 +158,7 @@ func InstallName(id string, metadata Metadata, location string) (string, error) 
 		name = id[strings.LastIndex(id, "/")+1:]
 	}
 	if !ValidName(name) {
-		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Code Rules can't install it")
+		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Syllabus can't install it")
 	}
 	return name, nil
 }

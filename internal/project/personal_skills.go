@@ -10,8 +10,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // personalSkillFolders are the folders, relative to a home directory, where agents load a person's own skills, in

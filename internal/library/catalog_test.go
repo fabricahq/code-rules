@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 const metadata = `{"name":" Go ","description":"Go rules","whenToRead":"When writing Go."}`
@@ -184,12 +184,12 @@ func TestLoadRequiresDeclaredTerms(t *testing.T) {
 	}
 }
 
-// TestLoadRejectsLegacyManifestName requires the manifest in the library section of .code-rules/config.yaml.
+// TestLoadRejectsLegacyManifestName requires the manifest in the library section of .syllabus/config.yaml.
 func TestLoadRejectsLegacyManifestName(t *testing.T) {
 	_, root := fixture(t, map[string]string{"rule-library.json": `{"schemaVersion":2,"sources":{},"library":{}}`, "rule-library.yaml": "formatVersion: 1\n"})
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
 	var validation errs.ValidationError
-	if !errors.As(err, &validation) || validation.ValidationLocation() != ".code-rules/config.yaml" || !reflect.DeepEqual(got, library.Catalog{}) {
+	if !errors.As(err, &validation) || validation.ValidationLocation() != ".syllabus/config.yaml" || !reflect.DeepEqual(got, library.Catalog{}) {
 		t.Fatalf("legacy manifest: got %+v, %v", got, err)
 	}
 }
@@ -270,7 +270,7 @@ func TestLoadOwnsOriginalDocuments(t *testing.T) {
 		if _, duplicated := got.SupportingFiles[rule.Path]; duplicated {
 			t.Fatalf("rule also stored in supporting files: %s", rule.Path)
 		}
-		sections, err := coderules.SplitDocument(rule.Document, rule.ID)
+		sections, err := syllabus.SplitDocument(rule.Document, rule.ID)
 		if err != nil || !strings.Contains(sections.Frontmatter, "title:") || !strings.Contains(sections.Body, "Return the error.") {
 			t.Fatalf("original sections unavailable: %+v, %v", sections, err)
 		}
@@ -318,7 +318,7 @@ func TestLoadTermsDoNotCreateGroups(t *testing.T) {
 		}
 	}
 	files := validFiles()
-	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".code-rules/rules/techs/go/LICENSE","notices":[]}}}`
+	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/LICENSE","notices":[]}}}`
 	files["techs/go/LICENSE"] = "terms"
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
@@ -332,7 +332,7 @@ func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
 	files := validFiles()
 	document := files["techs/go/errors.md"]
 	delete(files, "techs/go/errors.md")
-	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".code-rules/rules/techs/go/LICENSE","notices":[]}}}`
+	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/LICENSE","notices":[]}}}`
 	files["techs/go/LICENSE"] = "terms"
 	for i := range 5000 {
 		files[fmt.Sprintf("techs/go/r%d.md", i)] = document
@@ -353,7 +353,7 @@ func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
 func TestMetadataCanAlsoBeATerm(t *testing.T) {
 	files := validFiles()
 	delete(files, "techs/go/errors.md")
-	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".code-rules/rules/techs/go/_group.yaml","notices":[]}}}`
+	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/_group.yaml","notices":[]}}}`
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
 	if err != nil || len(got.Groups) != 1 {

@@ -20,11 +20,11 @@ func TestGroupGuides(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
 			prefix := "project"
-			groupDir := filepath.Join(directory, ".code-rules/rules/techs/go")
+			groupDir := filepath.Join(directory, ".syllabus/rules/techs/go")
 			init := []string{"project", "init"}
 			if library {
 				prefix = "library"
-				groupDir = filepath.Join(directory, ".code-rules/rules/techs/go")
+				groupDir = filepath.Join(directory, ".syllabus/rules/techs/go")
 				init = []string{"library", "init"}
 			}
 			// run requires the actual executable to complete each authoring or verification step.
@@ -48,7 +48,7 @@ func TestGroupGuides(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, text := range []string{"techs/go", "_group.yaml", "Instructions for agents", "code-rules " + prefix + " add rule"} {
+			for _, text := range []string{"techs/go", "_group.yaml", "Instructions for agents", "syllabus " + prefix + " add rule"} {
 				if !strings.Contains(string(guide), text) {
 					t.Fatalf("guide missing %q", text)
 				}

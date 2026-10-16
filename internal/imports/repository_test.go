@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // fixtureRepository creates a real repository served by an isolated local upload-pack helper.

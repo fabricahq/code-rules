@@ -12,9 +12,9 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // Library is a configuration's library section, the manifest, which makes the repository a library.
@@ -25,18 +25,18 @@ type Library struct {
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
 // A nil SPDXExpression means the library declared a file but no SPDX identifier. Files and AttributionFiles hold
-// library paths, which are the declared paths except inside .code-rules/: a declared
-// .code-rules/assets/NOTICE.md is assets/NOTICE.md.
+// library paths, which are the declared paths except inside .syllabus/: a declared
+// .syllabus/assets/NOTICE.md is assets/NOTICE.md.
 type LicenseDeclaration struct {
 	SPDXExpression   *string  `json:"spdxExpression"`
 	Files            []string `json:"files"`
 	AttributionFiles []string `json:"attributionFiles"`
 }
 
-// skillLevelsProblem rejects library.skills, which a later version of Code Rules reads.
-const skillLevelsProblem = "skill levels aren't supported yet in this version of Code Rules; remove library.skills"
+// skillLevelsProblem rejects library.skills, which a later version of Syllabus reads.
+const skillLevelsProblem = "skill levels aren't supported yet in this version of Syllabus; remove library.skills"
 
-// ParseLibraryManifest validates text, a library's whole .code-rules/config.yaml, and returns its library section,
+// ParseLibraryManifest validates text, a library's whole .syllabus/config.yaml, and returns its library section,
 // or nil when the configuration has none, which means the repository isn't a library. Errors prefix their location
 // with location, such as team/config.yaml. It checks syntax only; callers read the declared files themselves.
 func ParseLibraryManifest(text []byte, location string) (*Library, error) {
@@ -58,7 +58,7 @@ func ParseLibraryManifest(text []byte, location string) (*Library, error) {
 	return config.Library, nil
 }
 
-// PublishedManifest returns what a library publishes of text, its whole .code-rules/config.yaml, when it validates
+// PublishedManifest returns what a library publishes of text, its whole .syllabus/config.yaml, when it validates
 // as ParseLibraryManifest validates it: a configuration that holds only its library section, as canonical JSON, so
 // the sources and other fields that configure the repository as a project, and its comments and formatting, stay in
 // the repository. It returns nil for a configuration without a library section.
@@ -93,7 +93,7 @@ func PublishedManifestOf(section json.RawMessage) ([]byte, error) {
 }
 
 // parseLibrary validates a configuration's library section. Its only field is license; skill levels are rejected
-// until Code Rules supports them.
+// until Syllabus supports them.
 func parseLibrary(input json.RawMessage) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
@@ -167,18 +167,20 @@ func parseLicense(input json.RawMessage, location string) (*LicenseDeclaration, 
 }
 
 // termsPath reads a declared license or notice path, relative to the repository root, and returns its library path.
-// The file must be library-wide: outside .code-rules/, or in its assets/ or a group in its rules/. A rule's Markdown
+// The file must be library-wide: outside .syllabus/, or in its assets/ or a group in its rules/. A rule's Markdown
 // file or a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a
-// library release replace a rule version's content. A file outside .code-rules/ keeps its repository path in a
-// project's snapshot of the library, so it can't start with a name the snapshot keeps for the library's other files.
+// library release replace a rule version's content. A path in .code-rules/, which a library declared before Code
+// Rules was renamed Syllabus, reads as the same path in .syllabus/, where tree upgrades and git mv put its file. A file
+// outside .syllabus/ keeps its repository path in a project's snapshot of the library, so it can't start with a name
+// the snapshot keeps for the library's other files.
 func termsPath(input json.RawMessage, location string) (string, error) {
 	declared, err := decode.Path(input, location)
 	if err != nil {
 		return "", err
 	}
-	path, ok := librarytree.LibraryPath(declared)
+	path, ok := librarytree.LibraryPath(librarytree.Upgrade(declared))
 	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") || (path == declared && librarytree.InSnapshotNames(path)) {
-		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .code-rules/, such as LICENSE.md at the repository root, or in .code-rules/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
+		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
 	}
 	if librarytree.IsRuleContent(path) {
 		return "", invalid(location, decode.Quote(declared)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root")

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 func TestYAMLProjectLifecycle(t *testing.T) {
@@ -22,12 +22,12 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 		}
 	}
 	run("project", "init")
-	name := filepath.Join(directory, ".code-rules/config.yaml")
+	name := filepath.Join(directory, ".syllabus/config.yaml")
 	original, err := os.ReadFile(name)
 	if err != nil || !strings.HasPrefix(string(original), "schemaVersion: 2\n") {
 		t.Fatal(string(original), err)
 	}
-	if _, err := os.Stat(filepath.Join(directory, ".code-rules/config.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(directory, ".syllabus/config.json")); !os.IsNotExist(err) {
 		t.Fatal("created legacy config", err)
 	}
 	run("project", "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance", "--when-to-read", "When writing Go", "--non-interactive")
@@ -100,7 +100,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 	}
 	run("project", "init")
 	run("project", "add", "source", "existing", "--repository", "https://example.invalid/existing.git", "--ref", "v1.0.0", "--rules", "*", "--non-interactive")
-	name := filepath.Join(directory, ".code-rules/config.yaml")
+	name := filepath.Join(directory, ".syllabus/config.yaml")
 	data, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +142,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 func TestLegacyConfigIsNotLoaded(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	root := filepath.Join(directory, ".code-rules")
+	root := filepath.Join(directory, ".syllabus")
 	if err := os.MkdirAll(root, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestProjectCommands_RejectAVersionOneConfiguration(t *testing.T) {
 		t.Fatal(code, out, diagnostic)
 	}
 	config := "schemaVersion: 1\nsources:\n  team:\n    repository: https://example.invalid/team.git\n    groups: [techs/go]\n"
-	if err := os.WriteFile(filepath.Join(directory, ".code-rules/config.yaml"), []byte(config), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, ".syllabus/config.yaml"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
 	before := projectFileContents(t, directory)

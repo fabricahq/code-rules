@@ -7,7 +7,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // skillReplacement is what an authored skill replaces: a source's skill, which the project excludes and installs
@@ -45,7 +45,7 @@ func skillReplacements(config rules.Configuration, libraries map[string]Library,
 				continue
 			}
 			if _, authored := local[exclusion.ReplacedBy]; !authored {
-				return nil, invalid(where+".replacedBy", fmt.Sprintf("the project has no authored skill %s; add .code-rules/%s/SKILL.md, or remove replacedBy to exclude the skill without a replacement", exclusion.ReplacedBy, exclusion.ReplacedBy))
+				return nil, invalid(where+".replacedBy", fmt.Sprintf("the project has no authored skill %s; add .syllabus/%s/SKILL.md, or remove replacedBy to exclude the skill without a replacement", exclusion.ReplacedBy, exclusion.ReplacedBy))
 			}
 			if other, taken := replaces[exclusion.ReplacedBy]; taken {
 				return nil, invalid(where+".replacedBy", fmt.Sprintf("%s already replaces the skill %s names; each authored skill replaces one skill", exclusion.ReplacedBy, other))

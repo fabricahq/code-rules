@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 func TestInitSetsSkillTargets(t *testing.T) {
@@ -31,7 +31,7 @@ func TestInitSetsSkillTargets(t *testing.T) {
 			if out, diagnostic, code := runCLI(t, binary, directory, append([]string{"project", "init"}, test.args...)...); code != 0 {
 				t.Fatal(code, out, diagnostic)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/config.yaml"))
+			data, err := os.ReadFile(filepath.Join(directory, ".syllabus/config.yaml"))
 			if err != nil || string(data) != "schemaVersion: 2\n"+test.want+"sources: {}\n" {
 				t.Fatalf("config.yaml:\n%s %v", data, err)
 			}
@@ -42,7 +42,7 @@ func TestInitSetsSkillTargets(t *testing.T) {
 func TestInitReplacesSkillTargetsOnlyWhenAsked(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	config := filepath.Join(directory, ".code-rules/config.yaml")
+	config := filepath.Join(directory, ".syllabus/config.yaml")
 	for _, step := range []struct {
 		args []string
 		want string
@@ -157,11 +157,11 @@ func TestCheckNamesAnEditedInstalledSkillAndItsRepair(t *testing.T) {
 		t.Fatal(code, out, diagnostic)
 	}
 	problem := result.Value.Problems[0]
-	if problem.Kind != "modified-skill" || problem.Path != "../.claude/skills/review" || problem.Skill != "tools:tools/review" || problem.Message != "Installed skill tools:tools/review differs from its source; don't edit installed copies, since build replaces them" || repairCommand(t, problem) != "code-rules project build" {
+	if problem.Kind != "modified-skill" || problem.Path != "../.claude/skills/review" || problem.Skill != "tools:tools/review" || problem.Message != "Installed skill tools:tools/review differs from its source; don't edit installed copies, since build replaces them" || repairCommand(t, problem) != "syllabus project build" {
 		t.Fatalf("problem = %+v", problem)
 	}
 	human, diagnostic, code := runCLI(t, binary, directory, "project", "check")
-	if want := "  " + problem.Message + ": ../.claude/skills/review\n    Next: code-rules project build\n"; code != 1 || diagnostic != "" || !strings.Contains(human, want) {
+	if want := "  " + problem.Message + ": ../.claude/skills/review\n    Next: syllabus project build\n"; code != 1 || diagnostic != "" || !strings.Contains(human, want) {
 		t.Fatalf("human output:\n%s\nwant\n%s", human, want)
 	}
 	if out, diagnostic, code := runCLI(t, binary, directory, "project", "build"); code != 0 {
@@ -181,7 +181,7 @@ func TestBuildReportsAnInvalidSkillTypeAtTheSkill(t *testing.T) {
 	if out, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	skill := filepath.Join(directory, ".code-rules/skills/fix-bug/SKILL.md")
+	skill := filepath.Join(directory, ".syllabus/skills/fix-bug/SKILL.md")
 	if err := os.MkdirAll(filepath.Dir(skill), 0o700); err != nil {
 		t.Fatal(err)
 	}

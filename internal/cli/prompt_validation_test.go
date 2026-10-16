@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // TestInteractiveImpactRetry retains previous answers and validates impact before asking why it matters.
@@ -44,7 +44,7 @@ func TestInteractiveImpactRetry(t *testing.T) {
 			if !strings.Contains(transcript, "\nError: impact must be one of") || strings.Count(transcript, "Rule title:") != 1 || strings.Count(transcript, "Example rule:") != 1 || strings.Index(transcript, "Error:") > strings.LastIndex(transcript, "Why it matters:") {
 				t.Fatal(transcript)
 			}
-			data, err := os.ReadFile(filepath.Join(dir, ".code-rules", "rules", "practices/testing/my-rule.md"))
+			data, err := os.ReadFile(filepath.Join(dir, ".syllabus", "rules", "practices/testing/my-rule.md"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -82,7 +82,7 @@ func TestSourceAnswerRetry(t *testing.T) {
 	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 4 {
 		t.Fatal(err, result)
 	}
-	data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, ".syllabus/config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestInvalidExplicitImpact(t *testing.T) {
 			t.Fatal(result)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".code-rules/rules/practices/testing/my-rule.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".syllabus/rules/practices/testing/my-rule.md")); !os.IsNotExist(err) {
 		t.Fatal("invalid flag wrote a rule", err)
 	}
 }

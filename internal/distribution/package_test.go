@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"debug/buildinfo"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,7 +46,7 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 		if _, err := Install(output, target, installed); err != nil {
 			t.Fatal(err)
 		}
-		binary := filepath.Join(installed, "code-rules")
+		binary := filepath.Join(installed, "syllabus")
 		info, err := buildinfo.ReadFile(binary)
 		if err != nil {
 			t.Fatal(err)
@@ -100,7 +100,7 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 		}
 	}
 	// Rollback selects the retained previous binary, without a runtime download or reinstall.
-	previous := exec.Command(filepath.Join(parent, "installed-0.1.0-review.1/code-rules"), "--version")
+	previous := exec.Command(filepath.Join(parent, "installed-0.1.0-review.1/syllabus"), "--version")
 	previous.Env = []string{"PATH=" + parent + "/no-runtime"}
 	data, err := previous.Output()
 	if err != nil || strings.TrimSpace(string(data)) != "0.1.0-review.1" {
@@ -128,15 +128,15 @@ func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
 // TestCandidateBuildExcludesUncommittedEdits verifies that a manifest's recorded commit owns the executable inputs.
 func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
 	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
-		"go.mod":                 []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
-		"cmd/code-rules/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
+		"go.mod":               []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
+		"cmd/syllabus/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fixture.Close()
 	source := filepath.Join(fixture.Directory, "repository")
-	if err := os.WriteFile(filepath.Join(source, "cmd/code-rules/main.go"), []byte("invalid uncommitted Go source"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(source, "cmd/syllabus/main.go"), []byte("invalid uncommitted Go source"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	artifacts := filepath.Join(t.TempDir(), "artifacts")
@@ -152,7 +152,7 @@ func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
 	if _, err := Install(artifacts, target, installed); err != nil {
 		t.Fatal(err)
 	}
-	data, err := exec.Command(filepath.Join(installed, "code-rules")).Output()
+	data, err := exec.Command(filepath.Join(installed, "syllabus")).Output()
 	if err != nil || strings.TrimSpace(string(data)) != "0.0.0-dev.g"+fixture.LatestCommit[:12] {
 		t.Fatal(string(data), err)
 	}
@@ -161,9 +161,9 @@ func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
 // TestLicensedRelease packages an explicit version without any package metadata file.
 func TestLicensedRelease(t *testing.T) {
 	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
-		"LICENSE.md":             []byte("MIT fixture terms\n"),
-		"go.mod":                 []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
-		"cmd/code-rules/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
+		"LICENSE.md":           []byte("MIT fixture terms\n"),
+		"go.mod":               []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
+		"cmd/syllabus/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestLicensedRelease(t *testing.T) {
 	if _, err := Install(output, target, installed); err != nil {
 		t.Fatal(err)
 	}
-	data, err := exec.Command(filepath.Join(installed, "code-rules")).Output()
+	data, err := exec.Command(filepath.Join(installed, "syllabus")).Output()
 	if err != nil || strings.TrimSpace(string(data)) != "0.1.0" {
 		t.Fatal(string(data), err)
 	}

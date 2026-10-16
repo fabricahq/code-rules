@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/cli"
+	"github.com/fabricahq/syllabus/internal/cli"
 )
 
 // version is set by native release builds; development binaries declare their status explicitly.

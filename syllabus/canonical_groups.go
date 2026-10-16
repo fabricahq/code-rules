@@ -1,6 +1,6 @@
 // Parse the canonical group list: the group IDs that tools may treat as the same group across libraries.
 
-package coderules
+package syllabus
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // CanonicalGroup is one entry on the canonical group list. Text has no surrounding whitespace.
@@ -23,7 +23,7 @@ type CanonicalGroup struct {
 	Description string
 }
 
-// ParseCanonicalGroups validates a canonical group list, such as canonical-groups.yaml at the root of the Code Rules
+// ParseCanonicalGroups validates a canonical group list, such as canonical-groups.yaml at the root of the Syllabus
 // repository, and returns its entries in file order. location names the list in errors. The list is one strict
 // YAML mapping from group ID to an entry with exactly a name and a description. IDs are valid group IDs, such as
 // techs/go, and must be in ascending byte order, so a list has no duplicates.

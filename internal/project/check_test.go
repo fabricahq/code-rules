@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 func TestCheckOwnsGuideAndGeneratedFreshness(t *testing.T) {
@@ -24,7 +24,7 @@ func TestCheckOwnsGuideAndGeneratedFreshness(t *testing.T) {
 			if _, err := project.Build(ctx, options); err != nil {
 				t.Fatal(err)
 			}
-			root, err := os.OpenRoot(filepath.Join(options.Directory, ".code-rules"))
+			root, err := os.OpenRoot(filepath.Join(options.Directory, ".syllabus"))
 			if err != nil {
 				t.Fatal(err)
 			}

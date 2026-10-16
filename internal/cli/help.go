@@ -81,10 +81,10 @@ func writeCommandGroup(out *strings.Builder, cmd *cobra.Command, title, id strin
 // Keep ordering local to presentation: Cobra's sorting setting is shared across command trees and callers.
 func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
 	order := map[string][]string{
-		"code-rules": {"project", "library"},
-		"project":    {"init", "add", "sync", "update", "build", "check"},
-		"library":    {"init", "add", "check"},
-		"add":        {"rule", "group", "source", "skill"},
+		"syllabus": {"project", "library"},
+		"project":  {"init", "add", "sync", "update", "build", "check"},
+		"library":  {"init", "add", "check"},
+		"add":      {"rule", "group", "source", "skill"},
 	}[cmd.Name()]
 	commands := cmd.Commands()
 	ordered := make([]*cobra.Command, 0, len(commands))

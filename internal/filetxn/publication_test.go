@@ -41,9 +41,9 @@ func TestPublicationRollbackPreservesEdits(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer root.Close()
-			root.Mkdir(".code-rules-authoring-test", 0700)
+			root.Mkdir(".syllabus-authoring-test", 0700)
 			injected := errors.New("second publication failed")
-			operation := &publication{ctx: context.Background(), root: root, stage: ".code-rules-authoring-test"}
+			operation := &publication{ctx: context.Background(), root: root, stage: ".syllabus-authoring-test"}
 			operation.link = func(from, to string) error {
 				if to == "second" {
 					if edit {
@@ -67,7 +67,7 @@ func TestPublicationRollbackPreservesEdits(t *testing.T) {
 			} else if !os.IsNotExist(err) {
 				t.Fatal("failed to roll back", err)
 			}
-			if _, err = root.Stat(".code-rules-authoring-test"); !os.IsNotExist(err) {
+			if _, err = root.Stat(".syllabus-authoring-test"); !os.IsNotExist(err) {
 				t.Fatal("stage leaked", err)
 			}
 		})
@@ -82,8 +82,8 @@ func TestReplacementCollisionRetainsRecovery(t *testing.T) {
 	}
 	defer root.Close()
 	root.WriteFile("config.json", []byte("original"), 0600)
-	root.Mkdir(".code-rules-authoring-test", 0700)
-	operation := &publication{ctx: context.Background(), root: root, stage: ".code-rules-authoring-test"}
+	root.Mkdir(".syllabus-authoring-test", 0700)
+	operation := &publication{ctx: context.Background(), root: root, stage: ".syllabus-authoring-test"}
 	operation.link = func(from, to string) error {
 		if err := root.WriteFile(to, []byte("editor replacement"), 0600); err != nil {
 			t.Fatal(err)
@@ -96,7 +96,7 @@ func TestReplacementCollisionRetainsRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := root.ReadFile("config.json")
-	old, _ := root.ReadFile(".code-rules-authoring-test/previous-0")
+	old, _ := root.ReadFile(".syllabus-authoring-test/previous-0")
 	if string(data) != "editor replacement" || string(old) != "original" {
 		t.Fatal(string(data), string(old))
 	}
@@ -111,7 +111,7 @@ func TestCommittedCleanupWarning(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer root.Close()
-			stage := ".code-rules-authoring-cleanup"
+			stage := ".syllabus-authoring-cleanup"
 			if err = root.Mkdir(stage, 0700); err != nil {
 				t.Fatal(err)
 			}

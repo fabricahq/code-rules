@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 const projectRule = "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn errors to the caller.\n"
@@ -151,7 +151,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 			case "vendor":
 				writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "modified imported rule")
 			case "recovery":
-				writeFixture(t, root, ".code-rules-transaction"+"/journal.json", `{"formatVersion":99}`)
+				writeFixture(t, root, ".syllabus-transaction"+"/journal.json", `{"formatVersion":99}`)
 			case "cancel":
 				cancel()
 			}
@@ -251,7 +251,7 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 func TestOfflineRejectsAnExclusionSyncDidntCheck(t *testing.T) {
 	root, options := importedProject(t)
 	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/erorrs","reason":"Typo."}]}}}}`)
-	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run code-rules project sync") {
+	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run syllabus project sync") {
 		t.Fatalf("check accepted an unchecked exclusion: %v", err)
 	}
 	if _, err := Build(context.Background(), options); err == nil {
@@ -291,7 +291,7 @@ func TestBuild_LinksAuthoredRulesInRulesToSharedAssetsInAssets(t *testing.T) {
 func TestBuild_RefusesMisplacedSharedAssets(t *testing.T) {
 	for _, test := range []struct{ name, location, problem string }{
 		{"missing asset", "local:techs/go/errors", "missing asset link destination: ../../../assets/retry.svg"},
-		{"asset in rules", "rules/assets/retry.svg", "rules/ holds groups under techs/ and practices/, so shared assets belong in .code-rules/assets/; move this file there"},
+		{"asset in rules", "rules/assets/retry.svg", "rules/ holds groups under techs/ and practices/, so shared assets belong in .syllabus/assets/; move this file there"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			root, options := sharedAssetProject(t)
@@ -343,7 +343,7 @@ func TestProjectInputRecheckRejectsALaterLocalFolder(t *testing.T) {
 	}
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
 	var validation *ValidationError
-	if err := requireUnchanged(context.Background(), root, state); !errors.As(err, &validation) || validation.Location != ".code-rules/local/" {
+	if err := requireUnchanged(context.Background(), root, state); !errors.As(err, &validation) || validation.Location != ".syllabus/local/" {
 		t.Fatalf("recheck error = %v, want the local/ refusal", err)
 	}
 }

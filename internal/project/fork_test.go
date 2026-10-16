@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // forkedRule is a rule document whose body is text.
@@ -100,7 +100,7 @@ func (f forkFixture) fork(t *testing.T, id, from, reason string) (AuthoringResul
 	return plan.Commit(context.Background(), reason)
 }
 
-// files returns every file of the project's Code Rules directory.
+// files returns every file of the project's Syllabus directory.
 func (f forkFixture) files(t *testing.T) map[string][]byte {
 	t.Helper()
 	return projectTree(t, f.options).Files
@@ -295,8 +295,8 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
 		t.Fatal(err)
 	}
-	rule, err := coderules.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.code-rules/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	rule, err := syllabus.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
+	want := []syllabus.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -306,14 +306,14 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 // layout keeps them, cites other hosts' HTTPS addresses, and gives other addresses no entry.
 func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
-	version, _ := coderules.ParseRuleVersion("1.3.0", "version")
+	version, _ := syllabus.ParseRuleVersion("1.3.0", "version")
 	for _, test := range []struct {
 		repository, url string
 		legacy          bool
 	}{
-		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.code-rules/rules/techs/go/errors.md", false},
+		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.syllabus/rules/techs/go/errors.md", false},
 		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md", true},
-		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.code-rules/rules/techs/go/errors.md", false},
+		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.syllabus/rules/techs/go/errors.md", false},
 		{"https://git.example.org/srv/rules.git", "https://git.example.org/srv/rules.git", false},
 		{"git@git.example.org:srv/rules.git", "", false},
 	} {
@@ -555,7 +555,7 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync") {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v", err)
 	}
 }

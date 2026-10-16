@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // syncedProject syncs the sync fixture's project at release/1, then publishes release/2, in which
@@ -44,7 +44,7 @@ func syncedProject(t *testing.T) (Options, imports.Options, func(*testing.T)) {
 	return options, git, thirdRelease
 }
 
-// projectTree reads every file of the project's Code Rules directory.
+// projectTree reads every file of the project's Syllabus directory.
 func projectTree(t *testing.T, options Options) *filetxn.Tree {
 	t.Helper()
 	root, err := openProject(context.Background(), options, false)
