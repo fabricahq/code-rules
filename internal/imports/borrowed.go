@@ -35,7 +35,8 @@ type borrowedSkill struct {
 
 // borrowedSkills returns, by borrowed source name, the borrowed skills source takes from manifest, its library's:
 // every required one, the recommended ones when skills.include names recommended, and each offered one that it
-// names or includes with "*". It fails when skills.include or skills.exclude names a borrowed skill the library
+// names or includes with "*", which, as for a source's own skills, leaves out one in a folder whose name starts with
+// a dot. It fails when skills.include or skills.exclude names a borrowed skill the library
 // doesn't list, since a borrowed skill reaches projects only through the library's lists, and when skills.exclude
 // names a required one, since a project that uses the library can't diverge from it.
 func borrowedSkills(manifest *rules.Library, source rules.Source, release int) (map[string][]borrowedSkill, error) {
@@ -62,9 +63,11 @@ func borrowedSkills(manifest *rules.Library, source rules.Source, release int) (
 	result := map[string][]borrowedSkill{}
 	for _, id := range borrowed {
 		level := listed.Level(id)
+		_, folder, _ := library.SplitBorrowed(id)
 		switch {
 		case level == skills.LevelRequired:
-		case slices.Contains(source.Skills, skills.Wildcard) || slices.Contains(source.Skills, id):
+		case slices.Contains(source.Skills, id):
+		case slices.Contains(source.Skills, skills.Wildcard) && !library.HiddenSkill(folder):
 		case level == skills.LevelRecommended && slices.Contains(source.Skills, skills.Recommended):
 		default:
 			continue
@@ -170,56 +173,26 @@ func (l lendingSource) borrow(ctx context.Context, imported *Library, chosen []b
 	if err != nil {
 		return err
 	}
-	tree, err := repo.repositoryTree(ctx, revision.Commit)
-	if err != nil {
-		return err
-	}
-	folders := skillFolders(tree, !revision.NonLibrary)
-	ids, levels := []string{}, map[string]string{}
-	for _, skill := range chosen {
-		_, id, _ := library.SplitBorrowed(skill.id)
-		if _, ok := folders[id]; !ok {
-			return l.missing(skill.id, revision, kept)
-		}
-		ids, levels[id] = append(ids, id), skill.level
-	}
-	// A borrowed skill brings the skills it uses from its repository, as a source's own skills do.
-	lender := rules.Source{Name: l.library}
-	plan := sourcePlan{release: revision.Release, commit: revision.Commit}
-	uses, err := repo.skillUses(ctx, lender, folders, ids)
-	if err != nil {
-		return err
-	}
-	installed, err := installedSkills(lender, plan, ids, uses)
-	if err != nil {
-		return err
-	}
-	files := map[string]treeEntry{}
-	for _, id := range slices.Sorted(maps.Keys(installed)) {
-		level, ok := levels[id]
-		if !ok {
-			level = skills.LevelOffered
-		}
-		usedBy := []string{}
-		for _, user := range installed[id].UsedBy {
-			usedBy = append(usedBy, l.name+":"+user)
-		}
-		imported.Snapshot.Skills[l.name+":"+id] = library.ImportedSkill{Level: level, Included: installed[id].Included, UsedBy: usedBy}
-		maps.Copy(files, folders[id])
-	}
 	retained := 0
 	for _, data := range imported.Snapshot.Files {
 		retained += len(data)
 	}
-	read, executable, err := repo.readFiles(ctx, l.library, files, retained)
+	read, err := l.read(ctx, repo, revision, chosen, kept, retained)
 	if err != nil {
 		return err
 	}
+	for id, skill := range read.skills {
+		usedBy := []string{}
+		for _, user := range skill.UsedBy {
+			usedBy = append(usedBy, l.name+":"+user)
+		}
+		imported.Snapshot.Skills[l.name+":"+id] = library.ImportedSkill{Level: skill.Level, Included: skill.Included, UsedBy: usedBy}
+	}
 	prefix := library.BorrowedDirectory + "/" + l.name + "/"
-	for name, data := range read {
+	for name, data := range read.files {
 		imported.Snapshot.Files[prefix+name] = data
 	}
-	for _, name := range executable {
+	for _, name := range read.executable {
 		imported.Snapshot.Executable = append(imported.Snapshot.Executable, prefix+name)
 	}
 	if imported.Snapshot.Borrowed == nil {
@@ -227,6 +200,47 @@ func (l lendingSource) borrow(ctx context.Context, imported *Library, chosen []b
 	}
 	imported.Snapshot.Borrowed[l.name] = revision
 	return nil
+}
+
+// read reads, from repo at revision, the lending source's skills that chosen names and every skill they use, as a
+// source's own skills bring the skills they use, by their IDs in the borrowed repository, with their files by path
+// in that repository. kept and retained are as missing and readFiles take them.
+func (l lendingSource) read(ctx context.Context, repo *repository, revision library.BorrowedSource, chosen []borrowedSkill, kept bool, retained int) (importedSkills, error) {
+	tree, err := repo.repositoryTree(ctx, revision.Commit)
+	if err != nil {
+		return importedSkills{}, err
+	}
+	folders := skillFolders(tree, !revision.NonLibrary)
+	ids, levels := []string{}, map[string]string{}
+	for _, skill := range chosen {
+		_, id, _ := library.SplitBorrowed(skill.id)
+		if _, ok := folders[id]; !ok {
+			return importedSkills{}, l.missing(skill.id, revision, kept)
+		}
+		ids, levels[id] = append(ids, id), skill.level
+	}
+	lender := rules.Source{Name: l.library}
+	plan := sourcePlan{release: revision.Release, commit: revision.Commit}
+	uses, err := repo.skillUses(ctx, lender, folders, ids)
+	if err != nil {
+		return importedSkills{}, err
+	}
+	installed, err := installedSkills(lender, plan, ids, uses)
+	if err != nil {
+		return importedSkills{}, err
+	}
+	result := importedSkills{skills: map[string]library.ImportedSkill{}}
+	files := map[string]treeEntry{}
+	for _, id := range slices.Sorted(maps.Keys(installed)) {
+		level, ok := levels[id]
+		if !ok {
+			level = skills.LevelOffered
+		}
+		result.skills[id] = library.ImportedSkill{Level: level, Included: installed[id].Included, UsedBy: installed[id].UsedBy}
+		maps.Copy(files, folders[id])
+	}
+	result.files, result.executable, err = repo.readFiles(ctx, l.library, files, retained)
+	return result, err
 }
 
 // revision returns the revision the lending source's skills come from, fetched, and reports whether a source record
@@ -319,7 +333,7 @@ func (l lendingSource) missing(id string, revision library.BorrowedSource, kept 
 // planBorrowed resolves again, as an update of the whole library source does, the ref the library names for each
 // source it borrows skills that the project takes from, given manifest, the library's .syllabus/config.yaml at the
 // revision the update moves to. It returns the revisions by borrowed source name, and a preview row for each whose
-// commit differs from the one recorded, the source's snapshot, holds. A borrowed repository that a project source
+// commit or skills differ from those recorded, the source's snapshot, holds. A borrowed repository that a project source
 // declares too is left out, since that source's revision supplies its skills.
 func planBorrowed(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, options Options) (map[string]library.BorrowedSource, []BorrowedUpdate, error) {
 	parsed, err := rules.ParseLibraryManifest(manifest, source.Name+"/"+librarytree.RepositoryPath(librarytree.Manifest))
@@ -336,44 +350,60 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 		if overridingSource(configuration, source.Name, lender.declared.Repository) != nil {
 			continue
 		}
-		revision, err := lender.resolveOnce(ctx, options)
+		before := library.Snapshot{}
+		if recorded != nil {
+			before = recorded.BorrowedFrom(name)
+		}
+		revision, row, err := lender.plan(ctx, selected[name], before, options)
 		if err != nil {
 			return nil, nil, err
 		}
 		revisions[name] = revision
-		from := ""
-		if recorded != nil {
-			from = recorded.Borrowed[name].Commit
+		if row != nil {
+			rows = append(rows, *row)
 		}
-		if from == revision.Commit {
-			continue
-		}
-		ids := []string{}
-		for _, skill := range selected[name] {
-			ids = append(ids, skill.id)
-		}
-		rows = append(rows, BorrowedUpdate{Name: name, Repository: revision.Repository, Ref: revision.Ref.String(), From: from, To: revision.Commit, Skills: ids})
 	}
 	return revisions, rows, nil
 }
 
-// resolveOnce resolves the lending source's ref in a repository of its own, within one import deadline.
-func (l lendingSource) resolveOnce(ctx context.Context, options Options) (_ library.BorrowedSource, err error) {
+// plan resolves the lending source's ref in a repository of its own, within one import deadline, and returns the
+// revision, and the preview row for it when its commit or the skills the project takes from it differ from before's,
+// which holds the skills the project recorded from the source, as Snapshot.BorrowedFrom gives them. The row compares the files of chosen, the skills the
+// project takes, and of the skills they use, at the two commits, as skillChanges compares a source's own skills.
+func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, before library.Snapshot, options Options) (_ library.BorrowedSource, _ *BorrowedUpdate, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
-		return library.BorrowedSource{}, err
+		return library.BorrowedSource{}, nil, err
 	}
 	defer cancel()
 	repo, err := openRepository(ctx, rules.Source{Name: l.name, Repository: l.declared.Repository}, options)
 	if err != nil {
-		return library.BorrowedSource{}, err
+		return library.BorrowedSource{}, nil, err
 	}
 	defer func() {
 		if closeErr := repo.Close(); closeErr != nil {
 			err = errors.Join(err, closeErr)
 		}
 	}()
-	return l.resolve(ctx, repo)
+	revision, err := l.resolve(ctx, repo)
+	if err != nil {
+		return library.BorrowedSource{}, nil, err
+	}
+	read, err := l.read(ctx, repo, revision, chosen, false, 0)
+	if err != nil {
+		return library.BorrowedSource{}, nil, err
+	}
+	row := BorrowedUpdate{Name: l.name, Repository: revision.Repository, Ref: revision.Ref.String(), From: before.Commit, To: revision.Commit, Skills: []string{}, Changes: skillChanges(&before, read)}
+	if before.Commit == revision.Commit && len(row.Changes) == 0 {
+		return revision, nil, nil
+	}
+	for _, skill := range chosen {
+		row.Skills = append(row.Skills, skill.id)
+	}
+	for i := range row.Changes {
+		row.Changes[i].ID = l.name + ":" + row.Changes[i].ID
+	}
+	return revision, &row, nil
 }
 
 // manifestAt returns the .syllabus/config.yaml of a fetched commit, or nil when it has none.

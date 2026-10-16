@@ -106,7 +106,7 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			result = append(result, skill)
 		}
 	}
-	result = withoutBorrowedCopies(result)
+	result, aliases := withoutBorrowedCopies(result)
 	for _, id := range slices.Sorted(maps.Keys(local)) {
 		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
 		if replacement, replaces := replacements[id]; replaces {
@@ -129,7 +129,7 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 		}
 		names[skill.Name] = skill.ID
 	}
-	warnings, err := linkSkillUses(result, config)
+	warnings, err := linkSkillUses(result, config, aliases)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -153,13 +153,23 @@ func sourceSkill(source rules.Source, snapshot library.Snapshot, id string) reso
 
 // withoutBorrowedCopies drops from resolved each skill a project source installs that is also a borrowed skill
 // resolved, from the same repository, folder, and commit, as an overriding source supplies it: a skill's identity is
-// its repository and folder, so the borrowed one, which carries its library's level, is the one installed.
-func withoutBorrowedCopies(resolved []resolvedSkill) []resolvedSkill {
-	return slices.DeleteFunc(resolved, func(skill resolvedSkill) bool {
-		return skill.Borrowed == "" && slices.ContainsFunc(resolved, func(borrowed resolvedSkill) bool {
+// its repository and folder, so the borrowed one, which carries its library's level, is the one installed. It also
+// returns, by the project ID of each dropped skill, the borrowed skill's, which uses of the dropped one reach instead.
+func withoutBorrowedCopies(resolved []resolvedSkill) ([]resolvedSkill, map[string]string) {
+	aliases := map[string]string{}
+	kept := slices.DeleteFunc(resolved, func(skill resolvedSkill) bool {
+		if skill.Borrowed != "" {
+			return false
+		}
+		i := slices.IndexFunc(resolved, func(borrowed resolvedSkill) bool {
 			return borrowed.Override == skill.Source && borrowed.Borrowed != "" && borrowed.Folder == skill.Folder && borrowed.Commit == skill.Commit
 		})
+		if i >= 0 {
+			aliases[skill.ID] = resolved[i].ID
+		}
+		return i >= 0
 	})
+	return kept, aliases
 }
 
 // describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, type, and

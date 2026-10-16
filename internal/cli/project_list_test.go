@@ -49,3 +49,22 @@ func TestFormatUpdatePreview_ShowsSkillLevelChanges(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatUpdatePreview_ShowsBorrowedSourcesAndTheirSkillChanges(t *testing.T) {
+	var out strings.Builder
+	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Borrowed: []imports.BorrowedUpdate{{
+		Name: "pocock", Repository: "https://github.com/mattpocock/skills", Ref: "stable", From: "1111111111111111111111111111111111111111", To: "2222222222222222222222222222222222222222",
+		Skills:  []string{"pocock:skills/ops/deploy"},
+		Changes: []imports.SkillUpdate{{ID: "pocock:skills/ops/deploy", Change: imports.SkillChanged, Files: []string{"SKILL.md", "scripts/deploy.sh"}, Scripts: []imports.ScriptUpdate{{Path: "scripts/deploy.sh", Change: imports.SkillChanged}}}},
+	}}}})
+	want := "team\n" +
+		"  borrowed  pocock  commit 111111111111 -> 222222222222\n" +
+		"            Borrowed from https://github.com/mattpocock/skills, resolved from ref stable.\n" +
+		"            Skills: pocock:skills/ops/deploy\n" +
+		"  changed   pocock:skills/ops/deploy\n" +
+		"            Changed: SKILL.md, scripts/deploy.sh\n" +
+		"            script changed: scripts/deploy.sh\n"
+	if out.String() != want {
+		t.Fatalf("preview:\n%s\nwant:\n%s", out.String(), want)
+	}
+}

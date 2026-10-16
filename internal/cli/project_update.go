@@ -417,6 +417,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 			for _, line := range borrowedDetails(row) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
+			formatSkillRows(out, row.Changes)
 		}
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)

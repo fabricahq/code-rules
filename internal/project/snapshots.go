@@ -550,10 +550,10 @@ func readRecordSkills(record sourceRecord, where string, paths map[string][]byte
 	for id, skill := range record.Skills {
 		installed[id] = skill.Level
 	}
-	if snapshot.AvailableSkills, err = readRecordSkillLevels(available, where+".availableSkills", snapshot.NonLibrary, snapshot.Borrowed); err != nil {
+	if snapshot.AvailableSkills, err = readRecordSkillLevels(available, where+".availableSkills", snapshot.NonLibrary, snapshot.Borrowed, false); err != nil {
 		return err
 	}
-	if snapshot.Skills, err = readRecordSkillLevels(installed, where+".skills", snapshot.NonLibrary, snapshot.Borrowed); err != nil {
+	if snapshot.Skills, err = readRecordSkillLevels(installed, where+".skills", snapshot.NonLibrary, snapshot.Borrowed, true); err != nil {
 		return err
 	}
 	for _, id := range slices.Sorted(maps.Keys(snapshot.Skills)) {
@@ -588,9 +588,11 @@ func readRecordSkills(record sourceRecord, where string, paths map[string][]byte
 
 // readRecordSkillLevels validates the levels of the skills recorded at location, by ID: a library's skills,
 // skills/<name>, each with a level, or, when nonLibrary is set, skills from another repository with a null level,
-// and a library's borrowed skills, each of a source in borrowed, with a level; none in another's folder. It returns
-// the skills with only their levels.
-func readRecordSkillLevels(records map[string]*string, location string, nonLibrary bool, borrowed map[string]library.BorrowedSource) (map[string]library.ImportedSkill, error) {
+// and a library's borrowed skills, each with a level and, when installed is set, of a source in borrowed; none in
+// another's folder. Available skills needn't name a recorded source, since a library lists borrowed skills that a
+// project may not install, and a borrowed source is recorded only when the project installs its skills. It returns the skills with only their
+// levels.
+func readRecordSkillLevels(records map[string]*string, location string, nonLibrary bool, borrowed map[string]library.BorrowedSource, installed bool) (map[string]library.ImportedSkill, error) {
 	result := map[string]library.ImportedSkill{}
 	for _, id := range slices.Sorted(maps.Keys(records)) {
 		where := location + "." + id
@@ -599,8 +601,9 @@ func readRecordSkillLevels(records map[string]*string, location string, nonLibra
 			if err := skills.ValidateID(skill, where); err != nil {
 				return nil, err
 			}
-			if _, recorded := borrowed[source]; !recorded || level == nil || !slices.Contains(skills.Levels, *level) {
-				return nil, invalidSnapshot(where, "expected a borrowed skill of a recorded borrowed source, with level required, recommended, or offered")
+			_, recorded := borrowed[source]
+			if installed && !recorded || level == nil || !slices.Contains(skills.Levels, *level) {
+				return nil, invalidSnapshot(where, "expected a borrowed skill, of a recorded borrowed source when installed, with level required, recommended, or offered")
 			}
 		} else {
 			if err := skills.ValidateID(id, where); err != nil {

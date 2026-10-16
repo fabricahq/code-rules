@@ -89,6 +89,10 @@ type BorrowedUpdate struct {
 	To   string `json:"to"`
 	// Skills lists, sorted, the IDs of the borrowed skills the project takes from the source.
 	Skills []string `json:"skills"`
+	// Changes compares the borrowed skills the project installs from the source, and the skills they use, at To with
+	// those at From, as SourceUpdate.Skills compares a source's own skills, by their IDs in the library. It is empty,
+	// never nil, when they don't differ.
+	Changes []SkillUpdate `json:"changes"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library

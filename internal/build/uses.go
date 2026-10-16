@@ -20,8 +20,9 @@ import (
 // that uses one the project doesn't install fails as invalid output, because its source record, which sync and the
 // offline checks keep complete, can't produce one. A skill that uses a source's skill the project excludes uses the
 // authored skill that replaces it instead; with no replacement, the use is dropped, and linkSkillUses returns a
-// warning for it, in skill order.
-func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]string, error) {
+// warning for it, in skill order. A use of a skill in aliases, a project source's copy of a borrowed skill that
+// withoutBorrowedCopies dropped, reaches the borrowed skill it maps to.
+func linkSkillUses(resolved []resolvedSkill, config rules.Configuration, aliases map[string]string) ([]string, error) {
 	sources := map[string]rules.Source{}
 	// excluded maps the project ID of each source's skill the project excludes to the authored skill that replaces
 	// it, or "" when none does.
@@ -38,6 +39,8 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]stri
 	redirect := func(skill resolvedSkill, id string) (string, bool) {
 		replacement, isExcluded := excluded[id]
 		switch {
+		case !isExcluded && aliases[id] != "":
+			return aliases[id], true
 		case !isExcluded:
 			return id, true
 		case replacement != "":

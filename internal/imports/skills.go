@@ -83,7 +83,8 @@ func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[str
 // .claude/skills/, and each skill it names. A named skill the revision lacks fails: with skill-not-in-revision when
 // the revision is the one the source record locks, since sync never moves a source, and otherwise as invalid
 // configuration. Excluding a required skill fails too, since a project that uses the library can't diverge from it.
-// The skills the library borrows are borrowSkills' to choose, and the skills the configuration's own library section
+// The skills the library borrows, whose IDs have a colon, are borrowSkills' to choose, and naming one of a repository
+// that isn't a library fails, since only a library borrows skills; the skills the configuration's own library section
 // requires of the source, LibraryRequires, are chosen as required too.
 func chooseSkills(source rules.Source, plan sourcePlan, available []string, levels *rules.SkillLevels) ([]string, error) {
 	chosen := []string{}
@@ -119,7 +120,9 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 			chosen = append(chosen, levels.Recommended...)
 		case slices.Contains(available, id):
 			chosen = append(chosen, id)
+		case strings.Contains(id, ":") && levels != nil:
 		case strings.Contains(id, ":"):
+			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("names %s, but only a library's borrowed skills have IDs with a colon, and the repository isn't a library at %s, so it borrows none; name its skills by their folder, such as skills/to-spec", id, revision)}
 		default:
 			return nil, skillNotInRevision(source, plan, "sources."+source.Name+".skills.include", id)
 		}
@@ -414,6 +417,10 @@ func (r *repository) skillLevelChanges(ctx context.Context, recorded *library.Sn
 	}
 	after := map[string]string{}
 	for id := range skillFolders(tree, true) {
+		after[id] = levels.Level(id)
+	}
+	// A borrowed skill is in the library's lists, not its skills/ folder.
+	for _, id := range levels.Borrowed() {
 		after[id] = levels.Level(id)
 	}
 	ids := slices.Sorted(maps.Keys(after))

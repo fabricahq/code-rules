@@ -96,11 +96,15 @@ func (r UpdateResult) Moves() bool {
 	return false
 }
 
-// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows
-// flags a script, or empty when none does.
+// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows,
+// borrowed skills' included, flags a script, or empty when none does.
 func (r UpdateResult) ScriptsWarning() string {
 	for _, source := range r.Sources {
-		for _, skill := range source.Skills {
+		rows := slices.Clone(source.Skills)
+		for _, borrowed := range source.Borrowed {
+			rows = append(rows, borrowed.Changes...)
+		}
+		for _, skill := range rows {
 			if len(skill.Scripts) == 0 {
 				continue
 			}

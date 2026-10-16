@@ -87,9 +87,10 @@ func (r *repository) previewSkills(ctx context.Context, source rules.Source, rec
 			previews[plan.commit] = skillPreview{err: err, replaced: replaced, levels: levels}
 			continue
 		}
+		// A borrowed skill's rows are its borrowed source's, which planBorrowed compares at that source's revisions.
 		rows := slices.DeleteFunc(skillChanges(recorded, installed), func(row SkillUpdate) bool {
 			_, excluded := source.SkillExclude[row.ID]
-			return excluded
+			return excluded || strings.Contains(row.ID, ":")
 		})
 		previews[plan.commit] = skillPreview{rows: rows, replaced: replaced, levels: levels}
 	}

@@ -32,9 +32,19 @@ type borrowing struct {
 	root         *os.Root
 }
 
+// teamSkills is the library.skills section of team's manifest that newBorrowing describes.
+const teamSkills = "    required: [pocock:skills/ops/deploy]\n    recommended: [pocock:skills/engineering/to-spec]\n    offered: [pocock:skills/productivity/grilling]\n"
+
 // newBorrowing returns a borrowing whose project uses team with config, JSON in which TEAM and POCOCK stand for the
 // two repositories, and has run no command yet.
 func newBorrowing(t *testing.T, config string) *borrowing {
+	t.Helper()
+	return newBorrowingFrom(t, teamSkills, config)
+}
+
+// newBorrowingFrom returns a borrowing as newBorrowing does, except that team's manifest lists listed, YAML indented
+// under library.skills.
+func newBorrowingFrom(t *testing.T, listed, config string) *borrowing {
 	t.Helper()
 	ctx := context.Background()
 	pocock, err := gitfixture.New(ctx, map[string][]byte{
@@ -52,7 +62,7 @@ func newBorrowing(t *testing.T, config string) *borrowing {
 		t.Fatal(err)
 	}
 	team, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":          []byte("schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    required: [pocock:skills/ops/deploy]\n    recommended: [pocock:skills/engineering/to-spec]\n    offered: [pocock:skills/productivity/grilling]\n"),
+		"config.yaml":          []byte("schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n" + listed),
 		"techs/go/_group.yaml": []byte(projectMetadata),
 		"techs/go/errors.md":   []byte(projectRule),
 	}))
@@ -179,7 +189,17 @@ func TestSync_KeepsTheBorrowedRevisionAndUpdateResolvesTheLibrarysRefAgain(t *te
 	if _, err := Sync(ctx, b.options, b.git); err != nil {
 		t.Fatal(err)
 	}
-	moved, err := b.pocock.Commit(ctx, b.pocock.Worktree(), "Improve deploy", map[string][]byte{"skills/ops/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))})
+	worktree := b.pocock.Worktree()
+	if _, err := b.pocock.Commit(ctx, worktree, "Improve deploy", map[string][]byte{"skills/ops/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.pocock.CommandIn(ctx, worktree, "update-index", "--chmod=+x", "skills/ops/deploy/scripts/deploy.sh"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.pocock.CommandIn(ctx, worktree, "commit", "--quiet", "-m", "Make deploy.sh executable"); err != nil {
+		t.Fatal(err)
+	}
+	moved, err := b.pocock.CommandIn(ctx, worktree, "rev-parse", "HEAD")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,6 +225,19 @@ func TestSync_KeepsTheBorrowedRevisionAndUpdateResolvesTheLibrarysRefAgain(t *te
 	}
 	if row := preview.Sources[0].Borrowed[0]; row.Name != "pocock" || row.From != b.pocock.FirstCommit || row.To != moved || row.Ref != "stable" || strings.Join(row.Skills, ",") != "pocock:skills/ops/deploy" {
 		t.Fatalf("borrowed row = %+v", row)
+	}
+	changes := preview.Sources[0].Borrowed[0].Changes
+	if len(changes) != 1 || changes[0].ID != "pocock:skills/ops/deploy" || strings.Join(changes[0].Files, ",") != "SKILL.md,scripts/deploy.sh" || len(changes[0].Scripts) != 1 || changes[0].Scripts[0].Path != "scripts/deploy.sh" {
+		t.Fatalf("borrowed changes = %+v; want deploy's changed SKILL.md and its script made executable", changes)
+	}
+	if len(preview.Sources[0].SkillLevels) != 0 {
+		t.Errorf("level rows = %+v; the library's levels didn't change", preview.Sources[0].SkillLevels)
+	}
+	if len(preview.Sources[0].Skills) != 0 {
+		t.Errorf("skill rows = %+v; the borrowed skills are the borrowed row's", preview.Sources[0].Skills)
+	}
+	if preview.ScriptsWarning() == "" {
+		t.Error("no scripts warning for a borrowed skill's script")
 	}
 	if _, err := plan.Apply(ctx, nil); err != nil {
 		t.Fatal(err)
@@ -260,5 +293,45 @@ func TestSync_ALibraryRepositoryNeedsNoSkillsFromASourceItOnlyOffers(t *testing.
 	}
 	if exists(t, b.options, ".claude/skills/grilling") {
 		t.Error("installed a skill the library only offers")
+	}
+}
+
+func TestSync_NeedsNoBorrowedSourceForSkillsALibraryOnlyOffers(t *testing.T) {
+	ctx := context.Background()
+	b := newBorrowingFrom(t, "    offered: [pocock:skills/productivity/grilling]\n", `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	record := b.teamRecord(t)
+	if _, ok := record["borrowed"]; ok {
+		t.Errorf("recorded a borrowed source the project takes no skills from: %v", record["borrowed"])
+	}
+	if available, _ := record["availableSkills"].(map[string]any); available["pocock:skills/productivity/grilling"] == nil {
+		t.Errorf("availableSkills = %v; want the offered borrowed skill", available)
+	}
+	if result, err := Check(ctx, b.options); err != nil || !result.Current() {
+		t.Fatalf("check = %+v, %v", result, err)
+	}
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatalf("second sync: %v", err)
+	}
+}
+
+func TestSync_UsesOfAnOverridingSourcesCopyReachTheBorrowedSkill(t *testing.T) {
+	ctx := context.Background()
+	b := newBorrowing(t, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}},"mine":{"repository":POCOCK,"ref":"stable","skills":{"include":["skills/ops/deploy"]}}}}`)
+	writeFixture(t, b.root, "skills/ship/SKILL.md", string(usingSkill("ship", "mine:skills/ops/deploy")))
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	skillsIndex := readRepositoryFile(t, b.options, ".syllabus/generated/SKILLS.md")
+	if !strings.Contains(skillsIndex, "`team:pocock:skills/ops/deploy`") || strings.Contains(skillsIndex, "`mine:skills/ops/deploy`") {
+		t.Fatalf("SKILLS.md:\n%s\nwant deploy once, as the borrowed skill", skillsIndex)
+	}
+	if !strings.Contains(skillsIndex, "**Uses:** `deploy`") {
+		t.Errorf("SKILLS.md doesn't say ship uses deploy:\n%s", skillsIndex)
+	}
+	if result, err := Check(ctx, b.options); err != nil || !result.Current() {
+		t.Fatalf("check = %+v, %v", result, err)
 	}
 }

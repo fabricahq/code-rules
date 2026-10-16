@@ -148,6 +148,30 @@ func (s Snapshot) SkillFiles(id string) map[string][]byte {
 	return files
 }
 
+// BorrowedFrom returns what the snapshot holds of the source name it borrows skills from, as a snapshot of that
+// source's repository: its commit, its borrowed skills by their IDs there, and their files and executable files by
+// path there. It is empty when the snapshot borrows nothing from name.
+func (s Snapshot) BorrowedFrom(name string) Snapshot {
+	result := Snapshot{Commit: s.Borrowed[name].Commit, Skills: map[string]ImportedSkill{}, Files: map[string][]byte{}, Executable: []string{}}
+	for id, skill := range s.Skills {
+		if source, folder, borrowed := SplitBorrowed(id); borrowed && source == name {
+			result.Skills[folder] = skill
+		}
+	}
+	prefix := BorrowedDirectory + "/" + name + "/"
+	for file, data := range s.Files {
+		if relative, ok := strings.CutPrefix(file, prefix); ok {
+			result.Files[relative] = data
+		}
+	}
+	for _, file := range s.Executable {
+		if relative, ok := strings.CutPrefix(file, prefix); ok {
+			result.Executable = append(result.Executable, relative)
+		}
+	}
+	return result
+}
+
 // SkillExecutable returns, sorted, the executable files of skill id, by path in its folder.
 func (s Snapshot) SkillExecutable(id string) []string {
 	executable := []string{}
