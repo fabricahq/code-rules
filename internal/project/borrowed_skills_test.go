@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -170,6 +171,13 @@ func TestSync_IncludesRecommendedBorrowedSkillsWithTheSkillsTheyUse(t *testing.T
 	provenance := readRepositoryFile(t, b.options, ".syllabus/generated/provenance.json")
 	if !strings.Contains(provenance, `"team:pocock:skills/engineering/interview"`) {
 		t.Fatalf("provenance doesn't list the used borrowed skill:\n%s", provenance)
+	}
+	listing, err := ListSkills(ctx, b.options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if i := slices.IndexFunc(listing.Skills, func(skill ListedSkill) bool { return skill.ID == "team:pocock:skills/engineering/interview" }); i < 0 || listing.Skills[i].Status != SkillInstalled {
+		t.Errorf("listing = %+v; want the used borrowed skill installed", listing.Skills)
 	}
 }
 
@@ -333,5 +341,163 @@ func TestSync_UsesOfAnOverridingSourcesCopyReachTheBorrowedSkill(t *testing.T) {
 	}
 	if result, err := Check(ctx, b.options); err != nil || !result.Current() {
 		t.Fatalf("check = %+v, %v", result, err)
+	}
+}
+
+// releaseTeam publishes release/2 of team with listed, YAML indented under library.skills, or no borrowed source when
+// listed is empty, and techs/go/errors at 1.1.0.
+func (b *borrowing) releaseTeam(t *testing.T, listed string) {
+	t.Helper()
+	ctx := context.Background()
+	config := "schemaVersion: 2\nsources: {}\nlibrary: {}\n"
+	if listed != "" {
+		config = "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n" + listed
+	}
+	files := gitfixture.Library(map[string][]byte{"config.yaml": []byte(config), "techs/go/errors.md": []byte(projectRule + "\nWrap them with context.\n")})
+	if _, err := b.team.Commit(ctx, b.team.Worktree(), "Release 2", files); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.team.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// previewUpdate plans updating targets and returns the preview.
+func (b *borrowing) previewUpdate(t *testing.T, targets ...imports.UpdateTarget) (*UpdatePlan, UpdateResult) {
+	t.Helper()
+	ctx := context.Background()
+	plan, err := PlanUpdate(ctx, b.options, b.git, targets, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return plan, preview
+}
+
+func TestUpdate_PreviewsTheBorrowedSkillsALibraryStopsListing(t *testing.T) {
+	ctx := context.Background()
+	b := newBorrowing(t, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	b.releaseTeam(t, "")
+	plan, preview := b.previewUpdate(t, imports.UpdateTarget{Source: "team"})
+	borrowed := preview.Sources[0].Borrowed
+	if len(borrowed) != 1 || borrowed[0].Name != "pocock" || borrowed[0].From != b.pocock.FirstCommit || borrowed[0].To != "" || len(borrowed[0].Changes) != 1 || borrowed[0].Changes[0].ID != "pocock:skills/ops/deploy" || borrowed[0].Changes[0].Change != imports.SkillRemoved {
+		t.Fatalf("borrowed rows = %+v; want deploy removed with its source", borrowed)
+	}
+	if _, err := plan.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if exists(t, b.options, ".claude/skills/deploy") {
+		t.Error("the update kept a skill the library no longer lists")
+	}
+}
+
+func TestUpdate_AScopedUpdatePreviewsTheBorrowedSkillsOfTheRevisionItTakes(t *testing.T) {
+	ctx := context.Background()
+	b := newBorrowing(t, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	b.releaseTeam(t, "    required: [pocock:skills/ops/deploy, pocock:skills/productivity/grilling]\n")
+	plan, preview := b.previewUpdate(t, imports.UpdateTarget{Source: "team", Rule: "techs/go/errors"})
+	borrowed := preview.Sources[0].Borrowed
+	if len(borrowed) != 1 || borrowed[0].From != b.pocock.FirstCommit || borrowed[0].To != b.pocock.FirstCommit || len(borrowed[0].Changes) != 1 || borrowed[0].Changes[0].ID != "pocock:skills/productivity/grilling" || borrowed[0].Changes[0].Change != imports.SkillAdded {
+		t.Fatalf("borrowed rows = %+v; want grilling added at the recorded commit", borrowed)
+	}
+	kept, err := plan.Preview(ctx, []UpdateDecision{{Kind: DecisionKeep, Source: "team", Rule: "techs/go/errors", Reason: "Not yet."}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rows := kept.Sources[0].Borrowed; len(rows) != 0 {
+		t.Errorf("borrowed rows after keeping the rule = %+v; the shared files, and the borrowed skills, stay", rows)
+	}
+	if _, err := plan.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !exists(t, b.options, ".claude/skills/grilling/SKILL.md") {
+		t.Error("the update didn't install the skill release 2 requires")
+	}
+}
+
+func TestUpdate_PreviewsTheBorrowedSkillsAnOverridingSourceMoves(t *testing.T) {
+	ctx := context.Background()
+	kit, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                      []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    offered: [skills/deploy]\n"),
+		"techs/go/_group.yaml":             []byte(projectMetadata),
+		"techs/go/errors.md":               []byte(projectRule),
+		".syllabus/skills/deploy/SKILL.md": []byte(deploySkill),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = kit.Close() })
+	if err := kit.Release(ctx, 1, firstRelease); err != nil {
+		t.Fatal(err)
+	}
+	team, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":          []byte("schemaVersion: 2\nsources:\n  kit:\n    repository: git@fixture.invalid:kit\nlibrary:\n  skills:\n    required: [kit:skills/deploy]\n"),
+		"techs/go/_group.yaml": []byte(projectMetadata),
+		"techs/go/errors.md":   []byte(projectRule),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = team.Close() })
+	if err := team.Release(ctx, 1, firstRelease); err != nil {
+		t.Fatal(err)
+	}
+	environment, err := team.Route(map[string]*gitfixture.Fixture{"team": team, "kit": kit})
+	if err != nil {
+		t.Fatal(err)
+	}
+	git := imports.Options{GitPath: team.GitPath, Environment: environment}
+	root := openTestProject(t)
+	options := Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
+	if _, err := Initialize(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":"git@fixture.invalid:team","rules":{"include":["techs/go/*"]}},"mine":{"repository":"git@fixture.invalid:kit","rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := kit.Commit(ctx, kit.Worktree(), "Improve deploy", gitfixture.Library(map[string][]byte{".syllabus/skills/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))})); err != nil {
+		t.Fatal(err)
+	}
+	if err := kit.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\nchanges: {}\n"); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "mine"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(preview.Sources) != 2 || preview.Sources[1].Name != "team" || len(preview.Sources[1].Borrowed) != 1 {
+		t.Fatalf("preview = %+v; want team's borrowed row after mine, in configuration order", preview.Sources)
+	}
+	if row := preview.Sources[1].Borrowed[0]; row.Name != "kit" || len(row.Changes) != 1 || row.Changes[0].ID != "kit:skills/deploy" || strings.Join(row.Changes[0].Files, ",") != "SKILL.md" {
+		t.Fatalf("borrowed row = %+v; want deploy's changed SKILL.md", row)
+	}
+	if _, err := plan.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if installed := readRepositoryFile(t, options, ".claude/skills/deploy/SKILL.md"); !strings.Contains(installed, "Deploy safely") {
+		t.Fatalf("deploy:\n%s", installed)
+	}
+}
+
+func TestSync_ALibraryRepositoryCannotExcludeASkillItRequires(t *testing.T) {
+	b := newBorrowing(t, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"pocock":{"repository":POCOCK,"ref":"stable","skills":{"include":["skills/productivity/grilling"],"exclude":[{"id":"skills/ops/deploy","reason":"Not here."}]}}},"library":{"skills":{"required":["pocock:skills/ops/deploy"]}}}`)
+	_, err := Sync(context.Background(), b.options, b.git)
+	var validation errs.ValidationError
+	if !errors.As(err, &validation) || validation.ValidationLocation() != "sources.pocock.skills.exclude.skills/ops/deploy" || !strings.Contains(validation.ValidationProblem(), "library.skills.required lists pocock:skills/ops/deploy") {
+		t.Fatalf("got %v; want excluding a skill the library requires refused", err)
 	}
 }

@@ -639,6 +639,9 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		if record.AvailableSkills[id].Level == skills.LevelRequired {
 			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.RequiredSkillProblem(source.Name, id, record.Release)}
 		}
+		if slices.Contains(source.LibraryRequires, id) {
+			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.LibraryRequiresProblem(source.Name, id)}
+		}
 	}
 	included := []string{}
 	for id, skill := range record.Skills {

@@ -412,16 +412,27 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 			}
 		}
 		formatLevelRows(out, source.SkillLevels, idWidth)
-		for _, row := range source.Borrowed {
-			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "borrowed", idWidth, row.Name, commitSpan(row.From, row.To))
-			for _, line := range borrowedDetails(row) {
-				fmt.Fprintf(out, "%s%s\n", indent, line)
-			}
-			formatSkillRows(out, row.Changes)
-		}
+		formatBorrowedRows(out, source.Borrowed, idWidth)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
+	}
+}
+
+// formatBorrowedRows lists the rows of the sources a library borrows skills from, with the source name in a column
+// idWidth wide and the commits it moves between, each row's details and skill rows beneath it.
+func formatBorrowedRows(out *strings.Builder, rows []imports.BorrowedUpdate, idWidth int) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		span := commitSpan(row.From, row.To)
+		if row.To == "" {
+			span = "commit " + shortCommit(row.From) + " -> none"
+		}
+		fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "borrowed", idWidth, row.Name, span)
+		for _, line := range borrowedDetails(row) {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
+		formatSkillRows(out, row.Changes)
 	}
 }
 
@@ -470,9 +481,9 @@ func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
 	}
 }
 
-// answeredSkills lists the skill and level rows of each source whose rows in after, the preview with the answers,
-// differ from those in before, the preview shown before the questions, then after's scripts warning, or returns empty
-// when no source's skill or level rows differ.
+// answeredSkills lists the skill, level, and borrowed rows of each source whose rows in after, the preview with the
+// answers, differ from those in before, the preview shown before the questions, then after's scripts warning, or
+// returns empty when no source's rows differ.
 func answeredSkills(before, after project.UpdateResult) string {
 	shown := map[string]imports.SourceUpdate{}
 	for _, source := range before.Sources {
@@ -480,14 +491,14 @@ func answeredSkills(before, after project.UpdateResult) string {
 	}
 	var out strings.Builder
 	for _, source := range after.Sources {
-		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) {
+		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) && reflect.DeepEqual(shown[source.Name].Borrowed, source.Borrowed) {
 			continue
 		}
 		if out.Len() == 0 {
 			out.WriteString("\nYour answers change the update's skills:\n")
 		}
 		out.WriteString(source.Name + "\n")
-		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 {
+		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 && len(source.Borrowed) == 0 {
 			out.WriteString("  No skill changes.\n")
 		}
 		formatSkillRows(&out, source.Skills)
@@ -495,7 +506,11 @@ func answeredSkills(before, after project.UpdateResult) string {
 		for _, row := range source.SkillLevels {
 			idWidth = max(idWidth, len(row.ID))
 		}
+		for _, row := range source.Borrowed {
+			idWidth = max(idWidth, len(row.Name))
+		}
 		formatLevelRows(&out, source.SkillLevels, idWidth)
+		formatBorrowedRows(&out, source.Borrowed, idWidth)
 	}
 	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
 		fmt.Fprintf(&out, "\nWarning: %s\n", warning)
@@ -528,8 +543,12 @@ func commitSpan(from, to string) string {
 }
 
 // borrowedDetails returns the lines shown under the row of a source the library borrows skills from: the repository
-// and ref the commit was resolved from, and the borrowed skills that move with it.
+// and ref the commit was resolved from, and the borrowed skills that move with it, or, for a source the project no
+// longer takes skills from, why.
 func borrowedDetails(row imports.BorrowedUpdate) []string {
+	if row.To == "" {
+		return []string{"No longer borrowed from " + row.Repository + ": the library no longer lists the skills the project takes from it."}
+	}
 	resolved := "the newest library release"
 	if row.Ref != "" {
 		resolved = "ref " + row.Ref

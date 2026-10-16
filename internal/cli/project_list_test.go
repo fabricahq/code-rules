@@ -68,3 +68,18 @@ func TestFormatUpdatePreview_ShowsBorrowedSourcesAndTheirSkillChanges(t *testing
 		t.Fatalf("preview:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
+
+func TestFormatUpdatePreview_ShowsABorrowedSourceTheProjectNoLongerTakesSkillsFrom(t *testing.T) {
+	var out strings.Builder
+	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Borrowed: []imports.BorrowedUpdate{{
+		Name: "pocock", Repository: "https://github.com/mattpocock/skills", From: "1111111111111111111111111111111111111111", Skills: []string{},
+		Changes: []imports.SkillUpdate{{ID: "pocock:skills/ops/deploy", Change: imports.SkillRemoved, Files: []string{}, Scripts: []imports.ScriptUpdate{}}},
+	}}}})
+	want := "team\n" +
+		"  borrowed  pocock  commit 111111111111 -> none\n" +
+		"            No longer borrowed from https://github.com/mattpocock/skills: the library no longer lists the skills the project takes from it.\n" +
+		"  removed   pocock:skills/ops/deploy\n"
+	if out.String() != want {
+		t.Fatalf("preview:\n%s\nwant:\n%s", out.String(), want)
+	}
+}

@@ -113,3 +113,9 @@ func RequiredSkillProblem(source, id string, release int) string {
 	}
 	return fmt.Sprintf("%s's library requires %s%s, so every project that uses the library installs it, and the project can't exclude or fork it. To diverge from it, stop using sources.%s, or ask the library's maintainer to make the skill recommended or offered", source, id, at, source)
 }
+
+// LibraryRequiresProblem explains why the repository can't exclude skill id of source, which its own library section
+// requires, so the projects that use the library install it.
+func LibraryRequiresProblem(source, id string) string {
+	return fmt.Sprintf("library.skills.required lists %s:%s, so every project that uses this library installs it, and so does this repository; stop excluding it, or remove it from library.skills.required", source, id)
+}

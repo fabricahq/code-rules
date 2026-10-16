@@ -22,9 +22,9 @@ type borrowing struct {
 	// recorded holds each source's snapshot from the last sync, keyed by source name. Its borrowed revisions stay
 	// while the library still names the same repository and ref for them, since sync never moves a source.
 	recorded map[string]library.Snapshot
-	// planned maps the name of a library source to the borrowed revisions an update planned for it, by borrowed
-	// source name, which the import takes as they are.
-	planned map[string]map[string]library.BorrowedSource
+	// planned maps the name of a library source to the borrowed revisions an update planned for it, by the commit
+	// that supplies the library's skills, then by borrowed source name, which the import takes as they are.
+	planned map[string]map[string]map[string]library.BorrowedSource
 }
 
 // borrowedSkill is a borrowed skill a project takes from a library source: its ID in the library, such as
@@ -105,7 +105,7 @@ func borrowSkills(ctx context.Context, configuration rules.Configuration, source
 			lender.overridden = all[lender.override.Name].Snapshot
 		}
 		recorded := borrow.recorded[source.Name].Borrowed[name]
-		planned, isPlanned := borrow.planned[source.Name][name]
+		planned, isPlanned := borrow.planned[source.Name][imported.Snapshot.Commit][name]
 		if err := lender.borrow(ctx, imported, selected[name], recorded, planned, isPlanned, options); err != nil {
 			return err
 		}
@@ -330,12 +330,15 @@ func (l lendingSource) missing(id string, revision library.BorrowedSource, kept 
 	return &ValidationError{Location: "sources." + l.library, Problem: fmt.Sprintf("library %s lists %s, which its repository %s doesn't have at %s; ask the library's maintainer to fix library.skills or sources.%s.ref", l.library, id, l.declared.Repository, where, l.name)}
 }
 
-// planBorrowed resolves again, as an update of the whole library source does, the ref the library names for each
-// source it borrows skills that the project takes from, given manifest, the library's .syllabus/config.yaml at the
-// revision the update moves to. It returns the revisions by borrowed source name, and a preview row for each whose
-// commit or skills differ from those recorded, the source's snapshot, holds. A borrowed repository that a project source
-// declares too is left out, since that source's revision supplies its skills.
-func planBorrowed(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, options Options) (map[string]library.BorrowedSource, []BorrowedUpdate, error) {
+// planBorrowed plans the revision of each source a library borrows skills from, given manifest, the library's
+// .syllabus/config.yaml at a revision the update can take source's skills from, and recorded, the source's snapshot,
+// or nil. It resolves the ref the library names again, as an update of the whole source does, unless keep is set,
+// which keeps the recorded revision while the library still names its repository and ref, as sync does. A borrowed repository that
+// a project source declares too comes from overridden, that source's revision once the update is applied, by source
+// name. A non-nil only limits the plan to the borrowed sources it reports true for. It returns the revisions it
+// resolved, by borrowed source name, leaving out overridden ones, and a preview row for each borrowed source whose
+// commit or skills differ from those recorded, including one the project no longer takes any skills from.
+func planBorrowed(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, keep bool, overridden map[string]library.Snapshot, only func(name string) bool, options Options) (map[string]library.BorrowedSource, []BorrowedUpdate, error) {
 	parsed, err := rules.ParseLibraryManifest(manifest, source.Name+"/"+librarytree.RepositoryPath(librarytree.Manifest))
 	if err != nil {
 		return nil, nil, err
@@ -344,21 +347,44 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 	if err != nil {
 		return nil, nil, err
 	}
+	before := library.Snapshot{}
+	if recorded != nil {
+		before = *recorded
+	}
 	revisions, rows := map[string]library.BorrowedSource{}, []BorrowedUpdate{}
-	for _, name := range slices.Sorted(maps.Keys(selected)) {
-		lender := lendingSource{library: source.Name, name: name, declared: parsed.Borrowed[name]}
-		if overridingSource(configuration, source.Name, lender.declared.Repository) != nil {
+	names := maps.Clone(selected)
+	for name := range before.Borrowed {
+		if _, ok := names[name]; !ok {
+			names[name] = nil
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(names)) {
+		if only != nil && !only(name) {
 			continue
 		}
-		before := library.Snapshot{}
-		if recorded != nil {
-			before = recorded.BorrowedFrom(name)
+		was := before.BorrowedFrom(name)
+		if len(selected[name]) == 0 {
+			// The project takes no skills from the source any more, so the update removes those it installed.
+			gone := before.Borrowed[name]
+			row := BorrowedUpdate{Name: name, Repository: gone.Repository, Ref: gone.Ref.String(), From: gone.Commit, Skills: []string{}, Changes: skillChanges(&was, importedSkills{})}
+			for i := range row.Changes {
+				row.Changes[i].ID = name + ":" + row.Changes[i].ID
+			}
+			rows = append(rows, row)
+			continue
 		}
-		revision, row, err := lender.plan(ctx, selected[name], before, options)
+		lender := lendingSource{library: source.Name, name: name, declared: parsed.Borrowed[name]}
+		lender.override = overridingSource(configuration, source.Name, lender.declared.Repository)
+		if lender.override != nil {
+			lender.overridden = overridden[lender.override.Name]
+		}
+		revision, row, err := lender.plan(ctx, selected[name], was, before.Borrowed[name], keep, options)
 		if err != nil {
 			return nil, nil, err
 		}
-		revisions[name] = revision
+		if lender.override == nil {
+			revisions[name] = revision
+		}
 		if row != nil {
 			rows = append(rows, *row)
 		}
@@ -366,17 +392,23 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 	return revisions, rows, nil
 }
 
-// plan resolves the lending source's ref in a repository of its own, within one import deadline, and returns the
-// revision, and the preview row for it when its commit or the skills the project takes from it differ from before's,
-// which holds the skills the project recorded from the source, as Snapshot.BorrowedFrom gives them. The row compares the files of chosen, the skills the
-// project takes, and of the skills they use, at the two commits, as skillChanges compares a source's own skills.
-func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, before library.Snapshot, options Options) (_ library.BorrowedSource, _ *BorrowedUpdate, err error) {
+// plan fetches the lending source's revision in a repository of its own, within one import deadline, and returns it,
+// and the preview row for it when its commit or the skills the project takes from it differ from was's, which holds
+// the skills the project recorded from the source, as Snapshot.BorrowedFrom gives them. The revision is the
+// overriding source's, when there is one; else recorded, when keep is set and it records the ref the library names;
+// else the library's ref, resolved now. The row compares the files of chosen, the skills the project takes, and of
+// the skills they use, at the two commits, as skillChanges compares a source's own skills.
+func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was library.Snapshot, recorded library.BorrowedSource, keep bool, options Options) (_ library.BorrowedSource, _ *BorrowedUpdate, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return library.BorrowedSource{}, nil, err
 	}
 	defer cancel()
-	repo, err := openRepository(ctx, rules.Source{Name: l.name, Repository: l.declared.Repository}, options)
+	address := l.declared.Repository
+	if l.override != nil {
+		address = l.override.Repository
+	}
+	repo, err := openRepository(ctx, rules.Source{Name: l.name, Repository: address}, options)
 	if err != nil {
 		return library.BorrowedSource{}, nil, err
 	}
@@ -385,16 +417,19 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, before 
 			err = errors.Join(err, closeErr)
 		}
 	}()
-	revision, err := l.resolve(ctx, repo)
+	if !keep {
+		recorded = library.BorrowedSource{}
+	}
+	revision, kept, err := l.revision(ctx, repo, recorded, library.BorrowedSource{}, false)
 	if err != nil {
 		return library.BorrowedSource{}, nil, err
 	}
-	read, err := l.read(ctx, repo, revision, chosen, false, 0)
+	read, err := l.read(ctx, repo, revision, chosen, kept, 0)
 	if err != nil {
 		return library.BorrowedSource{}, nil, err
 	}
-	row := BorrowedUpdate{Name: l.name, Repository: revision.Repository, Ref: revision.Ref.String(), From: before.Commit, To: revision.Commit, Skills: []string{}, Changes: skillChanges(&before, read)}
-	if before.Commit == revision.Commit && len(row.Changes) == 0 {
+	row := BorrowedUpdate{Name: l.name, Repository: revision.Repository, Ref: revision.Ref.String(), From: was.Commit, To: revision.Commit, Skills: []string{}, Changes: skillChanges(&was, read)}
+	if was.Commit == revision.Commit && len(row.Changes) == 0 {
 		return revision, nil, nil
 	}
 	for _, skill := range chosen {

@@ -82,7 +82,8 @@ func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[str
 // skill except those in a folder whose name starts with a dot, such as another tool's installed copies in
 // .claude/skills/, and each skill it names. A named skill the revision lacks fails: with skill-not-in-revision when
 // the revision is the one the source record locks, since sync never moves a source, and otherwise as invalid
-// configuration. Excluding a required skill fails too, since a project that uses the library can't diverge from it.
+// configuration. Excluding a required skill fails too, since a project that uses the library can't diverge from it,
+// as does excluding one LibraryRequires lists.
 // The skills the library borrows, whose IDs have a colon, are borrowSkills' to choose, and naming one of a repository
 // that isn't a library fails, since only a library borrows skills; the skills the configuration's own library section
 // requires of the source, LibraryRequires, are chosen as required too.
@@ -92,6 +93,11 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 	for _, id := range source.LibraryRequires {
 		if !slices.Contains(available, id) {
 			return nil, &ValidationError{Location: "library.skills.required", Problem: fmt.Sprintf("lists %s:%s, which sources.%s doesn't have at %s; check the skill ID, or set sources.%s.ref to a revision that has it", source.Name, id, source.Name, revision, source.Name)}
+		}
+	}
+	for _, id := range slices.Sorted(maps.Keys(source.SkillExclude)) {
+		if slices.Contains(source.LibraryRequires, id) {
+			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.LibraryRequiresProblem(source.Name, id)}
 		}
 	}
 	chosen = append(chosen, source.LibraryRequires...)
