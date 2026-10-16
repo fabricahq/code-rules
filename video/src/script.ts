@@ -33,9 +33,9 @@ export const SCENES = [
   {
     id: 'guidance',
     narration:
-      'Your agents need guidance to build the right thing. Without it, they guess, you correct the same mistakes in review.',
+      'Your agents need guidance to build the right thing. Without it, they guess, and you keep correcting the same mistakes in review.',
     speech:
-      '[sharing something new] Your agents need guidance to build the RIGHT thing. Without it, they guess, you correct the same mistakes in review.',
+      '[sharing something new] Your agents need guidance to build the RIGHT thing. Without it, they guess, and you keep correcting the same mistakes in review.',
   },
   {
     id: 'skills-today',
