@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -73,10 +74,13 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				if updatesForks(decisions[flagged:]) {
 					f.status("Reading forked rule versions...")
 				}
+				shown := preview
 				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
 				f.introduction += "\n" + answersSummary(preview.Sources)
+				// Keeping a rule can move the skills to another revision, whose scripts people read before consenting.
+				f.introduction += answeredSkills(shown, preview)
 			}
 			f.introduction += "\n"
 			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
@@ -175,6 +179,10 @@ func flagDecisions(keep, exclude, forks []string, reason string) ([]project.Upda
 func askUpdateDecisions(f *authoringFlags, plan *project.UpdatePlan, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, error) {
 	var intro strings.Builder
 	formatUpdatePreview(&intro, preview.Sources)
+	// The scripts warning comes before the questions, so people read the scripts before they decide.
+	if warning := preview.ScriptsWarning(); warning != "" {
+		fmt.Fprintf(&intro, "\nWarning: %s\n", warning)
+	}
 	f.introduction = intro.String()
 	for _, source := range preview.Sources {
 		for _, row := range source.Rules {
@@ -328,6 +336,10 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 		out.WriteString(projectChangesReport("update", result.FileChanges, location.root, location.workdir).human)
 		return commandReport{value: result, human: out.String()}
 	}
+	// A blank line sets the warnings apart from the preview, as a terminal shows them before its questions.
+	if out.Len() > 0 && len(result.Warnings) > 0 {
+		out.WriteByte('\n')
+	}
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
@@ -350,8 +362,9 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 // updateKindWidth fits the longest change name, replaced.
 const updateKindWidth = len(imports.UpdateReplaced)
 
-// formatUpdatePreview lists each source's rows with the change, rule ID, and versions in aligned columns, each
-// row's details indented beneath them, and any move of its shared files. It writes nothing when no source has
+// formatUpdatePreview lists each source's rule rows with the change, rule ID, and versions in aligned columns, then
+// its skill rows with the change and skill ID, each row's details indented beneath them, and any move of its shared
+// files. It writes nothing when no source has
 // anything to show, so the caller's summary stands alone.
 func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 	idWidth := 0
@@ -360,7 +373,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.Rules {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || source.Ref != "" || source.SharedFiles != nil
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -371,7 +384,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		switch {
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
-		case len(source.Rules) == 0 && source.SharedFiles == nil:
+		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil:
 			out.WriteString("  No rule updates.\n")
 		}
 		for _, row := range source.Rules {
@@ -380,10 +393,63 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
+		formatSkillRows(out, source.Skills)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
+}
+
+// formatSkillRows lists a source's skill rows with the change and skill ID, each row's details indented beneath them.
+func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
+		for _, line := range skillUpdateDetails(row) {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
+	}
+}
+
+// answeredSkills lists the skill rows of each source whose rows in after, the preview with the answers, differ from
+// those in before, the preview shown before the questions, then after's scripts warning, or returns empty when no
+// source's skill rows differ.
+func answeredSkills(before, after project.UpdateResult) string {
+	shown := map[string][]imports.SkillUpdate{}
+	for _, source := range before.Sources {
+		shown[source.Name] = source.Skills
+	}
+	var out strings.Builder
+	for _, source := range after.Sources {
+		if reflect.DeepEqual(shown[source.Name], source.Skills) {
+			continue
+		}
+		if out.Len() == 0 {
+			out.WriteString("\nYour answers change the update's skills:\n")
+		}
+		out.WriteString(source.Name + "\n")
+		if len(source.Skills) == 0 {
+			out.WriteString("  No skill changes.\n")
+		}
+		formatSkillRows(&out, source.Skills)
+	}
+	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
+		fmt.Fprintf(&out, "\nWarning: %s\n", warning)
+	}
+	return out.String()
+}
+
+// skillUpdateDetails returns the lines shown under a skill's row: the files a changed skill's update changes, then
+// one line for each script the update adds or changes.
+func skillUpdateDetails(row imports.SkillUpdate) []string {
+	lines := []string{}
+	if len(row.Files) > 0 {
+		lines = append(lines, "Changed: "+strings.Join(row.Files, ", "))
+	}
+	for _, script := range row.Scripts {
+		lines = append(lines, "script "+string(script.Change)+": "+script.Path)
+	}
+	return lines
 }
 
 // updateVersions shows where a row's rule moves, or the one version it has.

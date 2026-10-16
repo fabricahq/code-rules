@@ -17,6 +17,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -73,16 +74,17 @@ type UpdateResult struct {
 	Sources []imports.SourceUpdate `json:"sources"`
 	// FileChanges lists vendor and generated paths, config.yaml when the update wrote pins, exclusions, or basedOn
 	// versions, and the local files of each fork it replaced.
-	// Its warnings are the preview's until the update is applied, and then the installation's.
+	// Its warnings are the preview's until the update is applied, and then the installation's, each followed by
+	// ScriptsWarning when it has one.
 	FileChanges
 }
 
-// Moves reports whether the update has anything to apply: a source's library-wide files, or a rule of any row
-// except pinned rules, retirements a pin keeps, and rows the project decided to keep. A replaced row counts even
-// when its imported copy stays, since applying it can replace the local rule's fork.
+// Moves reports whether the update has anything to apply: a source's library-wide files, a skill it adds, changes,
+// or removes, or a rule of any row except pinned rules, retirements a pin keeps, and rows the project decided to
+// keep. A replaced row counts even when its imported copy stays, since applying it can replace the local rule's fork.
 func (r UpdateResult) Moves() bool {
 	for _, source := range r.Sources {
-		if source.SharedFiles != nil {
+		if source.SharedFiles != nil || len(source.Skills) > 0 {
 			return true
 		}
 		for _, row := range source.Rules {
@@ -92,6 +94,31 @@ func (r UpdateResult) Moves() bool {
 		}
 	}
 	return false
+}
+
+// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows
+// flags a script, or empty when none does.
+func (r UpdateResult) ScriptsWarning() string {
+	for _, source := range r.Sources {
+		for _, skill := range source.Skills {
+			if len(skill.Scripts) == 0 {
+				continue
+			}
+			if r.Applied {
+				return "some skills in this update added or changed scripts. Code Rules never runs them, but your agents may; read them before you commit the update."
+			}
+			return "some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm."
+		}
+	}
+	return ""
+}
+
+// withScriptsWarning returns r with its scripts warning, when it has one, after its other warnings.
+func (r UpdateResult) withScriptsWarning() UpdateResult {
+	if warning := r.ScriptsWarning(); warning != "" {
+		r.Warnings = append(slices.Clone(r.Warnings), warning)
+	}
+	return r
 }
 
 // PlanUpdate reads the project and plans moving the rules targets name, or every source's rules when there are
@@ -138,7 +165,7 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 		return nil, unchanged(err, recovered)
 	}
 	// imports.PlanUpdate names the source or argument that failed, which is all the context the command needs.
-	update, err := imports.PlanUpdate(ctx, state.config, recorded, targets, git)
+	update, err := imports.PlanUpdate(ctx, state.config, withSkillFiles(recorded, treeFiles(state.vendor)), targets, git)
 	if err != nil {
 		return nil, unchanged(err, recovered)
 	}
@@ -146,11 +173,13 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered, personal: personal}, nil
 }
 
-// Preview returns the planned update with each decided row marked, without writing anything. It fails with
-// invalid-arguments, naming the decision's flag and rule, when a decision names a rule twice, keeps a rule the
-// update doesn't move or retire, excludes a rule the update doesn't add, or updates a fork the preview doesn't list
-// as replaced, or when a pin or exclusion has no reason or a fork update has one. Its warnings are the update's,
-// then one for each personal skill with the name of a skill the project installed when it was planned.
+// Preview returns the planned update with each decided row marked, and the skills of the revision the decisions
+// leave each source at, without writing anything. It fails with invalid-arguments, naming the decision's flag and
+// rule, when a decision names a rule twice, keeps a rule the update doesn't move or retire, excludes a rule the
+// update doesn't add, or updates a fork the preview doesn't list as replaced, or when a pin or exclusion has no
+// reason or a fork update has one. It fails as installing would when that revision lacks a skill skills.include
+// names. Its warnings are the update's, then one for each personal skill with the name of a skill the project
+// installed when it was planned, then the scripts warning.
 //
 // Preview reads the version each fork update forks, as Apply then installs it, to list the local files the fork
 // overwrites and removes; it fails with invalid-release-tag when that version's library release tag moved after
@@ -163,7 +192,8 @@ func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (U
 	if err := p.readForks(ctx, sources, forks); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered)
 	}
-	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: append(append([]string{}, p.update.Warnings...), p.personal...), Recovered: p.recovered}}, nil
+	result := UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: append(append([]string{}, p.update.Warnings...), p.personal...), Recovered: p.recovered}}
+	return result.withScriptsWarning(), nil
 }
 
 // Apply installs the planned versions under the writer, adding to config.yaml a pin for each kept rule, an
@@ -226,11 +256,13 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
 	changes.Recovered = p.recovered || recovered
-	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
+	result := UpdateResult{Applied: true, Sources: sources, FileChanges: changes}
+	return result.withScriptsWarning(), nil
 }
 
 // decide checks decisions against the planned preview and returns a copy of the preview with each decided row
-// marked, the pins, exclusions, and basedOn versions to set in each source, and the forks to replace, not yet read.
+// marked and the skills of the revision the decisions leave each source at, the pins, exclusions, and basedOn
+// versions to set in each source, and the forks to replace, not yet read.
 func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate, map[string]rules.SourceEdit, []forkUpdate, error) {
 	sources := make([]imports.SourceUpdate, len(p.update.Sources))
 	for i, source := range p.update.Sources {
@@ -299,10 +331,16 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		}
 		edits[decision.Source] = edit
 	}
-	// Keeping a rule a scoped update would move can leave the shared files where they are, so they follow the
-	// decisions.
+	// Keeping a rule a scoped update would move can leave the shared files where they are, so they and the skills,
+	// which come from the same revision, follow the decisions.
 	for i := range sources {
-		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, slices.Collect(maps.Keys(edits[sources[i].Name].Pins)))
+		kept := slices.Collect(maps.Keys(edits[sources[i].Name].Pins))
+		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, kept)
+		skills, err := p.update.Skills(sources[i].Name, kept)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		sources[i].Skills = skills
 	}
 	return sources, edits, forks, nil
 }
@@ -424,6 +462,23 @@ func keepable(row imports.RuleUpdate) bool {
 		return row.Pin == nil
 	}
 	return false
+}
+
+// withSkillFiles returns a copy of recorded, the source records without files, in which each record holds its
+// skills' files from vendor, the vendor files by path, so the update preview compares the skills an update installs
+// with the project's copies. The bytes are shared with vendor.
+func withSkillFiles(recorded map[string]library.Snapshot, vendor map[string][]byte) map[string]library.Snapshot {
+	result := make(map[string]library.Snapshot, len(recorded))
+	for name, snapshot := range recorded {
+		snapshot.Files = map[string][]byte{}
+		for file, data := range vendor {
+			if stored, ok := strings.CutPrefix(file, name+"/"); ok && snapshot.IsSkillFile(stored) {
+				snapshot.Files[stored] = data
+			}
+		}
+		result[name] = snapshot
+	}
+	return result
 }
 
 // editConfiguration applies each source's pins, exclusions, and basedOn versions to the configuration bytes,

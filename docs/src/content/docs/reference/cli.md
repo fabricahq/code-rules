@@ -254,6 +254,34 @@ The preview doesn't list changes to rules or skills you excluded without a repla
 
 An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as the manifest, rule group metadata, shared assets, and the library's license files, to the newest library release, or the commit its `ref` names now, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A source whose `ref` names a library release or a commit doesn't move; change `ref` and run `code-rules project update SOURCE` to take the revision it names. A `SOURCE:RULE` update leaves the library-wide files where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published. The source's skills and skill levels always move with its library-wide files.
 
+#### Skills and their scripts
+
+:::note[Preview]
+Skill rows and the scripts warning in the update preview come in the next Code Rules release.
+:::
+
+A source's skills come from the revision that supplies its library-wide files, so they move with them. For each source the update names, the preview compares the skills the source installs once updated with the copies its source record holds, and lists, after the rules, one row for each skill that differs:
+
+| Change | Meaning |
+| --- | --- |
+| `changed` | A skill whose files differ, with the paths of the files that changed, including a file whose executable bit changed. |
+| `added` | A skill the update starts installing, such as one that `skills.include` newly names. |
+| `removed` | An installed skill the update stops installing, because `skills.include` no longer names it, or, with `*`, the new revision no longer has it. |
+
+Under each skill's row, the preview flags every executable script the update adds or changes, on its own line, such as `script added: scripts/setup.sh` or `script changed: scripts/run.sh`: a file whose executable bit is set at the new revision and that the update adds, changes, or makes executable. Every executable file of an `added` skill is flagged as added. A script the update leaves as it is isn't flagged, and neither is a file that isn't executable at the new revision, even when it changed. A script is any file with its executable bit set, which Git records as mode `100755`, wherever it is in the skill's folder; a file in `scripts/` without the bit isn't one.
+
+When the preview flags any script, it ends with one warning:
+
+```text
+Warning: some skills in this update add or change scripts. Code Rules never runs them, but your agents may; read them before you confirm.
+```
+
+In a terminal, the warning follows the preview, before any question. It doesn't block the update. A skill row is a change to confirm, so a terminal asks before applying it. An applied update, such as one with `--yes`, lists the same rows and warns `some skills in this update added or changed scripts. Code Rules never runs them, but your agents may; read them before you commit the update.`
+
+In JSON output, each source in `value.sources` has a `skills` list, empty when no skill differs. Each row has its `id`, `change`, `files`, the changed paths relative to the skill's folder for a `changed` row and empty for other rows, and `scripts`, a list of the flagged scripts, each with its `path`, relative to the skill's folder, and its `change`, `added` or `changed`, empty when the row flags none. The warning is in `value.warnings`.
+
+When your decisions keep a `SOURCE:RULE` update's library-wide files at an older library release, its skills stay there too, and the preview shows the skills at that release. A skill that `skills.include` names and the update's revision lacks fails the update, as installing it would. A source that uses `ref` doesn't move, but its rows still list a skill that the update would add or remove because `skills.include` changed. Sync doesn't flag scripts, because it never moves a source.
+
 #### Replace a fork with the newest version
 
 For a skill, `--update-fork SOURCE:SKILL` replaces the whole authored skill folder that the exclusion's `replacedBy` names with what [`code-rules project add skill --from SOURCE:SKILL`](#fork-a-skill) writes for the source's newest version, or a non-library source's newest commit, and removes files you added to the folder. The rest of this section describes rules; it applies to skills the same way.
