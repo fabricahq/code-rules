@@ -304,3 +304,43 @@ func TestUpdate_PreviewsLevelChangesAndInstallsNewRequiredSkills(t *testing.T) {
 		t.Fatalf("after update, installed %v; want the new required skills too", got)
 	}
 }
+
+// TestUpdate_TakesLevelChangesFromTheRevisionTheDecisionsChoose keeps the only rule a scoped update moves, so the
+// skills stay at release/1 and the preview shows none of release/2's level changes.
+func TestUpdate_TakesLevelChangesFromTheRevisionTheDecisionsChoose(t *testing.T) {
+	ctx := context.Background()
+	f := leveledLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Require review and wrap errors", gitfixture.Library(map[string][]byte{
+		"config.yaml":        []byte(`{"schemaVersion":2,"sources":{},"library":{"skills":{"required":["skills/review","skills/ship"],"offered":["skills/deploy"]}}}`),
+		"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors to the caller, wrapped.", 1)),
+	})); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Wrap errors.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []imports.SkillLevelUpdate{{ID: "skills/review", From: "recommended", To: "required"}}
+	if got := moved.Sources[0].SkillLevels; !slices.Equal(got, want) {
+		t.Fatalf("level rows when errors moves = %+v; want %+v", got, want)
+	}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
+	kept, err := plan.Preview(ctx, keep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := kept.Sources[0].SkillLevels; got == nil || len(got) != 0 {
+		t.Fatalf("level rows with errors kept = %#v; want none, since the skills stay at release/1", got)
+	}
+}

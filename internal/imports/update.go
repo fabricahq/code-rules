@@ -247,6 +247,28 @@ func (s plannedSource) replacedRows(kept []string) []ReplacedSkillUpdate {
 	return rows
 }
 
+// SkillLevels returns the level change rows of source, which the update names, once the rules kept lists stay at
+// their versions from before the update, as Skills chooses the revision. It is empty, never nil, when no level
+// changes, the update doesn't name source, or source uses ref, which the update doesn't move.
+func (u Update) SkillLevels(source string, kept []string) []SkillLevelUpdate {
+	planned, named := u.plans[source]
+	if !named || planned.moved == nil {
+		return []SkillLevelUpdate{}
+	}
+	return planned.levelRows(kept)
+}
+
+// levelRows returns a copy of the level change rows of the revision that supplies the source's skills once the rules
+// kept lists stay at their versions from before the update; empty, never nil, when planning read none there.
+func (s plannedSource) levelRows(kept []string) []SkillLevelUpdate {
+	_, commit := s.keeping(kept)
+	rows := slices.Clone(s.skills[commit].levels)
+	if rows == nil {
+		return []SkillLevelUpdate{}
+	}
+	return rows
+}
+
 // keeping returns the library release, and its commit, that supplies the library-wide files and skills once the
 // rules kept lists stay at their versions from before the update. A source that uses ref keeps its revision.
 func (s plannedSource) keeping(kept []string) (int, string) {
@@ -543,9 +565,7 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	preview.ReplacedSkills = planned.replacedRows(nil)
-	if preview.SkillLevels, err = repo.skillLevelChanges(ctx, recorded, after.commit); err != nil {
-		return plannedSource{}, SourceUpdate{}, nil, err
-	}
+	preview.SkillLevels = planned.levelRows(nil)
 	preview.Rules = rows
 	return planned, preview, after.warnings, nil
 }

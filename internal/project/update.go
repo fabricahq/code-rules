@@ -332,7 +332,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		edits[decision.Source] = edit
 	}
 	// Keeping a rule a scoped update would move can leave the shared files where they are, so they and the skills,
-	// including the replaced skills' rows, which come from the same revision, follow the decisions.
+	// including the replaced skills' rows and level changes, which come from the same revision, follow the decisions.
 	for i := range sources {
 		kept := slices.Collect(maps.Keys(edits[sources[i].Name].Pins))
 		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, kept)
@@ -342,6 +342,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		}
 		sources[i].Skills = skills
 		sources[i].ReplacedSkills = p.update.ReplacedSkills(sources[i].Name, kept)
+		sources[i].SkillLevels = p.update.SkillLevels(sources[i].Name, kept)
 	}
 	return sources, edits, forks, nil
 }
