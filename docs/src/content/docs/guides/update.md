@@ -4,7 +4,7 @@ description: "Move the rules and skills your project takes from its sources to n
 ---
 
 :::caution[Preview]
-Skills, skill levels, borrowed skills, and non-library sources aren't in a released version of Code Rules yet. This guide describes how updating them will work.
+Skills, skill levels, borrowed skills, non-library sources, and branch refs aren't in a released version of Code Rules yet. This guide describes how updating them will work. The released CLI doesn't move a source that uses `ref`.
 :::
 
 This guide is for projects that take rules and skills from sources: libraries, and repositories of skills that aren't libraries. Updating brings changes from those sources into your project. Library authors may improve advice, fix mistakes, add rules and skills, make rules stricter, change a skill's steps or level, or retire either. Your project takes those changes only when you run `code-rules project update` and confirm them. `code-rules project sync` never moves a source, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.

@@ -31,3 +31,17 @@ func TestAgentInstructions_MatchTheManagedGuide(t *testing.T) {
 		}
 	}
 }
+
+// TestRepositoryGuide_IsCurrent fails when this repository's own guide is edited by hand or lags the template, since init then refuses to refresh it.
+func TestRepositoryGuide_IsCurrent(t *testing.T) {
+	data, err := os.ReadFile("../../.code-rules/README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !unmodifiedProjectGuide(data) {
+		t.Fatal(".code-rules/README.md: checksum doesn't match its contents; move it aside, then regenerate it with code-rules project init")
+	}
+	if string(data) != string(renderProjectGuide()) {
+		t.Fatal(".code-rules/README.md: differs from project-guide.md; regenerate it with code-rules project init")
+	}
+}

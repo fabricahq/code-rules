@@ -4,7 +4,7 @@ description: "Where to find a rule's or skill's source, version, level, replacem
 ---
 
 :::caution[Preview]
-This page describes the records Code Rules writes for version 2 configuration, which isn't in a released version of Code Rules yet.
+This page describes the records Code Rules writes for version 2 configuration and branch refs, which aren't in a released version of Code Rules yet.
 :::
 
 **Provenance** records where your project's rules and skills came from. The main file is `generated/provenance.json` in the **Code Rules directory**, so its path from the project root is `.code-rules/generated/provenance.json`. It identifies the sources and versions your project uses, the source of each active rule and installed skill, the library that set each skill's level, and any replacements.
