@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/syllabus/internal/library"
 	"github.com/fabricahq/syllabus/internal/rules"
 	"github.com/fabricahq/syllabus/internal/skills"
 )
@@ -52,7 +53,15 @@ type resolvedSkill struct {
 	Release                 int
 	NonLibrary              bool
 	// Level is the skill's level in its library, or empty for an authored skill or one from another repository.
-	Level string
+	// LevelRelease is the library release whose manifest set it, or 0 when the library source's revision isn't one;
+	// it differs from Release for a borrowed skill.
+	Level        string
+	LevelRelease int
+	// Borrowed names the source in the library's manifest that a borrowed skill comes from, whose repository and
+	// revision Repository, Ref, Commit, and Release then identify, and whose files are in Vendored, the skill's
+	// folder in the library source's vendor snapshot; both are empty for any other skill. Override names the
+	// project's own source that supplied the borrowed revision, when one declares the same repository.
+	Borrowed, Vendored, Override string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
 	// RulesUsed lists the lines of the skill's syllabus-rules-used, and Cited how the project resolves each of them, in
@@ -89,13 +98,15 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			if _, excluded := source.SkillExclude[id]; excluded {
 				continue
 			}
-			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
-			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
+			skill := sourceSkill(source, snapshot, id)
+			skill.Files = SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}
+			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+skill.Vendored+"/"+skills.File); err != nil {
 				return nil, nil, err
 			}
 			result = append(result, skill)
 		}
 	}
+	result = withoutBorrowedCopies(result)
 	for _, id := range slices.Sorted(maps.Keys(local)) {
 		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
 		if replacement, replaces := replacements[id]; replaces {
@@ -123,6 +134,32 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 		return nil, nil, err
 	}
 	return result, warnings, nil
+}
+
+// sourceSkill returns the origin of skill id of source, whose snapshot is snapshot: the source's repository and
+// revision for a skill it publishes, and, for a borrowed one, the repository and revision it was borrowed from.
+func sourceSkill(source rules.Source, snapshot library.Snapshot, id string) resolvedSkill {
+	skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Vendored: id, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
+	if skill.Level != "" {
+		skill.LevelRelease = snapshot.Release
+	}
+	if name, folder, borrowed := library.SplitBorrowed(id); borrowed {
+		origin := snapshot.Borrowed[name]
+		skill.Folder, skill.Vendored, skill.Borrowed, skill.Override = folder, library.SkillFolder(id), name, origin.Source
+		skill.Repository, skill.Ref, skill.Commit, skill.Release, skill.NonLibrary = origin.Repository, origin.Ref.String(), origin.Commit, origin.Release, origin.NonLibrary
+	}
+	return skill
+}
+
+// withoutBorrowedCopies drops from resolved each skill a project source installs that is also a borrowed skill
+// resolved, from the same repository, folder, and commit, as an overriding source supplies it: a skill's identity is
+// its repository and folder, so the borrowed one, which carries its library's level, is the one installed.
+func withoutBorrowedCopies(resolved []resolvedSkill) []resolvedSkill {
+	return slices.DeleteFunc(resolved, func(skill resolvedSkill) bool {
+		return skill.Borrowed == "" && slices.ContainsFunc(resolved, func(borrowed resolvedSkill) bool {
+			return borrowed.Override == skill.Source && borrowed.Borrowed != "" && borrowed.Folder == skill.Folder && borrowed.Commit == skill.Commit
+		})
+	})
 }
 
 // describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, type, and
@@ -195,7 +232,7 @@ func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[strin
 			folders[target] = installed
 		}
 		entry := record{Name: skill.Name, ID: skill.ID, Targets: skill.Targets, Digest: folderDigest(installed)}
-		if skill.NonLibrary {
+		if skill.NonLibrary || skill.Borrowed != "" {
 			entry.Commit = &skill.Commit
 		}
 		records = append(records, entry)
@@ -309,6 +346,8 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		switch {
 		case skill.Source == "":
 			facts = append(facts, "- **Skill:** `"+skill.ID+"`, authored in this project")
+		case skill.Borrowed != "":
+			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, borrowed by `%s` from %s, commit `%s`", skill.ID, skill.Source, escapeText(skill.Repository), skill.Commit))
 		case skill.Release != 0:
 			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, from release/%d, commit `%s`", skill.ID, skill.Release, skill.Commit))
 		default:
@@ -317,8 +356,8 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		facts = append(facts, replacementFacts(skill.Replaces)...)
 		if skill.Level != "" {
 			setBy := "`" + skill.Source + "`"
-			if skill.Release != 0 {
-				setBy += fmt.Sprintf(", release %d", skill.Release)
+			if skill.LevelRelease != 0 {
+				setBy += fmt.Sprintf(", release %d", skill.LevelRelease)
 			}
 			facts = append(facts, "- **Level:** "+skill.Level+" by "+setBy)
 		}
@@ -338,7 +377,7 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		if len(skill.Targets) == 0 {
 			source := ".syllabus/" + skill.Folder + "/" + skills.File
 			if skill.Source != "" {
-				source = ".syllabus/vendor/" + skill.Source + "/" + skill.Folder + "/" + skills.File
+				source = ".syllabus/vendor/" + skill.Source + "/" + skill.Vendored + "/" + skills.File
 			}
 			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", source)+").")
 		} else {

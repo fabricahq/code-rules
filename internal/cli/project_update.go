@@ -381,7 +381,10 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.SkillLevels {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || source.Ref != "" || source.SharedFiles != nil
+		for _, row := range source.Borrowed {
+			idWidth = max(idWidth, len(row.Name))
+		}
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || len(source.Borrowed) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -392,7 +395,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		switch {
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
-		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil:
+		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil && len(source.Borrowed) == 0:
 			out.WriteString("  No rule updates.\n")
 		}
 		for _, row := range source.Rules {
@@ -409,6 +412,12 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 			}
 		}
 		formatLevelRows(out, source.SkillLevels, idWidth)
+		for _, row := range source.Borrowed {
+			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "borrowed", idWidth, row.Name, commitSpan(row.From, row.To))
+			for _, line := range borrowedDetails(row) {
+				fmt.Fprintf(out, "%s%s\n", indent, line)
+			}
+		}
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
@@ -515,6 +524,16 @@ func commitSpan(from, to string) string {
 		return "commit " + shortCommit(to)
 	}
 	return "commit " + shortCommit(from) + " -> " + shortCommit(to)
+}
+
+// borrowedDetails returns the lines shown under the row of a source the library borrows skills from: the repository
+// and ref the commit was resolved from, and the borrowed skills that move with it.
+func borrowedDetails(row imports.BorrowedUpdate) []string {
+	resolved := "the newest library release"
+	if row.Ref != "" {
+		resolved = "ref " + row.Ref
+	}
+	return []string{"Borrowed from " + row.Repository + ", resolved from " + resolved + ".", "Skills: " + strings.Join(row.Skills, ", ")}
 }
 
 // replacedSkillDetails returns the lines shown under a replaced skill's row: the authored skill that replaces it,

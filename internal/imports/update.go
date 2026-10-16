@@ -59,6 +59,9 @@ type SourceUpdate struct {
 	// SkillLevels lists, sorted by ID, the skills whose level the library changes at the revision the update takes
 	// the source's skills from. It is empty, never nil, when there are none.
 	SkillLevels []SkillLevelUpdate `json:"skillLevels"`
+	// Borrowed lists, sorted by name, the sources the library borrows skills from whose revision the update moves,
+	// for an update of the whole source; it is omitted when there are none.
+	Borrowed []BorrowedUpdate `json:"borrowed,omitempty"`
 }
 
 // SkillLevelUpdate is a row of the update preview for a skill whose level in its library changes: a skill whose
@@ -70,6 +73,22 @@ type SkillLevelUpdate struct {
 	// skills from; each is empty when the library has no such skill at that commit.
 	From string `json:"from"`
 	To   string `json:"to"`
+}
+
+// BorrowedUpdate moves the revision of a source a library borrows skills from, which the project resolves from the
+// ref the library names: a branch's newest commit, a tag's commit, or, without a ref, the repository's newest library
+// release.
+type BorrowedUpdate struct {
+	Name       string `json:"name"`
+	Repository string `json:"repository"`
+	// Ref is the ref the library names, or empty when it follows the newest library release.
+	Ref string `json:"ref,omitempty"`
+	// From is the commit the project recorded, or empty for a source it didn't borrow from before; To is the commit
+	// the update takes the borrowed skills from.
+	From string `json:"from,omitempty"`
+	To   string `json:"to"`
+	// Skills lists, sorted, the IDs of the borrowed skills the project takes from the source.
+	Skills []string `json:"skills"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -149,6 +168,9 @@ type Update struct {
 	// doesn't name import what sync would.
 	plans    map[string]plannedSource
 	recorded map[string]library.Snapshot
+	// borrowed maps the name of each library source the update moves in full to the revisions it resolved for the
+	// sources the library borrows skills from, by borrowed source name.
+	borrowed map[string]map[string]library.BorrowedSource
 }
 
 // plannedSource is one source an update names, with what its planner read, so applying the project's decisions
@@ -166,6 +188,9 @@ type plannedSource struct {
 	// skills maps each commit that can supply the source's skills once the project decides, the shared files'
 	// commit, to the preview of the skills the source installs from it.
 	skills map[string]skillPreview
+	// manifest is the library's .syllabus/config.yaml at the revision the update takes its library-wide files from,
+	// or nil for a source that uses ref or a library without one there.
+	manifest []byte
 }
 
 // sharedFiles returns the library release, and its commit, that supplies the library-wide files once the update
@@ -336,7 +361,7 @@ type ForkedRule struct {
 // and fails when a library release tag those versions, or the versions in forked, come from has moved since
 // planning; any other source imports what sync would.
 func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options, forked []ForkedRule) (map[string]Library, error) {
-	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+	return importSources(ctx, configuration, options, borrowing{recorded: u.recorded, planned: u.borrowed}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		planned, named := u.plans[source.Name]
 		if !named {
 			return planSource(ctx, repo, source, recordedSnapshot(u.recorded, source.Name))
@@ -433,7 +458,7 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 	if err != nil {
 		return Update{}, err
 	}
-	update := Update{Sources: []SourceUpdate{}, Warnings: []string{}, plans: map[string]plannedSource{}, recorded: maps.Clone(recorded)}
+	update := Update{Sources: []SourceUpdate{}, Warnings: []string{}, plans: map[string]plannedSource{}, recorded: maps.Clone(recorded), borrowed: map[string]map[string]library.BorrowedSource{}}
 	for _, source := range configuration.Sources {
 		scope, named := scopes[source.Name]
 		if !named {
@@ -442,6 +467,11 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 		planned, preview, warnings, err := planSourceUpdate(ctx, source, recordedSnapshot(recorded, source.Name), scope, options)
 		if err != nil {
 			return Update{}, sourceError(source.Name, err)
+		}
+		if scope == nil && planned.manifest != nil {
+			if update.borrowed[source.Name], preview.Borrowed, err = planBorrowed(ctx, configuration, source, planned.manifest, recordedSnapshot(recorded, source.Name), options); err != nil {
+				return Update{}, sourceError(source.Name, err)
+			}
 		}
 		update.plans[source.Name] = planned
 		update.Sources = append(update.Sources, preview)
@@ -566,6 +596,9 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	}
 	preview.ReplacedSkills = planned.replacedRows(nil)
 	preview.SkillLevels = planned.levelRows(nil)
+	if planned.manifest, err = repo.manifestAt(ctx, after.commit); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
 	preview.Rules = rows
 	return planned, preview, after.warnings, nil
 }

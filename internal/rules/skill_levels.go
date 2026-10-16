@@ -12,9 +12,11 @@ import (
 	"github.com/fabricahq/syllabus/internal/skills"
 )
 
-// SkillLevels lists, sorted, the IDs of the library's own skills, skills/<name>, at each level the manifest names.
-// Each list is empty, never nil, when the manifest names none, and a skill is in at most one list. Whether each
-// skill exists is checked against the library's skills/ folder.
+// SkillLevels lists, sorted, the IDs of the skills at each level the manifest names: the library's own skills,
+// skills/<name>, and the skills it borrows, the name of a source in its sources, a colon, and the skill's ID in that
+// source's repository, such as mattpocock:skills/to-spec. Each list is empty, never nil, when the manifest names
+// none, and a skill is in at most one list. Whether each own skill exists is checked against the library's skills/
+// folder, and whether each borrowed one exists when a project imports it.
 type SkillLevels struct {
 	Required    []string `json:"required"`
 	Recommended []string `json:"recommended"`
@@ -22,7 +24,7 @@ type SkillLevels struct {
 }
 
 // Level returns the level of the library's skill id: the level whose list names it, or offered, the level of every
-// skill no list names.
+// own skill no list names. A borrowed skill no list names doesn't reach projects; see Borrowed.
 func (l SkillLevels) Level(id string) string {
 	switch {
 	case slices.Contains(l.Required, id):
@@ -41,8 +43,9 @@ func (l SkillLevels) Listed() []string {
 }
 
 // parseSkillLevels validates library.skills at location: an object of required, recommended, and offered lists of
-// the library's own skill IDs, each listed once. A missing object lists none.
-func parseSkillLevels(input json.RawMessage, location string) (SkillLevels, error) {
+// skill IDs, each listed once, each borrowed one from one of sources, the names the configuration's sources declare.
+// A missing object lists none.
+func parseSkillLevels(input json.RawMessage, location string, sources []string) (SkillLevels, error) {
 	result := SkillLevels{Required: []string{}, Recommended: []string{}, Offered: []string{}}
 	if input == nil {
 		return result, nil
@@ -72,11 +75,11 @@ func parseSkillLevels(input json.RawMessage, location string) (SkillLevels, erro
 			if err != nil {
 				return SkillLevels{}, err
 			}
-			if source, _, borrowed := strings.Cut(id, ":"); borrowed {
-				return SkillLevels{}, invalid(at, "listing another source's skills, such as "+decode.Quote(source)+"'s, isn't supported yet in this version of Syllabus; list the library's own skills, such as skills/build-feature")
-			}
-			name, authored := strings.CutPrefix(id, skills.Directory+"/")
-			if !authored || !skills.ValidName(name) {
+			if _, _, borrowed := strings.Cut(id, ":"); borrowed {
+				if err := validateBorrowedSkill(id, at, sources); err != nil {
+					return SkillLevels{}, err
+				}
+			} else if name, authored := strings.CutPrefix(id, skills.Directory+"/"); !authored || !skills.ValidName(name) {
 				return SkillLevels{}, invalid(at, "expected the ID of one of the library's skills, skills/<name>, the folder's path in .syllabus/, such as skills/build-feature, got "+decode.Quote(id))
 			}
 			if other, listed := seen[id]; listed {

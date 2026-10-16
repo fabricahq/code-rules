@@ -54,8 +54,14 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]stri
 		location := skillLocation(skill)
 		used := []string{}
 		if skill.Source != "" {
-			for _, id := range slices.Concat(skill.SkillsUsed, sources[skill.Source].SkillUses[skill.Folder]) {
-				target, kept := redirect(skill, skill.Source+":"+id)
+			// A borrowed skill uses skills of the repository it was borrowed from, which the library source installs
+			// as borrowed skills too, and its source's skills.uses names none of them.
+			prefix, declared := skill.Source+":", sources[skill.Source].SkillUses[skill.Folder]
+			if skill.Borrowed != "" {
+				prefix, declared = prefix+skill.Borrowed+":", nil
+			}
+			for _, id := range slices.Concat(skill.SkillsUsed, declared) {
+				target, kept := redirect(skill, prefix+id)
 				if !kept {
 					continue
 				}

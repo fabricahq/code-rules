@@ -51,7 +51,7 @@ func skillReplacements(config rules.Configuration, libraries map[string]Library,
 				return nil, invalid(where+".replacedBy", fmt.Sprintf("%s already replaces the skill %s names; each authored skill replaces one skill", exclusion.ReplacedBy, other))
 			}
 			replaces[exclusion.ReplacedBy] = where
-			upstream := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary}
+			upstream := sourceSkill(source, snapshot, id)
 			result[exclusion.ReplacedBy] = skillReplacement{Upstream: upstream, Reason: exclusion.Reason, BasedOn: exclusion.BasedOn}
 		}
 	}

@@ -84,7 +84,7 @@ type UpdateResult struct {
 // keep. A replaced row counts even when its imported copy stays, since applying it can replace the local rule's fork.
 func (r UpdateResult) Moves() bool {
 	for _, source := range r.Sources {
-		if source.SharedFiles != nil || len(source.Skills) > 0 {
+		if source.SharedFiles != nil || len(source.Skills) > 0 || len(source.Borrowed) > 0 {
 			return true
 		}
 		for _, row := range source.Rules {
