@@ -138,7 +138,7 @@ func TestSync_InstallsBorrowedSkillsFromTheRepositoryTheyComeFrom(t *testing.T) 
 		}
 	}
 	provenance := readRepositoryFile(t, b.options, ".trailguide/generated/provenance.json")
-	if !strings.Contains(provenance, `"borrowed": "pocock"`) || !strings.Contains(provenance, `"folder": "skills/ops/deploy"`) {
+	if !strings.Contains(provenance, `"borrowedFrom": "pocock"`) || !strings.Contains(provenance, `"folder": "skills/ops/deploy"`) {
 		t.Errorf("provenance doesn't name the borrowed source and the skill's folder there:\n%s", provenance)
 	}
 	if result, err := Check(ctx, b.options); err != nil || !result.Current() {
@@ -231,7 +231,7 @@ func TestSync_KeepsTheBorrowedRevisionAndUpdateResolvesTheLibrarysRefAgain(t *te
 	if len(preview.Sources) != 1 || len(preview.Sources[0].Borrowed) != 1 {
 		t.Fatalf("preview = %+v; want one borrowed row", preview.Sources)
 	}
-	if row := preview.Sources[0].Borrowed[0]; row.Name != "pocock" || row.From != b.pocock.FirstCommit || row.To != moved || row.Ref != "stable" || strings.Join(row.Skills, ",") != "pocock:skills/ops/deploy" {
+	if row := preview.Sources[0].Borrowed[0]; row.Name != "pocock" || row.Commit == nil || row.Commit.From != b.pocock.FirstCommit || row.Commit.To != moved || row.Ref != "stable" || !row.TagMoved {
 		t.Fatalf("borrowed row = %+v", row)
 	}
 	changes := preview.Sources[0].Borrowed[0].Changes
@@ -386,7 +386,7 @@ func TestUpdate_PreviewsTheBorrowedSkillsALibraryStopsListing(t *testing.T) {
 	b.releaseTeam(t, "")
 	plan, preview := b.previewUpdate(t, imports.UpdateTarget{Source: "team"})
 	borrowed := preview.Sources[0].Borrowed
-	if len(borrowed) != 1 || borrowed[0].Name != "pocock" || borrowed[0].From != b.pocock.FirstCommit || borrowed[0].To != "" || len(borrowed[0].Changes) != 1 || borrowed[0].Changes[0].ID != "pocock:skills/ops/deploy" || borrowed[0].Changes[0].Change != imports.SkillRemoved {
+	if len(borrowed) != 1 || borrowed[0].Name != "pocock" || borrowed[0].Commit == nil || borrowed[0].Commit.From != b.pocock.FirstCommit || borrowed[0].Commit.To != "" || len(borrowed[0].Changes) != 1 || borrowed[0].Changes[0].ID != "pocock:skills/ops/deploy" || borrowed[0].Changes[0].Change != imports.SkillRemoved {
 		t.Fatalf("borrowed rows = %+v; want deploy removed with its source", borrowed)
 	}
 	if _, err := plan.Apply(ctx, nil); err != nil {
@@ -406,7 +406,7 @@ func TestUpdate_AScopedUpdatePreviewsTheBorrowedSkillsOfTheRevisionItTakes(t *te
 	b.releaseTeam(t, "    required: [pocock:skills/ops/deploy, pocock:skills/productivity/grilling]\n")
 	plan, preview := b.previewUpdate(t, imports.UpdateTarget{Source: "team", Rule: "techs/go/errors"})
 	borrowed := preview.Sources[0].Borrowed
-	if len(borrowed) != 1 || borrowed[0].From != b.pocock.FirstCommit || borrowed[0].To != b.pocock.FirstCommit || len(borrowed[0].Changes) != 1 || borrowed[0].Changes[0].ID != "pocock:skills/productivity/grilling" || borrowed[0].Changes[0].Change != imports.SkillAdded {
+	if len(borrowed) != 1 || borrowed[0].Commit != nil || len(borrowed[0].Changes) != 1 || borrowed[0].Changes[0].ID != "pocock:skills/productivity/grilling" || borrowed[0].Changes[0].Change != imports.SkillAdded {
 		t.Fatalf("borrowed rows = %+v; want grilling added at the recorded commit", borrowed)
 	}
 	kept, err := plan.Preview(ctx, []UpdateDecision{{Kind: DecisionKeep, Source: "team", Rule: "techs/go/errors", Reason: "Not yet."}})

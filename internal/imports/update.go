@@ -84,17 +84,25 @@ type BorrowedUpdate struct {
 	Repository string `json:"repository"`
 	// Ref is the ref the library names, or empty when it follows the newest library release.
 	Ref string `json:"ref,omitempty"`
-	// From is the commit the project recorded, or empty for a source it didn't borrow from before; To is the commit
-	// the update takes the borrowed skills from, or empty when the project no longer takes any skills from the source,
-	// so the update removes those it installed.
+	// Commit is the move from the commit the project recorded to the one the update takes the borrowed skills from;
+	// it is nil when the commit doesn't move. Its From is empty for a source the project didn't borrow from before,
+	// and its To when the project no longer takes any skills from the source, so the update removes those it
+	// installed. Release is the same move in library releases, when both commits are library releases and Ref is
+	// empty, and is nil otherwise.
+	Commit  *CommitMove        `json:"commit,omitempty"`
+	Release *SharedFilesUpdate `json:"release,omitempty"`
+	// TagMoved reports that Ref names a tag that now names a different commit than at the last update.
+	TagMoved bool `json:"tagMoved,omitempty"`
+	// Changes compares the borrowed skills the project installs from the source, and the skills they use, at the new
+	// commit with those at the recorded one, as SourceUpdate.Skills compares a source's own skills, by their IDs in
+	// the library. It is empty, never nil, when they don't differ.
+	Changes []SkillUpdate `json:"changes"`
+}
+
+// CommitMove is the move of a source's revision between two commits.
+type CommitMove struct {
 	From string `json:"from,omitempty"`
 	To   string `json:"to,omitempty"`
-	// Skills lists, sorted, the IDs of the borrowed skills the project takes from the source.
-	Skills []string `json:"skills"`
-	// Changes compares the borrowed skills the project installs from the source, and the skills they use, at To with
-	// those at From, as SourceUpdate.Skills compares a source's own skills, by their IDs in the library. It is empty,
-	// never nil, when they don't differ.
-	Changes []SkillUpdate `json:"changes"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library

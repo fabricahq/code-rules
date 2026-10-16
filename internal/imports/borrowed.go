@@ -369,7 +369,7 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 		if len(selected[name]) == 0 {
 			// The project takes no skills from the source any more, so the update removes those it installed.
 			gone := before.Borrowed[name]
-			row := BorrowedUpdate{Name: name, Repository: gone.Repository, Ref: gone.Ref.String(), From: gone.Commit, Skills: []string{}, Changes: skillChanges(&was, importedSkills{})}
+			row := borrowedMove(name, gone, library.BorrowedSource{Repository: gone.Repository, Ref: gone.Ref}, skillChanges(&was, importedSkills{}))
 			for i := range row.Changes {
 				row.Changes[i].ID = name + ":" + row.Changes[i].ID
 			}
@@ -418,6 +418,7 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 			err = errors.Join(err, closeErr)
 		}
 	}()
+	recordedRevision := recorded
 	if !keep {
 		recorded = library.BorrowedSource{}
 	}
@@ -429,17 +430,30 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 	if err != nil {
 		return library.BorrowedSource{}, nil, err
 	}
-	row := BorrowedUpdate{Name: l.name, Repository: revision.Repository, Ref: revision.Ref.String(), From: was.Commit, To: revision.Commit, Skills: []string{}, Changes: skillChanges(&was, read)}
-	if was.Commit == revision.Commit && len(row.Changes) == 0 {
+	row := borrowedMove(l.name, recordedRevision, revision, skillChanges(&was, read))
+	if row.Commit == nil && len(row.Changes) == 0 {
 		return revision, nil, nil
-	}
-	for _, skill := range chosen {
-		row.Skills = append(row.Skills, skill.id)
 	}
 	for i := range row.Changes {
 		row.Changes[i].ID = l.name + ":" + row.Changes[i].ID
 	}
 	return revision, &row, nil
+}
+
+// borrowedMove returns the preview row of the borrowed source name moving from the revision from, which the project
+// recorded, or the zero BorrowedSource for one it didn't borrow from before, to the revision to, whose Commit is empty
+// when the update removes the source's skills, with the changes to its skills.
+func borrowedMove(name string, from, to library.BorrowedSource, changes []SkillUpdate) BorrowedUpdate {
+	row := BorrowedUpdate{Name: name, Repository: to.Repository, Ref: to.Ref.String(), Changes: changes}
+	if from.Commit == to.Commit {
+		return row
+	}
+	row.Commit = &CommitMove{From: from.Commit, To: to.Commit}
+	if from.Release != 0 && to.Release != 0 && to.Ref.IsZero() {
+		row.Release = &SharedFilesUpdate{From: from.Release, To: to.Release}
+	}
+	row.TagMoved = from.Commit != "" && to.Commit != "" && to.Ref.Kind() == rules.GitRefTag && from.Ref.Equal(to.Ref)
+	return row
 }
 
 // manifestAt returns the .trailguide/config.yaml of a fetched commit, or nil when it has none.
