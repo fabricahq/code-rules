@@ -1053,15 +1053,15 @@
     "id": "library-skills",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"review\": \"required\"}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": \"skills/ship\"}}}"
     },
     "location": "library/.syllabus/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.skills: skill levels aren't supported yet in this version of Syllabus; remove library.skills",
-        "location": "library/.syllabus/config.yaml: library.skills"
+        "message": "library/.syllabus/config.yaml: library.skills.required: expected a list of the library's skill IDs, such as [skills/build-feature]",
+        "location": "library/.syllabus/config.yaml: library.skills.required"
       }
     }
   },

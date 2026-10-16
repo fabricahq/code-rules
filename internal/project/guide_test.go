@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -62,8 +63,12 @@ func TestProjectGuideRefreshesTheCodeRulesGuide(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := Initialize(ctx, options)
-	if err != nil || len(result.Written()) != 1 || result.Written()[0] != filepath.Join(directory, "README.md") {
+	// The AGENTS.md section init wrote for .syllabus/ now points to .code-rules/.
+	if err != nil || !slices.Equal(result.Written(), []string{filepath.Join(directory, "README.md"), filepath.Join(root, "AGENTS.md")}) {
 		t.Fatal(result, err)
+	}
+	if got, err := os.ReadFile(filepath.Join(root, "AGENTS.md")); err != nil || !bytes.Contains(got, []byte("Read `.code-rules/generated/RULES.md`")) {
+		t.Fatal(string(got), err)
 	}
 	if got, err := os.ReadFile(filepath.Join(directory, "README.md")); err != nil || !bytes.Equal(got, renderProjectGuide()) {
 		t.Fatal(err)

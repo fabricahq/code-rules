@@ -81,7 +81,7 @@ The tree below shows the **repository root**, the top-level directory of your co
 
 </FileTree>
 
-`.claude/skills/` and `.agents/skills/` exist only for the [skill targets](/reference/configuration/#skill-targets) the repository configures, and only once it installs a skill. Your `AGENTS.md` stays outside the Syllabus directory, at the repository root. A library also has `changes/` in its Syllabus directory, for its [change notes](/reference/rule-versions/#change-notes); see [Library format](/reference/library-format/).
+`.claude/skills/` and `.agents/skills/` exist only for the [skill targets](/reference/configuration/#skill-targets) the repository configures, and only once it installs a skill. Your `AGENTS.md` stays outside the Syllabus directory, at the repository root. Syllabus maintains one section of it, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers, and leaves the rest to you. A library also has `changes/` in its Syllabus directory, for its [change notes](/reference/rule-versions/#change-notes); see [Library format](/reference/library-format/).
 
 Initialize from the repository root. In Git repositories, other commands find the nearest Git root and use its `.syllabus/` directory. Outside Git, run commands from the repository root. See [Working directories](/reference/cli/#working-directories).
 
@@ -102,7 +102,8 @@ For example, when you replace a library rule, its vendored copy stays in `vendor
 
 | File or directory | Who maintains it | Purpose |
 | --- | --- | --- |
-| `AGENTS.md` | You | Tell your agent to read the generated rules. |
+| `AGENTS.md` | You, outside the Syllabus section | Your instructions for agents. |
+| The Syllabus section of `AGENTS.md` | `syllabus project init`, `syllabus project build`, `syllabus project sync`, and `syllabus project update` | Tell your agent to read the generated rules and skills. |
 | `.syllabus/config.yaml` | You | Choose sources, the rules and skills to include, versions, skill targets, exceptions, and, for a library, its manifest. |
 | `.syllabus/rules/`, `skills/`, and `assets/` | You | Add authored rules, rule group metadata, replacements, skills, and shared assets. |
 | `.syllabus/README.md` | `syllabus project init`, `syllabus project build`, and `syllabus project sync` | Explain the repository's rule setup and commands. |
@@ -134,10 +135,14 @@ Creating a rule group also writes a `README.md` beside `_group.yaml`. Rule group
 
 ## Where agents start
 
-Point your agent to `.syllabus/generated/RULES.md`. It lists the rule groups and explains when to read each one.
+The Syllabus section of `AGENTS.md` points your agent to `.syllabus/generated/RULES.md`. It lists the rule groups and explains when to read each one.
 Agents then open relevant rule groups and read the applicable rules in full.
 When the repository installs skills, `RULES.md` also has one line pointing to `SKILLS.md`, so the same instructions reach agents whose tools don't load skills from the target folders.
-See [Plan, write, and review](/for-agents/) for instructions you can add to `AGENTS.md`.
+See [Plan, write, and review](/for-agents/) for the section's text and a workflow built on it.
+
+The commands that write the section create `AGENTS.md` when it's missing, and add the section after your text. Each refresh replaces only the lines between the markers. The begin marker records the Syllabus version that wrote the section and a digest of its lines, so build, sync, update, and init refuse to replace a section edited by hand: move your text outside the markers and delete the section, then rerun the command. `syllabus project check` reports a missing or outdated section. To manage `AGENTS.md` yourself, set [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section).
+
+When `AGENTS.md` already points to `.syllabus/generated/RULES.md` outside the markers, as the section that earlier versions asked you to paste does, Syllabus leaves the file alone and `syllabus project check` accepts it. To switch to the maintained section, delete your pasted section and run `syllabus project build`.
 
 | Generated path | Contents |
 | --- | --- |

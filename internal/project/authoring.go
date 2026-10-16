@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -40,7 +41,10 @@ type RuleOptions struct {
 
 // Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and authored
 // files are preserved. A new configuration installs skills into both skill targets, claude and agents. It fails,
-// writing nothing, when the project still has a local/ folder.
+// writing nothing, when the project still has a local/ folder, or when AGENTS.md has an edited section or broken markers.
+// Then it adds or refreshes the Syllabus section of the repository's AGENTS.md, as build does, listing the file among
+// the changed files, or the added ones when it created it; a failure there comes after the other files were written,
+// and running init again finishes it.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 	return InitializeWithSkillTargets(ctx, options, nil)
 }
@@ -62,8 +66,9 @@ func InitializeWithSkillTargets(ctx context.Context, options Options, skillTarge
 		if err != nil {
 			return nil, err
 		}
+		var config rules.Configuration
 		if old != nil {
-			config, err := rules.ParseConfigurationYAML(old)
+			config, err = rules.ParseConfigurationYAML(old)
 			if err != nil {
 				return nil, err
 			}
@@ -86,6 +91,12 @@ func InitializeWithSkillTargets(ctx context.Context, options Options, skillTarge
 		if err != nil {
 			return nil, err
 		}
+		// Refuse an edited section or broken markers before writing anything; initializeAgents writes the section.
+		agents, err := planAgentsSection(ctx, root, config, options)
+		if err != nil {
+			return nil, err
+		}
+		agents.close()
 		if old == nil {
 			if skillTargets == nil {
 				skillTargets = DefaultSkillTargets
@@ -104,7 +115,43 @@ func InitializeWithSkillTargets(ctx context.Context, options Options, skillTarge
 		}
 		return files, nil
 	})
-	return authoringResult(changes, err)
+	result, err := authoringResult(changes, err)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	return initializeAgents(ctx, root, options, result)
+}
+
+// initializeAgents adds or refreshes the AGENTS.md section of the initialized project at root in a recoverable
+// transaction, adding its path to result, unless its configuration turns off manageAgentsFile.
+func initializeAgents(ctx context.Context, root *os.Root, options Options, result AuthoringResult) (AuthoringResult, error) {
+	var changes FileChanges
+	err := filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		_, config, err := configuration(ctx, root)
+		if err != nil {
+			return err
+		}
+		agents, err := planAgentsSection(ctx, root, config, options)
+		if err != nil {
+			return err
+		}
+		defer agents.close()
+		targets := map[filetxn.Target]map[string][]byte{}
+		agents.include(targets, &changes)
+		return w.Apply(targets, func() error { return agents.requireUnchanged(ctx) })
+	})
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	if changes.Agents != nil {
+		written := filepath.Join(filepath.Dir(root.Name()), changes.Agents.Path)
+		if changes.Agents.Action == "created" {
+			result.Added = append(result.Added, written)
+		} else {
+			result.Changed = append(result.Changed, written)
+		}
+	}
+	return result, nil
 }
 
 // editProject revalidates configuration and rules/ under exclusive ownership before publishing authored files.

@@ -5,6 +5,9 @@ package library
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"io/fs"
 	"iter"
 	"maps"
 	"os"
@@ -17,6 +20,7 @@ import (
 	"github.com/fabricahq/syllabus/internal/filetxn"
 	"github.com/fabricahq/syllabus/internal/librarytree"
 	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -76,6 +80,9 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 		return checkedLibrary{}, err
 	}
 	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
+		return checkedLibrary{}, err
+	}
+	if err = requireLeveledSkills(root, input.tree.Files[librarytree.Manifest]); err != nil {
 		return checkedLibrary{}, err
 	}
 	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
@@ -329,6 +336,26 @@ func requireLibraryUnchanged(ctx context.Context, root *os.Root, before checkInp
 	}
 	if !maps.EqualFunc(before.tree.Files, after.tree.Files, bytes.Equal) || !slices.Equal(before.tree.Directories, after.tree.Directories) || before.skills.Digest() != after.skills.Digest() || !maps.EqualFunc(before.notes, after.notes, bytes.Equal) {
 		return failure("changed-input", "library changed during validation; retry library check", nil)
+	}
+	return nil
+}
+
+// requireLeveledSkills fails when manifest, the library's configuration, gives a level to a skill the library
+// doesn't have: a folder in .syllabus/skills/ with a SKILL.md, in the repository at root.
+func requireLeveledSkills(root *os.Root, manifest []byte) error {
+	declaration, err := rules.ParseLibraryManifest(manifest, manifestPath)
+	if err != nil || declaration == nil {
+		return err
+	}
+	for _, id := range declaration.Skills.Listed() {
+		file := librarytree.Directory + "/" + id + "/" + skills.File
+		info, err := root.Lstat(file)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("inspect %s: %v", file, err)
+		}
+		if err != nil || !info.Mode().IsRegular() {
+			return &ValidationError{Location: manifestPath + ": library.skills." + declaration.Skills.Level(id), Problem: id + " names no skill of the library, because " + file + " doesn't exist; add the skill, or remove it from the list"}
+		}
 	}
 	return nil
 }

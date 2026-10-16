@@ -18,7 +18,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 - **`syllabus project sync`**: Restore each source at its recorded revision, or take a new source at its newest one. Sync validates the vendored files, regenerates agent guidance, and installs skills into the target folders.
 - **`syllabus project update`**: Move each source along its `ref`, previewing newer versions, new rules and skills, level changes, retirements, and new commits, and apply them after you confirm. Pinned rules, and sources whose `ref` names a commit, don't move. Update then does everything sync does.
 - **`syllabus project build`**: Apply changes to your authored rules and skills or your exceptions using the files you already have. Build regenerates guidance and installed skills without contacting a repository.
-- **`syllabus project check`**: Find out whether generated guidance, installed skills, and the managed Syllabus guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
+- **`syllabus project check`**: Find out whether generated guidance, installed skills, the managed Syllabus guide, and the `AGENTS.md` section are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
 You do not need to run build after a successful sync or update; both already generate the guidance. Run check when you want to verify consistency without making changes.
 
@@ -42,6 +42,7 @@ In a Git repository, project commands find the nearest repository root and use i
 | `vendor/` | One vendor snapshot per source: the original files of the included rule and skill versions, and their records. | Sync and update replace this directory. Build and check validate it without changing it. |
 | `generated/` | Rules, reading indexes, `SKILLS.md`, and `installed-skills.json`. | Sync, update, and build replace this directory. Check compares it with the expected output. |
 | `.claude/skills/<name>/` and `.agents/skills/<name>/` | Installed copies of skills, one folder per skill. | Sync, update, and build write, replace, and remove the skill folders Syllabus owns, and leave every other folder alone. Check compares them with the expected output. See [Who owns the target folders](#who-owns-the-target-folders). |
+| `../AGENTS.md` | Your instructions for agents, with a section Syllabus maintains. | Together with their other files, init, sync, update, and build add or refresh the section between the `syllabus:begin` and `syllabus:end` markers, and never change the rest. Check verifies the section. See [Where agents start](/reference/files/#where-agents-start). |
 
 Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, unused library folders, and the installed folders of skills the project no longer installs. Files you add or edit inside `vendor/`, `generated/`, or an installed skill folder can be replaced or removed. Keep your changes in configuration and authored content.
 
@@ -59,6 +60,7 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 
 - Sync and update paths start with `vendor/`, `generated/`, `.claude/skills/`, or `.agents/skills/`. Paths in a target folder are relative to the repository root; the rest are relative to the Syllabus directory. Update also lists `config.yaml` when it writes a pin or an exclusion, and the files of a fork it replaces, and both list a `rules/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`, except paths in a target folder, which start with `.claude/skills/` or `.agents/skills/` and are relative to the repository root.
+- A change to `AGENTS.md` is reported on its own line, and in JSON in `agents`.
 
 When the target folders are linked, as [Linked target folders](#linked-target-folders) describes, each installed file is listed once, under the folder the link points to.
 
@@ -66,7 +68,7 @@ When the target folders are linked, as [Linked target folders](#linked-target-fo
 
 Sync, update, and check also print the [rename warning](/reference/configuration/#rename-a-skill) for each renamed skill, and the [personal skill warning](#personal-skills-with-the-same-name) for each personal skill with the name of a skill the repository installs. In JSON output they're in `value.warnings`.
 
-Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, installed skills, and the managed Syllabus guide without writing any of them. A problem in a target folder has a path relative to the repository root, starting with `.claude/skills/` or `.agents/skills/`.
+Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, installed skills, the managed Syllabus guide, and the `AGENTS.md` section without writing any of them. A problem in a target folder has a path relative to the repository root, starting with `.claude/skills/` or `.agents/skills/`.
 
 | Check exit code | Meaning |
 | --- | --- |
@@ -84,6 +86,7 @@ Use the problem reported by `syllabus project check` to choose a repair:
 | Vendored files are missing, modified, or no longer match your configured sources or selectors. | Run `syllabus project sync`. Preserve any edits you intended to keep as authored rules first. |
 | The managed Syllabus guide is missing or outdated. | Run `syllabus project build` or `syllabus project sync` to refresh it and regenerate guidance. Run `syllabus project init` to refresh only setup files. |
 | An installed skill folder is missing, edited, or unexpected, or `generated/installed-skills.json` is stale, and vendored files are valid. | Run `syllabus project build`. If the folders are missing because `.gitignore` excludes them, also add an exception and commit them; see [Who owns the target folders](#who-owns-the-target-folders). |
+| The `AGENTS.md` section is missing or outdated. | Run `syllabus project build`. If build reports that the section was edited, move your text outside the markers and delete the section first. |
 | Configuration, rule metadata, or skill metadata is invalid. | Correct the reported input, then retry the appropriate command. |
 
 Run `syllabus project check` again after repairing the problem.
@@ -158,7 +161,7 @@ An authored rule needs its rule group's metadata, from `rules/<group-id>/_group.
 
 ## Recover from an interrupted update
 
-Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. The installed skill folders in the target folders are part of the same step: one lock and one recovery journal cover them together with `vendor/` and `generated/`, so recovery restores or finishes them all together. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced authored rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `rules/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`. A failed or interrupted update may leave empty directories under `rules/`, such as a rule group's first `assets/` directory that [replacing a fork](/reference/cli/#replace-a-fork-with-the-newest-version) created. They're harmless: every command ignores them, and you can delete them.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. The installed skill folders in the target folders are part of the same step: one lock and one recovery journal cover them together with `vendor/` and `generated/`, so recovery restores or finishes them all together. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced authored rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `rules/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`. A failed or interrupted update may leave empty directories under `rules/`, such as a rule group's first `assets/` directory that [replacing a fork](/reference/cli/#replace-a-fork-with-the-newest-version) created. They're harmless: every command ignores them, and you can delete them. The `AGENTS.md` section is part of that step too, so recovery restores or finishes `AGENTS.md` with the other files.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 

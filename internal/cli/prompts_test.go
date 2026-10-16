@@ -83,7 +83,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 // The prompts for a source's rule and skill selectors.
 const (
 	rulesPrompt  = "Rules (comma-separated selectors, or empty for none):"
-	skillsPrompt = "Skills (comma-separated skill IDs or *, or empty for none):"
+	skillsPrompt = "Skills (skill IDs, recommended, or *; empty for required only):"
 )
 
 // TestInteractiveSource prompts for the repository and, unless --rules or --skills selects something, rules and skills;

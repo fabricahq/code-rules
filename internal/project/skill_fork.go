@@ -58,9 +58,10 @@ type SkillForkPlan struct {
 // PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ as the source's
 // last sync recorded it, with its SKILL.md rewritten as forkedSkillFile rewrites it, into skills/<name>/, where name
 // is the skill's install name, without writing. It fails when the source isn't configured, when its record doesn't
-// match its configuration, when its last sync didn't install the skill, when the source already excludes the skill,
-// when the project already has an authored skill with that name or another exclusion names it as a replacement, since
-// existing authored skills and exclusions are never replaced, or when forkedSkillFile fails.
+// match its configuration, when its last sync didn't install the skill, when the source's library requires the
+// skill, when the source already excludes the skill, when the project already has an authored skill with that name or
+// another exclusion names it as a replacement, since existing authored skills and exclusions are never replaced, or
+// when forkedSkillFile fails.
 func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (*SkillForkPlan, error) {
 	plan := &SkillForkPlan{from: from}
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
@@ -89,6 +90,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 			return err
 		}
 		snapshot := snapshots[source.Name]
+		if snapshot.Skills[from.Skill].Level == skills.LevelRequired {
+			return &ValidationError{Location: "--from", Problem: rules.RequiredSkillProblem(source.Name, from.Skill, snapshot.Release)}
+		}
 		plan.record = treeFiles(vendor)[source.Name+"/_source.json"]
 		if _, installed := snapshot.Skills[from.Skill]; !installed {
 			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run syllabus project sync first", source.Name, from.Skill)}

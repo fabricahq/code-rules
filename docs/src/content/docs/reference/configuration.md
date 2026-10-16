@@ -55,6 +55,7 @@ Replace them with libraries, rules, and skills your project can access.
 | --- | --- |
 | `schemaVersion` | Required. `2`. See [No backward compatibility](#no-backward-compatibility). |
 | `skillTargets` | Optional. Where installed copies of skills go: an array of `claude` (`.claude/skills/`) and `agents` (`.agents/skills/`). Missing means `[]`. See [Skill targets](#skill-targets). |
+| `manageAgentsFile` | Optional. `true`, the default, has init, build, sync, and update keep a Syllabus section in the repository's `AGENTS.md`, and check verify it. `false` leaves `AGENTS.md` alone. See [AGENTS.md section](#agentsmd-section). |
 | `sources` | Map of stable source names to sources. Use an empty object for a repository that uses only its authored rules and skills. |
 | `sources.<name>.repository` | Required. Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.ref` | The branch, tag, commit, or library release to take the source from. Required for a source without `release/<number>` tags; see [Refs](#refs). |
@@ -292,6 +293,18 @@ skillTargets: [claude, agents]
 `skillTargets: []` is valid, and so is leaving the field out. With no targets, Syllabus still records every skill the repository includes, required skills too, lists them in `generated/SKILLS.md`, and checks them, but writes no installed copies, and sync warns that it installed nothing. Use it to record what your sources require before you choose agent folders.
 
 Each installed skill gets a folder `<target>/<install-name>/`. Syllabus writes and removes only the skill folders it installed, and leaves every other folder in the target alone, such as a skill another tool installed. Syllabus never writes to your home directory. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+
+## AGENTS.md section
+
+By default, project commands keep a section in the repository's `AGENTS.md` that tells agents to read the project's rules and skills; see [Where agents start](/reference/files/#where-agents-start). To manage your agent instructions yourself, turn it off:
+
+```yaml
+schemaVersion: 2
+manageAgentsFile: false
+sources: {}
+```
+
+Commands then neither write nor check `AGENTS.md`. They don't remove a section they wrote earlier: delete it yourself, along with its markers, and tell your agent to read `.syllabus/generated/RULES.md` in your own words.
 
 ## Library manifest
 
