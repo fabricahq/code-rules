@@ -5,14 +5,17 @@ package project
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // Commits of the fixture's two library releases.
@@ -24,7 +27,7 @@ var (
 // snapshotConfig parses one source named team from its JSON fields.
 func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 	t.Helper()
-	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules",` + fields + `}}}`))
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules",` + fields + `}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,24 +39,25 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 // Files include original binary and CRLF bytes.
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
-	config := snapshotConfig(t, `"groups":["techs/go"]`)
-	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
+	config := snapshotConfig(t, `"rules":{"include":["techs/go/*"]}`)
+	one, two := syllabus.RuleVersion{Major: 1}, syllabus.RuleVersion{Major: 1, Minor: 1}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
-		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
+		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne, LegacyLayout: true}},
 		Files: map[string][]byte{
-			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+			"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 			"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
 			"techs/go/errors.md":   []byte(projectRule),
 			"techs/go/naming.md":   []byte(projectRule),
 			"assets/image.bin":     {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
-		}}}
+		},
+		SkillSelection: []string{}, Skills: map[string]library.ImportedSkill{}, AvailableSkills: map[string]library.ImportedSkill{}, Executable: []string{}}}
 }
 
 // requireSync checks that decoding fails with a validation error that tells the user to sync.
 func requireSync(t *testing.T, got map[string]snapshot, err error) {
 	t.Helper()
 	var validation errs.ValidationError
-	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v, %v; want a failure that asks for sync", got, err)
 	}
 }
@@ -86,7 +90,34 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	}
 }
 
-// TestSnapshotRecordFormat writes the documented format 2 fields, never pins, and omits ref and ruleSelection when empty.
+// TestSnapshotRuleLinkToSharedAssetResolvesInVendor stores a rule where it is in the library's Syllabus directory,
+// under rules/, so its link to a shared asset, written from .syllabus/rules/techs/go/, reaches the vendored asset.
+func TestSnapshotRuleLinkToSharedAssetResolvesInVendor(t *testing.T) {
+	config, input := snapshotFixture(t)
+	link := "../../../assets/image.bin"
+	input["team"].Files["techs/go/errors.md"] = []byte(projectRule + "\nSee [the diagram](" + link + ").\n")
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := "team/rules/techs/go/errors.md"
+	if _, ok := encoded[rule]; !ok {
+		t.Fatalf("no vendored rule at vendor/%s; got %v", rule, slices.Sorted(maps.Keys(encoded)))
+	}
+	target, _, local, err := rules.RelativeTarget(link, "vendor/"+rule)
+	if err != nil || !local || !strings.HasPrefix(target, "vendor/team/") {
+		t.Fatalf("link resolves to %q, %v, %v; want a file in vendor/team/", target, local, err)
+	}
+	if _, ok := encoded[strings.TrimPrefix(target, "vendor/")]; !ok {
+		t.Fatalf("link resolves to %s, which the snapshot doesn't have", target)
+	}
+	got, err := decodeSnapshots(config, encoded)
+	if err != nil || !reflect.DeepEqual(got, input) {
+		t.Fatalf("round trip: %v", err)
+	}
+}
+
+// TestSnapshotRecordFormat writes the documented format 3 fields, never pins, and omits ref and ruleSelection when empty.
 func TestSnapshotRecordFormat(t *testing.T) {
 	config, input := snapshotFixture(t)
 	encoded, err := encodeSnapshots(config, input)
@@ -98,8 +129,8 @@ func TestSnapshotRecordFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	for field, want := range map[string]string{
-		"formatVersion": "2", "release": "2", "resolvedCommit": `"` + releaseTwo + `"`, "groupSelection": `["techs/go"]`, "groups": `["techs/go"]`,
-		"rules": `{"techs/go/errors":{"version":"1.1.0","release":2,"commit":"` + releaseTwo + `"},"techs/go/naming":{"version":"1.0.0","release":1,"commit":"` + releaseOne + `"}}`,
+		"formatVersion": "3", "kind": `"library"`, "skillInclude": "[]", "skills": "{}", "executable": "[]", "release": "2", "resolvedCommit": `"` + releaseTwo + `"`, "groupSelection": `["techs/go"]`, "groups": `["techs/go"]`,
+		"rules": `{"techs/go/errors":{"version":"1.1.0","release":2,"commit":"` + releaseTwo + `"},"techs/go/naming":{"version":"1.0.0","release":1,"commit":"` + releaseOne + `","legacyLayout":true}}`,
 	} {
 		var compact strings.Builder
 		for _, line := range strings.Split(string(record[field]), "\n") {
@@ -135,12 +166,12 @@ func TestSnapshotRepositoryAddressChangeRequiresSync(t *testing.T) {
 // TestSnapshotChangedSelectionOrRefRequiresSync rejects configuration the record doesn't describe.
 func TestSnapshotChangedSelectionOrRefRequiresSync(t *testing.T) {
 	for name, fields := range map[string]string{
-		"added group":            `"groups":["techs/go","techs/rust"]`,
-		"wildcard":               `"groups":"*"`,
-		"individual rule":        `"groups":["techs/go"],"rules":["practices/testing/limits"]`,
-		"ref":                    `"groups":["techs/go"],"ref":"release/2"`,
-		"pin to another version": `"groups":["techs/go"],"pins":{"techs/go/errors":{"version":"1.0.0","reason":"Not ready."}}`,
-		"pin of a rule it lacks": `"groups":["techs/go"],"pins":{"techs/go/other":{"version":"1.0.0","reason":"Keep."}}`,
+		"added group":            `"rules":{"include":["techs/go/*","techs/rust/*"]}`,
+		"wildcard":               `"rules":{"include":["*"]}`,
+		"individual rule":        `"rules":{"include":["techs/go/*","practices/testing/limits"]}`,
+		"ref":                    `"rules":{"include":["techs/go/*"]},"ref":"release/2"`,
+		"pin to another version": `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"1.0.0","reason":"Not ready."}]}`,
+		"pin of a rule it lacks": `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/other","version":"1.0.0","reason":"Keep."}]}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			config, snapshots := snapshotFixture(t)
@@ -157,7 +188,7 @@ func TestSnapshotChangedSelectionOrRefRequiresSync(t *testing.T) {
 // TestSnapshotPinsThatMoveNothingNeedNoSync accepts, against a record written without pins, a pin at the imported
 // version, with any reason, and a pin of a rule the record lists as retired, and the record never holds pins.
 func TestSnapshotPinsThatMoveNothingNeedNoSync(t *testing.T) {
-	pinned := snapshotConfig(t, `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Waiting on #45."}}`)
+	pinned := snapshotConfig(t, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/naming","version":"1.0.0","reason":"Waiting on #45."}]}`)
 	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
 	item.RetiredRules = []string{"techs/go/gone"}
@@ -170,11 +201,11 @@ func TestSnapshotPinsThatMoveNothingNeedNoSync(t *testing.T) {
 		t.Fatalf("the record holds pins:\n%s", vendor["team/_source.json"])
 	}
 	for name, fields := range map[string]string{
-		"same pin":            `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Waiting on #45."}}`,
-		"changed reason":      `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Still waiting."}}`,
-		"added pin":           `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Keep."},"techs/go/errors":{"version":"1.1.0","reason":"Keep."}}`,
-		"removed pin":         `"groups":["techs/go"]`,
-		"pin of retired rule": `"groups":["techs/go"],"pins":{"techs/go/gone":{"version":"3.0.0","reason":"Keep."}}`,
+		"same pin":            `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/naming","version":"1.0.0","reason":"Waiting on #45."}]}`,
+		"changed reason":      `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/naming","version":"1.0.0","reason":"Still waiting."}]}`,
+		"added pin":           `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/naming","version":"1.0.0","reason":"Keep."},{"id":"techs/go/errors","version":"1.1.0","reason":"Keep."}]}`,
+		"removed pin":         `"rules":{"include":["techs/go/*"]}`,
+		"pin of retired rule": `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/gone","version":"3.0.0","reason":"Keep."}]}`,
 	} {
 		if _, err := decodeSnapshots(snapshotConfig(t, fields), vendor); err != nil {
 			t.Errorf("%s: %v", name, err)
@@ -185,7 +216,7 @@ func TestSnapshotPinsThatMoveNothingNeedNoSync(t *testing.T) {
 // TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync accepts a pin or rules entry naming a rule the record lists as
 // retired.
 func TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync(t *testing.T) {
-	config := snapshotConfig(t, `"groups":["techs/go"],"rules":["practices/testing/retired"],"pins":{"techs/go/gone":{"version":"1.0.0","reason":"Keep."}}`)
+	config := snapshotConfig(t, `"rules":{"include":["techs/go/*","practices/testing/retired"],"pins":[{"id":"techs/go/gone","version":"1.0.0","reason":"Keep."}]}`)
 	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
 	item.RetiredRules, item.RuleSelection = []string{"practices/testing/retired", "techs/go/gone"}, config.Sources[0].Rules
@@ -212,10 +243,10 @@ func TestSnapshotExclusionOfAnImportedOrRetiredRuleNeedsNoSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, fields := range map[string]string{
-		"imported and retired":   `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Retired."},"techs/go/errors":{"reason":"Not for us."}}`,
-		"retired only":           `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Delete me."}}`,
-		"new imported exclusion": `"groups":["techs/go"],"exclude":{"techs/go/naming":{"reason":"Not for us.","replacedBy":"local/techs/go/naming.md"}}`,
-		"no exclusions":          `"groups":["techs/go"]`,
+		"imported and retired":   `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/gone","reason":"Retired."},{"id":"techs/go/errors","reason":"Not for us."}]}`,
+		"retired only":           `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/gone","reason":"Delete me."}]}`,
+		"new imported exclusion": `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/naming","reason":"Not for us.","replacedBy":"techs/go/naming"}]}`,
+		"no exclusions":          `"rules":{"include":["techs/go/*"]}`,
 	} {
 		if _, err := decodeSnapshots(snapshotConfig(t, fields), vendor); err != nil {
 			t.Errorf("%s: %v", name, err)
@@ -231,9 +262,9 @@ func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}`), vendor)
+	got, err := decodeSnapshots(snapshotConfig(t, `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/erorrs","reason":"Typo."}]}`), vendor)
 	var validation errs.ValidationError
-	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
 		t.Fatalf("got %v, %v; want a failure naming the entry that asks for sync", got, err)
 	}
 }
@@ -246,7 +277,11 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 	}{
 		{"missing record", func(v map[string][]byte) { delete(v, "team/_source.json") }},
 		{"missing content", func(v map[string][]byte) { delete(v, "team/LICENSE") }},
-		{"missing older rule", func(v map[string][]byte) { delete(v, "team/techs/go/naming.md") }},
+		{"missing older rule", func(v map[string][]byte) { delete(v, "team/rules/techs/go/naming.md") }},
+		{"rule outside rules/", func(v map[string][]byte) {
+			v["team/techs/go/naming.md"] = v["team/rules/techs/go/naming.md"]
+			delete(v, "team/rules/techs/go/naming.md")
+		}},
 		{"changed bytes", func(v map[string][]byte) { v["team/LICENSE"] = []byte("Terms\nPreserved\n") }},
 		{"extra content", func(v map[string][]byte) { v["team/untracked"] = []byte("x") }},
 		{"removed source", func(v map[string][]byte) { v["retired/_source.json"] = []byte("{}") }},
@@ -306,7 +341,7 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 		{"bad hash", func(r map[string]any) { r["files"].(map[string]any)["LICENSE"] = "123" }},
 		{"reserved", func(r map[string]any) { r["files"].(map[string]any)["_source.json"] = strings.Repeat("a", 64) }},
 		{"traversal", func(r map[string]any) { r["files"].(map[string]any)["../outside"] = strings.Repeat("a", 64) }},
-		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "rule-library.yaml") }},
+		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "config.yaml") }},
 		{"missing metadata", func(r map[string]any) { delete(r["files"].(map[string]any), "techs/go/_group.yaml") }},
 		{"pin with a reason", func(r map[string]any) {
 			r["pins"] = map[string]any{"techs/go/errors": map[string]any{"version": "1.1.0", "reason": "Keep."}}
@@ -338,6 +373,34 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 	}
 }
 
+// TestSnapshotOfALibraryInTheLayoutBeforeVersion2IsUnsupported explains that a record of a library's
+// rule-library.yaml needs the library to move and the source to be imported again.
+func TestSnapshotOfALibraryInTheLayoutBeforeVersion2IsUnsupported(t *testing.T) {
+	config, input := snapshotFixture(t)
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record sourceRecord
+	if err := json.Unmarshal(encoded["team/_source.json"], &record); err != nil {
+		t.Fatal(err)
+	}
+	record.Files["rule-library.yaml"] = record.Files["config.yaml"]
+	delete(record.Files, "config.yaml")
+	record.Checksum = recordChecksum(record)
+	if encoded["team/_source.json"], err = json.Marshal(record); err != nil {
+		t.Fatal(err)
+	}
+	encoded["team/rule-library.yaml"] = encoded["team/config.yaml"]
+	delete(encoded, "team/config.yaml")
+	got, err := decodeSnapshots(config, encoded)
+	var validation errs.ValidationError
+	want := "records a library in the layout from before this version of Syllabus, with rule-library.yaml, which this version can't read. Once the library has moved its files into .syllabus/ and published a library release, delete .syllabus/vendor/team/ and run syllabus project sync to import the source again, which imports its unpinned rules at their newest versions"
+	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/team/_source.json" || validation.ValidationProblem() != want {
+		t.Fatalf("got %v, %v; want %s", got, err, want)
+	}
+}
+
 // TestSnapshotFormatOneIsUnsupported tells the user to delete vendor/ and sync, for both sync and offline reads.
 func TestSnapshotFormatOneIsUnsupported(t *testing.T) {
 	config, _ := snapshotFixture(t)
@@ -347,7 +410,7 @@ func TestSnapshotFormatOneIsUnsupported(t *testing.T) {
 		"sync":    func() error { _, err := recordedSnapshots(config, vendor); return err },
 	} {
 		var validation errs.ValidationError
-		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .code-rules/vendor/ and run code-rules project sync") {
+		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .syllabus/vendor/ and run syllabus project sync") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
@@ -361,7 +424,7 @@ func TestRecordedSnapshotsReadRecordsWithoutCheckingConfiguration(t *testing.T) 
 		t.Fatal(err)
 	}
 	vendor["team/LICENSE"] = []byte("Edited copy, which sync replaces.")
-	changed := snapshotConfig(t, `"groups":"*"`)
+	changed := snapshotConfig(t, `"rules":{"include":["*"]}`)
 	recorded, err := recordedSnapshots(changed, vendor)
 	if err != nil {
 		t.Fatal(err)
@@ -379,7 +442,7 @@ func TestRecordedSnapshotsReadRecordsWithoutCheckingConfiguration(t *testing.T) 
 // TestSnapshotRefChecks verifies what offline checks can about ref: the commit a SHA names, the library release
 // a release tag names, and no library release for any other tag.
 func TestSnapshotRefChecks(t *testing.T) {
-	one := coderules.RuleVersion{Major: 1}
+	one := syllabus.RuleVersion{Major: 1}
 	for _, test := range []struct {
 		name, ref string
 		release   int
@@ -397,8 +460,8 @@ func TestSnapshotRefChecks(t *testing.T) {
 		{"other tag with a library release", "candidate", 2, releaseTwo, map[string]library.ImportedRule{"techs/go/errors": {Version: &one, Release: 1, Commit: releaseOne}}, false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			config := snapshotConfig(t, `"groups":["techs/go"],"ref":"`+test.ref+`"`)
-			files := map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{}`)}
+			config := snapshotConfig(t, `"rules":{"include":["techs/go/*"]},"ref":"`+test.ref+`"`)
+			files := map[string][]byte{"config.yaml": []byte(`{"schemaVersion":2,"sources":{},"library":{}}`), "techs/go/_group.yaml": []byte(`{}`)}
 			item := snapshot{Repository: config.Sources[0].Repository, Ref: gitRef(t, test.ref), Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
 			_, err := encodeSnapshots(config, map[string]snapshot{"team": item})
 			if (err == nil) != test.ok {
@@ -411,7 +474,7 @@ func TestSnapshotRefChecks(t *testing.T) {
 // TestSnapshotRefWrittenAnotherWayNeedsNoSync accepts a record of release/2 for a source that now writes the same ref
 // as refs/tags/release/2, and still asks for sync when the ref names another library release.
 func TestSnapshotRefWrittenAnotherWayNeedsNoSync(t *testing.T) {
-	recorded := snapshotConfig(t, `"groups":["techs/go"],"ref":"release/2"`)
+	recorded := snapshotConfig(t, `"rules":{"include":["techs/go/*"]},"ref":"release/2"`)
 	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
 	item.Ref = gitRef(t, "release/2")
@@ -419,10 +482,10 @@ func TestSnapshotRefWrittenAnotherWayNeedsNoSync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"ref":"refs/tags/release/2"`), vendor); err != nil {
+	if _, err := decodeSnapshots(snapshotConfig(t, `"rules":{"include":["techs/go/*"]},"ref":"refs/tags/release/2"`), vendor); err != nil {
 		t.Fatal(err)
 	}
-	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"ref":"refs/tags/release/3"`), vendor)
+	got, err := decodeSnapshots(snapshotConfig(t, `"rules":{"include":["techs/go/*"]},"ref":"refs/tags/release/3"`), vendor)
 	requireSync(t, got, err)
 }
 
@@ -492,5 +555,116 @@ func TestSnapshotWildcardScope(t *testing.T) {
 	snapshots["team"] = item
 	if got, err := encodeSnapshots(config, snapshots); got != nil || err == nil {
 		t.Fatal("accepted technology group for practices wildcard")
+	}
+}
+
+// skillSnapshots returns a library source, team, that installs skills/build with an executable script, and a source
+// that isn't a library, tools, that installs tools/review from a pinned commit.
+func skillSnapshots(t *testing.T) (rules.Configuration, map[string]snapshot) {
+	t.Helper()
+	_, snapshots := snapshotFixture(t)
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","rules":{"include":["techs/go/*"]},"skills":{"include":["skills/build"]}},"tools":{"repository":"https://github.com/acme/tools","ref":"` + releaseOne + `","skills":{"include":["*"]}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	team := snapshots["team"]
+	team.SkillSelection = []string{"skills/build"}
+	team.Skills = map[string]library.ImportedSkill{"skills/build": {Level: "offered", Included: true, UsedBy: []string{}}}
+	team.AvailableSkills = map[string]library.ImportedSkill{"skills/build": {Level: "offered"}, "skills/deploy": {Level: "recommended"}}
+	team.Files["skills/build/SKILL.md"] = []byte("---\nname: build\n---\n")
+	team.Files["skills/build/run.sh"] = []byte("#!/bin/sh\n")
+	team.Executable = []string{"skills/build/run.sh"}
+	return config, map[string]snapshot{"team": team, "tools": {Repository: "https://github.com/acme/tools", Ref: gitRef(t, releaseOne), Commit: releaseOne, NonLibrary: true, Selection: rules.GroupSelection{Groups: []string{}},
+		RetiredRules: []string{}, Groups: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, SkillSelection: []string{"*"},
+		Skills: map[string]library.ImportedSkill{"tools/review": {Included: true, UsedBy: []string{}}}, AvailableSkills: map[string]library.ImportedSkill{"tools/review": {}, "tools/.hidden": {}}, Executable: []string{}, Files: map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")}}}
+}
+
+func TestSnapshotsRoundTripSkillsAndSourcesThatAreNotLibraries(t *testing.T) {
+	config, input := skillSnapshots(t)
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := decodeSnapshots(config, encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, input) {
+		t.Fatalf("round trip:\n%+v\nwant\n%+v", got, input)
+	}
+	if !strings.Contains(string(encoded["tools/_source.json"]), `"kind": "non-library"`) || !strings.Contains(string(encoded["tools/_source.json"]), `"level": null`) {
+		t.Fatalf("record:\n%s", encoded["tools/_source.json"])
+	}
+	if err := verifyExecutable(got, &filetxn.Tree{Files: map[string][]byte{}, Executable: []string{"team/skills/build/run.sh"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyExecutable(got, &filetxn.Tree{Files: map[string][]byte{}}); err == nil || !strings.Contains(err.Error(), "vendor/team/skills/build/run.sh") {
+		t.Fatalf("got %v; want the vendored script's lost executable bit reported", err)
+	}
+}
+
+func TestSnapshotRecordsRejectInvalidSkills(t *testing.T) {
+	tests := map[string]struct {
+		source string
+		edit   func(*sourceRecord)
+		want   string
+	}{
+		"library skill without a level": {"team", func(r *sourceRecord) { r.Skills["skills/build"] = recordSkill{} }, "with level required, recommended, or offered"},
+		"unknown level": {"team", func(r *sourceRecord) {
+			mandatory := "mandatory"
+			r.AvailableSkills["skills/deploy"] = availableSkill{Level: &mandatory}
+		}, "with level required, recommended, or offered"},
+		"skill that isn't available": {"team", func(r *sourceRecord) { delete(r.AvailableSkills, "skills/build") }, "expected one of availableSkills"},
+		"level that differs from the available skill's": {"team", func(r *sourceRecord) {
+			required := "required"
+			r.Skills["skills/build"] = recordSkill{Level: &required}
+		}, "with the same level"},
+		"library skill outside skills/": {"team", func(r *sourceRecord) {
+			r.Skills["tools/build"] = r.Skills["skills/build"]
+			r.Files["tools/build/SKILL.md"] = r.Files["skills/build/SKILL.md"]
+		}, "with level required, recommended, or offered"},
+		"other repository's skill with a level": {"tools", func(r *sourceRecord) { offered := "offered"; r.Skills["tools/review"] = recordSkill{Level: &offered} }, "with a null level"},
+		"nested skill": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/review/inner"] = recordSkill{}
+			r.Files["tools/review/inner/SKILL.md"] = r.Files["tools/review/SKILL.md"]
+		}, "inside another skill's folder"},
+		"skill without SKILL.md": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/other"], r.AvailableSkills["tools/other"] = recordSkill{Included: true, UsedBy: []string{}}, availableSkill{}
+		}, "missing the skill's SKILL.md"},
+		"executable file outside a skill": {"team", func(r *sourceRecord) { r.Executable = []string{"techs/go/errors.md"} }, "expected distinct skill files"},
+		"unknown kind":                    {"team", func(r *sourceRecord) { r.Kind = "plugin" }, "expected library or non-library"},
+		"non-library record with groups": {"tools", func(r *sourceRecord) {
+			r.Groups = []string{"techs/go"}
+		}, "has no library release, groups, or rules"},
+		"non-library file outside its skills": {"tools", func(r *sourceRecord) { r.Files["README.md"] = r.Files["tools/review/SKILL.md"] }, "belongs to no recorded skill"},
+		"skill neither included nor used":     {"tools", func(r *sourceRecord) { r.Skills["tools/review"] = recordSkill{UsedBy: []string{}} }, "recorded only because other skills use it"},
+		"used by an unrecorded skill": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/review"] = recordSkill{Included: true, UsedBy: []string{"tools/gone"}}
+		}, "expected distinct other recorded skills"},
+		"used by itself": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/review"] = recordSkill{Included: true, UsedBy: []string{"tools/review"}}
+		}, "expected distinct other recorded skills"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			config, input := skillSnapshots(t)
+			vendor, err := encodeSnapshots(config, input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var record sourceRecord
+			if err := json.Unmarshal(vendor[test.source+"/_source.json"], &record); err != nil {
+				t.Fatal(err)
+			}
+			test.edit(&record)
+			record.Checksum = recordChecksum(record)
+			if vendor[test.source+"/_source.json"], err = json.Marshal(record); err != nil {
+				t.Fatal(err)
+			}
+			_, err = decodeSnapshots(config, vendor)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("got %v; want %q", err, test.want)
+			}
+		})
 	}
 }

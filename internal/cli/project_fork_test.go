@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // forkFixture is a project synced at a library's release/1, which publishes techs/go/errors, linking to a shared
@@ -26,14 +26,14 @@ type forkFixture struct {
 func newForkFixture(t *testing.T) forkFixture {
 	t.Helper()
 	ctx := context.Background()
-	f, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":             []byte(`{"formatVersion":1}`),
+	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                   []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 		"techs/go/_group.yaml":          []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
-		"techs/go/errors.md":            updateRule("Read [the guide](../../assets/guide.md)."),
+		"techs/go/errors.md":            updateRule("Read [the guide](../../../assets/guide.md)."),
 		"practices/testing/_group.yaml": []byte(`{"name":"Testing","description":"Tests.","whenToRead":"When testing."}`),
 		"practices/testing/verify.md":   updateRule("Verify."),
 		"assets/guide.md":               []byte("Guide.\n"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,11 +45,11 @@ func newForkFixture(t *testing.T) forkFixture {
 	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	u.write(t, "config.yaml", "schemaVersion: 1\nsources:\n  team:\n    repository: "+f.Repository+"\n    groups:\n      - techs/go\n")
+	u.write(t, "config.yaml", "schemaVersion: 2\nsources:\n  team:\n    repository: "+f.Repository+"\n    rules:\n      include:\n        - techs/go/*\n")
 	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": updateRule("Wrap errors.")}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(map[string][]byte{"techs/go/errors.md": updateRule("Wrap errors.")})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
@@ -58,10 +58,10 @@ func newForkFixture(t *testing.T) forkFixture {
 	return forkFixture{u}
 }
 
-// read returns a file of the project's Code Rules directory, or nil when it's missing.
+// read returns a file of the project's Syllabus directory, or nil when it's missing.
 func (f forkFixture) read(t *testing.T, name string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(f.directory, ".code-rules", name))
+	data, err := os.ReadFile(filepath.Join(f.directory, ".syllabus", name))
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
@@ -76,19 +76,19 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if code != 0 || diagnostic != "" {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .code-rules/local/techs/go/assets/errors/guide.md\n  .code-rules/local/techs/go/errors.md\nChanged:\n  .code-rules/config.yaml\n\n" +
+	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .syllabus/rules/techs/go/assets/errors/guide.md\n  .syllabus/rules/techs/go/errors.md\nChanged:\n  .syllabus/config.yaml\n\n" +
 		"Next: Edit the forked rule to change what it says. A fork has no version: it changes\n" +
 		"only when you edit it. The library's license still applies to the copied text.\n" +
 		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement,\n" +
-		"based on 1.0.0; code-rules project update lists the library's later changes to it.\n\n" +
-		"Then rebuild this project's guidance:\n  code-rules project build\n  code-rules project check\n"
+		"based on 1.0.0; syllabus project update lists the library's later changes to it.\n\n" +
+		"Then rebuild this project's guidance:\n  syllabus project build\n  syllabus project check\n"
 	if out != want {
 		t.Fatalf("output:\n%s\nwant:\n%s", out, want)
 	}
-	if got := string(f.read(t, "local/techs/go/errors.md")); got != string(updateRule("Read [the guide](assets/errors/guide.md).")) {
+	if got := string(f.read(t, "rules/techs/go/errors.md")); got != string(updateRule("Read [the guide](assets/errors/guide.md).")) {
 		t.Fatalf("fork %q", got)
 	}
-	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n      techs/go/errors:\n        reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
+	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n        - id: techs/go/errors\n          reason: Our wording.\n          replacedBy: techs/go/errors\n          basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", f.read(t, "config.yaml"))
 	}
 	for _, command := range [][]string{{"project", "build"}, {"project", "check"}} {
@@ -125,7 +125,7 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	}
 	config := string(f.read(t, "config.yaml"))
 	forked := run(0, "practices/testing/verify", "--from", "team@1.0.0")
-	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text.", Commands: []string{}}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
+	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text.", Commands: []string{}}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"syllabus project build", "syllabus project check"}}}
 	if !forked.OK || len(forked.Value.Added) != 3 || len(forked.Value.Changed) != 0 || !reflect.DeepEqual(forked.Value.NextSteps, steps) || string(f.read(t, "config.yaml")) != config {
 		t.Fatalf("fork %+v, configuration:\n%s", forked, f.read(t, "config.yaml"))
 	}
@@ -196,7 +196,7 @@ func TestForkRule_AsksForTheReasonInATerminal(t *testing.T) {
 	if err != nil || result.ExitCode != 0 || !strings.Contains(result.Stdout, "Rule forked from team 1.1.0, published in library release 2.") {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
-	if !strings.Contains(string(f.read(t, "config.yaml")), "reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n") || string(f.read(t, "local/techs/go/errors.md")) != string(updateRule("Wrap errors.")) {
+	if !strings.Contains(string(f.read(t, "config.yaml")), "reason: Our wording.\n          replacedBy: techs/go/errors\n") || string(f.read(t, "rules/techs/go/errors.md")) != string(updateRule("Wrap errors.")) {
 		t.Fatalf("configuration:\n%s", f.read(t, "config.yaml"))
 	}
 }

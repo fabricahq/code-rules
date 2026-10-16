@@ -12,10 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // releaseOne publishes rules a and b at 1.0.0, as the first library release must.
@@ -29,7 +30,7 @@ func ruleText(guidance string) string {
 // libraryFiles is a library with one group, rule a with its own asset, and rule b.
 func libraryFiles() map[string][]byte {
 	return map[string][]byte{
-		"rule-library.yaml":                     []byte("formatVersion: 1\n"),
+		"config.yaml":                           []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n"),
 		"practices/testing/_group.yaml":         []byte("name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n"),
 		"practices/testing/a.md":                []byte(ruleText("Test the retry limit.")),
 		"practices/testing/assets/a/example.go": []byte("package example\n"),
@@ -37,12 +38,13 @@ func libraryFiles() map[string][]byte {
 	}
 }
 
-// authorClone returns a library author's full clone of a fixture holding files, and options that check it.
+// authorClone returns a library author's full clone of a fixture holding files, keyed by library path, and options
+// that check it.
 // Each tag message in tags is applied, in order, to the fixture's latest commit before cloning.
 func authorClone(t *testing.T, files map[string][]byte, tags ...string) (*gitfixture.Fixture, Options) {
 	t.Helper()
 	ctx := context.Background()
-	fixture, err := gitfixture.New(ctx, files)
+	fixture, err := gitfixture.New(ctx, gitfixture.Library(files))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,11 +65,11 @@ func authorClone(t *testing.T, files map[string][]byte, tags ...string) (*gitfix
 	return fixture, Options{Directory: dir, Git: gitexec.Options{GitPath: fixture.GitPath, Environment: fixture.Environment}}
 }
 
-// edit writes each file in dir, removing those mapped to "".
+// edit writes each file in the library repository at dir, keyed by library path, removing those mapped to "".
 func edit(t *testing.T, dir string, files map[string]string) {
 	t.Helper()
 	for name, content := range files {
-		path := filepath.Join(dir, filepath.FromSlash(name))
+		path := filepath.Join(dir, filepath.FromSlash(librarytree.RepositoryPath(name)))
 		if content == "" {
 			if err := os.RemoveAll(path); err != nil {
 				t.Fatal(err)
@@ -145,7 +147,7 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 	}{
 		{name: "unchanged library", rows: []string{}},
 		{name: "changed rule without a note", files: map[string]string{"practices/testing/a.md": changedA},
-			problems: []string{"practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: code-rules library change practices/testing/a"}},
+			problems: []string{"practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: syllabus library change practices/testing/a"}},
 		{name: "changed rule asset without a note", files: map[string]string{"practices/testing/assets/a/example.go": "package changed\n"},
 			problems: []string{"practices/testing/a changed since release/1"}},
 		{name: "added rule asset without a note", files: map[string]string{"practices/testing/assets/a/more.go": "package more\n"},
@@ -157,11 +159,11 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 		{name: "largest of several notes", files: map[string]string{"practices/testing/a.md": changedA, "changes/one.yaml": "summary: Fix a typo.\nrules:\n  practices/testing/a: patch\n", "changes/two.yaml": "summary: Require a test past the limit.\nrules:\n  practices/testing/a: major\n"},
 			rows: []string{"practices/testing/a major 1.0.0 2.0.0"}},
 		{name: "new rule without a note", files: map[string]string{"practices/testing/c.md": ruleC},
-			problems: []string{"practices/testing/c is a new rule, and no pending change note names it. Record it with: code-rules library change practices/testing/c"}},
+			problems: []string{"practices/testing/c is a new rule, and no pending change note names it. Record it with: syllabus library change practices/testing/c"}},
 		{name: "new rule with a note", files: map[string]string{"practices/testing/c.md": ruleC, "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n"},
 			rows: []string{"practices/testing/c new - 1.0.0"}},
 		{name: "deleted rule without a retirement", files: map[string]string{"practices/testing/b.md": ""},
-			problems: []string{"practices/testing/b, version 1.0.0, was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change practices/testing/b --retire"}},
+			problems: []string{"practices/testing/b, version 1.0.0, was deleted, and no pending change note retires it. Restore it, or record the retirement with: syllabus library change practices/testing/b --retire"}},
 		{name: "rename", files: map[string]string{"practices/testing/b.md": "", "practices/testing/c.md": ruleC, "changes/rename.yaml": "summary: Rename b.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/c\n  practices/testing/c: new\n"},
 			rows: []string{"practices/testing/b retired 1.0.0 - replacedBy practices/testing/c", "practices/testing/c new - 1.0.0"}},
 		{name: "retirement outweighs a change", files: map[string]string{"practices/testing/b.md": "", "changes/one.yaml": "summary: Fix b.\nrules:\n  practices/testing/b: patch\n", "changes/two.yaml": "summary: Stop testing backoff.\nrules:\n  practices/testing/b: retired\n"},
@@ -224,13 +226,13 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 func TestCheck_ComparesCommittedChangesWithTheReleaseTag(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	if _, err := fixture.Commit(ctx, options.Directory, "Change a", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Change a", gitfixture.Library(map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Check(ctx, options); errorCode(err) != "change-notes" || !strings.Contains(err.Error(), "practices/testing/a changed since release/1") {
 		t.Fatalf("committed change passed: %v", err)
 	}
-	if _, err := fixture.Commit(ctx, options.Directory, "Record a", map[string][]byte{"changes/a.yaml": []byte("summary: Change a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Record a", gitfixture.Library(map[string][]byte{"changes/a.yaml": []byte("summary: Change a.\nrules:\n  practices/testing/a: patch\n")})); err != nil {
 		t.Fatal(err)
 	}
 	result, err := Check(ctx, options)
@@ -246,7 +248,7 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 	dir := options.Directory
 	// Release 2 changes a, retires b, and publishes the note that records both.
 	note := "summary: Tighten a and retire b.\nrules:\n  practices/testing/a: major\n  practices/testing/b: retired\n"
-	if _, err := fixture.Commit(ctx, dir, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Stricter.")), "practices/testing/b.md": nil, "changes/two.yaml": []byte(note)}); err != nil {
+	if _, err := fixture.Commit(ctx, dir, "Release 2", gitfixture.Library(map[string][]byte{"practices/testing/a.md": []byte(ruleText("Stricter.")), "practices/testing/b.md": nil, "changes/two.yaml": []byte(note)})); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summaries:\n      - Tighten a and retire b.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summaries:\n      - Tighten a and retire b.\n"
@@ -257,7 +259,7 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 	if _, err := fixture.CommandIn(ctx, dir, "switch", "--quiet", "--create", "elsewhere"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := fixture.Commit(ctx, dir, "Elsewhere", map[string][]byte{"README.md": []byte("elsewhere\n")}); err != nil {
+	if _, err := fixture.Commit(ctx, dir, "Elsewhere", gitfixture.Library(map[string][]byte{"README.md": []byte("elsewhere\n")})); err != nil {
 		t.Fatal(err)
 	}
 	three := "Library release 3.\n---\nformatVersion: 1\nrelease: 3\nrules:\n  practices/testing/a: 2.0.0\n"
@@ -295,7 +297,7 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 func TestCheck_OnlyWarnsAboutAnInvalidEditToAPublishedNote(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", gitfixture.Library(map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")})); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summaries:\n      - Fix a.\n"
@@ -318,7 +320,7 @@ func TestCheck_OnlyWarnsAboutAnInvalidEditToAPublishedNote(t *testing.T) {
 func TestCheck_WarnsAboutADeletedPublishedNote(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", gitfixture.Library(map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")})); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summaries:\n      - Fix a.\n"
@@ -340,7 +342,7 @@ func TestCheck_WarnsWhenARetirementRetiresAnEarlierReplacement(t *testing.T) {
 	files := libraryFiles()
 	files["practices/testing/c.md"] = []byte(ruleText("Test everything about retries."))
 	fixture, options := authorClone(t, files, strings.Replace(releaseOne, "  practices/testing/b: 1.0.0\n", "  practices/testing/b: 1.0.0\n  practices/testing/c: 1.0.0\n", 1)+"  practices/testing/c:\n    change: new\n    summaries:\n      - Add c.\n")
-	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/b.md": nil, "changes/two.yaml": []byte("summary: Fold b into a.\nrules:\n  practices/testing/b: {change: retired, replacedBy: practices/testing/a}\n")}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", gitfixture.Library(map[string][]byte{"practices/testing/b.md": nil, "changes/two.yaml": []byte("summary: Fold b into a.\nrules:\n  practices/testing/b: {change: retired, replacedBy: practices/testing/a}\n")})); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/c: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/a\n    summaries:\n      - Fold b into a.\n"
@@ -371,7 +373,7 @@ func TestCheck_IgnoresLineEndingConversion(t *testing.T) {
 	files := libraryFiles()
 	files[".gitattributes"] = []byte("*.md text eol=crlf\n")
 	_, options := authorClone(t, files, releaseOne)
-	data, err := os.ReadFile(filepath.Join(options.Directory, "practices/testing/a.md"))
+	data, err := os.ReadFile(filepath.Join(options.Directory, librarytree.RepositoryPath("practices/testing/a.md")))
 	if err != nil || !strings.Contains(string(data), "\r\n") {
 		t.Fatalf("checkout kept LF line endings: %q %v", data, err)
 	}
@@ -508,7 +510,7 @@ func TestCheck_RejectsFilesThatArentNotesInChanges(t *testing.T) {
 				edit(t, options.Directory, map[string]string{name: string(content)})
 			}
 			edit(t, options.Directory, files)
-			if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "expected only change notes, as .yaml files, in changes/") {
+			if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "expected only change notes, as .yaml files, in .syllabus/changes/") {
 				t.Fatal(err)
 			}
 		})
@@ -520,26 +522,26 @@ func TestCheck_RejectsFilesThatArentNotesInChanges(t *testing.T) {
 // license edit as a rule change.
 func TestCheck_RejectsTermsInsideARulesVersion(t *testing.T) {
 	files := libraryFiles()
-	files["rule-library.yaml"] = []byte("formatVersion: 1\nlicense:\n  file: practices/testing/assets/a/LICENSE\n  notices: []\n")
+	files["config.yaml"] = []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    file: .syllabus/rules/practices/testing/assets/a/LICENSE\n    notices: []\n")
 	files["practices/testing/assets/a/LICENSE"] = []byte("Terms.\n")
 	for name, tags := range map[string][]string{"before the first library release": nil, "after a library release": {releaseOne}} {
 		t.Run(name, func(t *testing.T) {
 			_, options := authorClone(t, files, tags...)
 			_, err := Check(context.Background(), options)
 			var invalid errs.ValidationError
-			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.ValidationLocation(), "rule-library.yaml: license.file") || !strings.Contains(invalid.ValidationProblem(), "belongs to a rule's version") {
+			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.ValidationLocation(), ".syllabus/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "belongs to a rule's version") {
 				t.Fatalf("got %v; want the license path refused", err)
 			}
 		})
 	}
 }
 
-// TestCheck_AsksToUpgradeForANewerReleaseRecordFormat refuses a library release whose record a later Code Rules
+// TestCheck_AsksToUpgradeForANewerReleaseRecordFormat refuses a library release whose record a later Syllabus
 // wrote, with its own code.
 func TestCheck_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	_, options := authorClone(t, libraryFiles(), strings.Replace(releaseOne, "formatVersion: 1", "formatVersion: 2", 1))
 	_, err := Check(context.Background(), options)
-	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Code Rules") {
+	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Syllabus") {
 		t.Fatalf("got %v", err)
 	}
 }

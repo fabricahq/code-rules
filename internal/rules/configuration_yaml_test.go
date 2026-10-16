@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -53,14 +53,15 @@ func TestYAMLConfigurationMatchesValidSchemaFixtures(t *testing.T) {
 
 func TestYAMLConfigurationRejectsAmbiguousInput(t *testing.T) {
 	for name, input := range map[string]string{
-		"empty": "", "nonobject": "[]", "duplicate": "schemaVersion: 1\nschemaVersion: 1\nsources: {}",
-		"unknown": "schemaVersion: 1\nsources: {}\nextra: true", "multiple": "schemaVersion: 1\nsources: {}\n---\nschemaVersion: 1\nsources: {}",
-		"anchor": "schemaVersion: 1\nsources: &sources {}", "alias": "schemaVersion: 1\nsources: *sources",
-		"tag": "schemaVersion: !!int 1\nsources: {}", "merge": "schemaVersion: 1\nsources: {<<: {}}",
-		"nonstringkey": "schemaVersion: 1\nsources: {123: {}}", "null": "schemaVersion: 1\nsources: null",
-		"infinity": "schemaVersion: .inf\nsources: {}", "utf8": "schemaVersion: 1\nsources: {}\n#\xff",
-		"deep":           "schemaVersion: 1\nsources: " + strings.Repeat("[", 40) + strings.Repeat("]", 40),
-		"duplicatealias": "schemaVersion: 1\nsources: {team: {}, team: {}}",
+		"empty": "", "nonobject": "[]", "duplicate": "schemaVersion: 2\nschemaVersion: 2\nsources: {}",
+		"unknown": "schemaVersion: 2\nsources: {}\nextra: true", "multiple": "schemaVersion: 2\nsources: {}\n---\nschemaVersion: 2\nsources: {}",
+		"anchor": "schemaVersion: 2\nsources: &sources {}", "alias": "schemaVersion: 2\nsources: *sources",
+		"tag": "schemaVersion: !!int 2\nsources: {}", "merge": "schemaVersion: 2\nsources: {<<: {}}",
+		"nonstringkey": "schemaVersion: 2\nsources: {123: {}}", "null": "schemaVersion: 2\nsources: null",
+		"infinity": "schemaVersion: .inf\nsources: {}", "utf8": "schemaVersion: 2\nsources: {}\n#\xff",
+		"deep":           "schemaVersion: 2\nsources: " + strings.Repeat("[", 40) + strings.Repeat("]", 40),
+		"duplicatealias": "schemaVersion: 2\nsources: {team: {}, team: {}}",
+		"version 1":      "schemaVersion: 1\nsources: {}",
 	} {
 		t.Run(name, func(t *testing.T) {
 			got, err := rules.ParseConfigurationYAML([]byte(input))
@@ -74,20 +75,19 @@ func TestYAMLConfigurationRejectsAmbiguousInput(t *testing.T) {
 // TestAppendConfigurationSource preserves authored presentation while validating the edited document.
 func TestAppendConfigurationSource(t *testing.T) {
 	input := []byte(`# Project guidance
-schemaVersion: 1
+schemaVersion: 2
 sources:
   existing:
     repository: 'https://github.com/acme/existing.git' # keep the selected library
     ref: 'v0.0.9'
-    groups: '*'
-    exclude: {}
+    rules: {include: ['*'], exclude: []}
 `)
 	source := rules.Source{Repository: "https://github.com/acme/added.git", Ref: ref(t, "v0.1.0"), Groups: rules.GroupSelection{Pattern: "*"}}
 	out, err := rules.AppendConfigurationSource(input, "added", source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "ref: 'v0.0.9'", "groups: '*'"} {
+	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "ref: 'v0.0.9'", "rules: {include: ['*'], exclude: []}"} {
 		if !strings.Contains(string(out), retained) {
 			t.Fatalf("lost authored presentation %q:\n%s", retained, out)
 		}
@@ -107,7 +107,7 @@ sources:
 func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 	for _, header := range []string{">", ">-", ">+"} {
 		t.Run(header, func(t *testing.T) {
-			input := []byte("schemaVersion: 1\nsources:\n  existing:\n    repository: https://example.invalid/existing.git\n    ref: v1.0.0\n    groups: '*'\n    exclude:\n      techs/go/old:\n        reason: " + header + " # keep this reason\n          Heading:\n\n            * first item\n            * second item\n\n")
+			input := []byte("schemaVersion: 2\nsources:\n  existing:\n    repository: https://example.invalid/existing.git\n    ref: v1.0.0\n    rules:\n      include: ['*']\n      exclude:\n        - id: techs/go/old\n          reason: " + header + " # keep this reason\n            Heading:\n\n              * first item\n              * second item\n\n")
 			before, err := rules.ParseConfigurationYAML(input)
 			if err != nil {
 				t.Fatal(err)
@@ -137,11 +137,11 @@ func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 	}
 }
 
-// TestAppendConfigurationSourceWritesEverySuppliedField round-trips selections, pins, and exclusions,
-// omitting empty fields and groups when only individual rules are selected.
+// TestAppendConfigurationSourceWritesEverySuppliedField round-trips selections, pins, and exclusions, writing the
+// wildcard, then groups as selectors, then rules in rules.include, and omitting empty fields.
 func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
-	input := []byte("schemaVersion: 1\nsources: {}\n")
-	pinned, err := coderules.ParseRuleVersion("1.3.0", "version")
+	input := []byte("schemaVersion: 2\nsources: {}\n")
+	pinned, err := syllabus.ParseRuleVersion("1.3.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,25 +152,34 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 	}{
 		"rules only": {
 			source:  rules.Source{Repository: "https://example.invalid/rules.git", Groups: rules.GroupSelection{Groups: []string{}}, Rules: []string{"practices/testing/verify-retry-limits", "techs/go/wrap-errors"}},
-			written: []string{"rules:\n      - practices/testing/verify-retry-limits\n      - techs/go/wrap-errors\n"},
-			omitted: []string{"groups:", "ref:", "pins:", "exclude:"},
+			written: []string{"    rules:\n      include:\n        - practices/testing/verify-retry-limits\n        - techs/go/wrap-errors\n"},
+			omitted: []string{"ref:", "pins:", "exclude:"},
 		},
 		"ref": {
 			source:  rules.Source{Repository: "https://example.invalid/rules.git", Ref: ref(t, "release/5"), Groups: rules.GroupSelection{Groups: []string{"techs/go"}}},
-			written: []string{"groups:\n      - techs/go\n", "ref: release/5\n"},
-			omitted: []string{"rules:", "pins:", "exclude:"},
+			written: []string{"    ref: release/5\n    rules:\n      include:\n        - techs/go/*\n"},
+			omitted: []string{"pins:", "exclude:"},
+		},
+		"wildcard, groups, and rules": {
+			source:  rules.Source{Repository: "https://example.invalid/rules.git", Groups: rules.GroupSelection{Pattern: "practices/*", Groups: []string{"techs/go", "techs/react"}}, Rules: []string{"techs/python/typed"}},
+			written: []string{"      include:\n        - practices/*\n        - techs/go/*\n        - techs/react/*\n        - techs/python/typed\n"},
+			omitted: []string{"ref:", "pins:", "exclude:"},
 		},
 		"pins and exclusions": {
 			source: rules.Source{
-				Repository: "https://example.invalid/rules.git", Groups: rules.GroupSelection{Pattern: "*"},
+				Repository: "https://example.invalid/rules.git", Groups: rules.GroupSelection{Pattern: "*", Groups: []string{}},
 				Pins: map[string]rules.Pin{"techs/go/a": {Version: pinned, Reason: "Waiting on review."}},
 				Exclude: map[string]rules.Exclusion{
-					"techs/go/b": {Reason: "Not applicable."},
-					"techs/go/c": {Reason: "Project policy.", ReplacedBy: "local/techs/go/c.md"},
+					"techs/go/b":    {Reason: "Not applicable."},
+					"techs/go/c":    {Reason: "Project policy.", ReplacedBy: "techs/go/c"},
+					"techs/react/*": {Reason: "No frontend."},
 				},
 			},
-			written: []string{"version: \"1.3.0\"\n", "replacedBy: local/techs/go/c.md\n"},
-			omitted: []string{"rules:", "ref:"},
+			written: []string{
+				"      pins:\n        - id: techs/go/a\n          version: \"1.3.0\"\n          reason: Waiting on review.\n",
+				"      exclude:\n        - id: techs/go/b\n          reason: Not applicable.\n        - id: techs/go/c\n          reason: Project policy.\n          replacedBy: techs/go/c\n        - id: techs/react/*\n",
+			},
+			omitted: []string{"ref:"},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -203,6 +212,15 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			if want.Exclude == nil {
 				want.Exclude = map[string]rules.Exclusion{}
 			}
+			if want.Skills == nil {
+				want.Skills = []string{}
+			}
+			if want.SkillUses == nil {
+				want.SkillUses = map[string][]string{}
+			}
+			if want.SkillExclude == nil {
+				want.SkillExclude = map[string]rules.SkillExclusion{}
+			}
 			if len(got.Sources) != 1 || !reflect.DeepEqual(got.Sources[0], want) {
 				t.Fatalf("got %+v; want %+v\n%s", got.Sources, want, out)
 			}
@@ -212,9 +230,50 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 
 // TestAppendConfigurationSourceValidatesInputFirst preserves errors from the existing document.
 func TestAppendConfigurationSourceValidatesInputFirst(t *testing.T) {
-	for _, input := range []string{"schemaVersion: 1", "schemaVersion: 1\nsources: []", "schemaVersion: 1\nsources: {}\nsources: {}"} {
+	for _, input := range []string{"schemaVersion: 2", "schemaVersion: 2\nsources: []", "schemaVersion: 2\nsources: {}\nsources: {}", "schemaVersion: 1\nsources: {}"} {
 		_, want := rules.ParseConfigurationYAML([]byte(input))
 		out, got := rules.AppendConfigurationSource([]byte(input), "invalid alias", rules.Source{})
+		if want == nil || got == nil || got.Error() != want.Error() || out != nil {
+			t.Fatalf("input error lost: output %s, got %v, want %v", out, got, want)
+		}
+	}
+}
+
+// TestAppendConfigurationLibrary adds a library section after a project's sources, keeping their presentation, and
+// refuses a second section and an invalid one.
+func TestAppendConfigurationLibrary(t *testing.T) {
+	input := []byte(`# Project guidance
+schemaVersion: 2
+sources:
+  existing:
+    repository: 'https://github.com/acme/existing.git' # keep the selected library
+    rules: {include: ['*']}
+`)
+	out, err := rules.AppendConfigurationLibrary(input, map[string]any{"license": map[string]any{"spdxExpression": "MIT", "file": "LICENSE.md", "notices": []string{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "rules: {include: ['*']}"} {
+		if !strings.Contains(string(out), retained) {
+			t.Fatalf("lost authored presentation %q:\n%s", retained, out)
+		}
+	}
+	if strings.Index(string(out), "sources:") > strings.Index(string(out), "library:") {
+		t.Fatalf("library section precedes the sources:\n%s", out)
+	}
+	got, err := rules.ParseConfigurationYAML(out)
+	if err != nil || len(got.Sources) != 1 || got.Library == nil || got.Library.License == nil || *got.Library.License.SPDXExpression != "MIT" {
+		t.Fatalf("invalid appended library section: %+v, %v", got, err)
+	}
+	if again, err := rules.AppendConfigurationLibrary(out, map[string]any{}); err == nil || again != nil || err.Error() != "library: the configuration already has a library section" {
+		t.Fatalf("accepted a second library section: %s, %v", again, err)
+	}
+	if invalid, err := rules.AppendConfigurationLibrary(input, map[string]any{"skills": map[string]any{"required": "skills/ship"}}); err == nil || invalid != nil {
+		t.Fatalf("accepted an invalid library section: %s, %v", invalid, err)
+	}
+	for _, input := range []string{"schemaVersion: 2", "schemaVersion: 1\nsources: {}"} {
+		_, want := rules.ParseConfigurationYAML([]byte(input))
+		out, got := rules.AppendConfigurationLibrary([]byte(input), map[string]any{})
 		if want == nil || got == nil || got.Error() != want.Error() || out != nil {
 			t.Fatalf("input error lost: output %s, got %v, want %v", out, got, want)
 		}

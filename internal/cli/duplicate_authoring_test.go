@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 func TestDuplicateAuthoringFailsBeforePrompts(t *testing.T) {
@@ -34,8 +34,8 @@ func TestDuplicateAuthoringFailsBeforePrompts(t *testing.T) {
 			run(scope, "add", "rule", "practices/testing/boundaries", "--title", "Test boundaries", "--when-to-read", "When testing.", "--impact", "HIGH", "--impact-description", "Catch bugs.")
 			commands := [][]string{{scope, "add", "group", "practices/testing"}, {scope, "add", "rule", "practices/testing/boundaries"}}
 			if scope == "project" {
-				run("project", "add", "library", "team", "--repository", "https://github.com/example/rules", "--ref", "v1.0.0", "--groups", "*")
-				commands = append(commands, []string{"project", "add", "library", "team"})
+				run("project", "add", "source", "team", "--repository", "https://github.com/example/rules", "--ref", "v1.0.0", "--rules", "*")
+				commands = append(commands, []string{"project", "add", "source", "team"})
 			}
 			before := projectFileContents(t, directory)
 			for _, command := range commands {

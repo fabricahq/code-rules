@@ -15,13 +15,13 @@ func TestProjectCommandsRejectCustomConfiguration(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	custom := filepath.Join(directory, "custom.json")
-	if err := os.WriteFile(custom, []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+	if err := os.WriteFile(custom, []byte(`{"schemaVersion":2,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	before := projectFileContents(t, directory)
 	for _, command := range [][]string{
 		{"project", "init"}, {"project", "build"}, {"project", "sync"}, {"project", "check"},
-		{"project", "add", "library", "team"},
+		{"project", "add", "source", "team"},
 		{"project", "add", "group", "techs/go"},
 		{"project", "add", "rule", "techs/go/errors"},
 	} {
@@ -60,12 +60,12 @@ func TestProjectCommandsRejectCustomConfiguration(t *testing.T) {
 	}
 }
 
-func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
+func TestProjectUsesOnlyRootSyllabusDirectory(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	// An unrelated configuration file must never become project state implicitly.
 	custom := filepath.Join(directory, "config.yaml")
-	original := []byte(`{"schemaVersion":1,"sources":{}}`)
+	original := []byte(`{"schemaVersion":2,"sources":{}}`)
 	if err := os.WriteFile(custom, original, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"config.yaml", "README.md", "generated/RULES.md"} {
-		if _, err := os.Stat(filepath.Join(directory, ".code-rules", name)); err != nil {
+		if _, err := os.Stat(filepath.Join(directory, ".syllabus", name)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -92,21 +92,21 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 
 func TestProjectRootFailuresAreConsistent(t *testing.T) {
 	binary := buildCLI(t)
-	commands := [][]string{{"build"}, {"sync"}, {"check"}, {"add", "group", "techs/go"}, {"add", "rule", "techs/go/errors"}, {"add", "library", "team"}}
+	commands := [][]string{{"build"}, {"sync"}, {"check"}, {"add", "group", "techs/go"}, {"add", "rule", "techs/go/errors"}, {"add", "source", "team"}}
 	for _, state := range []string{"missing-directory", "missing-config", "symlink"} {
 		t.Run(state, func(t *testing.T) {
 			directory, target := t.TempDir(), t.TempDir()
 			if out, diagnostic, code := runCLI(t, binary, target, "project", "init"); code != 0 {
 				t.Fatal(code, out, diagnostic)
 			}
-			want := "run code-rules project init"
+			want := "run syllabus project init"
 			switch state {
 			case "missing-config":
-				if err := os.Mkdir(filepath.Join(directory, ".code-rules"), 0700); err != nil {
+				if err := os.Mkdir(filepath.Join(directory, ".syllabus"), 0700); err != nil {
 					t.Fatal(err)
 				}
 			case "symlink":
-				if err := os.Symlink(filepath.Join(target, ".code-rules"), filepath.Join(directory, ".code-rules")); err != nil {
+				if err := os.Symlink(filepath.Join(target, ".syllabus"), filepath.Join(directory, ".syllabus")); err != nil {
 					t.Fatal(err)
 				}
 				want = "without symlinks"

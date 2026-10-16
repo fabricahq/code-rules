@@ -9,13 +9,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Options selects trusted process settings. Zero values use Git from PATH and a 120-second deadline.
@@ -40,9 +42,13 @@ type repository struct {
 	runner    gitexec.Runner
 	// present lists the commits already fetched, so later fetches request only missing ones.
 	present map[string]bool
-	// trees caches each fetched commit's parsed file tree, and owned indexes it by the rule each file belongs to.
-	trees map[string]map[string]treeEntry
-	owned map[string]map[string]map[string]treeEntry
+	// trees caches each fetched commit's parsed file tree by library path, and owned indexes it by the rule each
+	// file belongs to. legacy lists the commits that keep the library in the layout before version 2. raw caches
+	// each fetched commit's parsed file tree by repository path.
+	trees  map[string]map[string]treeEntry
+	raw    map[string]map[string]treeEntry
+	owned  map[string]map[string]map[string]treeEntry
+	legacy map[string]bool
 }
 
 // fetchRemote is the name of the library's remote; Git records a partial clone's promisor by remote name.
@@ -62,11 +68,11 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if err != nil {
 		return nil, err
 	}
-	dir, err := os.MkdirTemp("", "code-rules-git-*")
+	dir, err := os.MkdirTemp("", "syllabus-git-*")
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
-	repo := &repository{source: source.Name, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}}
+	repo := &repository{source: source.Name, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, raw: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}, legacy: map[string]bool{}}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, repo.Close())
@@ -210,21 +216,46 @@ func (r *repository) commit(ctx context.Context, revision string) (string, error
 	return commit, nil
 }
 
-// tree returns the parsed file tree of a fetched commit, listing it once. Listing needs no blobs.
+// tree returns the parsed file tree of a fetched commit by library path, as libraryTree places it, listing it once.
+// Listing needs no blobs.
 func (r *repository) tree(ctx context.Context, commit string) (map[string]treeEntry, error) {
 	if entries, ok := r.trees[commit]; ok {
+		return entries, nil
+	}
+	parsed, err := r.repositoryTree(ctx, commit)
+	if err != nil {
+		return nil, err
+	}
+	entries, legacy := libraryTree(parsed)
+	r.trees[commit], r.legacy[commit] = entries, legacy
+	return entries, nil
+}
+
+// repositoryTree returns the parsed file tree of a fetched commit by repository path, listing it once. A commit that
+// keeps its Syllabus directory under the name from before the rename lists it as .syllabus/, as librarytree.Upgrade
+// spells it.
+func (r *repository) repositoryTree(ctx context.Context, commit string) (map[string]treeEntry, error) {
+	if entries, ok := r.raw[commit]; ok {
 		return entries, nil
 	}
 	data, err := r.runner.Output(ctx, r.directory, []string{"ls-tree", "-r", "-z", "--full-tree", commit}, maxTreeBytes)
 	if err != nil {
 		return nil, err
 	}
-	entries, err := parseTree(data)
+	parsed, err := parseTree(data)
 	if err != nil {
 		return nil, err
 	}
-	r.trees[commit] = entries
-	return entries, nil
+	if librarytree.UsesLegacyDirectory(maps.Keys(parsed)) {
+		upgraded := make(map[string]treeEntry, len(parsed))
+		for name, entry := range parsed {
+			entry.name = librarytree.Upgrade(name)
+			upgraded[entry.name] = entry
+		}
+		parsed = upgraded
+	}
+	r.raw[commit] = parsed
+	return parsed, nil
 }
 
 // prefetch fetches the blobs among entries that aren't present yet in one request, so reading them later needs

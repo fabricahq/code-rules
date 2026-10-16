@@ -7,10 +7,11 @@ import (
 	"errors"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // projectedSource is a source as the fixtures describe it: its fields and, when it has a ref, the ref's canonical
@@ -21,7 +22,7 @@ type projectedSource struct {
 }
 
 // configurationProjection returns config with each source's canonical ref, for comparison with a fixture's expected value.
-func configurationProjection(config rules.Configuration) map[string][]projectedSource {
+func configurationProjection(config rules.Configuration) map[string]any {
 	sources := make([]projectedSource, 0, len(config.Sources))
 	for _, source := range config.Sources {
 		projected := projectedSource{Source: source}
@@ -31,7 +32,11 @@ func configurationProjection(config rules.Configuration) map[string][]projectedS
 		}
 		sources = append(sources, projected)
 	}
-	return map[string][]projectedSource{"sources": sources}
+	result := map[string]any{"sources": sources}
+	if config.Library != nil {
+		result["library"] = config.Library
+	}
+	return result
 }
 
 // TestConfigurationFixtures checks successful projections and precise error locations.
@@ -83,5 +88,50 @@ func TestConfigurationFixtures(t *testing.T) {
 				t.Fatalf("got %s; want %s", encoded, test.Expected.Value)
 			}
 		})
+	}
+}
+
+// TestParseConfigurationYAML_VersionOneShowsAValidVersionTwoExample rejects a version 1 configuration with a
+// message whose example is itself a valid version 2 configuration selecting a group and a rule.
+func TestParseConfigurationYAML_VersionOneShowsAValidVersionTwoExample(t *testing.T) {
+	_, err := rules.ParseConfigurationYAML([]byte("schemaVersion: 1\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    groups: [techs/go]\n"))
+	var validation errs.ValidationError
+	if !errors.As(err, &validation) || validation.ValidationLocation() != "schemaVersion" {
+		t.Fatalf("got %v, want a failure at schemaVersion", err)
+	}
+	start := strings.Index(validation.ValidationProblem(), "\n\nschemaVersion: 2\n")
+	end := strings.LastIndex(validation.ValidationProblem(), "\n\n")
+	if start < 0 || end <= start {
+		t.Fatalf("no example in %q", validation.ValidationProblem())
+	}
+	example, err := rules.ParseConfigurationYAML([]byte(validation.ValidationProblem()[start+2 : end]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	team := example.Sources[0]
+	if !team.Groups.Equal(rules.GroupSelection{Groups: []string{"techs/go"}}) || !reflect.DeepEqual(team.Rules, []string{"practices/testing/verify-retry-limits"}) || len(team.Exclude) != 1 || len(team.Pins) != 1 {
+		t.Fatalf("example parsed as %+v", team)
+	}
+}
+
+// TestParseConfiguration_ManageAgentsFile defaults to managing AGENTS.md and accepts only a boolean.
+func TestParseConfiguration_ManageAgentsFile(t *testing.T) {
+	for input, skip := range map[string]bool{
+		`{"schemaVersion":2,"sources":{}}`:                          false,
+		`{"schemaVersion":2,"manageAgentsFile":true,"sources":{}}`:  false,
+		`{"schemaVersion":2,"manageAgentsFile":false,"sources":{}}`: true,
+	} {
+		config, err := rules.ParseConfiguration([]byte(input))
+		if err != nil || config.SkipAgentsFile != skip {
+			t.Errorf("%s: %+v %v", input, config, err)
+		}
+	}
+	for _, value := range []string{`"no"`, `null`} {
+		if _, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"manageAgentsFile":` + value + `,"sources":{}}`)); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+			t.Fatal(value, err)
+		}
+	}
+	if _, err := rules.ParseConfigurationYAML([]byte("schemaVersion: 2\nmanageAgentsFile: null\nsources: {}\n")); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+		t.Fatal(err)
 	}
 }

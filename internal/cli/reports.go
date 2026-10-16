@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // commandReport owns a completed command's data, human rendering, and optional reported failure.
@@ -45,9 +45,9 @@ type authoringScope struct {
 
 func (s authoringScope) command(action string) string {
 	if !s.library {
-		return "code-rules project " + action
+		return "syllabus project " + action
 	}
-	command := "code-rules library " + action
+	command := "syllabus library " + action
 	if s.directory != "" {
 		command += " --directory='" + strings.ReplaceAll(s.directory, "'", "'\"'\"'") + "'"
 	}
@@ -90,21 +90,21 @@ func nonNil(list []string) []string {
 func projectInitializedReport(result project.AuthoringResult, workdir string) commandReport {
 	var out strings.Builder
 	if len(result.Written()) == 0 {
-		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
+		out.WriteString("Syllabus is already initialized.\nNo files changed.\n")
 		for _, warning := range result.Warnings {
 			fmt.Fprintf(&out, "Warning: %s\n", warning)
 		}
-		out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
+		out.WriteString("\nSyllabus directory: .syllabus\nProject configuration: .syllabus/config.yaml\n")
 	} else {
-		out.WriteString("Code Rules initialized!\n")
+		out.WriteString("Syllabus initialized!\n")
 		formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	}
-	steps := []nextStep{{Instruction: "Run code-rules project --help to manage this project's rules.", Commands: []string{"code-rules project --help"}}}
+	steps := []nextStep{{Instruction: "Run syllabus project --help to manage this project's rules.", Commands: []string{"syllabus project --help"}}}
 	if len(result.Written()) > 0 {
 		steps = []nextStep{
-			{Instruction: "Start with a project-only rule (example):", Commands: []string{"code-rules project add group practices/testing", "code-rules project add rule practices/testing/my-rule"}},
-			{Instruction: "Or use a shared library (example):", Commands: []string{"code-rules project add library team", "code-rules project sync"}},
-			{Instruction: "Then connect your coding agent to the rules; see .code-rules/README.md."},
+			{Instruction: "Start with a project-only rule (example):", Commands: []string{"syllabus project add group practices/testing", "syllabus project add rule practices/testing/my-rule"}},
+			{Instruction: "Or use a shared library or skills repository (example):", Commands: []string{"syllabus project add source team", "syllabus project sync"}},
+			{Instruction: "AGENTS.md tells your coding agent to read the rules. If your agent reads another file, such as CLAUDE.md, import or link AGENTS.md there; see .syllabus/README.md."},
 		}
 	}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
@@ -113,7 +113,7 @@ func projectInitializedReport(result project.AuthoringResult, workdir string) co
 func sourceAddedReport(result project.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
 	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
-	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the source, build guidance, and install its skills:", Commands: []string{"syllabus project sync"}}})
 }
 
 func libraryInitializedReport(result library.AuthoringResult, scope authoringScope) commandReport {
@@ -174,11 +174,14 @@ func groupCreatedReport(added, changed, warnings []string, groupPath string, sco
 	return authoredReport(&out, added, changed, warnings, steps)
 }
 
+// agentsActions describes each AGENTS.md change in the human report.
+var agentsActions = map[string]string{"created": "added to a new file", "added": "added", "updated": "updated"}
+
 // projectChangesReport lists the files sync, build, or update changed in the project at root, naming their directory
 // relative to workdir, as authoring reports name paths.
 func projectChangesReport(action string, result project.FileChanges, root, workdir string) commandReport {
 	var out strings.Builder
-	codeRules := relativeDirectory(filepath.Join(root, ".code-rules"), workdir)
+	syllabus := relativeDirectory(project.Directory(root), workdir)
 	// The counts below are the command's own, so a recovery that came first is said separately.
 	if result.Recovered {
 		out.WriteString("First recovered an interrupted earlier command, which restored or finished that command's files.\n")
@@ -188,14 +191,17 @@ func projectChangesReport(action string, result project.FileChanges, root, workd
 		if result.Guide.Created {
 			status = "created"
 		}
-		fmt.Fprintf(&out, "Code Rules guide %s: %s\n", status, filepath.Join(codeRules, result.Guide.Path))
+		fmt.Fprintf(&out, "Syllabus guide %s: %s\n", status, filepath.Join(syllabus, result.Guide.Path))
+	}
+	if result.Agents != nil {
+		fmt.Fprintf(&out, "Syllabus section %s: %s\n", agentsActions[result.Agents.Action], filepath.Join(filepath.Dir(syllabus), result.Agents.Path))
 	}
 	fmt.Fprintf(&out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(action[:1])+action[1:], len(result.Added), len(result.Changed), len(result.Removed))
 	if len(result.Added)+len(result.Changed)+len(result.Removed) > 0 {
 		if action == "build" {
-			fmt.Fprintf(&out, "Paths relative to %s:\n", filepath.Join(codeRules, "generated"))
+			fmt.Fprintf(&out, "Paths relative to %s:\n", filepath.Join(syllabus, "generated"))
 		} else {
-			fmt.Fprintf(&out, "Paths relative to %s:\n", codeRules)
+			fmt.Fprintf(&out, "Paths relative to %s:\n", syllabus)
 		}
 	}
 	for _, group := range []struct {
@@ -258,13 +264,16 @@ func projectCheckedReport(result projectCheckResult, root, workdir string) comma
 	var out strings.Builder
 	report := commandReport{value: result}
 	if result.Status == "up-to-date" {
-		out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
+		out.WriteString("Status: up to date.\nGenerated guidance, installed skills, and the Syllabus guide are current.\nNo files were changed.\n")
 	} else {
-		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
-		fmt.Fprintf(&out, "Status: out of date.\nNo files were changed.\nPaths relative to %s:\n\nProblems:\n", relativeDirectory(filepath.Join(root, ".code-rules"), workdir))
+		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Syllabus files are out of date; see the reported problems and next steps"}
+		fmt.Fprintf(&out, "Status: out of date.\nNo files were changed.\nPaths relative to %s:\n\nProblems:\n", relativeDirectory(project.Directory(root), workdir))
 		for _, problem := range result.Problems {
 			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
+	}
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
 	report.human = out.String()
 	return report

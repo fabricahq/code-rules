@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // TestVersionedRule_NamesTheRuleThatOwnsAFile covers rule files, owned assets, and library-wide files.
@@ -21,7 +21,7 @@ func TestVersionedRule_NamesTheRuleThatOwnsAFile(t *testing.T) {
 		"techs/go/README.md":                    "",
 		"techs/go/assets/loose.png":             "",
 		"assets/shared.md":                      "",
-		"rule-library.yaml":                     "",
+		"config.yaml":                           "",
 		"LICENSE.md":                            "",
 		"changes/one.yaml":                      "",
 		"techs/go/LICENSE.md":                   "",

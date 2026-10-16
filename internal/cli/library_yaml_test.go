@@ -21,15 +21,15 @@ func TestYAMLLibraryMetadataLifecycle(t *testing.T) {
 	}
 	run("library", "init")
 	run("library", "add", "group", "practices/testing", "--name", "Testing", "--description", "Test behavior.", "--when-to-read", "When writing tests.")
-	for name, prefix := range map[string]string{"rule-library.yaml": "formatVersion: 1\n", "practices/testing/_group.yaml": "name: Testing\n"} {
-		data, err := os.ReadFile(filepath.Join(dir, name))
+	for name, prefix := range map[string]string{"config.yaml": "schemaVersion: 2\nsources: {}\nlibrary: {}\n", "practices/testing/_group.yaml": "name: Testing\n"} {
+		data, err := os.ReadFile(libraryFile(dir, name))
 		if err != nil || !strings.HasPrefix(string(data), prefix) {
 			t.Fatal(name, string(data), err)
 		}
 	}
 	// Exercise human-authored comments and folded text, not only the CLI's serializer.
 	metadata := "# Group guidance\nname: Testing\ndescription: Test behavior.\nwhenToRead: >\n  When writing\n  or reviewing tests.\n"
-	name := filepath.Join(dir, "practices/testing/_group.yaml")
+	name := libraryFile(dir, "practices/testing/_group.yaml")
 	if err := os.WriteFile(name, []byte(metadata), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestYAMLLibraryMetadataLifecycle(t *testing.T) {
 	if err != nil || string(data) != metadata {
 		t.Fatal("authored YAML changed", err)
 	}
-	for _, old := range []string{"rule-library.json", "practices/testing/_group.json"} {
+	for _, old := range []string{"rule-library.yaml", "rule-library.json", "practices", libraryFile(".", "practices/testing/_group.json")} {
 		if _, err := os.Stat(filepath.Join(dir, old)); !os.IsNotExist(err) {
 			t.Fatal("legacy metadata created", old, err)
 		}

@@ -51,7 +51,7 @@ for (const shell of ['sh', 'bash']) {
             'api',
             '--hostname',
             'github.com',
-            `/repos/fabricahq/code-rules/actions/artifacts/${artifact}/zip`,
+            `/repos/fabricahq/syllabus/actions/artifacts/${artifact}/zip`,
           ];
           // The installer remains real; gh returns the selected download outcome without network access.
           const ghCalls = fakeGitHubCLI(bin, [
@@ -66,7 +66,7 @@ for (const shell of ['sh', 'bash']) {
               exitCode: mode === 'partial' ? 1 : 0,
             },
           ]);
-          const destination = join(directory, 'code-rules');
+          const destination = join(directory, 'syllabus');
           const other = join(directory, 'other');
           if (mode === 'directory') mkdirSync(destination);
           else if (mode === 'directory-symlink') {
@@ -82,7 +82,7 @@ for (const shell of ['sh', 'bash']) {
             [
               fileURLToPath(new URL('./install-preview.sh', import.meta.url)),
               'github.com',
-              'fabricahq/code-rules',
+              'fabricahq/syllabus',
               '70',
               '71',
               '72',
@@ -101,7 +101,7 @@ for (const shell of ['sh', 'bash']) {
           );
           if (['success', 'fresh', 'symlink'].includes(mode)) {
             expect(result.status).toBe(0);
-            expect(result.stdout).toBe('Downloaded and wrote ./code-rules\n');
+            expect(result.stdout).toBe('Downloaded and wrote ./syllabus\n');
             expect(readFileSync(destination, 'utf8')).toBe(executable);
             expect(statSync(destination).mode & 0o100).toBe(0o100);
             expect(execFileSync(destination, { encoding: 'utf8' })).toBe(
@@ -115,7 +115,7 @@ for (const shell of ['sh', 'bash']) {
             if (mode === 'directory' || mode === 'directory-symlink') {
               expect(readdirSync(destination)).toEqual([]);
               expect(result.stderr).toMatch(
-                /Cannot install: \/.*\/code-rules is an existing folder\./,
+                /Cannot install: \/.*\/syllabus is an existing folder\./,
               );
               expect(result.stderr).toContain(
                 'Nothing was changed. Run this command from a different directory.',
@@ -130,7 +130,7 @@ for (const shell of ['sh', 'bash']) {
           );
           expect(
             readdirSync(directory).filter((name) =>
-              name.startsWith('.code-rules.'),
+              name.startsWith('.syllabus.'),
             ),
           ).toEqual([]);
         } finally {

@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // Fixture owns a local repository and a private SSH transport that runs Git upload-pack or receive-pack over stdio,
@@ -35,7 +37,7 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 	if err != nil {
 		return nil, err
 	}
-	dir, err := os.MkdirTemp("", "code-rules-git-fixture-*")
+	dir, err := os.MkdirTemp("", "syllabus-git-fixture-*")
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +194,7 @@ func (f *Fixture) Tag(ctx context.Context, dir, name, message string) error {
 // Worktree returns the fixture repository's working tree, for Commit, Tag, and Release on the served repository itself.
 func (f *Fixture) Worktree() string { return filepath.Join(f.Directory, "repository") }
 
-// Release publishes library release number on the served repository's HEAD, as code-rules library release would:
+// Release publishes library release number on the served repository's HEAD, as syllabus library release would:
 // an annotated release/<number> tag whose message is release notes, a line containing only ---, and record,
 // the release record's YAML.
 func (f *Fixture) Release(ctx context.Context, number int, record string) error {
@@ -232,4 +234,15 @@ func (f *Fixture) Route(fixtures map[string]*Fixture) ([]string, error) {
 		}
 	}
 	return append(env, "GIT_SSH_COMMAND="+Quote(helper)), nil
+}
+
+// Library returns files, a library's files keyed by library path, keyed by where a library repository keeps them,
+// as librarytree.RepositoryPath places them, for New and Commit. Files outside the library, such as a license at
+// the repository root, keep their paths, and nil entries, which Commit deletes, stay nil.
+func Library(files map[string][]byte) map[string][]byte {
+	placed := make(map[string][]byte, len(files))
+	for name, data := range files {
+		placed[librarytree.RepositoryPath(name)] = data
+	}
+	return placed
 }

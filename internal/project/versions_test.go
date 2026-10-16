@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // secondRelease changes techs/go/errors to 1.1.0 and adds techs/go/extra in the sync fixture's library.
@@ -26,7 +26,7 @@ func secondRelease(t *testing.T, f *gitfixture.Fixture) {
 	t.Helper()
 	ctx := context.Background()
 	files := map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return wrapped errors to the caller.", 1)), "techs/go/extra.md": []byte(projectRule)}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", files); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(files)); err != nil {
 		t.Fatal(err)
 	}
 	record := "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/extra: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n  techs/go/extra: {change: new, summaries: [Add the rule.]}\n"
@@ -35,17 +35,23 @@ func secondRelease(t *testing.T, f *gitfixture.Fixture) {
 	}
 }
 
-// configure replaces the sync fixture's source fields, keeping its repository.
-func configure(t *testing.T, options Options, f *gitfixture.Fixture, fields map[string]any) {
+// configure replaces the sync fixture's source with one named team that has the fixture's repository and the given
+// JSON fields, such as "rules":{"include":["techs/go/*"]}.
+func configure(t *testing.T, options Options, f *gitfixture.Fixture, fields string) {
 	t.Helper()
-	fields["repository"] = f.Repository
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": fields}})
+	raw := `{"schemaVersion":2,"sources":{"team":{"repository":` + quoteJSON(f.Repository) + `,` + fields + `}}}`
 	root, err := openProject(context.Background(), options, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer root.Close()
 	writeFixture(t, root, configurationFile, string(raw))
+}
+
+// quoteJSON returns text as a JSON string.
+func quoteJSON(text string) string {
+	quoted, _ := json.Marshal(text)
+	return string(quoted)
 }
 
 // recordedVersions reads the project's source record and returns each rule's version@release.
@@ -96,14 +102,14 @@ func TestSync_RestoresRecordedVersionsAndMovesOnlyPinnedRules(t *testing.T) {
 	if err != nil || len(restored.Added)+len(restored.Changed)+len(restored.Removed) != 0 {
 		t.Fatalf("sync after a new library release changed %+v, %v", restored, err)
 	}
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.1.0", "reason": "Adopt wrapping."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"1.1.0","reason":"Adopt wrapping."}]}`)
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
 	if _, got := recordedVersions(t, options); len(got) != 1 || got["techs/go/errors"] != "1.1.0@2" {
 		t.Fatalf("pinned up: %v", got)
 	}
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "rules": []string{"techs/go/extra"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.0.0", "reason": "Not ready."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*","techs/go/extra"],"pins":[{"id":"techs/go/errors","version":"1.0.0","reason":"Not ready."}]}`)
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
@@ -117,22 +123,56 @@ func TestSync_RestoresRecordedVersionsAndMovesOnlyPinnedRules(t *testing.T) {
 	requireCurrent(t, options)
 }
 
+// TestSync_AnExclusionSelectorHidesEveryRuleItMatches imports the rules a group's selector excludes but leaves them
+// out of generated guidance, including a rule a later library release adds, checks offline, and refuses a selector
+// that matches none of the source's rules.
+func TestSync_AnExclusionSelectorHidesEveryRuleItMatches(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	configure(t, options, f, `"rules":{"include":["*"],"exclude":[{"id":"techs/go/*","reason":"Not a Go project."}]}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, got := recordedVersions(t, options); !maps.Equal(got, map[string]string{"techs/go/errors": "1.1.0@2", "techs/go/extra": "1.0.0@2"}) {
+		t.Fatalf("versions %v", got)
+	}
+	files := projectTree(t, options).Files
+	for _, id := range []string{"techs/go/errors", "techs/go/extra"} {
+		if _, ok := files["vendor/team/rules/"+id+".md"]; !ok {
+			t.Errorf("%s wasn't imported", id)
+		}
+		if _, ok := files["generated/rules/team/"+id+".md"]; ok {
+			t.Errorf("%s was generated although techs/go/* excludes it", id)
+		}
+	}
+	requireCurrent(t, options)
+	configure(t, options, f, `"rules":{"include":["*"],"exclude":[{"id":"practices/*","reason":"Not used."}]}`)
+	_, err := Build(ctx, options)
+	var validation errs.ValidationError
+	if !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.rules.exclude.practices/*" {
+		t.Fatalf("got %v, want a failure at sources.team.rules.exclude.practices/*", err)
+	}
+}
+
 // TestSync_ExplicitSelectionImportsAGroupTheWildcardSnapshotLacked imports the rules of a group that a library
 // release added after a wildcard sync, once the selection names it explicitly, while recorded rules keep their
 // versions, and offline check agrees with the result.
 func TestSync_ExplicitSelectionImportsAGroupTheWildcardSnapshotLacked(t *testing.T) {
 	for _, test := range []struct {
-		name   string
-		groups []string
-		want   map[string]string
+		name    string
+		include string
+		groups  []string
+		want    map[string]string
 	}{
-		{"only the new group", []string{"practices/testing"}, map[string]string{"practices/testing/verify": "1.0.0@2"}},
-		{"the new group and a recorded one", []string{"practices/testing", "techs/go"}, map[string]string{"techs/go/errors": "1.0.0@1", "practices/testing/verify": "1.0.0@2"}},
+		{"only the new group", `["practices/testing/*"]`, []string{"practices/testing"}, map[string]string{"practices/testing/verify": "1.0.0@2"}},
+		{"the new group and a recorded one", `["practices/testing/*","techs/go/*"]`, []string{"practices/testing", "techs/go"}, map[string]string{"techs/go/errors": "1.0.0@1", "practices/testing/verify": "1.0.0@2"}},
+		{"every practice", `["practices/*"]`, []string{"practices/testing"}, map[string]string{"practices/testing/verify": "1.0.0@2"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			f, options, git := syncProject(t)
 			ctx := context.Background()
-			configure(t, options, f, map[string]any{"groups": "*"})
+			configure(t, options, f, `"rules":{"include":["*"]}`)
 			if _, err := Sync(ctx, options, git); err != nil {
 				t.Fatal(err)
 			}
@@ -141,13 +181,13 @@ func TestSync_ExplicitSelectionImportsAGroupTheWildcardSnapshotLacked(t *testing
 				"practices/testing/_group.yaml": []byte(`{"name":"Testing","description":"Testing guidance.","whenToRead":"When testing."}`),
 				"practices/testing/verify.md":   []byte(projectRule),
 			}
-			if _, err := f.Commit(ctx, f.Worktree(), "Second release", files); err != nil {
+			if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(files)); err != nil {
 				t.Fatal(err)
 			}
 			if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  practices/testing/verify: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n  practices/testing/verify: {change: new, summaries: [Add the rule.]}\n"); err != nil {
 				t.Fatal(err)
 			}
-			configure(t, options, f, map[string]any{"groups": test.groups})
+			configure(t, options, f, `"rules":{"include":`+test.include+`}`)
 			if _, err := Sync(ctx, options, git); err != nil {
 				t.Fatal(err)
 			}
@@ -170,7 +210,7 @@ func localRuleProject(t *testing.T) (*os.Root, Options) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = root.Close() })
-	writeFixture(t, root, "local/techs/go/mine.md", strings.Replace(projectRule, "# Return errors", "# Our errors", 1))
+	writeFixture(t, root, "rules/techs/go/mine.md", strings.Replace(projectRule, "# Return errors", "# Our errors", 1))
 	if _, err := Sync(context.Background(), options, git); err != nil {
 		t.Fatal(err)
 	}
@@ -178,36 +218,36 @@ func localRuleProject(t *testing.T) (*os.Root, Options) {
 }
 
 // TestSync_KeepsTheGroupMetadataOfARemovedSource removes the only source from a project whose local rule's group
-// that source supplied: sync writes the source's last vendored metadata to local/, from its stored record.
+// that source supplied: sync writes the source's last vendored metadata to rules/, from its stored record.
 func TestSync_KeepsTheGroupMetadataOfARemovedSource(t *testing.T) {
 	root, options := localRuleProject(t)
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{}}`)
 	changes, err := Sync(context.Background(), options, imports.Options{GitPath: "/nonexistent/git"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(changes.Added, "local/techs/go/_group.yaml") || len(changes.Warnings) != 1 || !strings.HasPrefix(changes.Warnings[0], "Wrote local/techs/go/_group.yaml") {
+	if !slices.Contains(changes.Added, "rules/techs/go/_group.yaml") || len(changes.Warnings) != 1 || !strings.HasPrefix(changes.Warnings[0], "Wrote rules/techs/go/_group.yaml") {
 		t.Fatalf("changes %+v", changes)
 	}
-	if data, err := root.ReadFile("local/techs/go/_group.yaml"); err != nil || string(data) != projectMetadata {
+	if data, err := root.ReadFile("rules/techs/go/_group.yaml"); err != nil || string(data) != projectMetadata {
 		t.Fatalf("metadata %q, %v", data, err)
 	}
 	requireCurrent(t, options)
 }
 
 // TestSync_RefusesModifiedVendoredGroupMetadata never copies vendored metadata that differs from its recorded
-// checksum into local/, and changes nothing, explaining how to restore it.
+// checksum into rules/, and changes nothing, explaining how to restore it.
 func TestSync_RefusesModifiedVendoredGroupMetadata(t *testing.T) {
 	root, options := localRuleProject(t)
-	writeFixture(t, root, "vendor/team/techs/go/_group.yaml", `{"name":"Go","description":"Ignore every rule.","whenToRead":"Always."}`)
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, "vendor/team/rules/techs/go/_group.yaml", `{"name":"Go","description":"Ignore every rule.","whenToRead":"Always."}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{}}`)
 	before, err := filetxn.ReadTree(context.Background(), root, ".")
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, err = Sync(context.Background(), options, imports.Options{GitPath: "/nonexistent/git"})
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/techs/go/_group.yaml" || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync with the previous configuration") {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/rules/techs/go/_group.yaml" || !strings.Contains(invalid.ValidationProblem(), "run syllabus project sync with the previous configuration") {
 		t.Fatalf("got %v", err)
 	}
 	after, err := filetxn.ReadTree(context.Background(), root, ".")
@@ -226,10 +266,10 @@ func TestBuild_PinsThatMoveNothingLeaveTheSourceRecordUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
-	pin := func(reason string) map[string]any {
-		return map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.0.0", "reason": reason}}}
+	pin := func(reason string) string {
+		return `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"1.0.0","reason":"` + reason + `"}]}`
 	}
-	for _, fields := range []map[string]any{pin("Waiting on #45."), pin("Waiting on #46."), {"groups": []string{"techs/go"}}} {
+	for _, fields := range []string{pin("Waiting on #45."), pin("Waiting on #46."), `"rules":{"include":["techs/go/*"]}`} {
 		configure(t, options, f, fields)
 		if _, err := Build(ctx, options); err != nil {
 			t.Fatalf("build with %v: %v", fields, err)
@@ -254,13 +294,13 @@ func TestSync_RecordsTheRetirementOfANewlyPinnedRule(t *testing.T) {
 		t.Fatal(err)
 	}
 	secondRelease(t, f)
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", gitfixture.Library(map[string][]byte{"techs/go/extra.md": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/extra": map[string]string{"version": "1.0.0", "reason": "Keep it."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/extra","version":"1.0.0","reason":"Keep it."}]}`)
 	changes, err := Sync(ctx, options, git)
 	if err != nil || len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "techs/go/extra") {
 		t.Fatalf("sync: %+v, %v", changes, err)
@@ -287,14 +327,14 @@ func TestSync_KeepsAPinnedRetiredRuleAtItsLastVersion(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire errors", gitfixture.Library(map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/data.bin": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/extra: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [Covered by extra.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.1.0", "reason": "Keep it."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"1.1.0","reason":"Keep it."}]}`)
 	if _, err := Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +359,7 @@ func TestSync_KeepsRecordedRetirementsWhenOnlyAnExclusionChanged(t *testing.T) {
 	f, options, git := syncProject(t)
 	ctx := context.Background()
 	secondRelease(t, f)
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire errors", gitfixture.Library(map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/data.bin": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/extra: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [Covered by extra.]}\n"); err != nil {
@@ -339,14 +379,14 @@ func TestSync_KeepsRecordedRetirementsWhenOnlyAnExclusionChanged(t *testing.T) {
 	if record, versions := recordedVersions(t, options); !slices.Equal(record.RetiredRules, []string{"techs/go/errors"}) || versions["techs/go/extra"] != "1.0.0@2" {
 		t.Fatalf("retired %v, versions %v", record.RetiredRules, versions)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", gitfixture.Library(map[string][]byte{"techs/go/extra.md": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 4, "formatVersion: 1\nrelease: 4\nrules: {}\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": map[string]any{"techs/go/errors": map[string]string{"reason": "Retired upstream."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/errors","reason":"Retired upstream."}]}`)
 	if _, err := Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -369,13 +409,13 @@ func TestSync_RecordsTheRetirementOfANewlyExcludedRule(t *testing.T) {
 		t.Fatal(err)
 	}
 	secondRelease(t, f)
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", gitfixture.Library(map[string][]byte{"techs/go/extra.md": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": map[string]any{"techs/go/extra": map[string]string{"reason": "Retired upstream."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/extra","reason":"Retired upstream."}]}`)
 	changes, err := Sync(ctx, options, git)
 	if err != nil || len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "techs/go/extra") {
 		t.Fatalf("sync: %+v, %v", changes, err)
@@ -400,7 +440,7 @@ func TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent(t *testing.T) {
 	f, options, git := syncProject(t)
 	ctx := context.Background()
 	secondRelease(t, f)
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", gitfixture.Library(map[string][]byte{"techs/go/extra.md": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nchanges: {}\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [Covered by errors.]}\n"); err != nil {
@@ -409,20 +449,20 @@ func TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	for _, exclude := range []map[string]any{
-		{"techs/go/errors": map[string]string{"reason": "Ours is stricter.", "replacedBy": "local/techs/go/errors.md"}},
-		{"techs/go/extra": map[string]string{"reason": "Retired upstream."}},
-		{},
+	for _, exclude := range []string{
+		`[{"id":"techs/go/errors","reason":"Ours is stricter.","replacedBy":"techs/go/errors"}]`,
+		`[{"id":"techs/go/extra","reason":"Retired upstream."}]`,
+		`[]`,
 	} {
 		recorded := projectTree(t, options).Files["vendor/team/_source.json"]
-		configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": exclude})
-		if _, ok := exclude["techs/go/errors"]; ok {
+		configure(t, options, f, `"rules":{"include":["techs/go/*"],"exclude":`+exclude+`}`)
+		if strings.Contains(exclude, "techs/go/errors") {
 			root, err := openProject(ctx, options, false)
 			if err != nil {
 				t.Fatal(err)
 			}
-			writeFixture(t, root, "local/techs/go/errors.md", projectRule)
-			writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
+			writeFixture(t, root, "rules/techs/go/errors.md", projectRule)
+			writeFixture(t, root, "rules/techs/go/_group.yaml", projectMetadata)
 			root.Close()
 		}
 		if _, err := Build(ctx, options); err != nil {
@@ -441,11 +481,11 @@ func TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent(t *testing.T) {
 // TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks reports the source and its unreleased rules.
 func TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks(t *testing.T) {
 	f, options, git := syncProject(t)
-	commit, err := f.Commit(context.Background(), f.Worktree(), "Unreleased", map[string][]byte{"techs/go/errors.md": []byte(projectRule + "\nMore.\n")})
+	commit, err := f.Commit(context.Background(), f.Worktree(), "Unreleased", gitfixture.Library(map[string][]byte{"techs/go/errors.md": []byte(projectRule + "\nMore.\n")}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": commit})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"]},"ref":`+quoteJSON(commit))
 	changes, err := Sync(context.Background(), options, git)
 	if err != nil || len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "Unreleased rules: techs/go/errors.") {
 		t.Fatalf("warnings %v, %v", changes.Warnings, err)
@@ -471,7 +511,7 @@ func TestSync_RefusesAFormatOneRecord(t *testing.T) {
 	}
 	_, err = Sync(context.Background(), options, git)
 	var validation errs.ValidationError
-	if !errors.As(err, &validation) || !strings.Contains(err.Error(), "delete .code-rules/vendor/ and run code-rules project sync") {
+	if !errors.As(err, &validation) || !strings.Contains(err.Error(), "delete .syllabus/vendor/ and run syllabus project sync") {
 		t.Fatalf("got %v", err)
 	}
 	after, err := filetxn.ReadTree(context.Background(), root, ".")
@@ -480,8 +520,8 @@ func TestSync_RefusesAFormatOneRecord(t *testing.T) {
 	}
 }
 
-// TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat asks to upgrade Code Rules for a
-// _source.json a newer Code Rules wrote, whose deletion would downgrade the project, and to delete vendor/ and sync
+// TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat asks to upgrade Syllabus for a
+// _source.json a newer Syllabus wrote, whose deletion would downgrade the project, and to delete vendor/ and sync
 // for an older one, in offline build and check as in sync and update.
 func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *testing.T) {
 	operations := map[string]func(Options, imports.Options) error{
@@ -494,7 +534,7 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 		},
 	}
 	for name, operation := range operations {
-		for _, format := range []int{1, 3} {
+		for _, format := range []int{2, 4} {
 			t.Run(name+"/format "+strconv.Itoa(format), func(t *testing.T) {
 				_, options, git := syncProject(t)
 				if _, err := Sync(context.Background(), options, git); err != nil {
@@ -512,17 +552,17 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 				// A newer format can also hold fields and values this version can't decode, such as a number no
 				// Go type holds.
 				replacement := `"formatVersion": ` + strconv.Itoa(format)
-				if format > 2 {
+				if format > 3 {
 					replacement += `, "future": {"limit": 1e999, "rules": "another shape"}`
 				}
-				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 2`, replacement, 1))
+				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 3`, replacement, 1))
 				err = operation(options, git)
 				var failure *filetxn.Error
 				var invalid errs.ValidationError
 				switch {
-				case format > 2 && (!errors.As(err, &failure) || failure.Code != "unsupported-source-record" || !strings.Contains(err.Error(), "upgrade Code Rules") || strings.Contains(err.Error(), "delete")):
+				case format > 3 && (!errors.As(err, &failure) || failure.Code != "unsupported-source-record" || !strings.Contains(err.Error(), "upgrade Syllabus") || strings.Contains(err.Error(), "delete")):
 					t.Fatalf("got %v; want unsupported-source-record asking to upgrade", err)
-				case format < 2 && (!errors.As(err, &invalid) || !strings.Contains(err.Error(), "delete .code-rules/vendor/ and run code-rules project sync")):
+				case format < 3 && (!errors.As(err, &invalid) || !strings.Contains(err.Error(), "delete .syllabus/vendor/ and run syllabus project sync")):
 					t.Fatalf("got %v; want the advice to delete vendor/ and sync", err)
 				}
 			})
@@ -530,18 +570,18 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 	}
 }
 
-// TestSync_ReportsCodesForMissingLibraryReleases surfaces releases-not-found before the first library release.
+// TestSync_ReportsCodesForMissingLibraryReleases surfaces ref-required before the first library release.
 func TestSync_ReportsCodesForMissingLibraryReleases(t *testing.T) {
-	f, err := gitfixture.New(context.Background(), map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`)})
+	f, err := gitfixture.New(context.Background(), gitfixture.Library(map[string][]byte{"config.yaml": []byte(`{"schemaVersion":2,"sources":{},"library":{}}`)}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
 	_, options, _ := syncProject(t)
-	configure(t, options, f, map[string]any{"groups": "*"})
+	configure(t, options, f, `"rules":{"include":["*"]}`)
 	_, err = Sync(context.Background(), options, imports.Options{GitPath: f.GitPath, Environment: f.Environment})
 	var failure *imports.Error
-	if !errors.As(err, &failure) || failure.Code != "releases-not-found" {
+	if !errors.As(err, &failure) || failure.Code != "ref-required" {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -550,14 +590,14 @@ func TestSync_ReportsCodesForMissingLibraryReleases(t *testing.T) {
 // to, so relative links in the vendored copy still resolve.
 func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
 	ctx := context.Background()
-	f, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":               []byte(`{"formatVersion":1}`),
+	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 		"techs/go/_group.yaml":            []byte(projectMetadata),
 		"techs/go/errors.md":              []byte(projectRule + "\n[Guide](assets/errors/guide.md)\n"),
-		"techs/go/assets/errors/guide.md": []byte("[Shared](../../../../assets/shared.md)\n"),
+		"techs/go/assets/errors/guide.md": []byte("[Shared](../../../../../assets/shared.md)\n"),
 		"assets/shared.md":                []byte("Shared explanation.\n"),
 		"techs/go/naming.md":              []byte(projectRule),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -565,14 +605,14 @@ func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
 	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summaries: [Add the rule.]}\n  techs/go/naming: {change: new, summaries: [Add the rule.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/naming.md": []byte(projectRule + "\nMore.\n")}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(map[string][]byte{"techs/go/naming.md": []byte(projectRule + "\nMore.\n")})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.1.0\nchanges:\n  techs/go/naming: {change: minor, from: 1.0.0, summaries: [Add more.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	_, options, _ := syncProject(t)
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"]}`)
 	if _, err := Sync(ctx, options, imports.Options{GitPath: f.GitPath, Environment: f.Environment}); err != nil {
 		t.Fatal(err)
 	}
@@ -593,12 +633,12 @@ func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
 func TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged(t *testing.T) {
 	f, options, git := syncProject(t)
 	ctx := context.Background()
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": "release/1"})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"]},"ref":"release/1"`)
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
 	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": "refs/tags/release/1"})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"]},"ref":"refs/tags/release/1"`)
 	if _, err := Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -621,7 +661,7 @@ func requireEditedRecord(t *testing.T, options Options) {
 	_, checkErr := Check(context.Background(), options)
 	for name, err := range map[string]error{"build": buildErr, "check": checkErr} {
 		var invalid errs.ValidationError
-		if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "changed outside code-rules project sync") || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync") || strings.Contains(invalid.ValidationProblem(), "project build") {
+		if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "changed outside syllabus project sync") || !strings.Contains(invalid.ValidationProblem(), "run syllabus project sync") || strings.Contains(invalid.ValidationProblem(), "project build") {
 			t.Errorf("offline %s: %v", name, err)
 		}
 	}
@@ -643,7 +683,7 @@ func TestSourceRecord_AnUnreadableRecordSaysHowToImportTheSourceAgain(t *testing
 	root.Close()
 	_, err = Sync(ctx, options, git)
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json.pins" || !strings.Contains(invalid.ValidationProblem(), "delete .code-rules/vendor/team/ and run code-rules project sync") || !strings.Contains(invalid.ValidationProblem(), "newest versions") {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json.pins" || !strings.Contains(invalid.ValidationProblem(), "delete .syllabus/vendor/team/ and run syllabus project sync") || !strings.Contains(invalid.ValidationProblem(), "newest versions") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -660,7 +700,7 @@ func TestCheck_NamesAFileWithUnresolvedMergeConflicts(t *testing.T) {
 		return "<<<<<<< HEAD\n" + text + "=======\n" + text + ">>>>>>> theirs\n"
 	}
 	for _, test := range []struct{ file, location string }{
-		{configurationFile, ".code-rules/config.yaml"},
+		{configurationFile, ".syllabus/config.yaml"},
 		{"vendor/team/_source.json", "vendor/team/_source.json"},
 	} {
 		root, err := openProject(ctx, options, false)
@@ -707,9 +747,9 @@ func editRecord(t *testing.T, options Options, edit func(record map[string]any))
 func requireRefusedRecord(t *testing.T, err error) {
 	t.Helper()
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "changed outside code-rules project sync") ||
-		!strings.Contains(invalid.ValidationProblem(), "git checkout -- .code-rules/vendor/team/_source.json") || !strings.Contains(invalid.ValidationProblem(), "git checkout --ours or --theirs") ||
-		!strings.Contains(invalid.ValidationProblem(), "delete .code-rules/vendor/team/ and run code-rules project sync") || strings.Contains(invalid.ValidationProblem(), "project build") {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "changed outside syllabus project sync") ||
+		!strings.Contains(invalid.ValidationProblem(), "git checkout -- .syllabus/vendor/team/_source.json") || !strings.Contains(invalid.ValidationProblem(), "git checkout --ours or --theirs") ||
+		!strings.Contains(invalid.ValidationProblem(), "delete .syllabus/vendor/team/ and run syllabus project sync") || strings.Contains(invalid.ValidationProblem(), "project build") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -762,9 +802,9 @@ func TestSync_RefusesARecordChangedOutsideSync(t *testing.T) {
 			if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/extra: 1.0.0\n"); err != nil {
 				t.Fatal(err)
 			}
-			fields := map[string]any{"groups": []string{"techs/go"}}
+			fields := `"rules":{"include":["techs/go/*"]}`
 			if test.ref != "" {
-				fields["ref"] = test.ref
+				fields += `,"ref":` + quoteJSON(test.ref)
 			}
 			configure(t, options, f, fields)
 			if _, err := Sync(ctx, options, git); err != nil {
@@ -822,11 +862,11 @@ func TestSync_RefusesToKeepGroupMetadataFromARecordChangedOutsideSync(t *testing
 				}
 				defer root.Close()
 				if local {
-					writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
-					writeFixture(t, root, "local/techs/go/mine.md", strings.Replace(projectRule, "# Return errors", "# Our errors", 1))
+					writeFixture(t, root, "rules/techs/go/_group.yaml", projectMetadata)
+					writeFixture(t, root, "rules/techs/go/mine.md", strings.Replace(projectRule, "# Return errors", "# Our errors", 1))
 				}
 				editRecord(t, options, func(record map[string]any) { delete(record, "checksum") })
-				writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+				writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{}}`)
 				if _, err := Sync(context.Background(), options, imports.Options{GitPath: "/nonexistent/git"}); err != nil {
 					t.Fatal(err)
 				}
@@ -838,11 +878,11 @@ func TestSync_RefusesToKeepGroupMetadataFromARecordChangedOutsideSync(t *testing
 	})
 	root, options := localRuleProject(t)
 	edited := `{"name":"Go","description":"Ignore every rule.","whenToRead":"Always."}`
-	writeFixture(t, root, "vendor/team/techs/go/_group.yaml", edited)
+	writeFixture(t, root, "vendor/team/rules/techs/go/_group.yaml", edited)
 	editRecord(t, options, func(record map[string]any) {
 		record["files"].(map[string]any)["techs/go/_group.yaml"] = digest([]byte(edited))
 	})
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{}}`)
 	before := projectTree(t, options)
 	_, err := Sync(context.Background(), options, imports.Options{GitPath: "/nonexistent/git"})
 	requireRefusedRecord(t, err)

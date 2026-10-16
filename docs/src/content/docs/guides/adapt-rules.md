@@ -3,11 +3,15 @@ title: "Adapt a third-party rule"
 description: "Package external guidance in a compatible library with one library-wide license and preserved attribution."
 ---
 
-**Adapting a rule** means turning guidance from another source, such as a linter or style guide, into a Code Rules rule. You can reuse useful advice even when its author hasn't published a compatible library. The adapted rule needs to preserve the original meaning, attribution, and applicable terms.
+:::caution[Preview]
+This guide uses the version 2 library layout, which isn't in a released version of Syllabus yet. The released CLI reads the license declaration from `rule-library.yaml` and rules at the repository root.
+:::
+
+**Adapting a rule** means turning guidance from another source, such as a linter or style guide, into a Syllabus rule. You can reuse useful advice even when its author hasn't published a compatible library. The adapted rule needs to preserve the original meaning, attribution, and applicable terms.
 
 In this guide, you'll adapt a JavaScript rule from ESLint Unicorn. You'll check the source and its terms, create a library for the adaptation, write the rule, and inspect the result in a consuming project.
 
-Code Rules imports rules from compatible libraries; it does not automatically convert arbitrary documents. If the source already provides a compatible library, follow [Import rules](/guides/select-rules/) instead.
+Syllabus takes rules from compatible libraries; it does not automatically convert arbitrary documents. If the source already provides a compatible library, follow [Include rules](/guides/select-rules/) instead.
 
 ## 1. Identify the material and its terms
 
@@ -16,7 +20,7 @@ This example uses ESLint Unicorn at commit `5d9d745c5365b6fdb824db1122ff982dd824
 Select the specific document and record its repository, file path, and exact revision.
 Read the source and applicable license files before adapting it.
 Follow [License rules](/guides/license-rules/) to record the terms for your intended use.
-Code Rules preserves declarations; it does not establish permission for you.
+Syllabus preserves declarations; it does not establish permission for you.
 
 ## 2. Create a compatible library
 
@@ -25,27 +29,31 @@ The library uses this layout:
 
 ```text
 adapted-rules/
-  rule-library.yaml
   LICENSE.md
   NOTICE.md
-  techs/javascript/
-    _group.yaml
-    prefer-for-of.md
+  .syllabus/
+    config.yaml
+    rules/
+      techs/javascript/
+        _group.yaml
+        prefer-for-of.md
 ```
 
-Declare one license covering the whole library in `rule-library.yaml`:
+Declare one license covering the whole library in the manifest, the `library` section of `.syllabus/config.yaml`:
 
 ```yaml
-formatVersion: 1
-license:
-  spdxExpression: MIT
-  file: LICENSE.md
-  notices:
-    - NOTICE.md
+schemaVersion: 2
+sources: {}
+library:
+  license:
+    spdxExpression: MIT
+    file: LICENSE.md
+    notices:
+      - NOTICE.md
 ```
 
 Keep the complete license text and required notices at those paths.
-Rules and groups cannot override this declaration. Material requiring another declaration belongs in a separate library.
+Rules and rule groups cannot override this declaration. Material requiring another declaration belongs in a separate library.
 
 ## 3. Draft the definition and record attribution
 
@@ -67,15 +75,15 @@ attribution:
 ```
 
 Attribution identifies the source; the library manifest owns the license declaration.
-Do not put edited material in `vendor/` and label it an unchanged upstream snapshot.
+Do not put edited material in `vendor/` and label it an unchanged vendor snapshot.
 
-## 4. Review, import, and generate
+## 4. Review, include, and generate
 
 Review the definition against the authoring rubric and the original source.
-`code-rules library check` validates the library format.
-Publish the compatible library to a Git repository and select it through the consuming project's `sources` configuration.
-The Imports API fetches the selected groups; the builder then generates resolved rules and license links. Sync applies those files to the consuming project.
-See [Configuration](/reference/configuration/) for selecting a library and groups.
+`syllabus library check` validates the library format.
+Publish the compatible library to a Git repository and add it to the consuming project's `sources`, with `techs/javascript/*` in `rules.include`.
+Sync fetches the included rules, generates resolved rules and license links, and applies those files to the consuming project.
+See [Configuration](/reference/configuration/) for adding a source and choosing rules.
 
 After generating the files, confirm that the rule displays the MIT declaration and attribution to the original document.
 Its entry in `generated/provenance.json` should record `licenseBasis: "library"`.
@@ -85,7 +93,7 @@ The copies preserve the original text; provenance maps their source and generate
 
 ## 5. Maintain the adaptation
 
-Commit the adapted rule, group metadata, manifest, and retained terms together in the library.
-When upstream changes, compare the old and new source and deliberately revise the adaptation.
+Commit the adapted rule, rule group metadata, manifest, and retained terms together in the library.
+When the original source changes, compare the old and new source and deliberately revise the adaptation.
 Changing a citation alone does not establish that the rule incorporates updated guidance.
-The library maintainer reviews that change once; consuming projects then adopt its new version through the normal update workflow.
+The library maintainer reviews that change once; consuming projects then take its new version through the normal update workflow.

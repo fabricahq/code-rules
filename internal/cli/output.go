@@ -11,12 +11,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/gitexec"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -26,13 +27,27 @@ type commandOutput struct {
 	json   bool
 	report commandReport
 	text   bytes.Buffer // Cobra help, version, and license output, rendered only after command completion.
+	// warnings are about how the command found the project, such as a Syllabus directory under its old name, and
+	// accompany any outcome.
+	warnings []string
+}
+
+// outputKey is the context key under which Run lends its command's output to helpers that only receive a context.
+type outputKey struct{}
+
+// warn records warning on the command output that ctx carries, if any.
+func warn(ctx context.Context, warning string) {
+	if output, ok := ctx.Value(outputKey{}).(*commandOutput); ok && !slices.Contains(output.warnings, warning) {
+		output.warnings = append(output.warnings, warning)
+	}
 }
 
 // response is the common JSON envelope; a stale check includes both current problems and an error.
 type response struct {
-	OK    bool           `json:"ok"`
-	Value any            `json:"value,omitempty"`
-	Error *responseError `json:"error,omitempty"`
+	OK       bool           `json:"ok"`
+	Value    any            `json:"value,omitempty"`
+	Error    *responseError `json:"error,omitempty"`
+	Warnings []string       `json:"warnings,omitempty"`
 }
 
 // responseError classifies failures without requiring callers to parse the human message.
@@ -66,12 +81,16 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 		if value == nil && o.text.Len() > 0 && err == nil {
 			value = map[string]string{"text": o.text.String()}
 		}
-		result := response{OK: code == 0, Value: value, Error: problem}
+		result := response{OK: code == 0, Value: value, Error: problem, Warnings: o.warnings}
 		encoder := json.NewEncoder(streams.Out)
 		encoder.SetEscapeHTML(false)
 		encoder.SetIndent("", "  ")
 		writeErr = encoder.Encode(result)
 	} else {
+		for _, warning := range o.warnings {
+			_, warnErr := io.WriteString(streams.Err, terminalText("Warning: "+warning)+"\n\n")
+			writeErr = errors.Join(writeErr, warnErr)
+		}
 		// A report that is itself a failure, such as an out-of-date check, says so in its own text and exit status.
 		var text strings.Builder
 		// A post-commit presentation failure must not hide the completed operation's receipt. Reports show library

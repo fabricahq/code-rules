@@ -13,7 +13,7 @@ import (
 func TestAuthoringArgumentErrors(t *testing.T) {
 	binary := buildCLI(t)
 	for _, test := range []struct{ command, name, example string }{
-		{"project add library", "library alias", "team"},
+		{"project add source", "source name", "team"},
 		{"project add group", "group path", "practices/testing"},
 		{"project add rule", "rule path", "practices/testing/my-rule"},
 		{"library add group", "group path", "practices/testing"},
@@ -48,13 +48,13 @@ func TestAuthoringArgumentErrors(t *testing.T) {
 					if extra {
 						want = "expected one " + test.name + "; received 2 arguments."
 					}
-					if !strings.Contains(message, want) || !strings.Contains(message, "Usage:\n  code-rules "+test.command+" ") {
+					if !strings.Contains(message, want) || !strings.Contains(message, "Usage:\n  syllabus "+test.command+" ") {
 						t.Fatalf("unhelpful argument error: %s", message)
 					}
-					if !extra && !strings.Contains(message, "Example:\n  code-rules "+test.command+" "+test.example) {
+					if !extra && !strings.Contains(message, "Example:\n  syllabus "+test.command+" "+test.example) {
 						t.Fatalf("missing example: %s", message)
 					}
-					if !structured && !strings.Contains(diagnostic, "Run code-rules "+test.command+" --help") {
+					if !structured && !strings.Contains(diagnostic, "Run syllabus "+test.command+" --help") {
 						t.Fatalf("wrong help destination: %s", diagnostic)
 					}
 					entries, err := os.ReadDir(dir)

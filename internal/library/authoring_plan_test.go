@@ -9,8 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
@@ -19,7 +20,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	metadata := coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := syllabus.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	group, err := PlanGroup(ctx, "techs/go", options)
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +38,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 		t.Fatal(err)
 	}
 	rule := rules.RuleMetadata{Title: "Return errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.yaml")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/_group.yaml"))); err != nil {
 		t.Fatal(err)
 	}
 	_, commitErr = plan.Commit(ctx, rule, nil)
@@ -49,7 +50,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if !strings.Contains(commitErr.Error(), quoted) {
 		t.Fatal("repair lost library location", commitErr)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, "techs/go/errors.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Directory, librarytree.RepositoryPath("techs/go/errors.md"))); !os.IsNotExist(err) {
 		t.Fatal("wrote rule after group disappeared", err)
 	}
 }

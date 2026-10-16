@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestMarkdownTargets covers CommonMark dependencies without treating code or metadata as links.
@@ -56,6 +56,40 @@ func TestRelativeTarget(t *testing.T) {
 		if (err != nil) != test.invalid || target != test.target || suffix != test.suffix || local != test.local {
 			t.Errorf("%s: %s %s %v %v", test.url, target, suffix, local, err)
 		}
+	}
+}
+
+// TestLibraryTarget resolves a library file's links from where the file lives in the repository and returns
+// library paths, refusing local destinations that hold no library file.
+func TestLibraryTarget(t *testing.T) {
+	for _, test := range []struct {
+		url, file, target, suffix string
+		local, invalid            bool
+	}{
+		{"assets/errors/diagram.png", "techs/go/errors.md", "techs/go/assets/errors/diagram.png", "", true, false},
+		{"../../../assets/retry.svg#top", "techs/go/errors.md", "assets/retry.svg", "#top", true, false},
+		{"../../../../LICENSE.md", "techs/go/errors.md", "LICENSE.md", "", true, false},
+		{"/assets/retry.svg?raw=1", "techs/go/errors.md", "assets/retry.svg", "?raw=1", true, false},
+		{"/rules/techs/go/assets/errors/x.png", "techs/go/errors.md", "techs/go/assets/errors/x.png", "", true, false},
+		{"/LICENSE.md", "techs/go/errors.md", "", "", false, true},
+		{"/.syllabus/assets/retry.svg", "techs/go/errors.md", "", "", false, true},
+		{"../../practices/testing/retries.md", "techs/go/errors.md", "practices/testing/retries.md", "", true, false},
+		{"retry.svg", "assets/guide.md", "assets/retry.svg", "", true, false},
+		{"#part", "techs/go/errors.md", "techs/go/errors.md", "#part", true, false},
+		{"https://example.com/x", "techs/go/errors.md", "", "", false, false},
+		{"../../assets/retry.svg", "techs/go/errors.md", "", "", false, true},
+		{"../../../vendor/team/LICENSE.md", "techs/go/errors.md", "", "", false, true},
+		{"../../../../techs/go/errors.md", "techs/go/errors.md", "", "", false, true},
+		{"../../../../../outside", "techs/go/errors.md", "", "", false, true},
+	} {
+		target, suffix, local, err := rules.LibraryTarget(test.url, test.file)
+		if (err != nil) != test.invalid || target != test.target || suffix != test.suffix || local != test.local {
+			t.Errorf("%s from %s: %s %s %v %v", test.url, test.file, target, suffix, local, err)
+		}
+	}
+	targets, err := rules.LibraryTargets("[a](../../../assets/retry.svg) [b](assets/errors/x.png) [c](../../../assets/retry.svg)", "techs/go/errors.md")
+	if err != nil || !reflect.DeepEqual(targets, []string{"assets/retry.svg", "techs/go/assets/errors/x.png"}) {
+		t.Fatal(targets, err)
 	}
 }
 

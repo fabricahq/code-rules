@@ -18,9 +18,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 const (
@@ -45,9 +45,9 @@ type Catalog struct {
 
 // Group includes display metadata and path-sorted rules; empty groups are valid.
 type Group struct {
-	ID       string                  `json:"id"`
-	Metadata coderules.GroupMetadata `json:"metadata"`
-	Rules    []coderules.Rule        `json:"rules"`
+	ID       string                 `json:"id"`
+	Metadata syllabus.GroupMetadata `json:"metadata"`
+	Rules    []syllabus.Rule        `json:"rules"`
 }
 
 // reader binds resource limits and cancellation to one rooted catalog read.
@@ -64,6 +64,7 @@ type reader struct {
 var sourceAlias = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 // Load expands the selection and validates every selected rule, returning no partial catalog.
+// root is the library's repository root, which keeps its files as librarytree.RepositoryPath places them.
 // The caller owns and closes root. No files are written. Symlinks and special entries
 // encountered in selected trees are rejected; os.Root confines concurrent path resolution.
 // Cancellation remains inspectable with errors.Is. Other input failures are ValidationError.
@@ -71,11 +72,11 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if root == nil {
 		return Catalog{}, bad("library", "expected an open filesystem root")
 	}
-	return LoadSource(ctx, rootFiles{ctx: ctx, root: root}, source, selection, nil)
+	return LoadSource(ctx, repositoryFiles{rootFiles{ctx: ctx, root: root}}, source, selection, nil)
 }
 
-// LoadSource applies the same catalog rules to bounded local or immutable Git bytes.
-// The caller owns the source and must keep its identity stable for this operation.
+// LoadSource applies the same catalog rules to bounded local or immutable Git bytes, which input lends by library
+// path. The caller owns the source and must keep its identity stable for this operation.
 // ruleIDs names individually selected rules, which must exist: each brings its group's metadata, and a group
 // the selection doesn't include holds only the named rules, whose other rules and assets are neither read nor validated.
 func LoadSource(ctx context.Context, input FileSource, source string, selection rules.GroupSelection, ruleIDs []string) (Catalog, error) {
@@ -91,9 +92,6 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 	if !sourceAlias.MatchString(source) {
 		return Catalog{}, bad("source", "expected a lowercase source alias")
 	}
-	if selection.Pattern != "" && selection.Groups != nil {
-		return Catalog{}, bad("groups", "specify a pattern or explicit IDs, not both")
-	}
 	encoded, err := json.Marshal(selection)
 	if err != nil {
 		return Catalog{}, fmt.Errorf("encode group selection: %v", err)
@@ -103,7 +101,7 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 		return Catalog{}, err
 	}
 	r := reader{ctx: ctx, input: input, files: make(map[string][]byte)}
-	if _, err := r.read("rule-library.yaml"); err != nil {
+	if _, err := r.read(librarytree.Manifest); err != nil {
 		return Catalog{}, err
 	}
 	license, err := r.license(source)
@@ -189,8 +187,8 @@ func (r *reader) read(path string) ([]byte, error) {
 		info, err := r.input.Lstat(prefix)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				if path == "rule-library.yaml" {
-					return nil, bad(path, "missing library manifest at the repository root; this required file declares the library format and optional license")
+				if path == librarytree.Manifest {
+					return nil, bad(manifestPath, "missing library manifest; the library section of this configuration makes the repository a library and declares its optional license")
 				}
 				return nil, bad(path, "missing required file")
 			}
@@ -224,19 +222,23 @@ func (r *reader) read(path string) ([]byte, error) {
 	return data, nil
 }
 
-// license validates the declaration before reading its contained files; bytes stay unchanged.
+// license validates the manifest's library section and its license declaration before reading the declared files;
+// bytes stay unchanged. A configuration without a library section fails: the repository isn't a library.
 func (r *reader) license(source string) (*rules.LicenseDeclaration, error) {
-	manifest := r.files["rule-library.yaml"]
-	declaration, err := rules.ParseLibraryLicense(manifest, source)
+	location := source + "/" + manifestPath
+	declaration, err := rules.ParseLibraryManifest(r.files[librarytree.Manifest], location)
 	if err != nil {
 		return nil, err
 	}
-	for _, path := range rules.LicensePaths(declaration) {
+	if declaration == nil {
+		return nil, bad(location, "the configuration has no library section, so the repository isn't a library")
+	}
+	for _, path := range rules.LicensePaths(declaration.License) {
 		if _, err := r.read(path); err != nil {
 			return nil, err
 		}
 	}
-	return declaration, nil
+	return declaration.License, nil
 }
 
 // entries lists a real directory and applies cancellation and discovery-count limits.
@@ -277,17 +279,11 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	return entries, nil
 }
 
-// groups expands supported patterns over metadata-bearing directories, including empty groups.
+// groups returns, sorted, the selection's listed groups and its wildcard's expansion over metadata-bearing
+// directories, including empty groups.
 func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]string, error) {
-	if selection.Pattern == "" {
-		return slices.Clone(selection.Groups), nil
-	}
-	roots := []string{"practices", "techs"}
-	if selection.Pattern != "*" {
-		roots = []string{strings.TrimSuffix(selection.Pattern, "/*")}
-	}
-	ids := []string{}
-	for _, root := range roots {
+	ids := slices.Clone(selection.Groups)
+	for _, root := range selection.Roots() {
 		entries, err := r.entries(root, true)
 		if err != nil {
 			return nil, err
@@ -315,7 +311,8 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 			ids = append(ids, id)
 		}
 	}
-	return ids, nil
+	slices.Sort(ids)
+	return slices.Compact(ids), nil
 }
 
 // individualRules validates individually selected rule IDs and indexes them by group.
@@ -342,7 +339,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 	if err != nil {
 		return Group{}, err
 	}
-	metadata, err := coderules.ParseGroupMetadata(data, source+"/"+metadataPath)
+	metadata, err := syllabus.ParseGroupMetadata(data, source+"/"+metadataPath)
 	if err != nil {
 		return Group{}, err
 	}
@@ -351,7 +348,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 		return Group{}, err
 	}
 	slices.Sort(paths)
-	group := Group{ID: id, Metadata: metadata, Rules: []coderules.Rule{}}
+	group := Group{ID: id, Metadata: metadata, Rules: []syllabus.Rule{}}
 	for _, path := range paths {
 		data, err := r.read(path)
 		if err != nil {
@@ -363,7 +360,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 		if strings.HasPrefix(strings.ReplaceAll(string(data[:min(len(data), 128)]), "\r\n", "\n"), "version https://git-lfs.github.com/spec/v1\n") {
 			return Group{}, bad(path, "Git LFS pointers are unsupported")
 		}
-		rule, err := coderules.ParseRule(string(data), path, source)
+		rule, err := syllabus.ParseRule(string(data), path, source)
 		if err != nil {
 			return Group{}, err
 		}

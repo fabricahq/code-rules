@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
 func renderFixture(t *testing.T, body string, support map[string][]byte) (map[string]string, error) {
 	t.Helper()
-	config, libraries := fixture(t, `{}`)
+	config, libraries := fixture(t, `[]`)
 	files := map[string][]byte{"techs/go/local.md": []byte(strings.Split(document, "---\n#")[0] + "---\n" + body)}
 	for file, data := range support {
 		files[file] = data
@@ -34,13 +34,43 @@ func TestRenderRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := output["rules/local/techs/go/local.md"]
-	for _, want := range []string{"A  sentence.\r\n", "../../../../../local/techs/go/assets/local/a%20b.png#part", "[self](../../../../../local/techs/go/local.md)", "`[code](missing)`", "Keep trailing spaces.  \nNext line.", "### Source metadata", "**Rule source:**"} {
+	for _, want := range []string{"A  sentence.\r\n", "../../../../../rules/techs/go/assets/local/a%20b.png#part", "[self](../../../../../rules/techs/go/local.md)", "`[code](missing)`", "Keep trailing spaces.  \nNext line.", "### Source metadata", "**Rule source:**"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in %s", want, got)
 		}
 	}
 	if strings.Count(got, "# Return errors") != 1 {
 		t.Fatal("retained redundant heading")
+	}
+}
+
+// TestRenderLinksSharedAuthoredAssets links a rule in rules/ to a shared asset in assets/ through its place in the
+// Syllabus directory, three levels up.
+func TestRenderLinksSharedAuthoredAssets(t *testing.T) {
+	output, err := renderFixture(t, "[diagram](../../../assets/diagram.svg)", map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := output["rules/local/techs/go/local.md"]; !strings.Contains(got, "[diagram](../../../../../assets/diagram.svg)") {
+		t.Fatal(got)
+	}
+}
+
+// TestRenderRejectsLinksOutsideAuthoredFolders refuses a link from an authored rule to anything outside rules/ and
+// assets/, including a shared asset linked from the rule's place in the library layout, one level short.
+func TestRenderRejectsLinksOutsideAuthoredFolders(t *testing.T) {
+	for _, test := range []struct{ body, target string }{
+		{"[diagram](../../assets/diagram.svg)", "rules/assets/diagram.svg"},
+		{"[config](../../../config.yaml)", "config.yaml"},
+		{"[vendored](../../../vendor/team/rules/techs/go/errors.md)", "vendor/team/rules/techs/go/errors.md"},
+	} {
+		t.Run(test.target, func(t *testing.T) {
+			output, err := renderFixture(t, test.body, map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .syllabus/rules/ and .syllabus/assets/; link to this rule's own assets directory, or to a shared asset in .syllabus/assets/" || output != nil {
+				t.Fatalf("got %v, %v", output, err)
+			}
+		})
 	}
 }
 
@@ -70,9 +100,9 @@ func TestRenderRejectsUnsafeReferences(t *testing.T) {
 func TestRenderRejectsRuleLinks(t *testing.T) {
 	for _, state := range []string{"selected", "excluded", "unselected"} {
 		t.Run(state, func(t *testing.T) {
-			exclude := `{}`
+			exclude := `[]`
 			if state == "excluded" {
-				exclude = `{"techs/go/other":{"reason":"Project policy"}}`
+				exclude = `[{"id":"techs/go/other","reason":"Project policy"}]`
 			}
 			config, libraries := fixture(t, exclude)
 			supplied := libraries["team"]
@@ -80,13 +110,13 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			if state == "unselected" {
 				target = "techs/rust/other.md"
 			} else {
-				other, err := coderules.ParseRule(document, target, "team")
+				other, err := syllabus.ParseRule(document, target, "team")
 				if err != nil {
 					t.Fatal(err)
 				}
 				supplied.Catalog.Groups[0].Rules = append(supplied.Catalog.Groups[0].Rules, other)
 			}
-			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/" + target + "#details)\n"
+			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/rules/" + target + "#details)\n"
 			libraries["team"] = versioned(supplied.Catalog)
 			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
@@ -147,7 +177,7 @@ func TestRenderIgnoresInertHTML(t *testing.T) {
 
 // TestRenderRejectsFileDirectoryConflict refuses an output path that must be both file and directory.
 func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
-	config, libraries := fixture(t, `{}`)
+	config, libraries := fixture(t, `[]`)
 	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/a.md": []byte(document), "techs/go/a.md/b.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +190,7 @@ func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
 // TestRenderReferenceImages keeps shared image definitions usable as both images and file links.
 func TestRenderReferenceImages(t *testing.T) {
 	for _, body := range []string{"![diagram][asset]\n\n[asset]: /assets/diagram.png", "[download][asset] ![diagram][asset]\n\n[asset]: /assets/diagram.png"} {
-		config, libraries := fixture(t, `{}`)
+		config, libraries := fixture(t, `[]`)
 		lib := libraries["team"]
 		lib.Catalog.Groups[0].Rules[0].Document = document + "\n" + body
 		lib.Catalog.SupportingFiles["assets/diagram.png"] = []byte("image bytes")
@@ -179,6 +209,27 @@ func TestRenderReferenceImages(t *testing.T) {
 	}
 }
 
+// TestRenderLinksImportedRuleAssetsToTheirVendoredCopy links an imported rule's own asset to where the source's
+// snapshot stores it, under vendor/team/rules/.
+func TestRenderLinksImportedRuleAssetsToTheirVendoredCopy(t *testing.T) {
+	config, libraries := fixture(t, `[]`)
+	lib := libraries["team"]
+	lib.Catalog.Groups[0].Rules[0].Document = document + "\n![diagram](assets/errors/diagram.png)"
+	lib.Catalog.SupportingFiles["techs/go/assets/errors/diagram.png"] = []byte("image bytes")
+	libraries["team"] = lib
+	resolved, err := resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := renderRules(resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := output["rules/team/techs/go/errors.md"]; !strings.Contains(got, "](../../../../../vendor/team/rules/techs/go/assets/errors/diagram.png)") {
+		t.Fatal(got)
+	}
+}
+
 // TestRenderRejectsInvalidUTF8 prevents local bytes from being silently replaced during JSON delivery.
 func TestRenderRejectsInvalidUTF8(t *testing.T) {
 	output, err := renderFixture(t, "Guidance: \xff", nil)
@@ -190,7 +241,7 @@ func TestRenderRejectsInvalidUTF8(t *testing.T) {
 
 // TestRenderRejectsInvalidDocumentBytes checks callers that construct a resolved value directly.
 func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
-	config, libraries := fixture(t, `{}`)
+	config, libraries := fixture(t, `[]`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -207,7 +258,7 @@ func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
 func TestRenderFlattensMetadataLineEndings(t *testing.T) {
 	for _, ending := range []string{`\r`, `\n`, `\r\n`} {
 		t.Run(ending, func(t *testing.T) {
-			config, libraries := fixture(t, `{}`)
+			config, libraries := fixture(t, `[]`)
 			value := `"Safe` + ending + `## Extra"`
 			text := "---\ntitle: " + value + "\nimpact: HIGH\nimpactDescription: " + value + "\nwhenToRead: " + value + "\n---\nGuidance."
 			resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(text)})

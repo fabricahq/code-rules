@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/syllabus/internal/library"
 	"github.com/spf13/cobra"
 )
 
 // libraryReleaseCommand publishes the pending change notes and library-wide changes as a library release.
 func libraryReleaseCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("release", "Publish pending rule changes as a library release", cobra.NoArgs, options)
-	cmd.Long = cmd.Short + ": an annotated\nrelease/<number> tag on the current commit, pushed to the remote, and, for\nrepositories on GitHub.com, a GitHub Release page created with the GitHub\nCLI, gh. No files change.\n\nThe command fetches first, and refuses unless you're on the remote's default\nbranch, your branch matches the remote exactly, and code-rules library check\npasses. If a run stops after pushing the tag, run it again to create what's\nmissing.\n\nPreview the release notes with --dry-run." + documentationHelp
+	cmd.Long = cmd.Short + ": an annotated\nrelease/<number> tag on the current commit, pushed to the remote, and, for\nrepositories on GitHub.com, a GitHub Release page created with the GitHub\nCLI, gh. No files change.\n\nThe command fetches first, and refuses unless you're on the remote's default\nbranch, your branch matches the remote exactly, and syllabus library check\npasses. If a run stops after pushing the tag, run it again to create what's\nmissing.\n\nPreview the release notes with --dry-run." + documentationHelp
 	cmd.Flags().Bool("dry-run", false, "Show what would be published, without creating a tag or a GitHub Release page")
 	cmd.Flags().Bool("no-github-release", false, "Skip creating the GitHub Release page")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {

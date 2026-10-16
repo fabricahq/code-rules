@@ -15,18 +15,18 @@ import (
 	"testing"
 )
 
-// forkFile is the local rule the tests replace, relative to local/.
+// forkFile is the local rule the tests replace, relative to rules/.
 const forkFile = "techs/go/fork.md"
 
 // writeForkProject writes the fork with two assets, another local rule with its own asset, and the previous vendor
 // and generated output.
 func writeForkProject(t *testing.T, root *os.Root) {
 	t.Helper()
-	writeFixture(t, root, "local/techs/go/fork.md", "old fork")
-	writeFixture(t, root, "local/techs/go/assets/fork/notes.md", "old notes")
-	writeFixture(t, root, "local/techs/go/assets/fork/extra/data.bin", "old data")
-	writeFixture(t, root, "local/techs/go/other.md", "other rule")
-	writeFixture(t, root, "local/techs/go/assets/other/notes.md", "other notes")
+	writeFixture(t, root, "rules/techs/go/fork.md", "old fork")
+	writeFixture(t, root, "rules/techs/go/assets/fork/notes.md", "old notes")
+	writeFixture(t, root, "rules/techs/go/assets/fork/extra/data.bin", "old data")
+	writeFixture(t, root, "rules/techs/go/other.md", "other rule")
+	writeFixture(t, root, "rules/techs/go/assets/other/notes.md", "other notes")
 	writeFixture(t, root, "vendor/team/rule.md", "old rule")
 	writeFixture(t, root, "generated/RULES.md", "old output")
 }
@@ -34,17 +34,17 @@ func writeForkProject(t *testing.T, root *os.Root) {
 // forkUpdate replaces the fork and its assets with assets, which nil removes, and the managed trees with new output.
 func forkUpdate(assets map[string][]byte) map[Target]map[string][]byte {
 	return map[Target]map[string][]byte{
-		LocalRule(forkFile):       {"local/" + forkFile: []byte("new fork")},
+		LocalRule(forkFile):       {"rules/" + forkFile: []byte("new fork")},
 		LocalRuleAssets(forkFile): assets,
 		Vendor:                    {"team/rule.md": []byte("new rule")},
 		Generated:                 {"RULES.md": []byte("new output")},
 	}
 }
 
-// localFiles returns every file under local/ with its text.
+// localFiles returns every file under rules/ with its text.
 func localFiles(t *testing.T, root *os.Root) map[string]string {
 	t.Helper()
-	tree, err := ReadTree(context.Background(), root, "local")
+	tree, err := ReadTree(context.Background(), root, "rules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func localFiles(t *testing.T, root *os.Root) map[string]string {
 	return files
 }
 
-// requireForkProject checks that local/ holds exactly want and the managed trees the matching output.
+// requireForkProject checks that rules/ holds exactly want and the managed trees the matching output.
 func requireForkProject(t *testing.T, root *os.Root, state string, want map[string]string) {
 	t.Helper()
 	for name, suffix := range map[string]string{"vendor/team/rule.md": " rule", "generated/RULES.md": " output"} {
@@ -72,7 +72,7 @@ func requireForkProject(t *testing.T, root *os.Root, state string, want map[stri
 	}
 }
 
-// oldLocal is local/ before the update, and newLocal after it replaces the fork's assets with new.md.
+// oldLocal is rules/ before the update, and newLocal after it replaces the fork's assets with new.md.
 var (
 	oldLocal = map[string]string{"techs/go/fork.md": "old fork", "techs/go/assets/fork/notes.md": "old notes", "techs/go/assets/fork/extra/data.bin": "old data", "techs/go/other.md": "other rule", "techs/go/assets/other/notes.md": "other notes"}
 	newLocal = map[string]string{"techs/go/fork.md": "new fork", "techs/go/assets/fork/new.md": "new notes", "techs/go/other.md": "other rule", "techs/go/assets/other/notes.md": "other notes"}
@@ -109,17 +109,17 @@ func TestApply_RemovesALocalRuleAssetDirectory(t *testing.T) {
 	}
 	want := map[string]string{"techs/go/fork.md": "new fork", "techs/go/other.md": "other rule", "techs/go/assets/other/notes.md": "other notes"}
 	requireForkProject(t, root, "new", want)
-	if _, err := root.Lstat("local/techs/go/assets/fork"); !errors.Is(err, fs.ErrNotExist) {
+	if _, err := root.Lstat("rules/techs/go/assets/fork"); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatal("the asset directory is still there", err)
 	}
 }
 
 // TestApply_CreatesALocalRuleAssetDirectoryAndItsParent gives a fork without assets its first ones, creating
-// local/techs/go/assets, and removes that directory again when the transaction fails.
+// rules/techs/go/assets, and removes that directory again when the transaction fails.
 func TestApply_CreatesALocalRuleAssetDirectoryAndItsParent(t *testing.T) {
 	setup := func(t *testing.T) *os.Root {
 		root := openProject(t)
-		writeFixture(t, root, "local/techs/go/fork.md", "old fork")
+		writeFixture(t, root, "rules/techs/go/fork.md", "old fork")
 		writeFixture(t, root, "vendor/team/rule.md", "old rule")
 		writeFixture(t, root, "generated/RULES.md", "old output")
 		return root
@@ -140,7 +140,7 @@ func TestApply_CreatesALocalRuleAssetDirectoryAndItsParent(t *testing.T) {
 		})
 		projectCode(t, err, "concurrent-change")
 		requireForkProject(t, root, "old", map[string]string{"techs/go/fork.md": "old fork"})
-		if _, err := root.Lstat("local/techs/go/assets"); !errors.Is(err, fs.ErrNotExist) {
+		if _, err := root.Lstat("rules/techs/go/assets"); !errors.Is(err, fs.ErrNotExist) {
 			t.Fatal("the failed transaction left the directory it created", err)
 		}
 	})
@@ -151,17 +151,17 @@ func TestApply_CreatesALocalRuleAssetDirectoryAndItsParent(t *testing.T) {
 // directory for a concurrent edit.
 func TestApply_ChangesNoLiveDirectoryBeforeTheInputsAreChecked(t *testing.T) {
 	root := openProject(t)
-	writeFixture(t, root, "local/techs/go/fork.md", "old fork")
+	writeFixture(t, root, "rules/techs/go/fork.md", "old fork")
 	writeFixture(t, root, "vendor/team/rule.md", "old rule")
 	writeFixture(t, root, "generated/RULES.md", "old output")
-	before, err := ReadTree(context.Background(), root, "local")
+	before, err := ReadTree(context.Background(), root, "rules")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := WithWriter(context.Background(), root, func(w *Writer) error {
 		return w.Apply(forkUpdate(map[string][]byte{"new.md": []byte("new notes")}), func() error {
-			if current, err := ReadTree(context.Background(), root, "local"); err != nil || treeDigest(current) != treeDigest(before) {
-				return failure("concurrent-change", "local/ changed before the inputs were checked", err)
+			if current, err := ReadTree(context.Background(), root, "rules"); err != nil || treeDigest(current) != treeDigest(before) {
+				return failure("concurrent-change", "rules/ changed before the inputs were checked", err)
 			}
 			return nil
 		})
@@ -174,7 +174,7 @@ func TestApply_ChangesNoLiveDirectoryBeforeTheInputsAreChecked(t *testing.T) {
 // writeAssetFreeFork writes a fork without assets, in a group without any, and the previous managed trees.
 func writeAssetFreeFork(t *testing.T, root *os.Root) {
 	t.Helper()
-	writeFixture(t, root, "local/techs/go/fork.md", "old fork")
+	writeFixture(t, root, "rules/techs/go/fork.md", "old fork")
 	writeFixture(t, root, "vendor/team/rule.md", "old rule")
 	writeFixture(t, root, "generated/RULES.md", "old output")
 }
@@ -188,17 +188,17 @@ func requireEmptyDirectory(t *testing.T, root *os.Root, name string) {
 	}
 }
 
-// TestKilledWriterLeavesTheParentsItCreated stops the writer right after it creates local/techs/go/assets, the new
+// TestKilledWriterLeavesTheParentsItCreated stops the writer right after it creates rules/techs/go/assets, the new
 // asset directory's missing parent, or after it began replacing targets. Recovery restores every target and leaves
 // the directory, empty, since nothing can prove that the directory now at that path is the one the writer made.
 func TestKilledWriterLeavesTheParentsItCreated(t *testing.T) {
-	if directory := os.Getenv("CODE_RULES_PARENT_CHILD"); directory != "" {
+	if directory := os.Getenv("SYLLABUS_PARENT_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
-		stop := os.Getenv("CODE_RULES_PARENT_STOP")
+		stop := os.Getenv("SYLLABUS_PARENT_STOP")
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
 			mkdir, rename := w.mkdir, w.rename
 			w.mkdir = func(name string) error {
@@ -224,7 +224,7 @@ func TestKilledWriterLeavesTheParentsItCreated(t *testing.T) {
 			root := openProject(t)
 			writeAssetFreeFork(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledWriterLeavesTheParentsItCreated$")
-			child.Env = append(os.Environ(), "CODE_RULES_PARENT_CHILD="+root.Name(), "CODE_RULES_PARENT_STOP="+stop)
+			child.Env = append(os.Environ(), "SYLLABUS_PARENT_CHILD="+root.Name(), "SYLLABUS_PARENT_STOP="+stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {
@@ -234,7 +234,7 @@ func TestKilledWriterLeavesTheParentsItCreated(t *testing.T) {
 				t.Fatal(err)
 			}
 			requireForkProject(t, root, "old", map[string]string{"techs/go/fork.md": "old fork"})
-			requireEmptyDirectory(t, root, "local/techs/go/assets")
+			requireEmptyDirectory(t, root, "rules/techs/go/assets")
 		})
 	}
 }
@@ -259,7 +259,7 @@ func TestApply_LeavesTheParentsItCreatedWhenItFails(t *testing.T) {
 		t.Fatalf("wanted cancellation, got %v", err)
 	}
 	requireForkProject(t, root, "old", map[string]string{"techs/go/fork.md": "old fork"})
-	requireEmptyDirectory(t, root, "local/techs/go/assets")
+	requireEmptyDirectory(t, root, "rules/techs/go/assets")
 }
 
 // TestApply_UsesAParentThatAppearedMeanwhile: a directory that appears at a missing parent's path after the journal
@@ -284,7 +284,7 @@ func TestApply_UsesAParentThatAppearedMeanwhile(t *testing.T) {
 			// transaction for recovery rather than risk the file.
 			if name == "file" {
 				projectCode(t, err, "recovery-required")
-				if data, err := root.ReadFile("local/techs/go/assets"); err != nil || string(data) != "their file" {
+				if data, err := root.ReadFile("rules/techs/go/assets"); err != nil || string(data) != "their file" {
 					t.Fatalf("their file: %q, %v", data, err)
 				}
 				return
@@ -300,7 +300,7 @@ func TestApply_UsesAParentThatAppearedMeanwhile(t *testing.T) {
 // TestApply_KeepsALocalRuleEditedDuringStaging refuses to replace a fork the user edited meanwhile, and keeps the
 // previous fork, assets, and managed trees.
 func TestApply_KeepsALocalRuleEditedDuringStaging(t *testing.T) {
-	for name, edit := range map[string]string{"rule": "local/techs/go/fork.md", "asset": "local/techs/go/assets/fork/notes.md"} {
+	for name, edit := range map[string]string{"rule": "rules/techs/go/fork.md", "asset": "rules/techs/go/assets/fork/notes.md"} {
 		t.Run(name, func(t *testing.T) {
 			root := openProject(t)
 			writeForkProject(t, root)
@@ -312,7 +312,7 @@ func TestApply_KeepsALocalRuleEditedDuringStaging(t *testing.T) {
 			})
 			projectCode(t, err, "concurrent-change")
 			want := maps.Clone(oldLocal)
-			want[edit[len("local/"):]] = "user edit"
+			want[edit[len("rules/"):]] = "user edit"
 			requireForkProject(t, root, "old", want)
 		})
 	}
@@ -323,7 +323,7 @@ func TestApply_KeepsALocalRuleEditedDuringStaging(t *testing.T) {
 func TestApply_RejectsTargetsOutsideLocalRules(t *testing.T) {
 	root := openProject(t)
 	writeForkProject(t, root)
-	for _, target := range []Target{"local/techs/Go/fork.md", "local/techs/go/assets/fork/notes.md", "local/techs/go/assets", "local/techs/go/README.md", "local/techs/go/fork", "local/other/go/fork.md", "local/techs/go/assets/fork/nested/assets/x"} {
+	for _, target := range []Target{"rules/techs/Go/fork.md", "rules/techs/go/assets/fork/notes.md", "rules/techs/go/assets", "rules/techs/go/README.md", "rules/techs/go/fork", "rules/other/go/fork.md", "rules/techs/go/assets/fork/nested/assets/x"} {
 		err := WithWriter(context.Background(), root, func(w *Writer) error {
 			return w.Apply(map[Target]map[string][]byte{target: {string(target): []byte("x")}}, nil)
 		})
@@ -339,21 +339,21 @@ func TestApply_RejectsTargetsOutsideLocalRules(t *testing.T) {
 // TestKilledForkWriterRecovers stops the writer after each rename, replacing the assets or removing them; the next
 // writer restores the previous fork, assets, and trees, or, once the commit marker exists, keeps everything new.
 func TestKilledForkWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("CODE_RULES_FORK_CHILD"); directory != "" {
+	if directory := os.Getenv("SYLLABUS_FORK_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
 		var assets map[string][]byte
-		if os.Getenv("CODE_RULES_FORK_ASSETS") != "" {
+		if os.Getenv("SYLLABUS_FORK_ASSETS") != "" {
 			assets = map[string][]byte{"new.md": []byte("new notes")}
 		}
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
 			rename := w.rename
 			w.rename = func(from, to string) error {
 				err := rename(from, to)
-				if err == nil && to == os.Getenv("CODE_RULES_FORK_STOP") {
+				if err == nil && to == os.Getenv("SYLLABUS_FORK_STOP") {
 					os.Exit(42)
 				}
 				return err
@@ -363,18 +363,18 @@ func TestKilledForkWriterRecovers(t *testing.T) {
 		t.Fatalf("child did not stop at rename: %v", err)
 	}
 	removed := map[string]string{"techs/go/fork.md": "new fork", "techs/go/other.md": "other rule", "techs/go/assets/other/notes.md": "other notes"}
-	assetsBackup := transactionName + "/" + backupPrefix + "local+techs+go+assets+fork"
+	assetsBackup := transactionName + "/" + backupPrefix + "rules+techs+go+assets+fork"
 	for _, test := range []struct {
 		name, stop, assets string
 		state              string
 		want               map[string]string
 	}{
-		{"probe", renameCheck + "/local+techs+go+fork.md", "yes", "old", oldLocal},
+		{"probe", renameCheck + "/rules+techs+go+fork.md", "yes", "old", oldLocal},
 		{"vendor", "vendor", "yes", "old", oldLocal},
 		{"generated", "generated", "yes", "old", oldLocal},
-		{"rule", "local/techs/go/fork.md", "yes", "old", oldLocal},
+		{"rule", "rules/techs/go/fork.md", "yes", "old", oldLocal},
 		{"assets backed up", assetsBackup, "yes", "old", oldLocal},
-		{"assets", "local/techs/go/assets/fork", "yes", "old", oldLocal},
+		{"assets", "rules/techs/go/assets/fork", "yes", "old", oldLocal},
 		{"committed", transactionName + "/committed.json", "yes", "new", newLocal},
 		{"removed assets backed up", assetsBackup, "", "old", oldLocal},
 		{"committed removal", transactionName + "/committed.json", "", "new", removed},
@@ -383,7 +383,7 @@ func TestKilledForkWriterRecovers(t *testing.T) {
 			root := openProject(t)
 			writeForkProject(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledForkWriterRecovers$")
-			child.Env = append(os.Environ(), "CODE_RULES_FORK_CHILD="+root.Name(), "CODE_RULES_FORK_STOP="+test.stop, "CODE_RULES_FORK_ASSETS="+test.assets)
+			child.Env = append(os.Environ(), "SYLLABUS_FORK_CHILD="+root.Name(), "SYLLABUS_FORK_STOP="+test.stop, "SYLLABUS_FORK_ASSETS="+test.assets)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

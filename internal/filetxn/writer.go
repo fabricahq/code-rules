@@ -12,31 +12,65 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
-const transactionName = ".code-rules-transaction"
+const transactionName = ".syllabus-transaction"
 
 // backupPrefix begins the name of each backup of a target's previous output in the transaction directory.
 const backupPrefix = "old-"
 
 // maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
-// trees, format 3 adds a project guide, format 4 adds the configuration, format 5 adds local group metadata, and
-// format 6 adds local rules and their asset directories, which it alone can remove.
-var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules}
+// trees, format 3 adds a project guide, format 4 adds the configuration, format 5 adds local group metadata, format 6
+// adds local rules and their asset directories, which it can remove, format 7 adds skill folders outside the
+// Syllabus directory, which it can remove too, and format 8 adds the repository's AGENTS.md.
+var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules, 7: 4 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders, 8: 5 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders}
 
 // maxJournalFormat is the newest journal format; Apply writes the oldest one that can hold its targets.
-const maxJournalFormat = 6
+const maxJournalFormat = 8
 
-const lockName = ".code-rules-lock"
-const cleanupName = ".code-rules-cleanup"
+const lockName = ".syllabus-lock"
+const cleanupName = ".syllabus-cleanup"
 
-// Target is a managed directory, project guide, the project configuration, a local group's metadata, or a local
-// rule or its asset directory, which only update replaces, when it replaces a fork.
+// legacyLockName is the lock Code Rules took before it was renamed Syllabus. A writer of a project still in
+// legacyDirectory takes it too, before its own, so a Code Rules process can't write the project at the same time.
+const legacyLockName = ".code-rules-lock"
+
+// legacyDirectory is the project directory Code Rules used before it was renamed Syllabus.
+const legacyDirectory = ".code-rules"
+
+// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Syllabus. Their
+// presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers;
+// legacyLockName can also be held by a Syllabus writer of a project in legacyDirectory.
+var legacyNames = []string{legacyLockName, ".code-rules-transaction", ".code-rules-cleanup"}
+
+// requireNoLegacyWriter fails with busy when root holds one of names, which are some of legacyNames.
+func requireNoLegacyWriter(root *os.Root, names []string) error {
+	for _, name := range names {
+		present, err := exists(root, name)
+		if err != nil {
+			return err
+		}
+		if present {
+			return failure("busy", name+": another process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command again with the version that was interrupted, code-rules or syllabus, to recover its changes, then run this command again", nil)
+		}
+	}
+	return nil
+}
+
+// isLegacyRoot reports whether root is a project directory still named legacyDirectory.
+func isLegacyRoot(root *os.Root) bool {
+	return filepath.Base(root.Name()) == legacyDirectory
+}
+
+// Target is a managed directory, project guide, the project configuration, an authored group's metadata, an
+// authored rule or its asset directory, which only update replaces, when it replaces a fork, or an installed skill
+// folder.
 type Target string
 
 const (
@@ -52,7 +86,10 @@ type Writer struct {
 	// rename and mkdir are the filesystem boundaries used by tests to stop a child at an exact rename or directory.
 	rename func(string, string) error
 	mkdir  func(string) error
-	active bool
+	// renameRepository, when set, replaces renames in the repository root, which skill folders and AGENTS.md use,
+	// for tests.
+	renameRepository func(root *os.Root, from, to string) error
+	active           bool
 	// recovered reports that WithWriter first recovered an interrupted earlier operation, changing project files.
 	recovered bool
 }
@@ -83,6 +120,9 @@ type journalRecord struct {
 // RequireIdle refuses read-only operations while writing or recovery could expose mixed output.
 // It never creates a lock or performs recovery.
 func RequireIdle(root *os.Root) error {
+	if err := requireNoLegacyWriter(root, legacyNames); err != nil {
+		return err
+	}
 	for _, name := range []string{lockName, transactionName, cleanupName} {
 		present, err := exists(root, name)
 		if err != nil {
@@ -104,7 +144,23 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	if root == nil || operation == nil {
 		return failure("invalid-operation", "expected an open project root and writer operation", nil)
 	}
-	if err := acquireLock(ctx, root); err != nil {
+	unlocked := legacyNames
+	if isLegacyRoot(root) {
+		// Code Rules honors only its own lock, so a project it can still write is locked under that name first.
+		if err := acquireLock(ctx, root, legacyLockName); err != nil {
+			return err
+		}
+		defer func() {
+			if removeErr := root.RemoveAll(legacyLockName); removeErr != nil {
+				err = errors.Join(err, removeErr)
+			}
+		}()
+		unlocked = legacyNames[1:]
+	}
+	if err := requireNoLegacyWriter(root, unlocked); err != nil {
+		return err
+	}
+	if err := acquireLock(ctx, root, lockName); err != nil {
 		return err
 	}
 	// Joining only a failed removal keeps err itself, so callers still see its identity, such as a validation error.
@@ -122,8 +178,8 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	return operation(w)
 }
 
-// acquireLock exclusively creates an owner record or serializes reclamation of a dead local owner.
-func acquireLock(ctx context.Context, root *os.Root) error {
+// acquireLock exclusively creates an owner record in lockName or serializes reclamation of a dead local owner.
+func acquireLock(ctx context.Context, root *os.Root, lockName string) error {
 	host, err := os.Hostname()
 	if err != nil {
 		return err
@@ -176,12 +232,20 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 
 // Apply stages complete managed targets and rechecks caller inputs before replacing live output.
 // It rolls back on failure when no later edits would be lost, and recovery restores or finishes every target in
-// the transaction together. Empty output is a no-op. A nil file map removes a local rule's asset directory, and
-// does nothing when it is absent. It changes nothing outside its transaction directory until assertUnchanged has
-// passed and the journal is written; only then does it create the missing parent directories of local rule targets.
-// A rollback leaves those directories in place, empty, since nothing proves who made a directory at that path.
+// the transaction together. Empty output is a no-op. A nil file map removes a local rule's asset directory or a skill
+// folder, and does nothing when it is absent. It changes nothing outside its transaction directory until
+// assertUnchanged has passed and the journal is written; only then does it create the missing parent directories of
+// local rule targets and skill folders. A rollback leaves those directories in place, empty, since nothing proves who
+// made a directory at that path. Once it has removed a skill folder, it also removes the skill target's folder, such
+// as .claude/skills, when that leaves it empty. Every file it writes is not executable; see ApplyModes.
 // This promises recoverability, not simultaneous visibility of two renames or power-loss durability.
-func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) (err error) {
+func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) error {
+	return w.ApplyModes(output, nil, assertUnchanged)
+}
+
+// ApplyModes is Apply, except that the files executable lists for a tree target, by path in the target, are
+// executable. Each must be a file output gives that target.
+func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[Target][]string, assertUnchanged func() error) (err error) {
 	if w == nil || !w.active {
 		return failure("invalid-operation", "writer is outside its ownership callback", nil)
 	}
@@ -196,49 +260,71 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return failure("invalid-target", "only one project guide may be replaced", nil)
 		}
 	}
-	order := []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config}
-	metadata, localRules := 0, 0
+	places := &roots{project: w.root}
+	defer places.close()
+	order := []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config, AgentsFile}
+	metadata, localRules, skillFolders := 0, 0, 0
 	for target, files := range output {
 		if !validTarget(target) {
-			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, local group metadata, and local rules and their asset directories may be replaced", target), nil)
+			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, AGENTS.md, local group metadata, local rules and their asset directories, and skill folders may be replaced", target), nil)
 		}
-		if files == nil && !localRuleAssetsTarget(target) {
-			return failure("invalid-target", fmt.Sprintf("%q: only a local rule's asset directory may be removed", target), nil)
+		if files == nil && !removable(target) {
+			return failure("invalid-target", fmt.Sprintf("%q: only a local rule's asset directory or a skill folder may be removed", target), nil)
 		}
+		_, skill := skillFolderTarget(target)
 		switch {
 		case localGroupMetadataTarget(target):
 			metadata++
 		case localRuleTarget(target):
 			localRules++
+		case skill:
+			skillFolders++
 		}
-		if localTarget(target) {
+		if localTarget(target) || skill {
 			order = append(order, target)
-			if err := requireRealParents(w.root, target); err != nil {
+			p, err := places.place(target)
+			if err != nil {
+				return err
+			}
+			if err := requireRealParents(p.root, p.live); err != nil {
 				return err
 			}
 		}
 		if fileTarget(target) && !localRuleTarget(target) {
-			if err := rejectAlias(w.root, string(target)); err != nil {
+			p, err := places.place(target)
+			if err != nil {
+				return err
+			}
+			if err := rejectAlias(p.root, p.live); err != nil {
 				return err
 			}
 		}
-		if err := rules.ValidatePaths(files, nil); err != nil {
+		// AGENTS.md's one file is named for the target, outside the Syllabus directory, which writeTarget checks.
+		if err := rules.ValidatePaths(files, nil); err != nil && target != AgentsFile {
 			return err
 		}
 	}
-	// Local targets follow the fixed targets in path order, so journals are deterministic.
-	fixed := 5
-	if metadata > maxLocalGroupMetadata || localRules > maxLocalRules || len(order)-fixed-metadata-localRules > maxLocalRules {
-		return failure("invalid-target", fmt.Sprintf("one transaction can hold at most %d local group metadata files and %d local rules with their asset directories", maxLocalGroupMetadata, maxLocalRules), nil)
+	for target, list := range executable {
+		files, ok := output[target]
+		for _, file := range list {
+			if _, listed := files[file]; !ok || fileTarget(target) || !listed {
+				return failure("invalid-target", fmt.Sprintf("%q: %s is executable but isn't a file of the target's output", target, file), nil)
+			}
+		}
+	}
+	// Local targets and skill folders follow the fixed targets in path order, so journals are deterministic.
+	fixed := 6
+	if metadata > maxLocalGroupMetadata || localRules > maxLocalRules || len(order)-fixed-metadata-localRules-skillFolders > maxLocalRules || skillFolders > maxSkillFolders {
+		return failure("invalid-target", fmt.Sprintf("one transaction can hold at most %d local group metadata files, %d local rules with their asset directories, and %d skill folders", maxLocalGroupMetadata, maxLocalRules, maxSkillFolders), nil)
 	}
 	slices.Sort(order[fixed:])
 	if err := w.root.Mkdir(transactionName, 0700); err != nil {
 		return err
 	}
 	prepared := false
-	// parents lists, outermost first, the missing parent directories of local rule targets to create once the
-	// journal is written. Nothing removes them again, so a rollback leaves them, empty.
-	parents := []string{}
+	// parents lists, outermost first, the missing parent directories of local rule targets and skill folders to
+	// create once the journal is written. Nothing removes them again, so a rollback leaves them, empty.
+	parents := []parent{}
 	defer func() {
 		if err == nil {
 			return
@@ -250,7 +336,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			recoveryErr = w.root.RemoveAll(transactionName)
 		}
 		if recoveryErr != nil {
-			err = failure("recovery-required", "update failed and rollback could not finish; preserve .code-rules-transaction for recovery", errors.Join(err, recoveryErr))
+			err = failure("recovery-required", "update failed and rollback could not finish; preserve .syllabus-transaction for recovery", errors.Join(err, recoveryErr))
 		}
 	}()
 	entries := []journalEntry{}
@@ -259,7 +345,11 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if !ok {
 			continue
 		}
-		before, err := readTarget(w.ctx, w.root, target, string(target))
+		p, err := places.place(target)
+		if err != nil {
+			return err
+		}
+		before, err := readTarget(w.ctx, p.root, target, p.live)
 		if err != nil {
 			return err
 		}
@@ -269,39 +359,40 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			}
 			continue
 		}
-		if localRuleTarget(target) || localRuleAssetsTarget(target) {
-			missing, err := missingParents(w.root, path.Dir(string(target)))
+		if _, skill := skillFolderTarget(target); skill || localRuleTarget(target) || localRuleAssetsTarget(target) {
+			missing, err := missingParents(p.root, path.Dir(p.live))
 			if err != nil {
 				return err
 			}
 			for _, directory := range missing {
-				if !slices.Contains(parents, directory) {
-					parents = append(parents, directory)
+				if !slices.Contains(parents, parent{p.root, directory}) {
+					parents = append(parents, parent{p.root, directory})
 				}
 			}
 			// A target whose parent is still missing can't collide with an existing spelling.
 			if len(missing) == 0 {
-				if err := rejectAlias(w.root, string(target)); err != nil {
+				if err := rejectAlias(p.root, p.live); err != nil {
 					return err
 				}
 			}
 		}
-		staged := path.Join(transactionName, "new-"+entryName(target))
-		if err := writeTarget(w.ctx, w.root, target, staged, files); err != nil {
+		staged := p.entry("new-", target)
+		if err := writeTarget(w.ctx, p.root, target, staged, files, executable[target]); err != nil {
 			return err
 		}
 		if fileTarget(target) {
-			if err := w.probeFileRename(target, staged); err != nil {
+			// The transaction directory is the same in either root, so the probe uses the Syllabus directory's.
+			if err := w.probeFileRename(target, path.Join(transactionName, "new-"+entryName(target))); err != nil {
 				return err
 			}
 		}
-		after, err := readTarget(w.ctx, w.root, target, staged)
+		after, err := readTarget(w.ctx, p.root, target, staged)
 		if err != nil {
 			return err
 		}
 		entries = append(entries, journalEntry{target, treeDigest(before), treeDigest(after), before != nil})
 	}
-	// Only removals of absent asset directories leave nothing to replace.
+	// Only removals of absent directories leave nothing to replace.
 	if len(entries) == 0 {
 		return w.root.RemoveAll(transactionName)
 	}
@@ -312,7 +403,11 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	}
 	// Recheck targets too, even when the caller only checks authored inputs.
 	for _, entry := range entries {
-		current, err := readTarget(w.ctx, w.root, entry.Name, string(entry.Name))
+		p, err := places.place(entry.Name)
+		if err != nil {
+			return err
+		}
+		current, err := readTarget(w.ctx, p.root, entry.Name, p.live)
 		if err != nil {
 			return err
 		}
@@ -322,6 +417,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	}
 	formatVersion := 2
 	for _, entry := range entries {
+		_, skill := skillFolderTarget(entry.Name)
 		switch {
 		case guideTarget(entry.Name):
 			formatVersion = max(formatVersion, 3)
@@ -330,7 +426,11 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		case localGroupMetadataTarget(entry.Name):
 			formatVersion = max(formatVersion, 5)
 		case localRuleTarget(entry.Name), localRuleAssetsTarget(entry.Name):
-			formatVersion = 6
+			formatVersion = max(formatVersion, 6)
+		case skill:
+			formatVersion = max(formatVersion, 7)
+		case entry.Name == AgentsFile:
+			formatVersion = 8
 		}
 	}
 	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
@@ -346,13 +446,17 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if err := w.ctx.Err(); err != nil {
 			return err
 		}
+		p, err := places.place(entry.Name)
+		if err != nil {
+			return err
+		}
 		if entry.Existed {
-			backupPath := path.Join(transactionName, backupPrefix+entryName(entry.Name))
-			if err := w.rename(string(entry.Name), backupPath); err != nil {
+			backupPath := p.entry(backupPrefix, entry.Name)
+			if err := w.renameIn(p, p.live, backupPath); err != nil {
 				return err
 			}
 			// Inspect the tree actually displaced, including edits made after the earlier check.
-			backup, err := readTarget(w.ctx, w.root, entry.Name, backupPath)
+			backup, err := readTarget(w.ctx, p.root, entry.Name, backupPath)
 			if err != nil {
 				return err
 			}
@@ -363,7 +467,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if removes(entry) {
 			continue
 		}
-		if err := w.rename(path.Join(transactionName, "new-"+entryName(entry.Name)), string(entry.Name)); err != nil {
+		if err := w.renameIn(p, p.entry("new-", entry.Name), p.live); err != nil {
 			return err
 		}
 	}
@@ -378,7 +482,43 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	}
 	// A durable commit marker makes later cleanup failures cleanup-only, never rollback.
 	_ = finishCommitted(w.root)
+	for _, entry := range entries {
+		if _, skill := skillFolderTarget(entry.Name); skill && removes(entry) {
+			p, err := places.place(entry.Name)
+			if err == nil {
+				// Removing a directory that still has entries fails, which leaves it as it is.
+				_ = p.root.Remove(path.Dir(p.live))
+			}
+		}
+	}
 	return nil
+}
+
+// parent is a missing parent directory, by its path in root, of a target that Apply creates.
+type parent struct {
+	root      *os.Root
+	directory string
+}
+
+// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Syllabus
+// directory.
+func (w *Writer) renameIn(p place, from, to string) error {
+	if p.root == w.root {
+		return w.rename(from, to)
+	}
+	if w.renameRepository != nil {
+		return w.renameRepository(p.root, from, to)
+	}
+	return renameInRepository(p, from, to)
+}
+
+// renameInRepository renames from to to in the repository root, never replacing a file that appeared at a file
+// target's path.
+func renameInRepository(p place, from, to string) error {
+	if p.file {
+		return renameWithout(p.root, from, to, renameExclusive)
+	}
+	return p.root.Rename(from, to)
 }
 
 // missingParents returns, outermost first, the directories from directory up to the first existing one that don't
@@ -403,18 +543,24 @@ func missingParents(root *os.Root, directory string) ([]string, error) {
 	return missing, nil
 }
 
-// createParent creates directory, a missing parent of a local rule target, refusing a name that collides with an
-// existing spelling. A directory that appeared meanwhile is used as it is, since nothing removes parents; anything
-// else there, such as a file or a symbolic link, is refused.
-func (w *Writer) createParent(directory string) error {
-	if err := rejectAlias(w.root, directory); err != nil {
+// createParent creates missing, a missing parent of a local rule target or a skill folder, refusing a name that
+// collides with an existing spelling. A directory that appeared meanwhile is used as it is, since nothing removes
+// parents; anything else there, such as a file or a symbolic link, is refused.
+func (w *Writer) createParent(missing parent) error {
+	root, directory := missing.root, missing.directory
+	if err := rejectAlias(root, directory); err != nil {
 		return err
 	}
-	err := w.mkdir(directory)
+	var err error
+	if root == w.root {
+		err = w.mkdir(directory)
+	} else {
+		err = root.Mkdir(directory, 0755)
+	}
 	if !errors.Is(err, fs.ErrExist) {
 		return err
 	}
-	info, err := w.root.Lstat(directory)
+	info, err := root.Lstat(directory)
 	if err != nil {
 		return err
 	}
@@ -425,7 +571,7 @@ func (w *Writer) createParent(directory string) error {
 }
 
 // removes reports whether entry removes its target rather than replacing it, which only a local rule's asset
-// directory can.
+// directory or a skill folder can.
 func removes(entry journalEntry) bool { return entry.After == treeDigest(nil) }
 
 // recoverChanges validates every restoration before mutating any target and ignores caller cancellation.
@@ -442,6 +588,15 @@ func pendingTransaction(root *os.Root) bool {
 // recoverWithRename owns recovery renames; tests use this boundary to reproduce late edits and interruptions.
 func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	ctx := context.Background()
+	places := &roots{project: root}
+	defer places.close()
+	// renameIn renames within p.root, through rename in the Syllabus directory.
+	renameIn := func(p place, from, to string) error {
+		if p.root == root {
+			return rename(from, to)
+		}
+		return renameInRepository(p, from, to)
+	}
 	garbage, err := readTree(ctx, root, cleanupName, recoveryLimits)
 	if err != nil {
 		return err
@@ -496,12 +651,17 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	seen := map[Target]bool{}
 	for _, entry := range record.Entries {
 		localRule := localRuleTarget(entry.Name) || localRuleAssetsTarget(entry.Name)
-		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5) || (localRule && record.FormatVersion < 6)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || (removes(entry) && (!localRuleAssetsTarget(entry.Name) || !entry.Existed)) {
+		_, skill := skillFolderTarget(entry.Name)
+		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5) || (localRule && record.FormatVersion < 6) || (skill && record.FormatVersion < 7) || (entry.Name == AgentsFile && record.FormatVersion < 8)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || (removes(entry) && (!removable(entry.Name) || !entry.Existed)) {
 			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
+		p, err := places.place(entry.Name)
+		if err != nil {
+			return err
+		}
 		// A symbolic link in a parent could make recovery inspect, discard, or replace another file.
-		if err := requireRealParents(root, entry.Name); err != nil {
+		if err := requireRealParents(p.root, p.live); err != nil {
 			return failure("recovery-required", string(entry.Name)+": a parent directory changed into a symbolic link or file after interruption; preserve the transaction and restore the directory", err)
 		}
 	}
@@ -513,11 +673,15 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		return failure("recovery-required", "invalid commit marker; preserve transaction files", nil)
 	}
 	for _, entry := range record.Entries {
-		current, err := readTarget(ctx, root, entry.Name, string(entry.Name))
+		p, err := places.place(entry.Name)
 		if err != nil {
 			return err
 		}
-		backup, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, backupPrefix+entryName(entry.Name)))
+		current, err := readTarget(ctx, p.root, entry.Name, p.live)
+		if err != nil {
+			return err
+		}
+		backup, err := readTarget(ctx, p.root, entry.Name, p.entry(backupPrefix, entry.Name))
 		if err != nil {
 			return err
 		}
@@ -527,7 +691,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		if committed {
 			continue
 		}
-		discarded, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, "discarded-"+entryName(entry.Name)))
+		discarded, err := readTarget(ctx, p.root, entry.Name, p.entry("discarded-", entry.Name))
 		if err != nil {
 			return err
 		}
@@ -565,31 +729,35 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		}
 	}
 	for _, entry := range slices.Backward(record.Entries) {
-		backup := path.Join(transactionName, backupPrefix+entryName(entry.Name))
-		present, err := exists(root, backup)
+		p, err := places.place(entry.Name)
+		if err != nil {
+			return err
+		}
+		backup := p.entry(backupPrefix, entry.Name)
+		present, err := exists(p.root, backup)
 		if err != nil {
 			return err
 		}
 		if present || !entry.Existed {
 			// Move live output into our transaction before inspecting or deleting it.
 			// A path-based edit before this rename is retained on mismatch, never removed.
-			current, err := exists(root, string(entry.Name))
+			current, err := exists(p.root, p.live)
 			if err != nil {
 				return err
 			}
 			if current {
-				discardedPath := path.Join(transactionName, "discarded-"+entryName(entry.Name))
-				already, err := exists(root, discardedPath)
+				discardedPath := p.entry("discarded-", entry.Name)
+				already, err := exists(p.root, discardedPath)
 				if err != nil {
 					return err
 				}
 				if already {
 					return failure("recovery-required", "both live and displaced output exist; preserve transaction files", nil)
 				}
-				if err := rename(string(entry.Name), discardedPath); err != nil {
+				if err := renameIn(p, p.live, discardedPath); err != nil {
 					return err
 				}
-				discarded, err := readTarget(ctx, root, entry.Name, discardedPath)
+				discarded, err := readTarget(ctx, p.root, entry.Name, discardedPath)
 				if err != nil {
 					return err
 				}
@@ -599,13 +767,13 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			}
 		}
 		if present {
-			if err := rename(backup, string(entry.Name)); err != nil {
+			if err := renameIn(p, backup, p.live); err != nil {
 				return err
 			}
 		}
 	}
 	// Parent directories the transaction created stay, even when empty: a path proves nothing about who made the
-	// directory there now, and an empty directory under local/ is harmless.
+	// directory there now, and an empty directory under rules/ or in a skill target is harmless.
 	return root.RemoveAll(transactionName)
 }
 

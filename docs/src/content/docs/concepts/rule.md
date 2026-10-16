@@ -18,7 +18,7 @@ A reviewing agent can check whether the test would catch an extra retry.
 The rule applies to retry behavior; it does not require every operation to add retries.
 
 Keep independently adoptable obligations in separate files.
-A project should be able to import, exclude, or replace one rule without also changing unrelated expectations.
+A project should be able to include, exclude, or replace one rule without also changing unrelated expectations.
 
 ## What a rule contains
 
@@ -35,11 +35,11 @@ Each rule has one home in a [rule group](/concepts/groups/).
 For example, a library can store the retry rule at:
 
 ```text
-practices/testing/verify-retry-limits.md
+.syllabus/rules/practices/testing/verify-retry-limits.md
 ```
 
-Keep a rule local to a project, or publish it in a library that other projects import.
-A project can add local rules or explicitly exclude and replace imported rules.
+Keep a rule in one project, or publish it in a library that other projects take rules from.
+A project can add its own rules or explicitly exclude and replace rules from its sources.
 
 ## How a rule is versioned
 
@@ -53,20 +53,20 @@ A rule can also be **retired**, when a better rule replaces it or the practice i
 
 Each version is recorded in the library release that published it, with a summary of what changed. The rule file itself has no version field; see [Find a rule's current version](/guides/version-rules/#find-a-rules-current-version). Library authors never set a version by hand: they [record each change in a change note](/guides/version-rules/#change-rules-after-the-first-library-release), and a library release turns the notes into new versions.
 
-Projects see each imported rule's version in their generated guidance, and upgrade a rule to its newest version with `code-rules project update`; see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version). Before a project adopts a major change or retirement of a rule it uses, someone on the project accepts it. Local rules have no versions.
+Projects see the version of each rule they take in their generated guidance, and move a rule to its newest version with `syllabus project update`; see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version). Before a project takes a major change or retirement of a rule it uses, someone on the project accepts it. A project's own rules have no versions.
 
-See [Rule versions](/reference/rule-versions/) for the tag format, [Version your rules](/guides/version-rules/) for authors, and [Update rules](/guides/update/) for projects.
+See [Rule and skill versions](/reference/rule-versions/) for the tag format, [Version your rules](/guides/version-rules/) for authors, and [Update rules and skills](/guides/update/) for projects.
 
 ## How agents identify and use it
 
-When you build or sync a project, Code Rules combines its local and imported rules into generated group files. Each group file contains the rules in full, or summaries with links to the full rules when the group is large. The project's exclusions and replacements determine which rules appear.
+When you build or sync a project, Syllabus combines its own rules and the rules it includes from sources into generated rule group files. Each rule group file contains the rules in full, or summaries with links to the full rules when the rule group is large. The project's exclusions and replacements determine which rules appear.
 
 Agents read the generated guidance in this order:
 
-1. Open `RULES.md` to find the groups relevant to the task.
-2. Read those groups and their rules, following links to full rule files where needed.
+1. Open `RULES.md` to find the rule groups relevant to the task.
+2. Read those rule groups and their rules, following links to full rule files where needed.
 3. Choose which rules apply to the task, using each rule's conditions and exceptions, and follow them.
 
-For example, an agent changing retry behavior would read the Testing group, then apply the rule about verifying retry limits.
+For example, an agent changing retry behavior would read the Testing rule group, then apply the rule about verifying retry limits.
 
-See [Group](/concepts/groups/) for how groups guide reading, or [Project files](/reference/files/#example-follow-a-rule-from-the-index) to follow an example from `RULES.md` to a rule.
+See [Rule group](/concepts/groups/) for how rule groups guide reading, or [Project files](/reference/files/#example-follow-a-rule-from-the-index) to follow an example from `RULES.md` to a rule.

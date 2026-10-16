@@ -117,7 +117,7 @@ func TestGuideTransactionRecovery(t *testing.T) {
 
 // TestKilledGuideWriterRecovers exercises process death before and after the guide's final rename.
 func TestKilledGuideWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("CODE_RULES_GUIDE_CHILD"); directory != "" {
+	if directory := os.Getenv("SYLLABUS_GUIDE_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
@@ -127,7 +127,7 @@ func TestKilledGuideWriterRecovers(t *testing.T) {
 			rename := w.rename
 			w.rename = func(from, to string) error {
 				err := rename(from, to)
-				if err == nil && to == os.Getenv("CODE_RULES_GUIDE_STOP") {
+				if err == nil && to == os.Getenv("SYLLABUS_GUIDE_STOP") {
 					os.Exit(42)
 				}
 				return err
@@ -142,7 +142,7 @@ func TestKilledGuideWriterRecovers(t *testing.T) {
 			writeFixture(t, root, "generated/old", "old output")
 			writeFixture(t, root, "README.md", "old guide")
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledGuideWriterRecovers$")
-			child.Env = append(os.Environ(), "CODE_RULES_GUIDE_CHILD="+root.Name(), "CODE_RULES_GUIDE_STOP="+stop)
+			child.Env = append(os.Environ(), "SYLLABUS_GUIDE_CHILD="+root.Name(), "SYLLABUS_GUIDE_STOP="+stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

@@ -2,7 +2,7 @@
 
 package project
 
-import "github.com/fabricahq/code-rules/internal/errs"
+import "github.com/fabricahq/syllabus/internal/errs"
 
 // ValidationError reports invalid input at a location, such as a configuration key or a flag.
 type ValidationError struct {

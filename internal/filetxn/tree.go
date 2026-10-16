@@ -20,7 +20,7 @@ import (
 	"syscall"
 	"unicode/utf16"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 const maxProjectFile = 64 * 1024 * 1024
@@ -29,6 +29,9 @@ const maxProjectFile = 64 * 1024 * 1024
 type Tree struct {
 	Files       map[string][]byte `json:"files"`
 	Directories []string          `json:"directories"`
+	// Executable lists, sorted, the paths in Files whose owner executable bit is set; it is empty or nil when none
+	// is. A file's mode is part of its content, so Digest covers it.
+	Executable []string `json:"executable,omitempty"`
 }
 
 // Error describes a failed file operation. Callers may branch on Code after errors.As.
@@ -140,6 +143,13 @@ func readTree(ctx context.Context, root *os.Root, name string, limits treeLimits
 				if err != nil {
 					return err
 				}
+				info, err := root.Lstat(path.Join(name, rel))
+				if err != nil {
+					return fmt.Errorf("inspect %s: %w", path.Join(name, rel), err)
+				}
+				if info.Mode().Perm()&0o100 != 0 {
+					tree.Executable = append(tree.Executable, rel)
+				}
 				total += len(data)
 				if total > limits.bytes {
 					return failure("input-limit", name+": tree exceeds byte limit", nil)
@@ -158,6 +168,7 @@ func readTree(ctx context.Context, root *os.Root, name string, limits treeLimits
 		return nil, err
 	}
 	slices.Sort(tree.Directories)
+	slices.Sort(tree.Executable)
 	return tree, nil
 }
 
@@ -212,7 +223,8 @@ func ReadFile(ctx context.Context, root *os.Root, name string) ([]byte, error) {
 	return data, nil
 }
 
-// treeDigest preserves the TypeScript journal's version-1 hash representation.
+// treeDigest preserves the TypeScript journal's version-1 hash representation for a tree without executable files,
+// and adds their sorted paths for one with them.
 func treeDigest(tree *Tree) string {
 	if tree == nil {
 		return digest([]byte("null"))
@@ -226,20 +238,24 @@ func treeDigest(tree *Tree) string {
 	for _, name := range slices.SortedFunc(maps.Keys(tree.Files), compareUTF16) {
 		files = append(files, [2]string{name, digest(tree.Files[name])})
 	}
+	executable := slices.Clone(tree.Executable)
+	slices.SortFunc(executable, compareUTF16)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	_ = enc.Encode(struct {
 		Directories []string    `json:"directories"`
 		Files       [][2]string `json:"files"`
-	}{dirs, files})
+		Executable  []string    `json:"executable,omitempty"`
+	}{dirs, files, executable})
 	// Portable paths reject backslashes, so these cannot be authored literal escape sequences.
 	encoded := strings.NewReplacer(`\u2028`, "\u2028", `\u2029`, "\u2029").Replace(strings.TrimSuffix(buf.String(), "\n"))
 	return digest([]byte(encoded))
 }
 
-// writeTree creates a fresh staging directory and never overwrites an existing file.
-func writeTree(ctx context.Context, root *os.Root, name string, files map[string][]byte) error {
+// writeTree creates a fresh staging directory and never overwrites an existing file. The files executable lists are
+// executable by everyone who can read them, whatever the process's umask; the rest aren't executable.
+func writeTree(ctx context.Context, root *os.Root, name string, files map[string][]byte, executable []string) error {
 	if err := rules.ValidatePaths(files, nil); err != nil {
 		return err
 	}
@@ -259,8 +275,12 @@ func writeTree(ctx context.Context, root *os.Root, name string, files map[string
 			return err
 		}
 		_, writeErr := f.Write(files[file])
+		var modeErr error
+		if slices.Contains(executable, file) {
+			modeErr = f.Chmod(0755)
+		}
 		closeErr := f.Close()
-		if err := errors.Join(writeErr, closeErr); err != nil {
+		if err := errors.Join(writeErr, modeErr, closeErr); err != nil {
 			return fmt.Errorf("stage %s: %w", file, err)
 		}
 	}

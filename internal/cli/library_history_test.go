@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // releaseOne publishes rules a and b at 1.0.0, as the first library release must.
@@ -28,12 +28,12 @@ func libraryRule(guidance string) string {
 func releasedLibrary(t *testing.T) (*gitfixture.Fixture, string) {
 	t.Helper()
 	ctx := context.Background()
-	fixture, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":             []byte("formatVersion: 1\n"),
+	fixture, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                   []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n"),
 		"practices/testing/_group.yaml": []byte("name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n"),
 		"practices/testing/a.md":        []byte(libraryRule("Test the retry limit.")),
 		"practices/testing/b.md":        []byte(libraryRule("Test the backoff.")),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,11 +52,12 @@ func releasedLibrary(t *testing.T) (*gitfixture.Fixture, string) {
 	return fixture, dir
 }
 
-// writeFiles writes each file under dir, creating parent directories.
+// writeFiles writes each file, named by its library path, where the library repository at dir keeps it, creating
+// parent directories.
 func writeFiles(t *testing.T, dir string, files map[string]string) {
 	t.Helper()
 	for name, content := range files {
-		path := filepath.Join(dir, filepath.FromSlash(name))
+		path := libraryFile(dir, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 			t.Fatal(err)
 		}
@@ -106,7 +107,7 @@ func TestLibraryCheck_ReportsMissingNotesAndShallowClones(t *testing.T) {
 	fixture, dir := releasedLibrary(t)
 	writeFiles(t, dir, map[string]string{"practices/testing/a.md": libraryRule("Changed.")})
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
-	if code != 1 || out != "" || !strings.Contains(diagnostic, "practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: code-rules library change practices/testing/a") {
+	if code != 1 || out != "" || !strings.Contains(diagnostic, "practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: syllabus library change practices/testing/a") {
 		t.Fatal(code, out, diagnostic)
 	}
 	assertJSONError(t, binary, dir, fixture.Environment, "change-notes")
@@ -144,10 +145,10 @@ func compactJSON(t *testing.T, data json.RawMessage) string {
 	return compact.String()
 }
 
-// changeNotes returns the names of the notes in dir's changes/ directory.
+// changeNotes returns the names of the notes in the changes/ directory of the library repository at dir.
 func changeNotes(t *testing.T, dir string) []string {
 	t.Helper()
-	entries, err := os.ReadDir(filepath.Join(dir, "changes"))
+	entries, err := os.ReadDir(libraryFile(dir, "changes"))
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -173,8 +174,8 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if code != 0 || diagnostic != "" || len(notes) != 1 || !generated.MatchString(notes[0]) {
 		t.Fatal(code, out, diagnostic, notes)
 	}
-	note := filepath.Join(dir, "changes", notes[0])
-	want := "Change note created.\nAdded:\n  changes/" + notes[0] + "\n\nNext: Commit the note with the rule change, then validate the library:\n  code-rules library check\n"
+	note := libraryFile(dir, "changes/"+notes[0])
+	want := "Change note created.\nAdded:\n  .syllabus/changes/" + notes[0] + "\n\nNext: Commit the note with the rule change, then validate the library:\n  syllabus library check\n"
 	if out != want {
 		t.Fatalf("stdout:\n%s\nwant:\n%s", out, want)
 	}
@@ -192,7 +193,7 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	if len(response.Value.Added) != 1 || len(response.Value.Changed) != 0 || response.Value.Added[0] == note || !generated.MatchString(filepath.Base(response.Value.Added[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
+	if len(response.Value.Added) != 1 || len(response.Value.Changed) != 0 || response.Value.Added[0] == note || !generated.MatchString(filepath.Base(response.Value.Added[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "syllabus library check" {
 		t.Fatalf("%+v", response.Value)
 	}
 }
@@ -229,7 +230,7 @@ func TestLibraryChange_RejectsInvalidRequests(t *testing.T) {
 		t.Fatal("wrote notes", notes)
 	}
 	unreleased := t.TempDir()
-	writeFiles(t, unreleased, map[string]string{"rule-library.yaml": "formatVersion: 1\n", "practices/testing/_group.yaml": "name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n", "practices/testing/a.md": libraryRule("Test.")})
+	writeFiles(t, unreleased, map[string]string{"config.yaml": "schemaVersion: 2\nsources: {}\nlibrary: {}\n", "practices/testing/_group.yaml": "name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n", "practices/testing/a.md": libraryRule("Test.")})
 	out, _, code = runCLI(t, binary, unreleased, "library", "change", "practices/testing/a", "--summary", "Add a.", "--json")
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 1 || response.Error.Code != "no-library-release" {
 		t.Fatal(err, code, out)
@@ -264,7 +265,7 @@ func TestLibraryChange_PromptsForMissingInputs(t *testing.T) {
 	if len(notes) != 1 {
 		t.Fatal(notes)
 	}
-	if data, err := os.ReadFile(filepath.Join(dir, "changes", notes[0])); err != nil || string(data) != "summary: Add an example for custom hooks.\nrules:\n  practices/testing/a: minor\n" {
+	if data, err := os.ReadFile(libraryFile(dir, "changes/"+notes[0])); err != nil || string(data) != "summary: Add an example for custom hooks.\nrules:\n  practices/testing/a: minor\n" {
 		t.Fatalf("%q %v", data, err)
 	}
 }
@@ -294,7 +295,7 @@ func TestLibraryChange_ReportsMisusedFlagsAsUsageErrors(t *testing.T) {
 func TestLibraryChange_WarnsAboutAMissingReplacement(t *testing.T) {
 	binary := buildCLI(t)
 	fixture, dir := releasedLibrary(t)
-	if err := os.Remove(filepath.Join(dir, "practices/testing/b.md")); err != nil {
+	if err := os.Remove(libraryFile(dir, "practices/testing/b.md")); err != nil {
 		t.Fatal(err)
 	}
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "change", "practices/testing/b", "--retire", "--replaced-by", "practices/testing/retries", "--summary", "Covered by the broader rule about testing retries.")
@@ -310,7 +311,7 @@ func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 	writeFiles(t, dir, map[string]string{"body.md": "Test every retry.\n"})
 	add := []string{"library", "add", "rule", "practices/testing/retries", "--title", "Test retries", "--when-to-read", "When changing retries.", "--impact", "HIGH", "--impact-description", "Catch retry bugs.", "--body-file", "body.md"}
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, add...)
-	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  code-rules library change practices/testing/retries --summary '<what the rule adds>'\n\nThen validate the library:\n  code-rules library check\n"
+	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  syllabus library change practices/testing/retries --summary '<what the rule adds>'\n\nThen validate the library:\n  syllabus library check\n"
 	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
@@ -332,7 +333,7 @@ func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 	}
 	writeFiles(t, unreleased, map[string]string{"body.md": "Test every retry.\n"})
 	out, diagnostic, code = runCLIWithEnvironment(t, binary, unreleased, fixture.Environment, add...)
-	if code != 0 || strings.Contains(out, "library change") || !strings.HasSuffix(out, "After writing the rule text, run:\n  code-rules library check\n") {
+	if code != 0 || strings.Contains(out, "library change") || !strings.HasSuffix(out, "After writing the rule text, run:\n  syllabus library check\n") {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 }
@@ -393,10 +394,10 @@ func TestLibraryCheck_SaysThereIsNothingToPublish(t *testing.T) {
 func TestLibraryCheck_SaysTheFirstReleasePublishesTheLibraryWideFiles(t *testing.T) {
 	binary := buildCLI(t)
 	ctx := context.Background()
-	fixture, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":             []byte("formatVersion: 1\n"),
+	fixture, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":                   []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n"),
 		"practices/testing/_group.yaml": []byte("name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}

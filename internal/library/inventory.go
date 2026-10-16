@@ -4,7 +4,8 @@ package library
 
 import (
 	"context"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 	"io/fs"
 	"maps"
 	"os"
@@ -44,8 +45,8 @@ type inventorySnapshot struct {
 	License     *rules.LicenseDeclaration
 }
 
-// readLocalInventory captures complete library content through the catalog's bounded local reader.
-// Unrelated repository files are ignored; the caller owns root and no files are written.
+// readLocalInventory captures complete library content, by library path, through the catalog's bounded local reader
+// from the repository at root. Unrelated repository files are ignored; the caller owns root and no files are written.
 func readLocalInventory(ctx context.Context, root *os.Root) (inventorySnapshot, error) {
 	if root == nil {
 		return inventorySnapshot{}, bad("library", "expected an open filesystem root")
@@ -53,10 +54,11 @@ func readLocalInventory(ctx context.Context, root *os.Root) (inventorySnapshot, 
 	return readInventory(ctx, rootFiles{ctx: ctx, root: root})
 }
 
-// readInventory shares capture logic with bounded sources so tests can verify early read termination.
+// readInventory shares capture logic with bounded sources so tests can verify early read termination. input reads
+// the library's repository by repository path; the snapshot holds files by library path.
 func readInventory(ctx context.Context, input FileSource) (inventorySnapshot, error) {
-	r := reader{ctx: ctx, input: portableInventorySource{input}, files: map[string][]byte{}}
-	if _, err := r.read("rule-library.yaml"); err != nil {
+	r := reader{ctx: ctx, input: portableInventorySource{repositoryFiles{input}}, files: map[string][]byte{}}
+	if _, err := r.read(librarytree.Manifest); err != nil {
 		return inventorySnapshot{}, err
 	}
 	license, err := r.license("library")

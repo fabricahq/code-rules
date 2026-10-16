@@ -9,13 +9,12 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
-// ReleaseRequest selects what code-rules library release does.
+// ReleaseRequest selects what syllabus library release does.
 type ReleaseRequest struct {
 	Options
 	// DryRun shows what would be published without creating a tag or a GitHub Release page.
@@ -77,7 +76,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	defer root.Close()
-	if err = filetxn.RequireIdle(root); err != nil {
+	if err = requireIdle(ctx, root); err != nil {
 		return ReleaseResult{}, err
 	}
 	git, err := openLibraryGit(ctx, root.Name(), request.Git)
@@ -187,7 +186,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		if err = requireLibraryUnchanged(ctx, root, checked.input); err != nil {
 			return ReleaseResult{}, err
 		}
-		if err = filetxn.RequireIdle(root); err != nil {
+		if err = requireIdle(ctx, root); err != nil {
 			return ReleaseResult{}, err
 		}
 		if object, err = git.createTag(ctx, result.Tag, result.Commit, planned.message); err != nil {
@@ -217,7 +216,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 
 // plannedRelease is the library release a commit publishes after the latest library release in its history.
 type plannedRelease struct {
-	record  coderules.ReleaseRecord
+	record  syllabus.ReleaseRecord
 	notes   string
 	message []byte
 	// empty reports that the commit changes no rules and no library-wide files, so there's nothing to publish.
@@ -252,19 +251,19 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
 	release, err := releasetag.ParseObject(name, body)
-	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
-	var unsupported *coderules.UnsupportedReleaseRecordError
+	// A newer Syllabus may have created the tag and stopped before pushing it; this version can't compare it.
+	var unsupported *syllabus.UnsupportedReleaseRecordError
 	if errors.As(err, &unsupported) {
 		return unsupportedRecord(name, unsupported.FormatVersion)
 	}
 	if err == nil && !planned.empty && release.Notes == planned.notes && reflect.DeepEqual(release.Record, planned.record) {
 		return nil
 	}
-	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what code-rules library release computes from the change notes since the remote's latest library release. Only code-rules library release creates release tags; delete this one with git tag --delete "+name+", then run code-rules library release again.", nil)
+	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what syllabus library release computes from the change notes since the remote's latest library release. Only syllabus library release creates release tags; delete this one with git tag --delete "+name+", then run syllabus library release again.", nil)
 }
 
 // describe fills in what a library release publishes.
-func describe(result *ReleaseResult, record coderules.ReleaseRecord, notes string) {
+func describe(result *ReleaseResult, record syllabus.ReleaseRecord, notes string) {
 	result.Release = record.Release
 	result.Tag = "release/" + strconv.Itoa(record.Release)
 	result.Rules = releaseRules(record)

@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // GroupPlan identifies a new group in an initialized library and owns no filesystem resources.
@@ -38,7 +38,7 @@ func PlanGroup(ctx context.Context, id string, options Options) (*GroupPlan, err
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *GroupPlan) Commit(ctx context.Context, metadata coderules.GroupMetadata) (AuthoringResult, error) {
+func (p *GroupPlan) Commit(ctx context.Context, metadata syllabus.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}
@@ -102,7 +102,7 @@ func checkNewGroup(ctx context.Context, root *os.Root, id string) error {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
-	return filetxn.RequireAbsent(ctx, root, id+"/_group.yaml", id+"/README.md")
+	return filetxn.RequireAbsent(ctx, root, librarytree.RepositoryPath(id+"/_group.yaml"), librarytree.RepositoryPath(id+"/README.md"))
 }
 
 func checkNewRule(ctx context.Context, root *os.Root, id string, options Options) error {
@@ -122,8 +122,8 @@ func checkNewRule(ctx context.Context, root *os.Root, id string, options Options
 		if err != nil {
 			return err
 		}
-		command := "code-rules library add group " + group + " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
+		command := "syllabus library add group " + group + " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
 		return failure("missing-group", "group "+group+" does not exist; create it first with "+command+", then retry adding the rule", nil)
 	}
-	return filetxn.RequireAbsent(ctx, root, id+".md")
+	return filetxn.RequireAbsent(ctx, root, librarytree.RepositoryPath(id+".md"))
 }

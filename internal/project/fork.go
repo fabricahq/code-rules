@@ -1,4 +1,4 @@
-// Fork one published version of a library rule into local/, and replace the imported rule with it.
+// Fork one published version of a library rule into rules/, and replace the imported rule with it.
 
 package project
 
@@ -13,18 +13,18 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // ForkSource names the library and the published rule version a fork copies.
 type ForkSource struct {
 	// Library is a configured source name, or a repository address, which always contains a colon.
 	Library string
-	Version coderules.RuleVersion
+	Version syllabus.RuleVersion
 }
 
 // ParseForkSource reads LIBRARY@VERSION, splitting at the last @, because repository addresses can contain @.
@@ -33,7 +33,7 @@ func ParseForkSource(value string) (ForkSource, error) {
 	if at <= 0 {
 		return ForkSource{}, &ValidationError{Location: "--from", Problem: fmt.Sprintf("%q: expected LIBRARY@VERSION, such as team@1.3.0", value)}
 	}
-	version, err := coderules.ParseRuleVersion(value[at+1:], "--from")
+	version, err := syllabus.ParseRuleVersion(value[at+1:], "--from")
 	if err != nil {
 		return ForkSource{}, err
 	}
@@ -52,18 +52,18 @@ type ForkPlan struct {
 	replaces string
 	pin      *rules.Pin
 	// version is the forked version, which the exclusion records as basedOn.
-	version coderules.RuleVersion
+	version syllabus.RuleVersion
 	release int
-	// files holds the fork's files by path relative to local/, and groupMetadata the library's metadata for the
-	// rule's group, which Commit copies when the project has no local metadata for it.
+	// files holds the fork's files by path relative to rules/, and groupMetadata the library's metadata for the
+	// rule's group, which Commit copies when the project has no authored metadata for it.
 	files         map[string][]byte
 	groupMetadata []byte
 }
 
 // PlanFork checks the project, reads the published rule version from the library, and prepares the fork's files,
 // without writing. The fork replaces the rule when the configured source for the library imports it, as the
-// source's synced record shows. It fails before reading the library when local/ already has the rule, when that
-// source already excludes it, since existing local rules and exclusions are never replaced, or when the source
+// source's synced record shows. It fails before reading the library when rules/ already has the rule, when that
+// source already excludes it, since existing authored rules and exclusions are never replaced, or when the source
 // selects the rule but the project hasn't synced the source's current configuration.
 func PlanFork(ctx context.Context, id string, from ForkSource, options Options, git imports.Options) (*ForkPlan, error) {
 	plan := &ForkPlan{id: id, version: from.Version}
@@ -86,8 +86,8 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 			if err != nil || !imported {
 				return err
 			}
-			if _, excluded := replaces.Exclude[id]; excluded {
-				return &ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
+			if _, excluded := replaces.Exclusion(id); excluded {
+				return &ValidationError{Location: "sources." + replaces.Name + ".rules.exclude", Problem: "the source already excludes " + id + ", and a fork never replaces an existing exclusion; delete the entry that excludes it to fork the rule"}
 			}
 			plan.replaces = replaces.Name
 			if pin, pinned := replaces.Pins[id]; pinned {
@@ -112,7 +112,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 		return nil, fmt.Errorf("fork %s@%s: %w", id, from.Version, err)
 	}
 	if published.GroupMetadata != nil {
-		if _, err := coderules.ParseGroupMetadata(published.GroupMetadata, fmt.Sprintf("release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
+		if _, err := syllabus.ParseGroupMetadata(published.GroupMetadata, fmt.Sprintf("release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
 			return nil, err
 		}
 	}
@@ -137,7 +137,6 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned fork", nil)
 	}
-	replacedBy := path.Join("local", p.id+".md")
 	switch {
 	case p.replaces != "" && strings.TrimSpace(reason) == "":
 		return AuthoringResult{}, &ValidationError{Location: "--reason", Problem: "give the reason the project uses the fork instead of the rule it imports from " + p.replaces}
@@ -153,7 +152,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			return nil, err
 		}
 		for name, data := range p.files {
-			files = append(files, filetxn.File{Path: path.Join("local", name), Content: data})
+			files = append(files, filetxn.File{Path: path.Join("rules", name), Content: data})
 		}
 		slices.SortFunc(files, func(a, b filetxn.File) int { return strings.Compare(a.Path, b.Path) })
 		for _, file := range files {
@@ -162,7 +161,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			}
 		}
 		if p.replaces != "" {
-			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy, BasedOn: &p.version}}}
+			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: p.id, BasedOn: &p.version}}}
 			if p.pin != nil {
 				edit.Unpin = []string{p.id}
 			}
@@ -175,7 +174,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 		return files, nil
 	})
 	if err == nil && p.pin != nil {
-		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list the library's changes after %s, the version the fork is based on, for you to compare with the fork.", p.replaces, p.id, p.pin.Version, p.version))
+		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.rules.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list the library's changes after %s, the version the fork is based on, for you to compare with the fork.", p.replaces, p.id, p.pin.Version, p.version))
 	}
 	return result, err
 }
@@ -186,7 +185,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 // replace that library's description of the group. It fails when the library has no metadata for the group either.
 func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.Configuration) ([]filetxn.File, error) {
 	group := p.group
-	directory := path.Join("local", group)
+	directory := path.Join("rules", group)
 	metadata, err := filetxn.ReadOptional(ctx, root, path.Join(directory, "_group.yaml"))
 	if err != nil || metadata != nil {
 		return nil, err
@@ -195,7 +194,7 @@ func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.C
 		return nil, err
 	}
 	if p.groupMetadata == nil {
-		return nil, failure("missing-group", fmt.Sprintf("release/%d has no metadata for group %s; create the group with code-rules project add group %s, then retry the fork", p.release, group, group), nil)
+		return nil, failure("missing-group", fmt.Sprintf("release/%d has no metadata for group %s; create the group with syllabus project add group %s, then retry the fork", p.release, group, group), nil)
 	}
 	guideName, _ := projectGuide()
 	files := []filetxn.File{}
@@ -235,7 +234,7 @@ func importedGroup(ctx context.Context, root *os.Root, config rules.Configuratio
 	return false, nil
 }
 
-// checkForkTarget checks that id names a rule path and that local/ doesn't have the rule yet, and returns the
+// checkForkTarget checks that id names a rule path and that rules/ doesn't have the rule yet, and returns the
 // rule's group.
 func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, error) {
 	if strings.HasSuffix(id, ".md") {
@@ -245,11 +244,11 @@ func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, err
 	if err != nil {
 		return "", err
 	}
-	return group, filetxn.RequireAbsent(ctx, root, path.Join("local", id+".md"))
+	return group, filetxn.RequireAbsent(ctx, root, path.Join("rules", id+".md"))
 }
 
 // forkLibrary returns the library that name identifies, labeled for diagnostics, and the configured source that
-// selects rule id of group from it, through its groups or its rules list, or nil when none does. A name without a
+// selects rule id of group from it, through a group or wildcard selector or by its ID, or nil when none does. A name without a
 // colon is a configured source name; any other is a repository address, matched to a configured source by
 // repository.
 func forkLibrary(config rules.Configuration, name, id, group string) (rules.Source, *rules.Source, error) {
@@ -258,7 +257,7 @@ func forkLibrary(config rules.Configuration, name, id, group string) (rules.Sour
 	if !strings.Contains(name, ":") {
 		index := slices.IndexFunc(config.Sources, func(source rules.Source) bool { return source.Name == name })
 		if index < 0 {
-			return rules.Source{}, nil, &ValidationError{Location: "--from", Problem: "no source named " + name + " in .code-rules/config.yaml; name a configured source or the library's repository address"}
+			return rules.Source{}, nil, &ValidationError{Location: "--from", Problem: "no source named " + name + " in .syllabus/config.yaml; name a configured source or the library's repository address"}
 		}
 		configured = &config.Sources[index]
 		library.Repository = configured.Repository
@@ -289,7 +288,7 @@ func importsRule(ctx context.Context, root *os.Root, source rules.Source, id str
 		return false, err
 	}
 	if data == nil {
-		return false, invalidSnapshot(location, "missing source record, so whether the source imports "+id+" isn't known; run code-rules project sync, then fork the rule")
+		return false, invalidSnapshot(location, "missing source record, so whether the source imports "+id+" isn't known; run syllabus project sync, then fork the rule")
 	}
 	record, err := parseSourceRecord(data, source.Name)
 	if err != nil {
@@ -312,29 +311,33 @@ func repositoryIdentity(address, location string) (string, error) {
 // forkAttribution returns the attribution entry that links a fork to the published rule: the rule's file at the
 // library release's commit for GitHub.com and GitLab.com, or the repository address for other hosts' HTTPS
 // addresses. It returns nil for other addresses, which have no HTTP(S) URL to cite.
-func forkAttribution(repository, id string, version coderules.RuleVersion, published imports.PublishedRule) (*coderules.Attribution, error) {
+func forkAttribution(repository, id string, version syllabus.RuleVersion, published imports.PublishedRule) (*syllabus.Attribution, error) {
 	raw, _ := json.Marshal(repository)
 	parsed, err := rules.ParseRepository(raw, "--from")
 	if err != nil {
 		return nil, err
 	}
-	url, ok := parsed.FileURL(published.Commit, id+".md", false)
+	file := librarytree.RepositoryPath(id + ".md")
+	if published.LegacyLayout {
+		file = id + ".md"
+	}
+	url, ok := parsed.FileURL(published.Commit, file, false)
 	if !ok {
 		if !strings.HasPrefix(repository, "https://") {
 			return nil, nil
 		}
 		url = repository
 	}
-	return &coderules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
+	return &syllabus.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
 }
 
-// forkFiles returns the files of a fork of rule id at rulePath, by path relative to local/: the rule moves to
+// forkFiles returns the files of a fork of rule id at rulePath, by path relative to rules/: the rule moves to
 // rulePath and its asset directory to rulePath's, so a fork at the rule's own path, id.md, keeps their library
 // paths; each shared asset moves from assets/ into that asset directory, keeping its path below assets/. Markdown
 // links to moved files are rewritten, and attribution, when not nil, is added to the rule. It fails when two files
 // would share a path, or when a Markdown file links to anything outside the fork, such as a declared license file,
 // because local rules can't depend on library files.
-func forkFiles(id, rulePath string, published imports.PublishedRule, attribution *coderules.Attribution) (map[string][]byte, error) {
+func forkFiles(id, rulePath string, published imports.PublishedRule, attribution *syllabus.Attribution) (map[string][]byte, error) {
 	libraryAssets, assets := rules.RuleAssetDirectory(id+".md"), rules.RuleAssetDirectory(rulePath)
 	moved := map[string]string{}
 	sources := map[string]string{}
@@ -374,7 +377,7 @@ func forkFiles(id, rulePath string, published imports.PublishedRule, attribution
 	if attribution != nil {
 		document, err = rules.AddRuleAttribution(document, rulePath, *attribution)
 	} else {
-		_, err = coderules.ParseRule(document, rulePath, "local")
+		_, err = syllabus.ParseRule(document, rulePath, "local")
 	}
 	if err != nil {
 		return nil, err
@@ -383,7 +386,8 @@ func forkFiles(id, rulePath string, published imports.PublishedRule, attribution
 	return result, requireSelfContained(result)
 }
 
-// relocateLinks returns the Markdown text of the file moving from from to to, with each local link rewritten as a
+// relocateLinks returns the Markdown text of the file moving from from, a library path, to to, with each local link,
+// which resolves as rules.LibraryTarget resolves it, rewritten as a
 // relative link when its destination moves or the file itself moves, including links that name the file itself.
 // Pathless links, such as #top, external links, and other links keep their original text.
 func relocateLinks(text, from, to string, moved map[string]string) (string, error) {
@@ -394,7 +398,7 @@ func relocateLinks(text, from, to string, moved map[string]string) (string, erro
 	}
 	result := text
 	for _, destination := range slices.Backward(destinations) {
-		target, suffix, local, err := rules.RelativeTarget(destination.Value, from)
+		target, suffix, local, err := rules.LibraryTarget(destination.Value, from)
 		if err != nil {
 			return "", err
 		}
@@ -431,7 +435,8 @@ func requireSelfContained(files map[string][]byte) error {
 				return &ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
 			}
 		}
-		targets, err := rules.MarkdownTargets(string(files[file]), file)
+		// A fork's files sit in .syllabus/rules/ as the library's rule files do, so its links resolve as theirs do.
+		targets, err := rules.LibraryTargets(string(files[file]), file)
 		if err != nil {
 			return fmt.Errorf("%s: %w", file, err)
 		}

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/syllabus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ const changeLevels = `  major  Work that complied with the previous version coul
 // libraryChangeCommand writes a new change note, prompting in a terminal for a missing change level or summary.
 func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("change RULE_ID...", "Record rule changes in a new change note", requiredArguments("rule ID", "practices/testing/my-rule --bump minor --summary 'Add a Python example.'", "Name each rule by its path without .md, such as practices/testing/my-rule."), options)
-	cmd.Long = cmd.Short + "\n\nAfter the first library release, every rule change needs a change note in changes/.\nThe next library release publishes the notes added since the previous one.\n\nFor rules that have a version, choose --bump:\n" + changeLevels + "\nLeave out --bump for a new rule; it starts at version 1.0.0. To retire a rule,\ndelete its Markdown file and asset directory, then pass --retire.\n\nWrite the summary for project maintainers deciding whether to update." + documentationHelp
+	cmd.Long = cmd.Short + "\n\nAfter the first library release, every rule change needs a change note in .syllabus/changes/.\nThe next library release publishes the notes added since the previous one.\n\nFor rules that have a version, choose --bump:\n" + changeLevels + "\nLeave out --bump for a new rule; it starts at version 1.0.0. To retire a rule,\ndelete its Markdown file and asset directory, then pass --retire.\n\nWrite the summary for project maintainers deciding whether to update." + documentationHelp
 	f.add(cmd, "bump", "Change for rules that have a version: major, minor, or patch")
 	f.add(cmd, "summary", "One line describing the change for project maintainers")
 	cmd.Flags().Bool("retire", false, "Record that the rules are retired; delete their Markdown files and asset directories first")
@@ -35,7 +35,7 @@ func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command
 		if err := changeFlagsUsage(f, args, retire); err != nil {
 			return usage(err)
 		}
-		request := library.ChangeRequest{IDs: args, Bump: coderules.Change(f.value("bump")), Summary: f.value("summary"), Retire: retire, ReplacedBy: f.value("replaced-by")}
+		request := library.ChangeRequest{IDs: args, Bump: syllabus.Change(f.value("bump")), Summary: f.value("summary"), Retire: retire, ReplacedBy: f.value("replaced-by")}
 		plan, err := library.PlanChange(cmd.Context(), request, target)
 		if err != nil {
 			return err
@@ -49,7 +49,7 @@ func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command
 		if err := f.require("summary"); err != nil {
 			return err
 		}
-		result, err := plan.Commit(cmd.Context(), coderules.Change(f.value("bump")), f.value("summary"), time.Now())
+		result, err := plan.Commit(cmd.Context(), syllabus.Change(f.value("bump")), f.value("summary"), time.Now())
 		if err != nil {
 			return err
 		}

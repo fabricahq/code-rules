@@ -1,5 +1,5 @@
 // Leave a real fork update interrupted after it created its rule's first asset directory, then check that the empty
-// directories it leaves under local/ trouble no command.
+// directories it leaves under rules/ trouble no command.
 
 package cli
 
@@ -11,7 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // forkUpdateArguments replace the fixture's hand-written loaders rule, which has no assets, with a fork of loaders
@@ -19,20 +20,20 @@ import (
 var forkUpdateArguments = []string{"project", "update", "--yes", "--update-fork", "team:techs/go/loaders"}
 
 // interruptedForkUpdate returns an update fixture whose library publishes loaders 1.2.0 with an asset, and whose fork
-// update stopped after creating local/techs/go/assets, the missing parent of the new fork's asset directory, and
+// update stopped after creating rules/techs/go/assets, the missing parent of the new fork's asset directory, and
 // replacing vendor/, as a process killed there would leave it. As interruptedUpdate does, it installs the real
 // update's output with the project's own writer until a directory at generated/'s backup path stops it.
 func interruptedForkUpdate(t *testing.T) updateFixture {
 	t.Helper()
 	u := newUpdateFixture(t)
 	ctx := context.Background()
-	if _, err := u.fixture.Commit(ctx, u.fixture.Worktree(), "Third release", map[string][]byte{"techs/go/loaders.md": updateRule("loaders 1.2.0, with [an example](assets/loaders/example.md)."), "techs/go/assets/loaders/example.md": []byte("An example.\n")}); err != nil {
+	if _, err := u.fixture.Commit(ctx, u.fixture.Worktree(), "Third release", gitfixture.Library(map[string][]byte{"techs/go/loaders.md": updateRule("loaders 1.2.0, with [an example](assets/loaders/example.md)."), "techs/go/assets/loaders/example.md": []byte("An example.\n")})); err != nil {
 		t.Fatal(err)
 	}
 	if err := u.fixture.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.2.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\nchanges:\n  techs/go/loaders: {change: minor, from: 1.1.0, summaries: [Add an example.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	project := filepath.Join(u.directory, ".code-rules")
+	project := filepath.Join(u.directory, ".syllabus")
 	completed := filepath.Join(t.TempDir(), "project")
 	if err := os.CopyFS(completed, os.DirFS(u.directory)); err != nil {
 		t.Fatal(err)
@@ -40,28 +41,28 @@ func interruptedForkUpdate(t *testing.T) updateFixture {
 	if out, diagnostic, code := u.runBounded(t, completed, forkUpdateArguments...); code != 0 {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	output := updateOutput(t, project, filepath.Join(completed, ".code-rules"))
-	completedRoot, err := os.OpenRoot(filepath.Join(completed, ".code-rules"))
+	output := updateOutput(t, project, filepath.Join(completed, ".syllabus"))
+	completedRoot, err := os.OpenRoot(filepath.Join(completed, ".syllabus"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer completedRoot.Close()
-	rule, err := completedRoot.ReadFile("local/techs/go/use-data-loaders.md")
+	rule, err := completedRoot.ReadFile("rules/techs/go/use-data-loaders.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	assets, err := filetxn.ReadTree(ctx, completedRoot, "local/techs/go/assets/use-data-loaders")
+	assets, err := filetxn.ReadTree(ctx, completedRoot, "rules/techs/go/assets/use-data-loaders")
 	if err != nil || assets == nil {
 		t.Fatalf("the fork update wrote no assets: %v", err)
 	}
-	output[filetxn.LocalRule("techs/go/use-data-loaders.md")] = map[string][]byte{"local/techs/go/use-data-loaders.md": rule}
+	output[filetxn.LocalRule("techs/go/use-data-loaders.md")] = map[string][]byte{"rules/techs/go/use-data-loaders.md": rule}
 	output[filetxn.LocalRuleAssets("techs/go/use-data-loaders.md")] = assets.Files
 	root, err := os.OpenRoot(project)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	blocker := filepath.Join(".code-rules-transaction", "old-generated")
+	blocker := filepath.Join(".syllabus-transaction", "old-generated")
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
 		// Apply calls this after staging every target and before writing its journal and creating the parent.
 		return w.Apply(output, func() error { return root.MkdirAll(filepath.Join(blocker, "blocker"), 0700) })
@@ -73,21 +74,21 @@ func interruptedForkUpdate(t *testing.T) updateFixture {
 	if err := root.RemoveAll(blocker); err != nil {
 		t.Fatal(err)
 	}
-	if entries, err := os.ReadDir(filepath.Join(project, "local", "techs", "go", "assets")); err != nil || len(entries) != 0 {
+	if entries, err := os.ReadDir(filepath.Join(project, "rules", "techs", "go", "assets")); err != nil || len(entries) != 0 {
 		t.Fatalf("the interrupted update didn't leave its empty parent: %v, %v", entries, err)
 	}
 	return u
 }
 
 // TestCommands_IgnoreTheEmptyDirectoriesAnInterruptedForkUpdateLeaves: whichever command recovers an interrupted fork
-// update, the empty local/techs/go/assets it leaves, and an empty deeper one, trouble no command afterward: build,
+// update, the empty rules/techs/go/assets it leaves, and an empty deeper one, trouble no command afterward: build,
 // check, sync, update, a fork into the group, and the fork update itself all succeed with no warning and no stale
 // output.
 func TestCommands_IgnoreTheEmptyDirectoriesAnInterruptedForkUpdateLeaves(t *testing.T) {
 	for _, first := range [][]string{{"project", "build"}, {"project", "sync"}, forkUpdateArguments} {
 		t.Run(strings.Join(first[1:], " "), func(t *testing.T) {
 			u := interruptedForkUpdate(t)
-			if err := os.MkdirAll(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "nested", "assets"), 0700); err != nil {
+			if err := os.MkdirAll(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "nested", "assets"), 0700); err != nil {
 				t.Fatal(err)
 			}
 			commands := [][]string{
@@ -109,7 +110,7 @@ func TestCommands_IgnoreTheEmptyDirectoriesAnInterruptedForkUpdateLeaves(t *test
 					t.Fatalf("%v: exit %d:\n%s%s", args, code, out, diagnostic)
 				}
 			}
-			fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "assets", "use-data-loaders", "example.md"))
+			fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "assets", "use-data-loaders", "example.md"))
 			if err != nil || string(fork) != "An example.\n" {
 				t.Fatalf("the fork update didn't install the asset: %q, %v", fork, err)
 			}

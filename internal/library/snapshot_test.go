@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // ruleDocument is a valid rule whose body identifies it, so tests can tell copies apart.
@@ -20,7 +20,7 @@ func ruleDocument(body string) string {
 // selectionFiles is a library with two groups, each with two rules, one of them with assets.
 func selectionFiles() map[string][]byte {
 	return map[string][]byte{
-		"rule-library.yaml":                  []byte(`{"formatVersion":1}`),
+		"config.yaml":                        []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 		"techs/go/_group.yaml":               []byte(metadata),
 		"techs/go/errors.md":                 []byte(ruleDocument("Errors.")),
 		"techs/go/assets/errors/diagram.bin": {0, 1},
@@ -43,7 +43,7 @@ func TestLoadSource_IndividualRulesBringOnlyThemselvesAndTheirGroupMetadata(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"practices/testing/_group.yaml", "practices/testing/limits.md", "rule-library.yaml", "techs/go/_group.yaml", "techs/go/assets/errors/diagram.bin", "techs/go/errors.md"}
+	want := []string{"config.yaml", "practices/testing/_group.yaml", "practices/testing/limits.md", "techs/go/_group.yaml", "techs/go/assets/errors/diagram.bin", "techs/go/errors.md"}
 	if !reflect.DeepEqual(catalog.Paths(), want) {
 		t.Fatalf("paths %v, want %v", catalog.Paths(), want)
 	}

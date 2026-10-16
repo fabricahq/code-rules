@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 func TestSharedExpectations(t *testing.T) {
@@ -50,13 +50,7 @@ func TestSharedExpectations(t *testing.T) {
 					value, err = librarytree.GroupFromPath(text, test.Location)
 				}
 			case "selection":
-				var selection rules.GroupSelection
-				selection, err = rules.ParseGroupSelection(test.Input, test.Location)
-				if selection.Pattern != "" {
-					value = selection.Pattern
-				} else {
-					value = selection.Groups
-				}
+				value, err = rules.ParseGroupSelection(test.Input, test.Location)
 			default:
 				t.Fatalf("unknown operation %q", test.Operation)
 			}
@@ -114,7 +108,7 @@ func TestMalformedSelectionJSON(t *testing.T) {
 	}
 }
 
-// TestGroupSelection_Includes matches explicit groups and each wildcard's scope.
+// TestGroupSelection_Includes matches explicit groups, each wildcard's scope, and both together.
 func TestGroupSelection_Includes(t *testing.T) {
 	for _, test := range []struct {
 		selection rules.GroupSelection
@@ -129,6 +123,8 @@ func TestGroupSelection_Includes(t *testing.T) {
 		{rules.GroupSelection{Groups: []string{"techs/go"}}, "techs/go", true},
 		{rules.GroupSelection{Groups: []string{"techs/go"}}, "techs/rust", false},
 		{rules.GroupSelection{Groups: []string{}}, "techs/go", false},
+		{rules.GroupSelection{Pattern: "techs/*", Groups: []string{"practices/testing"}}, "practices/testing", true},
+		{rules.GroupSelection{Pattern: "techs/*", Groups: []string{"practices/testing"}}, "practices/errors", false},
 	} {
 		if got := test.selection.Includes(test.group); got != test.want {
 			t.Errorf("%+v.Includes(%q) = %v, want %v", test.selection, test.group, got, test.want)

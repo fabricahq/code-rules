@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // defaultIndexMaxLines keeps ordinary summaries together before pagination. It is a provisional delivery default,
@@ -170,7 +170,7 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 			output[path] = text
 		}
 	}
-	header := indexHeader(resolved.Groups)
+	header := indexHeader(resolved.Groups, len(resolved.Skills) > 0)
 	pages, err := indexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxLines)
 	if err != nil {
 		return nil, err
@@ -218,11 +218,15 @@ func groupTitle(group resolvedGroup) string {
 	return strings.Join(names, " / ")
 }
 
-// indexHeader explains empty selections or guides agents to the resolved groups and rules.
-func indexHeader(groups []resolvedGroup) string {
+// indexHeader explains empty selections or guides agents to the resolved groups and rules, and, when the project
+// installs skills, points to SKILLS.md.
+func indexHeader(groups []resolvedGroup, installsSkills bool) string {
 	blocks := []string{
-		"# Code Rules",
-		"This project uses [Fabrica Code Rules](https://code-rules.fabricahq.com) to declare its adopted engineering practices.",
+		"# Syllabus",
+		"This project uses [Fabrica Syllabus](https://syllabus.fabricahq.com) to declare its adopted engineering practices.",
+	}
+	if installsSkills {
+		blocks = append(blocks, "This project also installs agent skills. See [SKILLS.md](SKILLS.md) for what each one does and where it's installed.")
 	}
 	hasRules := false
 	for _, group := range groups {
@@ -232,7 +236,7 @@ func indexHeader(groups []resolvedGroup) string {
 		}
 	}
 	if !hasRules {
-		blocks = append(blocks, "**No active rules are selected for this project.**", "There is no Code Rules guidance to load. Continue using the project’s other instructions.")
+		blocks = append(blocks, "**No active rules are selected for this project.**", "There is no Syllabus guidance to load. Continue using the project’s other instructions.")
 		if len(groups) > 0 {
 			blocks = append(blocks, "## Technology and practice group indexes", "The selected groups below contain no active rules.")
 		}

@@ -7,6 +7,7 @@ package imports
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -14,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Library keeps the parsed catalog and its byte-preserving, verified source snapshot together.
@@ -38,7 +39,7 @@ type Library struct {
 // chosen only where configuration asks for something a snapshot doesn't have. It never installs files in a
 // consuming project. Source temporary state is closed on every path.
 func ImportLibraries(ctx context.Context, configuration rules.Configuration, recorded map[string]library.Snapshot, options Options) (map[string]Library, error) {
-	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+	return importSources(ctx, configuration, options, borrowing{recorded: recorded}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		return planSource(ctx, repo, source, recordedSnapshot(recorded, source.Name))
 	})
 }
@@ -46,8 +47,9 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, rec
 // resolver chooses what one source imports, reading its library through repo only when a choice needs it.
 type resolver func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error)
 
-// importSources imports every source of configuration as resolve plans it, or returns no partial result.
-func importSources(ctx context.Context, configuration rules.Configuration, options Options, resolve resolver) (map[string]Library, error) {
+// importSources imports every source of configuration as resolve plans it, then the skills each library source
+// borrows, at the revisions borrow chooses, or returns no partial result.
+func importSources(ctx context.Context, configuration rules.Configuration, options Options, borrow borrowing, resolve resolver) (map[string]Library, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, gitexec.ContextFailure(err)
 	}
@@ -62,7 +64,21 @@ func importSources(ctx context.Context, configuration rules.Configuration, optio
 		}
 		result[source.Name] = imported
 	}
+	// Borrowing comes second, so a project source that declares a borrowed repository has its revision chosen.
+	for _, source := range configuration.Sources {
+		imported := result[source.Name]
+		if err := borrowSkills(ctx, configuration, source, &imported, result, borrow, options); err != nil {
+			return nil, sourceError(source.Name, err)
+		}
+		result[source.Name] = imported
+	}
 	return result, nil
+}
+
+// quote returns text as a JSON string.
+func quote(text string) json.RawMessage {
+	encoded, _ := json.Marshal(text)
+	return encoded
 }
 
 // recordedSnapshot returns the snapshot recorded holds for a source, or nil when it holds none.
@@ -114,14 +130,18 @@ func withTimeout(ctx context.Context, options Options) (context.Context, context
 
 // importPlan fetches the commits plan names, reads and validates the files it imports, and returns them with the
 // snapshot that records them, and the metadata of each group in groups that the catalog lacks, when the plan's
-// library-wide files have it.
+// library-wide files have it. Every skill comes from the plan's commit. A plan of a repository that isn't a library
+// imports only skills, with an empty catalog.
 func (r *repository) importPlan(ctx context.Context, source rules.Source, plan sourcePlan, groups []string) (Library, error) {
 	commits := []string{plan.commit}
 	for _, rule := range plan.rules {
 		commits = append(commits, rule.Commit)
 	}
-	if err := r.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or, to keep your rule versions, set sources.%s.ref to a library release tag or commit the library still has that publishes them, then run code-rules project sync. As a last resort, delete vendor/%s and run code-rules project sync, which imports every unpinned rule's newest version.", source.Name, source.Name, source.Name)); err != nil {
+	if err := r.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or, to keep your rule versions, set sources.%s.ref to a library release tag or commit the library still has that publishes them, then run syllabus project sync. As a last resort, delete vendor/%s and run syllabus project sync, which imports every unpinned rule's newest version.", source.Name, source.Name, source.Name)); err != nil {
 		return Library{}, err
+	}
+	if plan.nonLibrary {
+		return r.importNonLibrary(ctx, source, plan)
 	}
 	individual := slices.Sorted(slices.Values(plan.individual))
 	input, err := r.snapshotFiles(ctx, source, plan)
@@ -163,14 +183,58 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	for file, data := range catalog.Files() {
 		snapshot.Files[file] = bytes.Clone(data)
 	}
+	// A library publishes only its manifest's library section, never the sources it uses as a project.
+	if snapshot.Files[librarytree.Manifest], err = rules.PublishedManifest(snapshot.Files[librarytree.Manifest], source.Name+"/"+librarytree.RepositoryPath(librarytree.Manifest)); err != nil {
+		return Library{}, err
+	}
 	metadata, err := requestedGroupMetadata(input, catalog, groups)
 	if err != nil {
 		return Library{}, err
 	}
+	imported, err := r.readSkills(ctx, source, plan, true, input.total)
+	if err != nil {
+		return Library{}, err
+	}
+	addSkills(&snapshot, source, imported)
 	if err := ctx.Err(); err != nil {
 		return Library{}, gitexec.ContextFailure(err)
 	}
 	return Library{Catalog: catalog, Snapshot: snapshot, Warnings: plan.warnings, GroupMetadata: metadata}, nil
+}
+
+// importNonLibrary imports the skills of a source whose repository has no library manifest at the plan's commit:
+// a snapshot without rules, groups, or a library release, and an empty catalog.
+func (r *repository) importNonLibrary(ctx context.Context, source rules.Source, plan sourcePlan) (Library, error) {
+	imported, err := r.readSkills(ctx, source, plan, false, 0)
+	if err != nil {
+		return Library{}, err
+	}
+	snapshot := library.Snapshot{
+		Repository:    source.Repository,
+		RetiredRules:  []string{},
+		Ref:           plan.ref,
+		Commit:        plan.commit,
+		Groups:        []string{},
+		RuleSelection: []string{},
+		Rules:         map[string]library.ImportedRule{},
+		Files:         map[string][]byte{},
+		NonLibrary:    true,
+	}
+	addSkills(&snapshot, source, imported)
+	if err := ctx.Err(); err != nil {
+		return Library{}, gitexec.ContextFailure(err)
+	}
+	catalog := library.Catalog{Rules: []string{}, Groups: []library.Group{}, SupportingFiles: map[string][]byte{}}
+	return Library{Catalog: catalog, Snapshot: snapshot, Warnings: plan.warnings, GroupMetadata: map[string][]byte{}}, nil
+}
+
+// addSkills records the source's skill selection and the imported skills, with their files, in snapshot.
+func addSkills(snapshot *library.Snapshot, source rules.Source, imported importedSkills) {
+	snapshot.SkillSelection = slices.Clone(source.Skills)
+	snapshot.Skills = imported.skills
+	snapshot.AvailableSkills = imported.available
+	snapshot.Executable = imported.executable
+	maps.Copy(snapshot.Files, imported.files)
 }
 
 // requestedGroupMetadata reads, from input, the metadata of each of groups that catalog lacks and input has.
@@ -202,6 +266,9 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 	if err != nil {
 		return nil, err
 	}
+	if err := r.requireLibraryLayout(source.Name, plan.release, plan.commit); err != nil {
+		return nil, err
+	}
 	terms, err := r.terms(ctx, source.Name, main)
 	if err != nil {
 		return nil, err
@@ -218,7 +285,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 		}
 		files[file] = entry
 		group, metadata := strings.CutSuffix(file, "/_group.yaml")
-		if file == "rule-library.yaml" || slices.Contains(terms, file) || metadata && (imported[file] || source.Groups.Includes(group)) {
+		if file == librarytree.Manifest || slices.Contains(terms, file) || metadata && (imported[file] || source.Groups.Includes(group)) {
 			prefetch = append(prefetch, entry)
 		}
 	}
@@ -230,6 +297,12 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 		if _, ok := owned[id+".md"]; !ok {
 			return nil, fail("unsupported-content", fmt.Sprintf("The library's commit %s has no rule %s, although its release record lists the rule.", plan.rules[id].Commit, id), nil)
 		}
+		if err := r.requireLegacyRuleLinks(ctx, source.Name, id, plan.rules[id], owned); err != nil {
+			return nil, err
+		}
+		rule := plan.rules[id]
+		rule.LegacyLayout = r.legacy[rule.Commit]
+		plan.rules[id] = rule
 		for file, entry := range owned {
 			files[file] = entry
 			prefetch = append(prefetch, entry)

@@ -43,7 +43,7 @@ func TestGroupHelpSections(t *testing.T) {
 					t.Fatal("missing common options", out)
 				}
 				common, example, found := strings.Cut(remainder, "Example:\n")
-				if !found || !strings.Contains(example, "code-rules "+scope+" add group practices/testing --name \"Testing\"") {
+				if !found || !strings.Contains(example, "syllabus "+scope+" add group practices/testing --name \"Testing\"") {
 					t.Fatal("incorrect example", out)
 				}
 				for _, flag := range []string{"--name", "--description", "--when-to-read"} {

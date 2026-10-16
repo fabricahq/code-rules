@@ -49,7 +49,7 @@ func projectCode(t *testing.T, err error, want string) {
 // TestWriterReplacesOnlyManagedTrees verifies initial and repeated apply, stale cleanup, and authored preservation.
 func TestWriterReplacesOnlyManagedTrees(t *testing.T) {
 	root := openProject(t)
-	writeFixture(t, root, "local/rule.md", "authored")
+	writeFixture(t, root, "rules/rule.md", "authored")
 	output := map[Target]map[string][]byte{Vendor: {"team/file": {0, 255, 10}}, Generated: {"RULES.md": []byte("first")}}
 	for i := 0; i < 2; i++ {
 		if err := WithWriter(context.Background(), root, func(w *Writer) error { return w.Apply(output, nil) }); err != nil {
@@ -65,7 +65,7 @@ func TestWriterReplacesOnlyManagedTrees(t *testing.T) {
 	if err != nil || len(got.Files) != 1 || string(got.Files["RULES.md"]) != "second" {
 		t.Fatalf("generated: %v %v", got, err)
 	}
-	if data, err := root.ReadFile("local/rule.md"); err != nil || string(data) != "authored" {
+	if data, err := root.ReadFile("rules/rule.md"); err != nil || string(data) != "authored" {
 		t.Fatal("authored file changed")
 	}
 	if err := RequireIdle(root); err != nil {
@@ -131,7 +131,7 @@ func stageInterruption(t *testing.T, root *os.Root, committed bool) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeTree(ctx, root, transactionName+"/new-generated", map[string][]byte{"new": []byte("after")}); err != nil {
+	if err := writeTree(ctx, root, transactionName+"/new-generated", map[string][]byte{"new": []byte("after")}, nil); err != nil {
 		t.Fatal(err)
 	}
 	after, err := ReadTree(ctx, root, transactionName+"/new-generated")
@@ -253,7 +253,7 @@ func TestWriterRejectsAmbiguousOwners(t *testing.T) {
 
 // TestKilledWriterReclaimsLock exercises actual process death with a completed first replacement.
 func TestKilledWriterReclaimsLock(t *testing.T) {
-	if dir := os.Getenv("CODE_RULES_WRITER_CHILD"); dir != "" {
+	if dir := os.Getenv("SYLLABUS_WRITER_CHILD"); dir != "" {
 		root, err := os.OpenRoot(dir)
 		if err != nil {
 			t.Fatal(err)
@@ -283,7 +283,7 @@ func TestKilledWriterReclaimsLock(t *testing.T) {
 	}
 	root := openProject(t)
 	cmd := exec.Command(os.Args[0], "-test.run=^TestKilledWriterReclaimsLock$")
-	cmd.Env = append(os.Environ(), "CODE_RULES_WRITER_CHILD="+root.Name())
+	cmd.Env = append(os.Environ(), "SYLLABUS_WRITER_CHILD="+root.Name())
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -515,5 +515,77 @@ func TestWriterCancellationDuringReplacement(t *testing.T) {
 	}
 	if err := RequireIdle(root); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestWriterWaitsForCodeRules refuses to read or write a project while a Code Rules process from before the rename
+// holds its lock, or left a transaction that only it recovers.
+func TestWriterWaitsForCodeRules(t *testing.T) {
+	for _, name := range []string{".code-rules-lock", ".code-rules-transaction", ".code-rules-cleanup"} {
+		t.Run(name, func(t *testing.T) {
+			root := openProject(t)
+			if err := root.Mkdir(name, 0700); err != nil {
+				t.Fatal(err)
+			}
+			projectCode(t, RequireIdle(root), "busy")
+			projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { t.Fatal("writer entered"); return nil }), "busy")
+		})
+	}
+}
+
+// openLegacyProject opens a project directory still named .code-rules, as Code Rules made it before the rename.
+func openLegacyProject(t *testing.T) *os.Root {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), ".code-rules")
+	if err := os.Mkdir(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	return root
+}
+
+// TestWriterOfALegacyProjectHoldsTheCodeRulesLock takes the lock Code Rules honors while it writes a project still in
+// .code-rules/, so a Code Rules process that starts meanwhile waits, and releases it afterward.
+func TestWriterOfALegacyProjectHoldsTheCodeRulesLock(t *testing.T) {
+	root := openLegacyProject(t)
+	err := WithWriter(context.Background(), root, func(*Writer) error {
+		if _, err := root.Stat(".code-rules-lock/owner.json"); err != nil {
+			t.Errorf("a Code Rules process could write the project meanwhile: %v", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := root.Stat(".code-rules-lock"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("kept the Code Rules lock: %v", err)
+	}
+	if err := RequireIdle(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestWriterOfALegacyProjectWaitsForALiveCodeRulesWriter refuses to write a project in .code-rules/ while a live
+// Code Rules process holds its lock, and leaves that lock alone.
+func TestWriterOfALegacyProjectWaitsForALiveCodeRulesWriter(t *testing.T) {
+	root := openLegacyProject(t)
+	host, err := os.Hostname()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := root.Mkdir(".code-rules-lock", 0700); err != nil {
+		t.Fatal(err)
+	}
+	owner, _ := json.Marshal(lockOwner{host, os.Getpid(), "token"})
+	if err := root.WriteFile(".code-rules-lock/owner.json", owner, 0600); err != nil {
+		t.Fatal(err)
+	}
+	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { t.Fatal("writer entered"); return nil }), "busy")
+	if data, err := root.ReadFile(".code-rules-lock/owner.json"); err != nil || string(data) != string(owner) {
+		t.Fatalf("changed the Code Rules lock: %q, %v", data, err)
 	}
 }

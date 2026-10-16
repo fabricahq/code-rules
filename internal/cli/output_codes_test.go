@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // TestSyncJSON_ReportsGitFailureCode lets scripts branch on why an import failed without parsing its message.
@@ -19,7 +19,7 @@ func TestSyncJSON_ReportsGitFailureCode(t *testing.T) {
 	directory := t.TempDir()
 	for _, args := range [][]string{
 		{"project", "init"},
-		{"project", "add", "library", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--groups", "*", "--non-interactive"},
+		{"project", "add", "source", "team", "--repository", "https://example.invalid/team.git", "--ref", "v1.2.3", "--rules", "*", "--non-interactive"},
 	} {
 		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
 			t.Fatal(args, code, out, diagnostic)
@@ -41,11 +41,11 @@ func TestSyncJSON_ReportsGitFailureCode(t *testing.T) {
 func versionedLibrary(t *testing.T, released bool) *gitfixture.Fixture {
 	t.Helper()
 	ctx := context.Background()
-	f, err := gitfixture.New(ctx, map[string][]byte{
-		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+		"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
 		"techs/go/errors.md":   []byte("---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling functions.\n---\nReturn errors to the caller.\n"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,8 +66,8 @@ func syncWithConfiguration(t *testing.T, f *gitfixture.Fixture, fields string, a
 	if out, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	config := `{"schemaVersion":1,"sources":{"team":{"repository":"` + f.Repository + `",` + fields + `}}}`
-	if err := os.WriteFile(filepath.Join(directory, ".code-rules", "config.yaml"), []byte(config), 0600); err != nil {
+	config := `{"schemaVersion":2,"sources":{"team":{"repository":"` + f.Repository + `",` + fields + `}}}`
+	if err := os.WriteFile(filepath.Join(directory, ".syllabus", "config.yaml"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
 	return runCLIWithEnvironment(t, binary, directory, f.Environment, append([]string{"project", "sync"}, args...)...)
@@ -79,9 +79,9 @@ func TestSyncJSON_ReportsRuleVersionCodes(t *testing.T) {
 		name, fields, code string
 		released           bool
 	}{
-		{"no library release", `"groups":["techs/go"]`, "releases-not-found", false},
-		{"pin to an unpublished version", `"groups":["techs/go"],"pins":{"techs/go/errors":{"version":"2.0.0","reason":"Typo."}}`, "version-not-found", true},
-		{"missing ref", `"groups":["techs/go"],"ref":"release/7"`, "version-not-found", true},
+		{"no library release", `"rules":{"include":["techs/go/*"]}`, "ref-required", false},
+		{"pin to an unpublished version", `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"2.0.0","reason":"Typo."}]}`, "version-not-found", true},
+		{"missing ref", `"rules":{"include":["techs/go/*"]},"ref":"release/7"`, "version-not-found", true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			out, _, code := syncWithConfiguration(t, versionedLibrary(t, test.released), test.fields, "--json")
@@ -99,11 +99,11 @@ func TestSyncJSON_ReportsRuleVersionCodes(t *testing.T) {
 // TestSync_PrintsWarningsForUnreleasedRefs shows the warning in both output modes.
 func TestSync_PrintsWarningsForUnreleasedRefs(t *testing.T) {
 	f := versionedLibrary(t, true)
-	commit, err := f.Commit(context.Background(), f.Worktree(), "Unreleased", map[string][]byte{"techs/go/errors.md": []byte("---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling functions.\n---\nReturn wrapped errors to the caller.\n")})
+	commit, err := f.Commit(context.Background(), f.Worktree(), "Unreleased", gitfixture.Library(map[string][]byte{"techs/go/errors.md": []byte("---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling functions.\n---\nReturn wrapped errors to the caller.\n")}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	fields := `"groups":["techs/go"],"ref":"` + commit + `"`
+	fields := `"rules":{"include":["techs/go/*"]},"ref":"` + commit + `"`
 	out, diagnostic, code := syncWithConfiguration(t, f, fields)
 	if code != 0 || !strings.Contains(out, "Warning: Source team imports "+commit+", which isn't a library release") || !strings.Contains(out, "Unreleased rules: techs/go/errors.") {
 		t.Fatalf("exit %d\n%s%s", code, out, diagnostic)

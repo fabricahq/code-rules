@@ -1,17 +1,21 @@
 ---
-title: "Rule and group format"
-description: "What Code Rules accepts in rule files, group metadata, and supporting assets."
+title: "Rule and rule group format"
+description: "What Syllabus accepts in rule files, rule group metadata, and supporting assets."
 ---
 
-This page defines what Code Rules accepts in a rule file and in group metadata. The same format applies to rules in a library and to a project's local rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
+:::caution[Preview]
+The `.syllabus/rules/` and `.syllabus/assets/` paths on this page are the version 2 layout, which isn't in a released version of Syllabus yet. The released CLI reads a library's rule groups and shared assets at the repository root, and a project's own rule groups in `.syllabus/local/`.
+:::
 
-Each rule is a Markdown file, and related rules belong to a **group**: a directory under `techs/` or `practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where groups live in a library.
+This page defines what Syllabus accepts in a rule file and in rule group metadata. The same format applies to rules in a library and to a project's own rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
 
-Group metadata and rule frontmatter use YAML. Duplicate keys, anchors, aliases, and explicit tags are rejected.
+Each rule is a Markdown file, and related rules belong to a **rule group**: a directory under `.syllabus/rules/techs/` or `.syllabus/rules/practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where rule groups live in a library.
 
-## Group metadata
+Rule group metadata and rule frontmatter use YAML. Duplicate keys, anchors, aliases, and explicit tags are rejected.
 
-Library authors define each group's selection guidance in its `_group.yaml`, before the group is imported.
+## Rule group metadata
+
+Library authors define each rule group's selection guidance in its `_group.yaml`, before any project includes the rule group.
 The builder reads that source metadata and renders its `whenToRead` cues in the generated root index; it does not infer them from the current rules.
 Use the existing `whenToRead` field for this guidance rather than adding a separate `whenToUse` field.
 
@@ -22,17 +26,17 @@ whenToRead: When adding or changing behavior, fixing a bug, or modifying tests, 
   no test files are in the diff.
 ```
 
-All three group fields are required non-blank strings. Surrounding whitespace is trimmed. Unknown fields are rejected.
-The directory supplies the group's ID and type.
-Both `RULES.md` and the group page include its name, description, and when-to-read guidance. Local metadata takes precedence as a complete record; otherwise each contributing library remains source-labeled.
-Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the group's reading cues.
+All three rule group fields are required non-blank strings. Surrounding whitespace is trimmed. Unknown fields are rejected.
+The directory supplies the rule group's ID and type.
+Both `RULES.md` and the rule group page include its name, description, and when-to-read guidance. A project's own rule group metadata takes precedence as a complete record; otherwise each contributing library remains source-labeled.
+Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the rule group's reading cues.
 
 ## Rule metadata
 
 Each rule requires YAML frontmatter containing `title`, `whenToRead`, `impact`, and `impactDescription`, followed by a non-blank Markdown body.
 The builder rejects duplicate YAML keys and aliases. Unknown frontmatter fields are rejected. Accepted fields are `title`, `whenToRead`, `impact`, `impactDescription`, `tags`, and `attribution`.
 `tags` is optional: use a non-blank string of comma-separated topics or an array of unique, non-blank strings. An empty array is also accepted.
-Tags provide search terms, such as `testing` on a Go rule. Code Rules preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
+Tags provide search terms, such as `testing` on a Go rule. Syllabus preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
 Impact describes the significance of the consequence a rule helps prevent.
 Follow the canonical [impact authoring guidance](/reference/rule-authoring/#describe-impact-through-consequences) for level definitions and examples.
@@ -40,13 +44,13 @@ Agents select rules using `whenToRead`, follow the full guidance and exceptions,
 All applicable rules matter regardless of impact.
 
 `whenToRead` is a required non-empty string describing work that should trigger reading, including before code exists.
-The group field of the same name is also one string, describing the group’s scope of applicability.
+The rule group field of the same name is also one string, describing the rule group’s scope of applicability.
 The full body defines obligations, implementation guidance, exceptions, and validation guidance.
-Existing snapshots and local replacements must add rule-level `whenToRead` before building with this format.
+Existing snapshots and a project's own replacements must add rule-level `whenToRead` before building with this format.
 
 See [Write a rule](/guides/write-rules/) for a complete example.
 
-Rules have no `version` field, and you never set a version by hand. The first library release gives every rule version `1.0.0`, and later library releases assign versions from the change notes that authors record with `code-rules library change`; see [Change rules after the first library release](/guides/version-rules/#change-rules-after-the-first-library-release) and [Rule versions](/reference/rule-versions/).
+Rules have no `version` field, and you never set a version by hand. The first library release gives every rule version `1.0.0`, and later library releases assign versions from the change notes that authors record with `syllabus library change`; see [Change rules after the first library release](/guides/version-rules/#change-rules-after-the-first-library-release) and [Rule and skill versions](/reference/rule-versions/).
 
 ## Rule attribution
 
@@ -63,42 +67,44 @@ Use a commit-pinned URL and describe the adaptation. These citations identify so
 Attribution in the Markdown body remains preserved. Unknown attribution-object fields are rejected.
 
 Keep attribution with the rule in metadata or prose; a separate attribution file is not required by the format.
-Declare accompanying license and notice files in the [library manifest](/reference/library-format/#license-metadata) so Code Rules can retain them and their links.
+Declare accompanying license and notice files in the [library manifest](/reference/library-format/#license-metadata) so Syllabus can retain them and their links.
 
 ## Supporting assets
 
-Use two optional locations for supporting files:
+Use two optional locations for supporting files, both in the Syllabus directory, `.syllabus/`, of a library or a project:
 
 ```text
-assets/                              # Shared across the library
-  retry-lifecycle.svg
-practices/testing/
-  _group.yaml
-  verify-retries.md
-  assets/
-    verify-retries/                   # Owned by verify-retries.md
-      explanation.md
-      example-response.json
+.syllabus/
+  assets/                            # Shared across the library
+    retry-lifecycle.svg
+  rules/
+    practices/testing/
+      _group.yaml
+      verify-retries.md
+      assets/
+        verify-retries/              # Owned by verify-retries.md
+          explanation.md
+          example-response.json
 ```
 
 A rule owns `assets/<filename-without-.md>/` beside its Markdown file.
 For example, `practices/testing/nested/retry.md` owns `practices/testing/nested/assets/retry/`.
-Each owned directory must have an adjacent rule. The directory name `assets` is reserved and cannot contain active rules or group metadata.
+Each owned directory must have an adjacent rule. The directory name `assets` is reserved and cannot contain active rules or rule group metadata.
 Markdown within assets is supporting text and does not need rule frontmatter.
 
 Keep the rule's obligations and exceptions in the rule itself. Use assets for explanations, images, sample data, and other supporting material.
 Link from the rule with ordinary Markdown, such as `[Explanation](assets/verify-retries/explanation.md)`.
-Use `../../assets/retry-lifecycle.svg` from this rule to reference a shared image.
+Use `../../../assets/retry-lifecycle.svg` from this rule to reference a shared image in `.syllabus/assets/`.
 
-Code Rules preserves each selected rule's complete asset directory, including files that are not individually linked.
-From the library-root `assets/` directory, Code Rules imports only the files a selected rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `code-rules project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
-Other shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the import size and file-type limits.
+Syllabus preserves each included rule's complete asset directory, including files that are not individually linked.
+From the library's `.syllabus/assets/` directory, Syllabus takes only the files an included rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `syllabus project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
+Other shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the size and file-type limits for reading a source.
 No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
 
 A rule or its assets may link to its own assets, shared assets, and declared library license or notice files.
 Shared assets may link to other shared assets and declared license files, but cannot depend on one rule's private assets.
 A link into another rule's assets is invalid: move that material to the shared directory.
-Missing local destinations and supporting references elsewhere in the repository fail import.
+Missing local destinations and supporting references elsewhere in the repository fail sync and check.
 Filesystem links to another rule document are invalid, even when the target is selected or retained. This also applies to Markdown attachments, including HTML `href` and `src` attributes. Rules must remain independently selectable; move shared supporting explanations into `assets/`. Self-links and anchors within the same document remain valid. External URLs remain links and are not downloaded.
 
 Files elsewhere in the repository can still hold project documentation or tooling, but cannot serve as local supporting dependencies for rules.

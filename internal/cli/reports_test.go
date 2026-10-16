@@ -16,10 +16,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// invokeReport runs args through Run in directory, with an empty home directory, so no personal skills.
 func invokeReport(t *testing.T, ctx context.Context, directory string, args ...string) (string, string, int) {
 	t.Helper()
+	return invokeWithHome(t, ctx, directory, t.TempDir(), args...)
+}
+
+// invokeWithHome runs args through Run in directory, as invokeReport does, with home as the home directory whose
+// personal skills sync, update, and check read.
+func invokeWithHome(t *testing.T, ctx context.Context, directory, home string, args ...string) (string, string, int) {
+	t.Helper()
 	var out, diagnostic bytes.Buffer
-	code := Run(ctx, args, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory})
+	code := Run(ctx, args, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Home: home})
 	return out.String(), diagnostic.String(), code
 }
 
@@ -65,7 +73,7 @@ func TestAuthoringReportSharesNextSteps(t *testing.T) {
 							args = append(args, "--body-file", "body.md")
 						}
 					case "source":
-						args = []string{scope, "add", "library", "team", "--repository", "https://example.invalid/rules.git", "--ref", "v1.0.0", "--groups", "*"}
+						args = []string{scope, "add", "source", "team", "--repository", "https://example.invalid/rules.git", "--ref", "v1.0.0", "--rules", "*"}
 					}
 					if i == 1 {
 						args = append(args, "--json")
@@ -171,7 +179,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 		t.Run(fmt.Sprintf("json=%t", structured), func(t *testing.T) {
 			directory := t.TempDir()
 			output := &commandOutput{json: structured}
-			root := &cobra.Command{Use: "code-rules", SilenceErrors: true, SilenceUsage: true}
+			root := &cobra.Command{Use: "syllabus", SilenceErrors: true, SilenceUsage: true}
 			root.AddCommand(projectInitCommand(Options{Directory: directory}, output))
 			command, _, err := root.Find([]string{"init"})
 			if err != nil {
@@ -186,7 +194,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), "terminal output unavailable") {
 				t.Fatal("expected post-commit output failure", err)
 			}
-			if _, err := os.Stat(filepath.Join(directory, ".code-rules", "config.yaml")); err != nil {
+			if _, err := os.Stat(filepath.Join(directory, ".syllabus", "config.yaml")); err != nil {
 				t.Fatal("initialization did not commit", err)
 			}
 			var out, diagnostic bytes.Buffer

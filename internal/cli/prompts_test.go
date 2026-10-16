@@ -12,8 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // TestInteractiveAuthoring uses a real PTY and verifies prompt results, refusal, EOF, and cancellation without partial writes.
@@ -49,7 +50,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 				t.Fatal("unattended mode showed interactive introduction", result)
 			}
 			if tc.name == "group" {
-				for _, text := range []string{"Adding a project-only group at: techs/go", "This group belongs to this project.", "Its files are stored in .code-rules/local/techs/go/.", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
+				for _, text := range []string{"Adding a project-only group at: techs/go", "This group belongs to this project.", "Its files are stored in .syllabus/rules/techs/go/.", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
 					if !strings.Contains(result.Transcript, text) {
 						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
 					}
@@ -61,7 +62,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 			if result.ExitCode != tc.code {
 				t.Fatal(result)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.yaml"))
+			data, err := os.ReadFile(filepath.Join(directory, ".syllabus/rules/techs/go/_group.yaml"))
 			if tc.created {
 				if !strings.HasSuffix(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "\n\n") {
 					t.Fatal("missing blank line after prompts", result.Transcript)
@@ -72,14 +73,21 @@ func TestInteractiveAuthoring(t *testing.T) {
 			} else if !os.IsNotExist(err) {
 				t.Fatal("unexpected file", err)
 			}
-			if _, err := os.Stat(filepath.Join(directory, ".code-rules/.code-rules.lock")); err == nil {
+			if _, err := os.Stat(filepath.Join(directory, ".syllabus/.syllabus.lock")); err == nil {
 				t.Fatal("prompt left lock")
 			}
 		})
 	}
 }
 
-// TestInteractiveSource prompts for the repository and, unless --rules selects rules, groups; never for the optional ref.
+// The prompts for a source's rule and skill selectors.
+const (
+	rulesPrompt  = "Rules (comma-separated selectors, or empty for none):"
+	skillsPrompt = "Skills (skill IDs, recommended, or *; empty for required only):"
+)
+
+// TestInteractiveSource prompts for the repository and, unless --rules or --skills selects something, rules and skills;
+// never for the optional ref.
 func TestInteractiveSource(t *testing.T) {
 	binary := buildCLI(t)
 	repository := terminalfixture.Step{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}
@@ -89,21 +97,23 @@ func TestInteractiveSource(t *testing.T) {
 		steps []terminalfixture.Step
 		want  map[string]any
 	}{
-		{"groups", nil, []terminalfixture.Step{repository, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}},
-			map[string]any{"repository": "https://github.com/acme/rules", "groups": []any{"techs/go", "techs/rust"}}},
-		{"rules", []string{"--rules", "techs/go/wrap-errors"}, []terminalfixture.Step{repository},
-			map[string]any{"repository": "https://github.com/acme/rules", "rules": []any{"techs/go/wrap-errors"}}},
+		{"rules", nil, []terminalfixture.Step{repository, {Prompt: rulesPrompt, Answer: "techs/go/*, techs/rust/*"}, {Prompt: skillsPrompt, Answer: ""}},
+			map[string]any{"repository": "https://github.com/acme/rules", "rules": map[string]any{"include": []any{"techs/go/*", "techs/rust/*"}}}},
+		{"skills", nil, []terminalfixture.Step{repository, {Prompt: rulesPrompt, Answer: ""}, {Prompt: skillsPrompt, Answer: "skills/review, skills/build-feature"}},
+			map[string]any{"repository": "https://github.com/acme/rules", "skills": map[string]any{"include": []any{"skills/build-feature", "skills/review"}}}},
+		{"rule flag", []string{"--rules", "techs/go/wrap-errors"}, []terminalfixture.Step{repository},
+			map[string]any{"repository": "https://github.com/acme/rules", "rules": map[string]any{"include": []any{"techs/go/wrap-errors"}}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			directory := t.TempDir()
 			if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 				t.Fatal(stderr)
 			}
-			result, err := terminalfixture.Run(context.Background(), binary, directory, append([]string{"project", "add", "library", "team"}, test.flags...), test.steps)
+			result, err := terminalfixture.Run(context.Background(), binary, directory, append([]string{"project", "add", "source", "team"}, test.flags...), test.steps)
 			if err != nil || result.ExitCode != 0 {
 				t.Fatal(err, result)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/config.yaml"))
+			data, err := os.ReadFile(filepath.Join(directory, ".syllabus/config.yaml"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -127,7 +137,7 @@ func TestLongTerminalPaste(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
-	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.yaml"))
+	data, err := os.ReadFile(filepath.Join(directory, ".syllabus/rules/techs/go/_group.yaml"))
 	if err != nil || !strings.Contains(string(data), description) {
 		t.Fatal("long paste was lost", err)
 	}
@@ -139,13 +149,9 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 	for _, kind := range []string{"project", "library"} {
 		t.Run(kind, func(t *testing.T) {
 			directory := t.TempDir()
-			initArgs := []string{"project", "init"}
-			root := filepath.Join(directory, ".code-rules")
-			if kind == "library" {
-				initArgs = []string{"library", "init"}
-				root = directory
-			}
-			if _, stderr, code := runCLI(t, binary, directory, initArgs...); code != 0 {
+			// Project and library commands share the writer of the repository's Syllabus directory.
+			root := filepath.Join(directory, ".syllabus")
+			if _, stderr, code := runCLI(t, binary, directory, kind, "init"); code != 0 {
 				t.Fatal(stderr)
 			}
 			if _, stderr, code := runCLI(t, binary, directory, kind, "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go."); code != 0 {
@@ -159,7 +165,7 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			lock := filepath.Join(root, ".code-rules-lock")
+			lock := filepath.Join(root, ".syllabus-lock")
 			if err := os.Mkdir(lock, 0700); err != nil {
 				t.Fatal(err)
 			}
@@ -175,11 +181,7 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 			if _, err := os.Stat(lock); !os.IsNotExist(err) {
 				t.Fatal("lock not recovered", err)
 			}
-			ruleRoot := root
-			if kind == "project" {
-				ruleRoot = filepath.Join(root, "local")
-			}
-			if _, err := os.Stat(filepath.Join(ruleRoot, "techs/go/errors.md")); err != nil {
+			if _, err := os.Stat(filepath.Join(root, "rules", "techs/go/errors.md")); err != nil {
 				t.Fatal(err)
 			}
 		})

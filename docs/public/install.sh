@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install an official Code Rules release without sudo; set up PATH unless explicitly disabled.
+# Install an official Syllabus release without sudo; set up PATH unless explicitly disabled.
 # Downloads and checksums come from the same release; they are not independent signatures.
 
 # Keep execution at the end so a truncated piped download cannot start installation.
@@ -8,13 +8,13 @@ main() (
     version=latest
     update_path=true
     install_dir=${HOME:?HOME must be set}/.local/bin
-    repository=https://github.com/fabricahq/code-rules
+    repository=https://github.com/fabricahq/syllabus
     temporary=
     staging=
     trap 'rm -rf "$temporary" "$staging"' EXIT
     trap 'exit 1' HUP INT TERM
 
-    fail() { printf 'code-rules installer: %s\n' "$*" >&2; exit 1; }
+    fail() { printf 'syllabus installer: %s\n' "$*" >&2; exit 1; }
     download() {
         curl --fail --silent --show-error --location --retry 3 \
             --proto '=https' --proto-redir '=https' --tlsv1.2 "$@"
@@ -33,7 +33,7 @@ main() (
             fi
         fi
         mkdir -p "${profile%/*}" || return 1
-        printf '\n# Added by the Code Rules installer\n%s\n' "$path_entry" >> "$profile" || return 1
+        printf '\n# Added by the Syllabus installer\n%s\n' "$path_entry" >> "$profile" || return 1
         printf 'Added PATH setup to %s\n' "$profile"
     )
     configure_path() {
@@ -118,11 +118,16 @@ main() (
     # Restrict versions before inserting them into filenames or release URLs.
     printf '%s\n' "$version" | LC_ALL=C grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$' ||
         fail 'version must look like 0.1.0 or 0.2.0-rc.1'
-    archive=code-rules_${version}_${os}_${arch}.tar.gz
-    temporary=$(mktemp -d "${TMPDIR:-/tmp}/code-rules-download.XXXXXX")
+    temporary=$(mktemp -d "${TMPDIR:-/tmp}/syllabus-download.XXXXXX")
     base=$repository/releases/download/v$version
-    printf 'Downloading Code Rules %s for %s/%s...\n' "$version" "$os" "$arch"
+    printf 'Downloading Syllabus %s for %s/%s...\n' "$version" "$os" "$arch"
     download --output "$temporary/SHA256SUMS" "$base/SHA256SUMS" || fail 'could not download release checksums'
+    # Releases from before Code Rules was renamed Syllabus name their archive and executable code-rules.
+    name=syllabus
+    if ! awk -v file="syllabus_${version}_${os}_${arch}.tar.gz" '$2 == file { found=1 } END { exit !found }' "$temporary/SHA256SUMS"; then
+        name=code-rules
+    fi
+    archive=${name}_${version}_${os}_${arch}.tar.gz
     download --output "$temporary/archive.tar.gz" "$base/$archive" || fail "could not download $archive"
     expected=$(awk -v file="$archive" '$2 == file { count++; hash=$1 } END { if (count != 1 || length(hash) != 64 || hash ~ /[^0-9a-f]/) exit 1; print hash }' "$temporary/SHA256SUMS") ||
         fail 'release checksums must contain exactly one valid entry for this archive'
@@ -136,29 +141,29 @@ main() (
 
     # Extract only named regular files to stdout, never archive-controlled paths or links.
     tar -tzf "$temporary/archive.tar.gz" > "$temporary/members" || fail 'invalid release archive'
-    awk '($0 != "code-rules" && $0 != "LICENSE.md" && $0 != "README.txt") || seen[$0]++ { exit 1 } END { if (!seen["code-rules"] || !seen["LICENSE.md"]) exit 1 }' "$temporary/members" ||
+    awk -v name="$name" '($0 != name && $0 != "LICENSE.md" && $0 != "README.txt") || seen[$0]++ { exit 1 } END { if (!seen[name] || !seen["LICENSE.md"]) exit 1 }' "$temporary/members" ||
         fail 'unexpected or missing release archive files'
     tar -tvzf "$temporary/archive.tar.gz" > "$temporary/types" || fail 'invalid release archive'
     awk 'substr($0,1,1) != "-" { exit 1 }' "$temporary/types" || fail 'release archive contains a link or non-regular file'
-    [ ! -L "$install_dir/code-rules" ] || fail 'destination is a symlink; choose another --install-dir'
-    [ ! -d "$install_dir/code-rules" ] || fail 'destination is a directory; choose another --install-dir'
+    [ ! -L "$install_dir/$name" ] || fail 'destination is a symlink; choose another --install-dir'
+    [ ! -d "$install_dir/$name" ] || fail 'destination is a directory; choose another --install-dir'
     mkdir -p "$install_dir" || fail 'cannot create installation directory; choose a writable --install-dir'
-    staging=$(mktemp -d "$install_dir/.code-rules-install.XXXXXX")
-    tar -xzOf "$temporary/archive.tar.gz" code-rules > "$staging/code-rules"
-    tar -xzOf "$temporary/archive.tar.gz" LICENSE.md > "$staging/code-rules.LICENSE"
-    [ -s "$staging/code-rules" ] && [ -s "$staging/code-rules.LICENSE" ] || fail 'release executable or license is empty'
-    chmod 755 "$staging/code-rules"
+    staging=$(mktemp -d "$install_dir/.syllabus-install.XXXXXX")
+    tar -xzOf "$temporary/archive.tar.gz" "$name" > "$staging/$name"
+    tar -xzOf "$temporary/archive.tar.gz" LICENSE.md > "$staging/$name.LICENSE"
+    [ -s "$staging/$name" ] && [ -s "$staging/$name.LICENSE" ] || fail 'release executable or license is empty'
+    chmod 755 "$staging/$name"
     # Check that the verified executable runs before replacing a working installation.
-    "$staging/code-rules" --version || fail 'downloaded executable cannot run; existing installation was not changed'
-    mv -f "$staging/code-rules" "$install_dir/code-rules"
-    printf 'Installed Code Rules %s to %s/code-rules\n' "$version" "$install_dir"
+    "$staging/$name" --version || fail 'downloaded executable cannot run; existing installation was not changed'
+    mv -f "$staging/$name" "$install_dir/$name"
+    printf 'Installed Syllabus %s to %s/%s\n' "$version" "$install_dir" "$name"
     quoted=$(printf '%s' "$install_dir" | sed "s/'/'\\\\''/g")
     path_entry="case \":\$PATH:\" in *:'$quoted':*) ;; *) export PATH='$quoted':\"\$PATH\" ;; esac"
     if [ "$update_path" = true ]; then
         if configure_path; then
-            printf '\nOpen a new terminal to use Code Rules.\n'
+            printf '\nOpen a new terminal to use Syllabus.\n'
         else
-            printf '\nCode Rules is installed, but automatic PATH setup could not be completed for %s.\n' "${SHELL:-an unknown shell}" >&2
+            printf '\nSyllabus is installed, but automatic PATH setup could not be completed for %s.\n' "${SHELL:-an unknown shell}" >&2
             printf 'Your shell may be unsupported or its startup file may be linked or unwritable. Add the installation directory manually.\n' >&2
         fi
     fi
@@ -176,8 +181,8 @@ main() (
                 printf '%s\n' 'Shell configuration was left unchanged (--no-update-path).'
             fi ;;
     esac
-    existing=$(command -v code-rules || true)
-    if [ -n "$existing" ] && [ "$existing" != "$install_dir/code-rules" ]; then
+    existing=$(command -v "$name" || true)
+    if [ -n "$existing" ] && [ "$existing" != "$install_dir/$name" ]; then
         printf 'PATH currently selects %s. Put %s first to use this installation.\n' "$existing" "$install_dir"
     fi
 )

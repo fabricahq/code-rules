@@ -5,6 +5,9 @@ package library
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -16,9 +19,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/releasetag"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // maxReleaseTags bounds the release tags one check reads, matching the tag-listing limit for imports.
@@ -32,7 +38,7 @@ const shallowClone = "this clone has partial history, so it can't be compared wi
 
 // missingReleaseTags explains a clone whose commit has change notes but no release tags, such as a clone made with
 // git clone --no-tags, which would otherwise look like a library that never published a library release.
-const missingReleaseTags = "changes/ holds change notes, but this clone has no release/<number> tags, so it can't be compared with the latest library release. Fetch the tags, such as with git fetch --tags; in CI, check out with fetch-depth: 0. If the library has never published a library release, delete the notes in changes/, which the first library release doesn't need."
+const missingReleaseTags = ".syllabus/changes/ holds change notes, but this clone has no release/<number> tags, so it can't be compared with the latest library release. Fetch the tags, such as with git fetch --tags; in CI, check out with fetch-depth: 0. If the library has never published a library release, delete the notes in .syllabus/changes/, which the first library release doesn't need."
 
 // libraryGit runs Git in the library author's own repository, honoring their Git configuration.
 type libraryGit struct {
@@ -68,8 +74,9 @@ type publishedRelease struct {
 	object, commit string
 	// notes are the release notes before the tag message's record, which a GitHub Release page repeats.
 	notes  string
-	record coderules.ReleaseRecord
-	// files maps each file under practices/, techs/, and changes/ at the release's commit to its blob ID.
+	record syllabus.ReleaseRecord
+	// files maps the library path of each file under practices/, techs/, and changes/ at the release's commit to its
+	// blob ID.
 	files map[string]string
 }
 
@@ -130,7 +137,7 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releasetag.Tag, error) 
 		tags = append(tags, tag)
 	}
 	if len(tags) == 0 && g.unpublished == 0 {
-		notes, err := g.runner.Run(ctx, g.dir, []string{"ls-tree", "--name-only", "HEAD", "--", changesDirectory}, 4096, nil)
+		notes, err := g.runner.Run(ctx, g.dir, append([]string{"ls-tree", "--name-only", "HEAD", "--"}, withLegacyDirectory([]string{librarytree.RepositoryPath(changesDirectory)})...), 4096, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list the library's committed change notes: %w", err)
 		}
@@ -190,7 +197,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 		return nil
 	})
 	var invalid *releasetag.RecordError
-	var unsupported *coderules.UnsupportedReleaseRecordError
+	var unsupported *syllabus.UnsupportedReleaseRecordError
 	switch {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, unsupportedRecord(invalid.Tag, unsupported.FormatVersion)
@@ -209,25 +216,26 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	return history, nil
 }
 
-// unsupportedRecord fails with unsupported-release-record for release tag tag, whose record a newer Code Rules
+// unsupportedRecord fails with unsupported-release-record for release tag tag, whose record a newer Syllabus
 // wrote in release record format version, asking the author to upgrade.
 func unsupportedRecord(tag string, version int) error {
-	return failure("unsupported-release-record", tag+" uses release record format "+strconv.Itoa(version)+", which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", nil)
+	return failure("unsupported-release-record", tag+" uses release record format "+strconv.Itoa(version)+", which this version of Syllabus can't read. Upgrade Syllabus, then run the command again.", nil)
 }
 
-// releaseFiles lists the blobs under practices/, techs/, and changes/ at a release tag's commit.
+// releaseFiles lists the blobs under practices/, techs/, and changes/ at a release tag's commit, by library path.
 func (g *libraryGit) releaseFiles(ctx context.Context, tag string) (map[string]string, error) {
-	files, err := g.treeFiles(ctx, tag, []string{"practices", "techs", "changes"})
+	files, err := g.libraryFiles(ctx, tag, []string{"practices", "techs", changesDirectory})
 	if err != nil {
 		return nil, fmt.Errorf("list the latest library release's files: %w", err)
 	}
 	return files, nil
 }
 
-// treeFiles maps each file at or under paths in a commit's tree, or a tag's, to its blob ID, leaving out other
-// entries, such as submodules.
-func (g *libraryGit) treeFiles(ctx context.Context, treeish string, paths []string) (map[string]string, error) {
-	entries, err := g.treeEntries(ctx, treeish, paths)
+// libraryFiles maps the library path of each file at or under the library paths, paths, in a commit's tree, or a
+// tag's, to its blob ID, leaving out other entries, such as submodules. It reads a tree in either layout, as
+// libraryEntries does.
+func (g *libraryGit) libraryFiles(ctx context.Context, treeish string, paths []string) (map[string]string, error) {
+	entries, err := g.libraryEntries(ctx, treeish, paths)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +245,41 @@ func (g *libraryGit) treeFiles(ctx context.Context, treeish string, paths []stri
 			files[name] = entry.object
 		}
 	}
+	if object, ok := files[librarytree.Manifest]; ok {
+		data, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", object}, maxFileBytes)
+		if err != nil {
+			return nil, fmt.Errorf("read %s:%s: %w", treeish, librarytree.Manifest, err)
+		}
+		files[librarytree.Manifest] = manifestDigest(data)
+	}
 	return files, nil
+}
+
+// manifestDigest identifies what a library publishes of its manifest, data, which is a .syllabus/config.yaml or,
+// in a library release made before the layout of version 2, a rule-library.yaml: its library section, as
+// rules.PublishedManifest gives it, so a change to only the sources the repository uses as a project, or to a
+// comment, isn't a library-wide change. A manifest that doesn't parse, which library check reports, is identified
+// by its bytes.
+func manifestDigest(data []byte) string {
+	published := data
+	if _, decoded, err := decode.YAML(data, librarytree.Manifest); err == nil {
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(decoded, &fields) == nil {
+			section := fields["library"]
+			if _, current := fields["schemaVersion"]; !current {
+				// rule-library.yaml held the library section's fields beside its format version.
+				delete(fields, "formatVersion")
+				section, _ = json.Marshal(fields)
+			}
+			if section != nil {
+				if manifest, err := rules.PublishedManifestOf(section, fields["sources"]); err == nil {
+					published = manifest
+				}
+			}
+		}
+	}
+	sum := sha256.Sum256(published)
+	return "manifest:" + hex.EncodeToString(sum[:])
 }
 
 // treeEntry is one entry of a recursive tree listing: a blob, including a symbolic link, or a submodule.
@@ -246,9 +288,49 @@ type treeEntry struct {
 	mode, kind, object string
 }
 
-// treeEntries maps each entry at or under paths in a commit's tree, or a tag's, to its mode, kind, and object.
+// libraryEntries maps the library path of each entry at or under the library paths, paths, in a commit's tree, or a
+// tag's, to its mode, kind, and object. A tree in the layout before version 2, which has rule-library.yaml at the
+// repository root, keeps its library at the root, where each path is its library path, and its manifest stands in
+// for config.yaml, so a library release made before the move compares with the moved working tree; it ignores that
+// tree's .syllabus/, which held only a project's files.
+func (g *libraryGit) libraryEntries(ctx context.Context, treeish string, paths []string) (map[string]treeEntry, error) {
+	listed := []string{librarytree.LegacyManifest}
+	for _, name := range paths {
+		listed = append(listed, name)
+		if repository := librarytree.RepositoryPath(name); repository != name {
+			listed = append(listed, repository)
+		}
+	}
+	tree, err := g.treeEntries(ctx, treeish, listed)
+	if err != nil {
+		return nil, err
+	}
+	_, legacy := tree[librarytree.LegacyManifest]
+	entries := map[string]treeEntry{}
+	for name, entry := range tree {
+		library, ok := librarytree.LibraryPath(name)
+		if legacy {
+			switch {
+			case name == librarytree.LegacyManifest:
+				library, ok = librarytree.Manifest, true
+			case name == librarytree.Manifest || strings.HasPrefix(name, librarytree.Directory+"/"):
+				ok = false
+			default:
+				library, ok = name, true
+			}
+		}
+		if ok && (legacy || name != librarytree.LegacyManifest) {
+			entries[library] = entry
+		}
+	}
+	return entries, nil
+}
+
+// treeEntries maps each entry at or under paths in a commit's tree, or a tag's, to its mode, kind, and object. A
+// tree that keeps its Syllabus directory under the name from before the rename, as every library release published
+// before it does, lists that directory's entries as .syllabus/, as librarytree.Upgrade spells them.
 func (g *libraryGit) treeEntries(ctx context.Context, treeish string, paths []string) (map[string]treeEntry, error) {
-	listing, err := g.runner.Output(ctx, g.dir, append([]string{"ls-tree", "-r", "-z", "--full-tree", treeish, "--"}, paths...), 32*1024*1024)
+	listing, err := g.runner.Output(ctx, g.dir, append([]string{"ls-tree", "-r", "-z", "--full-tree", treeish, "--"}, withLegacyDirectory(paths)...), 32*1024*1024)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +349,26 @@ func (g *libraryGit) treeEntries(ctx context.Context, treeish string, paths []st
 			return nil, failure("limit-exceeded", treeish+": library exceeds 10,000 files", nil)
 		}
 	}
-	return entries, nil
+	if !librarytree.UsesLegacyDirectory(maps.Keys(entries)) {
+		return entries, nil
+	}
+	upgraded := make(map[string]treeEntry, len(entries))
+	for name, entry := range entries {
+		upgraded[librarytree.Upgrade(name)] = entry
+	}
+	return upgraded, nil
+}
+
+// withLegacyDirectory returns paths, repository paths, followed by the same path under the Syllabus directory's
+// name from before the rename for each one in the Syllabus directory, so a listing finds either spelling.
+func withLegacyDirectory(paths []string) []string {
+	result := slices.Clone(paths)
+	for _, name := range paths {
+		if inside, found := strings.CutPrefix(name, librarytree.Directory+"/"); found {
+			result = append(result, librarytree.LegacyDirectory+"/"+inside)
+		}
+	}
+	return result
 }
 
 // changedRules reports, for each rule in working, whether its versioned files differ from the ones the latest
@@ -290,14 +391,18 @@ func (g *libraryGit) changedRules(ctx context.Context, latest *publishedRelease,
 	return changed, nil
 }
 
-// hashFiles returns the blob ID Git would store for each working-tree file, applying the repository's
-// line-ending and filter attributes, so content compares equal to a committed copy.
+// hashFiles returns the blob ID Git would store for each working-tree file, by its library path among paths,
+// applying the repository's line-ending and filter attributes, so content compares equal to a committed copy.
 func (g *libraryGit) hashFiles(ctx context.Context, paths []string) (map[string]string, error) {
 	hashes := map[string]string{}
 	if len(paths) == 0 {
 		return hashes, nil
 	}
-	input := strings.Join(paths, "\n") + "\n"
+	repository := make([]string, len(paths))
+	for i, name := range paths {
+		repository[i] = librarytree.RepositoryPath(name)
+	}
+	input := strings.Join(repository, "\n") + "\n"
 	output, err := g.runner.Run(ctx, g.dir, []string{"hash-object", "--stdin-paths"}, len(paths)*65+4096, []byte(input))
 	if err != nil {
 		return nil, fmt.Errorf("hash the library's files: %w", err)

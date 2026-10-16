@@ -2,7 +2,8 @@
 // It owns the storage protocol: writer ownership, interrupted-operation recovery, staging, installation, and
 // rollback. Callers use WithWriter and Writer.Apply for managed trees and Edit for authored files rather than
 // spreading that protocol across callers. Concurrent changes cause refusal before installation; once replacement
-// begins, it completes or rolls back. Parent directories it creates are never removed, even by a rollback.
+// begins, it completes or rolls back. Parent directories it creates are never removed, even by a rollback, except a
+// skill target's folder, such as .claude/skills, that removing an installed skill folder leaves empty.
 package filetxn
 
 import (
@@ -30,6 +31,9 @@ import (
 type File struct {
 	Path              string
 	Content, Previous []byte
+	// Executable makes the file executable by everyone who can read it, whatever the process's umask, as a skill's
+	// script needs; otherwise it isn't executable.
+	Executable bool
 }
 
 // ReadOptional reads one bounded regular, unlinked file; only absence returns nil.
@@ -173,7 +177,7 @@ func publishAuthored(ctx context.Context, root *os.Root, files []File) (err erro
 	if len(files) == 0 {
 		return nil
 	}
-	stage := ".code-rules-authoring-" + rand.Text()
+	stage := ".syllabus-authoring-" + rand.Text()
 	if err = root.Mkdir(stage, 0700); err != nil {
 		return err
 	}
@@ -210,7 +214,8 @@ func validatePublication(root *os.Root, files []File) error {
 		return err
 	}
 	for _, name := range entries {
-		if strings.HasPrefix(name, ".code-rules-authoring-") {
+		// Code Rules, before it was renamed Syllabus, staged authoring files as .code-rules-authoring-*.
+		if strings.HasPrefix(name, ".syllabus-authoring-") || strings.HasPrefix(name, ".code-rules-authoring-") {
 			return failure("recovery-required", "inspect retained authoring files before retrying: "+filepath.Join(root.Name(), name), nil)
 		}
 	}
@@ -273,7 +278,11 @@ func (p *publication) publish(index int, file File) error {
 		return err
 	}
 	_, writeErr := out.Write(file.Content)
-	if err = errors.Join(writeErr, out.Close()); err != nil {
+	var modeErr error
+	if file.Executable {
+		modeErr = out.Chmod(0755)
+	}
+	if err = errors.Join(writeErr, modeErr, out.Close()); err != nil {
 		return err
 	}
 	if err = verifyTarget(p.ctx, p.root, file); err != nil {
@@ -403,12 +412,19 @@ func (c Changes) Written() []string { return append(slices.Clone(c.Added), c.Cha
 // Edit acquires writer ownership, prepares files against current state, and publishes them safely.
 // Preparation must not write; the owned callback revalidates input before file creation or replacement.
 func Edit(ctx context.Context, root *os.Root, prepare func() ([]File, error)) (Changes, error) {
+	return EditIn(ctx, root, root, prepare)
+}
+
+// EditIn is Edit with writer ownership taken in writer, which may differ from root, where files publish: a library
+// takes the writer of its Syllabus directory, which the repository's project commands share, and publishes files
+// relative to the repository root.
+func EditIn(ctx context.Context, writer, root *os.Root, prepare func() ([]File, error)) (Changes, error) {
 	if prepare == nil {
 		return Changes{}, failure("invalid-operation", "expected an edit preparation operation", nil)
 	}
 	var files []File
 	committed := false
-	err := WithWriter(ctx, root, func(_ *Writer) error {
+	err := WithWriter(ctx, writer, func(_ *Writer) error {
 		var err error
 		files, err = prepare()
 		if err != nil {

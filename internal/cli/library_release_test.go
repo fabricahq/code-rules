@@ -1,4 +1,4 @@
-// Exercise code-rules library release through the compiled CLI, a Git fixture that accepts pushes, and a fake gh.
+// Exercise syllabus library release through the compiled CLI, a Git fixture that accepts pushes, and a fake gh.
 
 package cli
 
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/ghfixture"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/ghfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // releaseEnvironment returns the fixture's environment with a PATH holding only Git and a fake gh that
@@ -44,10 +44,10 @@ func releaseEnvironment(t *testing.T, fixture *gitfixture.Fixture, responses []g
 func pendingPatch(t *testing.T, fixture *gitfixture.Fixture, dir string) string {
 	t.Helper()
 	ctx := context.Background()
-	commit, err := fixture.Commit(ctx, dir, "Clarify a", map[string][]byte{
+	commit, err := fixture.Commit(ctx, dir, "Clarify a", gitfixture.Library(map[string][]byte{
 		"practices/testing/a.md": []byte(libraryRule("Test the retry limit, clearly.")),
 		"changes/a.yaml":         []byte("summary: Clarify the retry-limit rule.\nrules:\n  practices/testing/a: patch\n"),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing(t *testing
 	commit := pendingPatch(t, fixture, dir)
 	environment, fake := releaseEnvironment(t, fixture, nil)
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--dry-run")
-	want := "Dry run: library release 2, not published.\n  Repository:          git@fixture.invalid:rules\n  Branch:              main\n  Commit:              " + commit + "\n  Tag:                 release/2 (not created yet)\n  GitHub Release page: none, because origin isn't on GitHub.com\nWarning: License is undeclared. Decide terms before sharing this library.\n\nRules:\n  practices/testing/a  patch  1.0.0 -> 1.0.1\n\nRelease notes:\n\n" + releaseTwoNotes + "\n\nTo publish it, run:\n  code-rules library release\n"
+	want := "Dry run: library release 2, not published.\n  Repository:          git@fixture.invalid:rules\n  Branch:              main\n  Commit:              " + commit + "\n  Tag:                 release/2 (not created yet)\n  GitHub Release page: none, because origin isn't on GitHub.com\nWarning: License is undeclared. Decide terms before sharing this library.\n\nRules:\n  practices/testing/a  patch  1.0.0 -> 1.0.1\n\nRelease notes:\n\n" + releaseTwoNotes + "\n\nTo publish it, run:\n  syllabus library release\n"
 	if code != 0 || diagnostic != "" || out != want {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, diagnostic, out, want)
 	}
@@ -97,7 +97,7 @@ func TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing(t *testing
 		t.Error("a dry run reported a GitHub Release page")
 	}
 	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--dry-run", "--no-github-release")
-	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, "\n\nTo publish it, run:\n  code-rules library release --no-github-release\n") {
+	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, "\n\nTo publish it, run:\n  syllabus library release --no-github-release\n") {
 		t.Errorf("the dry run's next step drops --no-github-release: exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 	if tags, err := fixture.Command(context.Background(), "tag", "--list", "release/*"); err != nil || tags != "release/1" {
@@ -163,7 +163,7 @@ func TestLibraryRelease_ReportsRefusalsWithCodes(t *testing.T) {
 	}
 	environment, _ := releaseEnvironment(t, fixture, nil)
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release")
-	if code != 1 || out != "" || !strings.Contains(diagnostic, "main has 1 commit that origin/main doesn't. A library release publishes only pushed commits: push them, then run code-rules library release again.") {
+	if code != 1 || out != "" || !strings.Contains(diagnostic, "main has 1 commit that origin/main doesn't. A library release publishes only pushed commits: push them, then run syllabus library release again.") {
 		t.Fatal(code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--json")

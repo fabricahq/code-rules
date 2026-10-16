@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // LocalGroupPlan identifies a new project-only group. It owns no filesystem resources.
@@ -43,7 +43,7 @@ func PlanLocalGroup(ctx context.Context, id string, options Options) (*LocalGrou
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *LocalGroupPlan) Commit(ctx context.Context, metadata coderules.GroupMetadata) (AuthoringResult, error) {
+func (p *LocalGroupPlan) Commit(ctx context.Context, metadata syllabus.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}
@@ -67,7 +67,7 @@ func (p *LocalRulePlan) Commit(ctx context.Context, metadata rules.RuleMetadata,
 	return AddLocalRule(ctx, p.id, metadata, RuleOptions{Options: p.options, Body: body})
 }
 
-// PlanSource rejects an occupied library alias before collecting its declaration; it never fetches.
+// PlanSource rejects an occupied source name before collecting its declaration; it never fetches.
 func PlanSource(ctx context.Context, alias string, options Options) (*SourcePlan, error) {
 	options, err := planProjectAuthoring(ctx, options, func(_ *os.Root, config rules.Configuration) error { return checkSourceAlias(config, alias) })
 	if err != nil {
@@ -79,7 +79,7 @@ func PlanSource(ctx context.Context, alias string, options Options) (*SourcePlan
 // Commit validates and stores a source declaration, rechecking the alias under writer ownership.
 func (p *SourcePlan) Commit(ctx context.Context, declaration SourceInput) (AuthoringResult, error) {
 	if p == nil || p.alias == "" {
-		return AuthoringResult{}, failure("invalid-operation", "expected a planned library alias", nil)
+		return AuthoringResult{}, failure("invalid-operation", "expected a planned source name", nil)
 	}
 	return AddSource(ctx, p.alias, declaration, p.options)
 }
@@ -107,7 +107,7 @@ func checkLocalGroup(ctx context.Context, root *os.Root, id string) error {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
-	return filetxn.RequireAbsent(ctx, root, path.Join("local", id, "_group.yaml"), path.Join("local", id, "README.md"))
+	return filetxn.RequireAbsent(ctx, root, path.Join("rules", id, "_group.yaml"), path.Join("rules", id, "README.md"))
 }
 
 func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configuration, id string) error {
@@ -123,15 +123,15 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 		return err
 	}
 	if !available {
-		return failure("missing-group", "group "+group+" does not exist; create it first with code-rules project add group "+group+", then retry adding the rule", nil)
+		return failure("missing-group", "group "+group+" does not exist; create it first with syllabus project add group "+group+", then retry adding the rule", nil)
 	}
-	return filetxn.RequireAbsent(ctx, root, path.Join("local", id+".md"))
+	return filetxn.RequireAbsent(ctx, root, path.Join("rules", id+".md"))
 }
 
 func checkSourceAlias(config rules.Configuration, alias string) error {
 	for _, source := range config.Sources {
 		if source.Name == alias {
-			return failure("source-exists", "library alias "+alias+" already exists; edit .code-rules/config.yaml or choose a different alias", nil)
+			return failure("source-exists", "source "+alias+" already exists; edit .syllabus/config.yaml or choose a different source name", nil)
 		}
 	}
 	return nil

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // firstRelease is the release record of the sync fixture's first library release.
@@ -25,13 +25,13 @@ const firstRelease = "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1
 // release publishes techs/go/errors at 1.0.0. The project selects techs/go.
 func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	t.Helper()
-	f, err := gitfixture.New(context.Background(), map[string][]byte{
-		"rule-library.yaml":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":[]}}`),
+	f, err := gitfixture.New(context.Background(), gitfixture.Library(map[string][]byte{
+		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"LICENSE","notices":[]}}}`),
 		"LICENSE":                         []byte("Original terms\r\n"),
 		"techs/go/_group.yaml":            []byte(projectMetadata),
 		"techs/go/errors.md":              []byte(projectRule),
 		"techs/go/assets/errors/data.bin": {0, 255, 128},
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "groups": []string{"techs/go"}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "rules": map[string]any{"include": []string{"techs/go/*"}}}}})
 	writeFixture(t, root, "config.yaml", string(raw))
 	return f, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
 }
@@ -91,7 +91,7 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if before.Digest() != after.Digest() {
 		t.Fatal("repeat/check changed bytes")
 	}
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{}}`)
 	retired, err := Sync(ctx, options, imports.Options{GitPath: "/missing/git"})
 	if err != nil || len(retired.Removed) == 0 {
 		t.Fatalf("retire: %+v %v", retired, err)
@@ -128,10 +128,10 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				raw = bytes.Replace(raw, []byte(`"groups"`), []byte(`"pins":{"techs/go/errors":{"version":"9.0.0","reason":"Typo."}},"groups"`), 1)
+				raw = bytes.Replace(raw, []byte(`"include"`), []byte(`"pins":[{"id":"techs/go/errors","version":"9.0.0","reason":"Typo."}],"include"`), 1)
 				writeFixture(t, root, configurationFile, string(raw))
 			} else if scenario == "invalid-local" {
-				writeFixture(t, root, "local/techs/go/bad.md", "invalid")
+				writeFixture(t, root, "rules/techs/go/bad.md", "invalid")
 			}
 			before, err := filetxn.ReadTree(ctx, root, ".")
 			if err != nil {
@@ -190,8 +190,8 @@ func TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, ".code-rules-transaction/staged", "left by an interrupted command")
-	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{},"unknown":true}`)
+	writeFixture(t, root, ".syllabus-transaction/staged", "left by an interrupted command")
+	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{},"unknown":true}`)
 	root.Close()
 	_, err = Sync(context.Background(), options, git)
 	if err == nil || strings.Contains(err.Error(), "No files were written") || !strings.Contains(err.Error(), "recovered an interrupted earlier command") {

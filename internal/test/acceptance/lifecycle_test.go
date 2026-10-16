@@ -15,14 +15,14 @@ import (
 
 // TestNativeLifecycle proves authoring, sync, offline operation, and failure preservation through actual processes.
 func TestNativeLifecycle(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "code-rules")
-	command := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules")
+	binary := filepath.Join(t.TempDir(), "syllabus")
+	command := exec.Command("go", "build", "-o", binary, "../../../cmd/syllabus")
 	if data, err := command.CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
-	t.Setenv("CODE_RULES_ACCEPTANCE_POISON", "must not reach CLI")
+	t.Setenv("SYLLABUS_ACCEPTANCE_POISON", "must not reach CLI")
 	wrapper := filepath.Join(t.TempDir(), "isolated-cli")
-	script := fmt.Sprintf("#!/bin/sh\nif [ -n \"$CODE_RULES_ACCEPTANCE_POISON\" ]; then echo 'application environment leaked' >&2; exit 99; fi\nexec '%s' \"$@\"\n", binary)
+	script := fmt.Sprintf("#!/bin/sh\nif [ -n \"$SYLLABUS_ACCEPTANCE_POISON\" ]; then echo 'application environment leaked' >&2; exit 99; fi\nexec '%s' \"$@\"\n", binary)
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -46,14 +46,14 @@ func TestNativeLifecycle(t *testing.T) {
 
 // TestPilotRejectsWritingChecks proves that extra files and empty directories cannot falsely pass read-only checks.
 func TestPilotRejectsWritingChecks(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "code-rules")
-	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules").CombinedOutput(); err != nil {
+	binary := filepath.Join(t.TempDir(), "syllabus")
+	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/syllabus").CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
 	for _, change := range []string{"printf unexpected > unrelated-user-file.txt", "/bin/mkdir unexpected-empty-directory"} {
 		t.Run(change, func(t *testing.T) {
 			wrapper := filepath.Join(t.TempDir(), "wrapper")
-			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = check ]; then\n IFS= read -r line < .code-rules/generated/RULES.md\n if [ \"$line\" = 'Stale output' ]; then %s; fi\nfi\nexec '%s' \"$@\"\n", change, binary)
+			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = check ]; then\n IFS= read -r line < .syllabus/generated/RULES.md\n if [ \"$line\" = 'Stale output' ]; then %s; fi\nfi\nexec '%s' \"$@\"\n", change, binary)
 			if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 				t.Fatal(err)
 			}
@@ -63,7 +63,7 @@ func TestPilotRejectsWritingChecks(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), "read-only check changed project") {
 				t.Fatal("mutation not detected", err)
 			}
-			if string(report.Files[".code-rules/generated/RULES.md"]) != "Stale output" {
+			if string(report.Files[".syllabus/generated/RULES.md"]) != "Stale output" {
 				t.Fatal("failed pilot omitted observed project files", report.Files)
 			}
 		})
@@ -72,12 +72,12 @@ func TestPilotRejectsWritingChecks(t *testing.T) {
 
 // TestPilotRejectsSilentRefusal ensures a failed command cannot pass without a consumer-visible diagnostic.
 func TestPilotRejectsSilentRefusal(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "code-rules")
-	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules").CombinedOutput(); err != nil {
+	binary := filepath.Join(t.TempDir(), "syllabus")
+	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/syllabus").CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
 	wrapper := filepath.Join(t.TempDir(), "wrapper")
-	script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = build ] && [ -f .code-rules/vendor/team/LICENSE.md ]; then\n IFS= read -r line < .code-rules/vendor/team/LICENSE.md\n if [ \"$line\" = 'Manual edit' ]; then exit 1; fi\nfi\nexec '%s' \"$@\"\n", binary)
+	script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = build ] && [ -f .syllabus/vendor/team/LICENSE.md ]; then\n IFS= read -r line < .syllabus/vendor/team/LICENSE.md\n if [ \"$line\" = 'Manual edit' ]; then exit 1; fi\nfi\nexec '%s' \"$@\"\n", binary)
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -90,8 +90,8 @@ func TestPilotRejectsSilentRefusal(t *testing.T) {
 
 // TestFailedPilotCapture preserves the command failure and observations, including after cancellation.
 func TestFailedPilotCapture(t *testing.T) {
-	binary := filepath.Join(t.TempDir(), "code-rules")
-	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules").CombinedOutput(); err != nil {
+	binary := filepath.Join(t.TempDir(), "syllabus")
+	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/syllabus").CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
 	for _, scenario := range []string{"failure", "capture failure", "cancellation"} {

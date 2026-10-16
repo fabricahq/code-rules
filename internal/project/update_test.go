@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // syncedProject syncs the sync fixture's project at release/1, then publishes release/2, in which
@@ -33,7 +33,7 @@ func syncedProject(t *testing.T) (Options, imports.Options, func(*testing.T)) {
 	thirdRelease := func(t *testing.T) {
 		t.Helper()
 		files := map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Always return wrapped errors.", 1))}
-		if _, err := f.Commit(context.Background(), f.Worktree(), "Third release", files); err != nil {
+		if _, err := f.Commit(context.Background(), f.Worktree(), "Third release", gitfixture.Library(files)); err != nil {
 			t.Fatal(err)
 		}
 		record := "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 2.0.0\n  techs/go/extra: 1.0.0\nchanges:\n  techs/go/errors: {change: major, from: 1.1.0, summaries: [Require wrapping.]}\n"
@@ -44,7 +44,7 @@ func syncedProject(t *testing.T) (Options, imports.Options, func(*testing.T)) {
 	return options, git, thirdRelease
 }
 
-// projectTree reads every file of the project's Code Rules directory.
+// projectTree reads every file of the project's Syllabus directory.
 func projectTree(t *testing.T, options Options) *filetxn.Tree {
 	t.Helper()
 	root, err := openProject(context.Background(), options, false)
@@ -82,7 +82,7 @@ func TestUpdate_PreviewWritesNothingAndApplyInstallsIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !applied.Applied || slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Changed, "vendor/team/techs/go/errors.md") || !slices.Contains(applied.Added, "vendor/team/techs/go/extra.md") {
+	if !applied.Applied || slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Changed, "vendor/team/rules/techs/go/errors.md") || !slices.Contains(applied.Added, "vendor/team/rules/techs/go/extra.md") {
 		t.Fatalf("applied %+v", applied.FileChanges)
 	}
 	if _, got := recordedVersions(t, options); !reflect.DeepEqual(got, map[string]string{"techs/go/errors": "1.1.0@2", "techs/go/extra": "1.0.0@2"}) {
@@ -172,7 +172,7 @@ func TestUpdate_RefusesASharedFilesReleaseTagMovedAfterThePreview(t *testing.T) 
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Describe the group", map[string][]byte{"techs/go/_group.yaml": []byte(strings.Replace(projectMetadata, "Go guidance.", "Guidance for Go code.", 1))}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Describe the group", gitfixture.Library(map[string][]byte{"techs/go/_group.yaml": []byte(strings.Replace(projectMetadata, "Go guidance.", "Guidance for Go code.", 1))})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\nchanges: {}\nlibraryFiles: [techs/go/_group.yaml]\n"); err != nil {
@@ -226,11 +226,11 @@ func requireRefusedMove(t *testing.T, plan *UpdatePlan, options Options) {
 func TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags(t *testing.T) {
 	ctx := context.Background()
 	f, options, git := syncProject(t)
-	commit, err := f.Commit(ctx, f.Worktree(), "Unreleased change", map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors with context.", 1))})
+	commit, err := f.Commit(ctx, f.Worktree(), "Unreleased change", gitfixture.Library(map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors with context.", 1))}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": commit})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"]},"ref":`+quoteJSON(commit))
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags(t *testing
 
 // TestUpdate_RefusesAProjectChangedAfterThePreview writes nothing when configuration changed in between.
 func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
-	for _, file := range []string{configurationFile, "local/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
+	for _, file := range []string{configurationFile, "rules/techs/go/errors.md", "vendor/team/rules/techs/go/errors.md", "generated/RULES.md"} {
 		t.Run(file, func(t *testing.T) {
 			options, git, _ := syncedProject(t)
 			plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
@@ -329,12 +329,12 @@ func twoLibraryProject(t *testing.T) (Options, imports.Options) {
 	ctx := context.Background()
 	fixtures := map[string]*gitfixture.Fixture{}
 	for _, name := range []string{"alpha", "beta"} {
-		f, err := gitfixture.New(ctx, map[string][]byte{
-			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
+			"config.yaml":          []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
 			"techs/go/_group.yaml": []byte(projectMetadata),
 			"techs/go/errors.md":   []byte(strings.Replace(projectRule, "# Return errors", "# Return errors, from "+name, 1)),
 			"techs/go/retry.md":    []byte(projectRule),
-		})
+		}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -353,13 +353,13 @@ func twoLibraryProject(t *testing.T) (Options, imports.Options) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, configurationFile, "schemaVersion: 1\nsources:\n  alpha:\n    repository: git@fixture.invalid:alpha\n    groups: [techs/go]\n  beta:\n    repository: git@fixture.invalid:beta\n    groups: [techs/go]\n")
+	writeFixture(t, root, configurationFile, "schemaVersion: 2\nsources:\n  alpha:\n    repository: git@fixture.invalid:alpha\n    rules: {include: [techs/go/*]}\n  beta:\n    repository: git@fixture.invalid:beta\n    rules: {include: [techs/go/*]}\n")
 	git := imports.Options{GitPath: fixtures["alpha"].GitPath, Environment: environment}
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
 	for name, f := range fixtures {
-		if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "# Return errors", "# Return wrapped errors, from "+name, 1)), "techs/go/retry.md": nil}); err != nil {
+		if _, err := f.Commit(ctx, f.Worktree(), "Second release", gitfixture.Library(map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "# Return errors", "# Return wrapped errors, from "+name, 1)), "techs/go/retry.md": nil})); err != nil {
 			t.Fatal(err)
 		}
 		if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\nretired:\n  techs/go/retry: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
@@ -435,11 +435,11 @@ func TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline(t *testing.T
 	f, options, git := syncProject(t)
 	ctx := context.Background()
 	secondRelease(t, f)
-	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": map[string]any{"techs/go/extra": map[string]string{"reason": "Not used."}}})
+	configure(t, options, f, `"rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/extra","reason":"Not used."}]}`)
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", gitfixture.Library(map[string][]byte{"techs/go/extra.md": nil})); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
@@ -453,7 +453,7 @@ func TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(applied.Sources[0].Rules) != 0 || len(applied.Warnings) != 1 || !strings.HasPrefix(applied.Warnings[0], "sources.team.exclude names techs/go/extra") {
+	if len(applied.Sources[0].Rules) != 0 || len(applied.Warnings) != 1 || !strings.HasPrefix(applied.Warnings[0], "sources.team.rules.exclude names techs/go/extra") {
 		t.Fatalf("rows %+v, warnings %v", applied.Sources[0].Rules, applied.Warnings)
 	}
 	if _, got := recordedVersions(t, options); !reflect.DeepEqual(got, map[string]string{"techs/go/errors": "1.1.0@2"}) {

@@ -5,13 +5,15 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"go.yaml.in/yaml/v4"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // TestInteractiveImpactRetry retains previous answers and validates impact before asking why it matters.
@@ -42,11 +44,7 @@ func TestInteractiveImpactRetry(t *testing.T) {
 			if !strings.Contains(transcript, "\nError: impact must be one of") || strings.Count(transcript, "Rule title:") != 1 || strings.Count(transcript, "Example rule:") != 1 || strings.Index(transcript, "Error:") > strings.LastIndex(transcript, "Why it matters:") {
 				t.Fatal(transcript)
 			}
-			root := dir
-			if scope == "project" {
-				root = filepath.Join(dir, ".code-rules", "local")
-			}
-			data, err := os.ReadFile(filepath.Join(root, "practices/testing/my-rule.md"))
+			data, err := os.ReadFile(filepath.Join(dir, ".syllabus", "rules", "practices/testing/my-rule.md"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -62,7 +60,8 @@ func TestInteractiveImpactRetry(t *testing.T) {
 	}
 }
 
-// TestSourceAnswerRetry corrects constrained library inputs before the declaration is saved.
+// TestSourceAnswerRetry corrects constrained source inputs, including skill selectors that name no skill, before the
+// declaration is saved.
 func TestSourceAnswerRetry(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	binary := buildCLI(t)
@@ -70,18 +69,20 @@ func TestSourceAnswerRetry(t *testing.T) {
 	if _, stderr, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(stderr)
 	}
-	groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
 	steps := []terminalfixture.Step{
 		{Prompt: "Git repository URL:", Answer: "acme/rules"},
 		{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
-		{Prompt: groupPrompt, Answer: "techs/go, techs/go"},
-		{Prompt: groupPrompt, Answer: "techs/*"},
+		{Prompt: rulesPrompt, Answer: "techs/go/*, techs/go/*"},
+		{Prompt: rulesPrompt, Answer: ""},
+		{Prompt: skillsPrompt, Answer: "skills/*"},
+		{Prompt: skillsPrompt, Answer: "recommended/*"},
+		{Prompt: skillsPrompt, Answer: "*"},
 	}
-	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "library", "team"}, steps)
-	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 2 {
+	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "source", "team"}, steps)
+	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 4 {
 		t.Fatal(err, result)
 	}
-	data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, ".syllabus/config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +91,7 @@ func TestSourceAnswerRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := config.Sources["team"]
-	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || source["groups"] != "techs/*" {
+	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || source["rules"] != nil || !reflect.DeepEqual(source["skills"], map[string]any{"include": []any{"*"}}) {
 		t.Fatal(string(data))
 	}
 }
@@ -128,7 +129,7 @@ func TestInvalidExplicitImpact(t *testing.T) {
 			t.Fatal(result)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".code-rules/local/practices/testing/my-rule.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".syllabus/rules/practices/testing/my-rule.md")); !os.IsNotExist(err) {
 		t.Fatal("invalid flag wrote a rule", err)
 	}
 }

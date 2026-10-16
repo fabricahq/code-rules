@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 func TestRuleAuthoringGuidance(t *testing.T) {
@@ -48,17 +48,17 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				}
 				var example string
 				for _, line := range strings.Split(groupOutput, "\n") {
-					if strings.HasPrefix(strings.TrimSpace(line), "code-rules ") {
+					if strings.HasPrefix(strings.TrimSpace(line), "syllabus ") {
 						example = strings.TrimSpace(line)
 						break
 					}
 				}
-				if !strings.HasPrefix(example, "code-rules "+scope+" add rule techs/go/my-rule") {
+				if !strings.HasPrefix(example, "syllabus "+scope+" add rule techs/go/my-rule") {
 					t.Fatal("missing group-specific rule command", groupOutput)
 				}
 				// Follow the displayed command after choosing a slug; retain its quoted location options.
 				example = strings.Replace(example, "my-rule", "return-errors", 1)
-				example = strings.Replace(example, "code-rules", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
+				example = strings.Replace(example, "syllabus", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
 				result, err := terminalfixture.Run(context.Background(), "/bin/sh", directory, []string{"-c", example}, steps)
 				if err != nil || result.ExitCode != 0 {
 					t.Fatal(err, result)
@@ -66,7 +66,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				heading := "Adding a rule at: techs/go/return-errors"
 				if scope == "project" {
 					heading = "Adding a project-only rule at: techs/go/return-errors"
-					for _, text := range []string{"This rule belongs to this project.", "Its file is stored in:", ".code-rules/local/techs/go/return-errors.md"} {
+					for _, text := range []string{"This rule belongs to this project.", "Its file is stored in:", ".syllabus/rules/techs/go/return-errors.md"} {
 						if !strings.Contains(result.Transcript, text) {
 							t.Fatal("missing project ownership", result.Transcript)
 						}
@@ -86,12 +86,9 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if strings.Count(result.Transcript, "Example rule:") != 1 || strings.Index(result.Transcript, "Example rule:") > strings.Index(result.Transcript, "Rule title:") {
 					t.Fatal("example must precede prompts once", result.Transcript)
 				}
-				root := filepath.Join(directory, ".code-rules", "local")
-				if scope == "library" {
-					root = directory
-				}
+				root := filepath.Join(directory, ".syllabus", "rules")
 				if custom {
-					root = filepath.Join(directory, "shared 'rules'")
+					root = filepath.Join(directory, "shared 'rules'", ".syllabus", "rules")
 				}
 				file := filepath.Join(root, "techs/go/return-errors.md")
 				data, err := os.ReadFile(file)
@@ -103,7 +100,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 						t.Fatalf("missing completion step %q: %s", text, result.Stdout)
 					}
 				}
-				if !strings.Contains(result.Stdout, "Remove the <!-- code-rules:draft --> marker") {
+				if !strings.Contains(result.Stdout, "Remove the <!-- syllabus:draft --> marker") {
 					t.Fatal(result.Stdout)
 				}
 				header, _, found := strings.Cut(string(data), "\n---\n")
@@ -116,10 +113,10 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				commands := 0
 				for _, line := range strings.Split(result.Stdout, "\n") {
 					command := strings.TrimSpace(line)
-					if !strings.HasPrefix(command, "code-rules ") {
+					if !strings.HasPrefix(command, "syllabus ") {
 						continue
 					}
-					command = strings.Replace(command, "code-rules", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
+					command = strings.Replace(command, "syllabus", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
 					child := exec.Command("/bin/sh", "-eu", "-c", command)
 					child.Dir = directory
 					if output, err := child.CombinedOutput(); err != nil {

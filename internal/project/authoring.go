@@ -1,4 +1,4 @@
-// Package project owns a consuming project's Code Rules state: initialization, local authoring,
+// Package project owns a consuming project's Syllabus state: initialization, local authoring,
 // library adoption, offline generation, and read-only freshness checks. Storage protocols stay private.
 // Each source's vendor/<source>/_source.json is its lockfile: sync restores the recorded rule versions and chooses
 // one only where configuration asks for something the record lacks, so only update moves rules to newer versions on
@@ -11,13 +11,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // AuthoringResult lists the absolute paths of the authored files an operation created and changed, and cleanup
@@ -38,8 +39,22 @@ type RuleOptions struct {
 	Body *string
 }
 
-// Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and local files are preserved.
+// Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and authored
+// files are preserved. A new configuration installs skills into both skill targets, claude and agents. It fails,
+// writing nothing, when the project still has a local/ folder, or when AGENTS.md has an edited section or broken markers.
+// Then it adds or refreshes the Syllabus section of the repository's AGENTS.md, as build does, listing the file among
+// the changed files, or the added ones when it created it; a failure there comes after the other files were written,
+// and running init again finishes it.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
+	return InitializeWithSkillTargets(ctx, options, nil)
+}
+
+// DefaultSkillTargets are the skill targets a new configuration installs skills into.
+var DefaultSkillTargets = []string{"claude", "agents"}
+
+// InitializeWithSkillTargets is Initialize, except that a non-nil skillTargets, a list of skill target names that
+// may be empty, sets skillTargets in a new configuration and replaces it in an existing one.
+func InitializeWithSkillTargets(ctx context.Context, options Options, skillTargets []string) (AuthoringResult, error) {
 	root, err := openProject(ctx, options, true)
 	if err != nil {
 		return AuthoringResult{}, err
@@ -51,15 +66,24 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 		if err != nil {
 			return nil, err
 		}
+		var config rules.Configuration
 		if old != nil {
-			if _, err = rules.ParseConfigurationYAML(old); err != nil {
+			config, err = rules.ParseConfigurationYAML(old)
+			if err != nil {
 				return nil, err
 			}
+			if skillTargets != nil && !slices.Equal(config.SkillTargets, skillTargets) {
+				data, err := rules.SetConfigurationSkillTargets(old, skillTargets)
+				if err != nil {
+					return nil, err
+				}
+				files = append(files, filetxn.File{Path: configurationFile, Content: data, Previous: old})
+			}
 		}
-		if _, err = filetxn.ReadTree(ctx, root, "local"); err != nil {
+		if _, err = filetxn.ReadTree(ctx, root, "rules"); err != nil {
 			return nil, err
 		}
-		readme, err := filetxn.ReadOptional(ctx, root, "local/README.md")
+		readme, err := filetxn.ReadOptional(ctx, root, "rules/README.md")
 		if err != nil {
 			return nil, err
 		}
@@ -67,22 +91,70 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Refuse an edited section or broken markers before writing anything; initializeAgents writes the section.
+		agents, err := planAgentsSection(ctx, root, config, options)
+		if err != nil {
+			return nil, err
+		}
+		agents.close()
 		if old == nil {
-			data := []byte("schemaVersion: 1\nsources: {}\n")
+			if skillTargets == nil {
+				skillTargets = DefaultSkillTargets
+			}
+			data, err := rules.SetConfigurationSkillTargets([]byte("schemaVersion: 2\nsources: {}\n"), skillTargets)
+			if err != nil {
+				return nil, err
+			}
 			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {
-			files = append(files, filetxn.File{Path: "local/README.md", Content: renderLocalReadme()})
+			files = append(files, filetxn.File{Path: "rules/README.md", Content: renderLocalReadme()})
 		}
 		if guide != nil {
 			files = append(files, *guide)
 		}
 		return files, nil
 	})
-	return authoringResult(changes, err)
+	result, err := authoringResult(changes, err)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	return initializeAgents(ctx, root, options, result)
 }
 
-// editProject revalidates configuration and local paths under exclusive ownership before publishing authored files.
+// initializeAgents adds or refreshes the AGENTS.md section of the initialized project at root in a recoverable
+// transaction, adding its path to result, unless its configuration turns off manageAgentsFile.
+func initializeAgents(ctx context.Context, root *os.Root, options Options, result AuthoringResult) (AuthoringResult, error) {
+	var changes FileChanges
+	err := filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		_, config, err := configuration(ctx, root)
+		if err != nil {
+			return err
+		}
+		agents, err := planAgentsSection(ctx, root, config, options)
+		if err != nil {
+			return err
+		}
+		defer agents.close()
+		targets := map[filetxn.Target]map[string][]byte{}
+		agents.include(targets, &changes)
+		return w.Apply(targets, func() error { return agents.requireUnchanged(ctx) })
+	})
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	if changes.Agents != nil {
+		written := filepath.Join(filepath.Dir(root.Name()), changes.Agents.Path)
+		if changes.Agents.Action == "created" {
+			result.Added = append(result.Added, written)
+		} else {
+			result.Changed = append(result.Changed, written)
+		}
+	}
+	return result, nil
+}
+
+// editProject revalidates configuration and rules/ under exclusive ownership before publishing authored files.
 func editProject(ctx context.Context, options Options, prepare func(*os.Root, []byte, rules.Configuration) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openProject(ctx, options, false)
 	if err != nil {
@@ -95,7 +167,7 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 		if err != nil {
 			return nil, err
 		}
-		if _, err = filetxn.ReadTree(ctx, root, "local"); err != nil {
+		if _, err = filetxn.ReadTree(ctx, root, "rules"); err != nil {
 			return nil, err
 		}
 		files, err = prepare(root, original, config)
@@ -107,8 +179,8 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 	return authoringResult(changes, err)
 }
 
-// AddLocalGroup creates one complete local group definition without overwriting existing metadata.
-func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
+// AddLocalGroup creates one complete authored group definition in rules/ without overwriting existing metadata.
+func AddLocalGroup(ctx context.Context, id string, metadata syllabus.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
@@ -121,19 +193,19 @@ func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetad
 			return nil, err
 		}
 		guideName, _ := projectGuide()
-		return groupFiles(path.Join("local", id), id, data, guideName), nil
+		return groupFiles(path.Join("rules", id), id, data, guideName), nil
 	})
 }
 
-// groupAvailable accepts local metadata or a selected group from a verified persisted source snapshot.
+// groupAvailable accepts authored metadata or a selected group from a verified persisted source snapshot.
 func groupAvailable(ctx context.Context, root *os.Root, config rules.Configuration, id string) (bool, error) {
-	local, err := filetxn.ReadTree(ctx, root, "local")
+	local, err := filetxn.ReadTree(ctx, root, "rules")
 	if err != nil {
 		return false, err
 	}
 	if local != nil {
 		if data, ok := local.Files[id+"/_group.yaml"]; ok {
-			_, err = coderules.ParseGroupMetadata(data, id)
+			_, err = syllabus.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}
@@ -155,14 +227,14 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 			continue
 		}
 		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
-			_, err = coderules.ParseGroupMetadata(data, id)
+			_, err = syllabus.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}
 	return false, nil
 }
 
-// AddLocalRule creates a validated rule or canonical unfinished draft, in an existing group.
+// AddLocalRule creates a validated rule or canonical unfinished draft in rules/, in an existing group.
 func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
 	data, err := rules.RenderRule(id, metadata, options.Body)
 	if err != nil {
@@ -173,7 +245,7 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 		if err := checkLocalRule(ctx, root, config, id); err != nil {
 			return nil, err
 		}
-		return []filetxn.File{{Path: path.Join("local", id+".md"), Content: data}}, nil
+		return []filetxn.File{{Path: path.Join("rules", id+".md"), Content: data}}, nil
 	})
 }
 
@@ -208,6 +280,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `syllabus project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun syllabus project build and syllabus project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

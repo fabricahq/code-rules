@@ -25,20 +25,20 @@ func TestStandaloneInstaller(t *testing.T) {
 		original := []byte("# keep my configuration\n")
 		f.write(profile, original, 0644)
 		output := f.success()
-		binary := filepath.Join(f.destination, "code-rules")
+		binary := filepath.Join(f.destination, "syllabus")
 		f.content(binary, f.binary)
 		info, err := os.Stat(binary)
 		if err != nil || info.Mode()&0111 == 0 {
 			t.Fatalf("installed binary is not executable: %v", err)
 		}
-		f.absent(filepath.Join(f.destination, "code-rules.LICENSE"))
+		f.absent(filepath.Join(f.destination, "syllabus.LICENSE"))
 		if !strings.HasPrefix(string(f.read(profile)), string(original)) || !strings.Contains(string(f.read(profile)), "export PATH=") {
 			t.Fatal("default installation must preserve the profile and add PATH setup")
 		}
 		if !strings.Contains(output, "export PATH=") {
 			t.Fatal("missing PATH instructions", output)
 		}
-		matches, err := filepath.Glob(filepath.Join(f.destination, ".code-rules-install.*"))
+		matches, err := filepath.Glob(filepath.Join(f.destination, ".syllabus-install.*"))
 		if err != nil || len(matches) != 0 {
 			t.Fatalf("staging files left behind: %v %v", matches, err)
 		}
@@ -48,10 +48,10 @@ func TestStandaloneInstaller(t *testing.T) {
 		if err := os.Remove(filepath.Join(f.commands, "uname")); err != nil {
 			t.Fatal(err)
 		}
-		binary := filepath.Join(f.root, "native-code-rules")
+		binary := filepath.Join(f.root, "native-syllabus")
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 		defer cancel()
-		build := exec.CommandContext(ctx, "go", "build", "-ldflags", "-X main.version=1.2.3", "-o", binary, "./cmd/code-rules")
+		build := exec.CommandContext(ctx, "go", "build", "-ldflags", "-X main.version=1.2.3", "-o", binary, "./cmd/syllabus")
 		build.Dir = filepath.Join("..", "..")
 		if output, err := build.CombinedOutput(); err != nil {
 			t.Fatalf("build native CLI: %v\n%s", err, output)
@@ -59,14 +59,14 @@ func TestStandaloneInstaller(t *testing.T) {
 		f.binary = f.read(binary)
 		f.release("1.2.3", runtime.GOOS+"_"+runtime.GOARCH, nil)
 		f.success()
-		help := exec.CommandContext(ctx, filepath.Join(f.destination, "code-rules"), "project", "--help")
+		help := exec.CommandContext(ctx, filepath.Join(f.destination, "syllabus"), "project", "--help")
 		help.Dir = f.root
 		help.Env = f.environment()
 		output, err := help.CombinedOutput()
 		if err != nil || !strings.Contains(string(output), "sync") {
 			t.Fatalf("installed CLI help: %v\n%s", err, output)
 		}
-		license := exec.CommandContext(ctx, filepath.Join(f.destination, "code-rules"), "--license")
+		license := exec.CommandContext(ctx, filepath.Join(f.destination, "syllabus"), "--license")
 		license.Dir = f.root
 		license.Env = f.environment()
 		output, err = license.CombinedOutput()
@@ -74,7 +74,7 @@ func TestStandaloneInstaller(t *testing.T) {
 			t.Fatalf("installed CLI license: %v\n%s", err, output)
 		}
 		entries, err := os.ReadDir(f.destination)
-		if err != nil || len(entries) != 1 || entries[0].Name() != "code-rules" {
+		if err != nil || len(entries) != 1 || entries[0].Name() != "syllabus" {
 			t.Fatal("installer must place only the executable", entries, err)
 		}
 	})
@@ -93,10 +93,22 @@ func TestStandaloneInstaller(t *testing.T) {
 		f := newInstallerFixture(t)
 		destination := filepath.Join(f.root, "custom bin")
 		f.success("--install-dir", destination)
-		f.binary = []byte("#!/bin/sh\necho 'code-rules 1.3.0-rc.1'\n")
+		f.binary = []byte("#!/bin/sh\necho 'syllabus 1.3.0-rc.1'\n")
 		f.release("1.3.0-rc.1", "linux_amd64", nil)
 		f.success("--version", "1.3.0-rc.1", "--install-dir", destination)
-		f.content(filepath.Join(destination, "code-rules"), f.binary)
+		f.content(filepath.Join(destination, "syllabus"), f.binary)
+	})
+	t.Run("release from before the rename installs as code-rules", func(t *testing.T) {
+		f := newInstallerFixture(t)
+		f.executable = "code-rules"
+		f.binary = []byte("#!/bin/sh\necho 'code-rules 0.3.0'\n")
+		f.release("0.3.0", "linux_amd64", nil)
+		output := f.success("--version", "0.3.0")
+		f.content(filepath.Join(f.destination, "code-rules"), f.binary)
+		f.absent(filepath.Join(f.destination, "syllabus"))
+		if !strings.Contains(output, "Installed Syllabus 0.3.0 to "+f.destination+"/code-rules\n") {
+			t.Fatal(output)
+		}
 	})
 	t.Run("download and checksum failures preserve installed binary", func(t *testing.T) {
 		for _, kind := range []string{"missing", "corrupt", "duplicate checksum"} {
@@ -121,7 +133,7 @@ func TestStandaloneInstaller(t *testing.T) {
 					message = "exactly one valid entry"
 				}
 				f.failure(message)
-				f.content(filepath.Join(f.destination, "code-rules"), f.binary)
+				f.content(filepath.Join(f.destination, "syllabus"), f.binary)
 			})
 		}
 	})
@@ -129,7 +141,7 @@ func TestStandaloneInstaller(t *testing.T) {
 		for _, kind := range []string{"traversal", "symlink", "missing license", "duplicate", "empty executable"} {
 			t.Run(kind, func(t *testing.T) {
 				f := newInstallerFixture(t)
-				binary := installerMember{"code-rules", f.binary, false}
+				binary := installerMember{"syllabus", f.binary, false}
 				license := installerMember{"LICENSE.md", []byte("MIT"), false}
 				var entries []installerMember
 				message := "unexpected or missing release archive files"
@@ -137,19 +149,19 @@ func TestStandaloneInstaller(t *testing.T) {
 				case "traversal":
 					entries = []installerMember{{"../escape", []byte("bad"), false}, binary, license}
 				case "symlink":
-					entries = []installerMember{{"code-rules", nil, true}, license}
+					entries = []installerMember{{"syllabus", nil, true}, license}
 					message = "link or non-regular file"
 				case "missing license":
 					entries = []installerMember{binary}
 				case "duplicate":
 					entries = []installerMember{binary, binary, license}
 				case "empty executable":
-					entries = []installerMember{{"code-rules", nil, false}, license}
+					entries = []installerMember{{"syllabus", nil, false}, license}
 					message = "executable or license is empty"
 				}
 				f.release("1.2.3", "linux_amd64", entries)
 				f.failure(message)
-				f.absent(filepath.Join(f.destination, "code-rules"))
+				f.absent(filepath.Join(f.destination, "syllabus"))
 				f.absent(filepath.Join(f.root, "escape"))
 			})
 		}
@@ -157,16 +169,16 @@ func TestStandaloneInstaller(t *testing.T) {
 	t.Run("unrunnable download preserves installed binary", func(t *testing.T) {
 		f := newInstallerFixture(t)
 		f.success()
-		f.release("1.2.3", "linux_amd64", []installerMember{{"code-rules", []byte("#!/bin/sh\nexit 1\n"), false}, {"LICENSE.md", []byte("MIT"), false}})
+		f.release("1.2.3", "linux_amd64", []installerMember{{"syllabus", []byte("#!/bin/sh\nexit 1\n"), false}, {"LICENSE.md", []byte("MIT"), false}})
 		f.failure("downloaded executable cannot run")
-		f.content(filepath.Join(f.destination, "code-rules"), f.binary)
+		f.content(filepath.Join(f.destination, "syllabus"), f.binary)
 	})
 	t.Run("refuse to replace symlink or directory", func(t *testing.T) {
 		f := newInstallerFixture(t)
 		if err := os.MkdirAll(f.destination, 0755); err != nil {
 			t.Fatal(err)
 		}
-		destination := filepath.Join(f.destination, "code-rules")
+		destination := filepath.Join(f.destination, "syllabus")
 		target := filepath.Join(f.root, "other-manager-binary")
 		f.write(target, []byte("preserve"), 0644)
 		if err := os.Symlink(target, destination); err != nil {
@@ -228,11 +240,11 @@ func TestStandaloneInstaller(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		defer cancel()
-		check := exec.CommandContext(ctx, "sh", "-c", line+"\ncommand -v code-rules")
+		check := exec.CommandContext(ctx, "sh", "-c", line+"\ncommand -v syllabus")
 		check.Dir = f.root
 		check.Env = f.environment()
 		checked, err := check.CombinedOutput()
-		if err != nil || strings.TrimSpace(string(checked)) != filepath.Join(directory, "code-rules") {
+		if err != nil || strings.TrimSpace(string(checked)) != filepath.Join(directory, "syllabus") {
 			t.Fatalf("PATH command failed: %v\n%s", err, checked)
 		}
 		f.absent(filepath.Join(f.root, "unwanted"))

@@ -9,13 +9,16 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // UpdatePlan is a previewed update. Planning reads the project and the libraries' release histories without
@@ -32,6 +35,9 @@ type UpdatePlan struct {
 	recovered bool
 	// forks holds each fork Preview or Apply read, by forkKey, so a fork is read from the library once.
 	forks map[string]forkUpdate
+	// personal holds the personal skill warnings for the skills the planned project installs, which Preview adds
+	// after the update's own.
+	personal []string
 }
 
 // Recovered reports whether planning first recovered an interrupted earlier command, restoring or finishing its
@@ -68,16 +74,17 @@ type UpdateResult struct {
 	Sources []imports.SourceUpdate `json:"sources"`
 	// FileChanges lists vendor and generated paths, config.yaml when the update wrote pins, exclusions, or basedOn
 	// versions, and the local files of each fork it replaced.
-	// Its warnings are the preview's until the update is applied, and then the installation's.
+	// Its warnings are the preview's until the update is applied, and then the installation's, each followed by
+	// ScriptsWarning when it has one.
 	FileChanges
 }
 
-// Moves reports whether the update has anything to apply: a source's library-wide files, or a rule of any row
-// except pinned rules, retirements a pin keeps, and rows the project decided to keep. A replaced row counts even
-// when its imported copy stays, since applying it can replace the local rule's fork.
+// Moves reports whether the update has anything to apply: a source's library-wide files, a skill it adds, changes,
+// or removes, or a rule of any row except pinned rules, retirements a pin keeps, and rows the project decided to
+// keep. A replaced row counts even when its imported copy stays, since applying it can replace the local rule's fork.
 func (r UpdateResult) Moves() bool {
 	for _, source := range r.Sources {
-		if source.SharedFiles != nil {
+		if source.SharedFiles != nil || len(source.Skills) > 0 || len(source.Borrowed) > 0 {
 			return true
 		}
 		for _, row := range source.Rules {
@@ -89,11 +96,41 @@ func (r UpdateResult) Moves() bool {
 	return false
 }
 
+// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows,
+// borrowed skills' included, flags a script, or empty when none does.
+func (r UpdateResult) ScriptsWarning() string {
+	for _, source := range r.Sources {
+		rows := slices.Clone(source.Skills)
+		for _, borrowed := range source.Borrowed {
+			rows = append(rows, borrowed.Changes...)
+		}
+		for _, skill := range rows {
+			if len(skill.Scripts) == 0 {
+				continue
+			}
+			if r.Applied {
+				return "some skills in this update added or changed scripts. Syllabus never runs them, but your agents may; read them before you commit the update."
+			}
+			return "some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm."
+		}
+	}
+	return ""
+}
+
+// withScriptsWarning returns r with its scripts warning, when it has one, after its other warnings.
+func (r UpdateResult) withScriptsWarning() UpdateResult {
+	if warning := r.ScriptsWarning(); warning != "" {
+		r.Warnings = append(slices.Clone(r.Warnings), warning)
+	}
+	return r
+}
+
 // PlanUpdate reads the project and plans moving the rules targets name, or every source's rules when there are
 // no targets, to their newest versions. It reads the project under the writer, first recovering an interrupted
 // operation as sync does, and releases the writer before planning, so prompts never hold it. It refuses a project
 // another writer is changing. Before reading any library, it refuses with invalid-arguments a fork update among
-// decisions that the configuration rules out; Preview and Apply check every decision against the preview.
+// decisions that the configuration rules out; Preview and Apply check every decision against the preview. It reads
+// options.Home for the personal skills Preview warns about.
 func PlanUpdate(ctx context.Context, options Options, git imports.Options, targets []imports.UpdateTarget, decisions []UpdateDecision) (*UpdatePlan, error) {
 	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
 	recovered := false
@@ -132,17 +169,21 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 		return nil, unchanged(err, recovered)
 	}
 	// imports.PlanUpdate names the source or argument that failed, which is all the context the command needs.
-	update, err := imports.PlanUpdate(ctx, state.config, recorded, targets, git)
+	update, err := imports.PlanUpdate(ctx, state.config, withSkillFiles(recorded, treeFiles(state.vendor)), targets, git)
 	if err != nil {
 		return nil, unchanged(err, recovered)
 	}
-	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered}, nil
+	personal := personalSkillWarnings(options.Home, filepath.Dir(root.Name()), treeFiles(state.generated)[build.InstalledSkillsFile])
+	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered, personal: personal}, nil
 }
 
-// Preview returns the planned update with each decided row marked, without writing anything. It fails with
-// invalid-arguments, naming the decision's flag and rule, when a decision names a rule twice, keeps a rule the
-// update doesn't move or retire, excludes a rule the update doesn't add, or updates a fork the preview doesn't list
-// as replaced, or when a pin or exclusion has no reason or a fork update has one.
+// Preview returns the planned update with each decided row marked, and the skills of the revision the decisions
+// leave each source at, without writing anything. It fails with invalid-arguments, naming the decision's flag and
+// rule, when a decision names a rule twice, keeps a rule the update doesn't move or retire, excludes a rule the
+// update doesn't add, or updates a fork the preview doesn't list as replaced, or when a pin or exclusion has no
+// reason or a fork update has one. It fails as installing would when that revision lacks a skill skills.include
+// names. Its warnings are the update's, then one for each personal skill with the name of a skill the project
+// installed when it was planned, then the scripts warning.
 //
 // Preview reads the version each fork update forks, as Apply then installs it, to list the local files the fork
 // overwrites and removes; it fails with invalid-release-tag when that version's library release tag moved after
@@ -155,14 +196,15 @@ func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (U
 	if err := p.readForks(ctx, sources, forks); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered)
 	}
-	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: p.update.Warnings, Recovered: p.recovered}}, nil
+	result := UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: append(append([]string{}, p.update.Warnings...), p.personal...), Recovered: p.recovered}}
+	return result.withScriptsWarning(), nil
 }
 
 // Apply installs the planned versions under the writer, adding to config.yaml a pin for each kept rule, an
 // exclusion for each excluded one, and the new basedOn of each replaced fork, in the same transaction that replaces
 // vendor and generated output and each replaced fork's local rule and asset directory, so recovery restores or
 // finishes them together. A kept rule stays at its current version. Each fork is read from the library before the
-// transaction, as code-rules project add rule --from reads it. It fails with concurrent-change, writing nothing,
+// transaction, as syllabus project add rule --from reads it. It fails with concurrent-change, writing nothing,
 // when the configuration, local rules, vendor or generated output, or managed guide changed after planning.
 func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (UpdateResult, error) {
 	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
@@ -198,7 +240,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 			return err
 		}
 		if !sameProject(p.planned, before) || (guide.Previous == nil) != (p.guide == nil) || !bytes.Equal(guide.Previous, p.guide) {
-			return failure("concurrent-change", "the project's configuration, local rules, imported files, generated output, or Code Rules guide changed after the update preview; run code-rules project update again", nil)
+			return failure("concurrent-change", "the project's configuration, local rules, imported files, generated output, or Syllabus guide changed after the update preview; run syllabus project update again", nil)
 		}
 		in := installation{guide: guide, config: before.config, options: p.options, forks: forks}
 		if len(edits) > 0 {
@@ -218,11 +260,13 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
 	changes.Recovered = p.recovered || recovered
-	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
+	result := UpdateResult{Applied: true, Sources: sources, FileChanges: changes}
+	return result.withScriptsWarning(), nil
 }
 
 // decide checks decisions against the planned preview and returns a copy of the preview with each decided row
-// marked, the pins, exclusions, and basedOn versions to set in each source, and the forks to replace, not yet read.
+// marked and the skills of the revision the decisions leave each source at, the pins, exclusions, and basedOn
+// versions to set in each source, and the forks to replace, not yet read.
 func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate, map[string]rules.SourceEdit, []forkUpdate, error) {
 	sources := make([]imports.SourceUpdate, len(p.update.Sources))
 	for i, source := range p.update.Sources {
@@ -273,10 +317,10 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			version := *row.ReviewedVersion()
 			row.Decision = string(DecisionUpdateFork)
 			if edit.BasedOn == nil {
-				edit.BasedOn = map[string]coderules.RuleVersion{}
+				edit.BasedOn = map[string]syllabus.RuleVersion{}
 			}
 			edit.BasedOn[decision.Rule] = version
-			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "local/")})
+			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "rules/")})
 		case DecisionExclude:
 			if row == nil || row.Change != imports.UpdateNew {
 				return nil, nil, nil, refuse("the update doesn't add this rule, so there's nothing to exclude; name a rule the preview lists as new")
@@ -291,19 +335,29 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		}
 		edits[decision.Source] = edit
 	}
-	// Keeping a rule a scoped update would move can leave the shared files where they are, so they follow the
-	// decisions.
+	// Keeping a rule a scoped update would move can leave the shared files where they are, so they and the skills,
+	// including the replaced skills' rows, level changes, and borrowed skills, which come from the same revision,
+	// follow the decisions.
 	for i := range sources {
-		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, slices.Collect(maps.Keys(edits[sources[i].Name].Pins)))
+		kept := slices.Collect(maps.Keys(edits[sources[i].Name].Pins))
+		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, kept)
+		skills, err := p.update.Skills(sources[i].Name, kept)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		sources[i].Skills = skills
+		sources[i].ReplacedSkills = p.update.ReplacedSkills(sources[i].Name, kept)
+		sources[i].SkillLevels = p.update.SkillLevels(sources[i].Name, kept)
+		sources[i].Borrowed = p.update.Borrowed(sources[i].Name, kept)
 	}
 	return sources, edits, forks, nil
 }
 
-// ReplacedFiles returns the local files that replacing the fork at localRule, a replaced row's local rule,
+// ReplacedFiles returns the authored files that replacing the fork at localRule, a replaced row's local rule,
 // overwrites or removes, as the project was when planned: the rule and every file in its asset directory, relative
-// to the Code Rules directory and sorted. It is empty when none of them exist.
+// to the Syllabus directory and sorted. It is empty when none of them exist.
 func (p *UpdatePlan) ReplacedFiles(localRule string) []string {
-	overwritten := slices.Sorted(maps.Keys(localPaths(forkPaths(treeFiles(p.planned.local), strings.TrimPrefix(localRule, "local/")))))
+	overwritten := slices.Sorted(maps.Keys(rulesPaths(forkPaths(treeFiles(p.planned.local), strings.TrimPrefix(localRule, "rules/")))))
 	if overwritten == nil {
 		return []string{}
 	}
@@ -327,9 +381,9 @@ func (p *UpdatePlan) readForks(ctx context.Context, sources []imports.SourceUpda
 		row := previewRow(sources, forks[i].source, forks[i].id)
 		for name := range forkPaths(treeFiles(p.planned.local), forks[i].file) {
 			if _, kept := forks[i].files[name]; kept {
-				row.Overwrites = append(row.Overwrites, path.Join("local", name))
+				row.Overwrites = append(row.Overwrites, path.Join("rules", name))
 			} else {
-				row.Removes = append(row.Removes, path.Join("local", name))
+				row.Removes = append(row.Removes, path.Join("rules", name))
 			}
 		}
 		slices.Sort(row.Overwrites)
@@ -348,33 +402,33 @@ func forkUpdateRefusal(configuration rules.Configuration, decision UpdateDecisio
 	}
 	index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == decision.Source })
 	if index < 0 {
-		return invalidArguments(where + "no source named " + decision.Source + " in .code-rules/config.yaml")
+		return invalidArguments(where + "no source named " + decision.Source + " in .syllabus/config.yaml")
 	}
 	if exclusion := configuration.Sources[index].Exclude[decision.Rule]; exclusion.ReplacedBy == "" {
-		return invalidArguments(where + "sources." + decision.Source + " doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run code-rules project add rule " + decision.Rule + " --from " + decision.Source + "@VERSION")
+		return invalidArguments(where + "sources." + decision.Source + ".rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run syllabus project add rule " + decision.Rule + " --from " + decision.Source + "@VERSION")
 	}
 	return nil
 }
 
-// decisionFlags names the code-rules project update flag that makes each kind of decision; a terminal answer
+// decisionFlags names the syllabus project update flag that makes each kind of decision; a terminal answer
 // makes the same decision.
 var decisionFlags = map[UpdateDecisionKind]string{DecisionKeep: "--keep", DecisionExclude: "--exclude", DecisionUpdateFork: "--update-fork"}
 
 // invalidArguments is a refusal of the command's arguments, which the CLI reports as a usage error.
 func invalidArguments(problem string) error { return failure("invalid-arguments", problem, nil) }
 
-// forkUpdate is a fork the update replaces: the local rule at file, relative to local/, which replaces rule id of
+// forkUpdate is a fork the update replaces: the authored rule at file, relative to rules/, which replaces rule id of
 // source, becomes a fork of version. read fills files.
 type forkUpdate struct {
 	source, id, file string
-	version          coderules.RuleVersion
-	// files holds the new fork's files by path relative to local/: the rule at file and its asset directory.
+	version          syllabus.RuleVersion
+	// files holds the new fork's files by path relative to rules/: the rule at file and its asset directory.
 	files map[string][]byte
 }
 
 // read reads the forked version from the library of the source in configuration, from the library release that
 // planning the update found published it, and prepares the fork's files at the local rule's path, exactly as
-// code-rules project add rule --from writes a fork there.
+// syllabus project add rule --from writes a fork there.
 func (f *forkUpdate) read(ctx context.Context, update imports.Update, configuration rules.Configuration, options imports.Options) error {
 	index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == f.source })
 	library := rules.Source{Name: f.source, Repository: configuration.Sources[index].Repository}
@@ -416,6 +470,23 @@ func keepable(row imports.RuleUpdate) bool {
 		return row.Pin == nil
 	}
 	return false
+}
+
+// withSkillFiles returns a copy of recorded, the source records without files, in which each record holds its
+// skills' files from vendor, the vendor files by path, so the update preview compares the skills an update installs
+// with the project's copies. The bytes are shared with vendor.
+func withSkillFiles(recorded map[string]library.Snapshot, vendor map[string][]byte) map[string]library.Snapshot {
+	result := make(map[string]library.Snapshot, len(recorded))
+	for name, snapshot := range recorded {
+		snapshot.Files = map[string][]byte{}
+		for file, data := range vendor {
+			if stored, ok := strings.CutPrefix(file, name+"/"); ok && snapshot.IsSkillFile(stored) {
+				snapshot.Files[stored] = data
+			}
+		}
+		result[name] = snapshot
+	}
+	return result
 }
 
 // editConfiguration applies each source's pins, exclusions, and basedOn versions to the configuration bytes,

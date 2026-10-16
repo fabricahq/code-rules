@@ -1,4 +1,4 @@
-# Canonical Code Rules group IDs.
+# Canonical Syllabus group IDs.
 #
 # Libraries choose their own group IDs. When libraries use an ID from this list,
 # tools and catalogs can treat their groups as the same group and combine them.
@@ -8,7 +8,7 @@
 # belong in the group. Keep entries sorted by ID. Unknown fields are errors.
 # Tools should read this file at an explicit commit and update that pin
 # deliberately. To propose a group, open a pull request. See
-# https://code-rules.fabricahq.com/concepts/groups/#canonical-group-ids
+# https://syllabus.fabricahq.com/concepts/groups/#canonical-group-ids
 practices/accessibility:
   name: Accessibility
   description: Making interfaces usable with assistive technology, keyboards, and varied vision, hearing, and motor abilities.

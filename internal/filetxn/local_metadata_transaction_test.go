@@ -12,7 +12,7 @@ import (
 )
 
 // localMetadata is the local group metadata file the tests create.
-const localMetadata = "local/techs/go/_group.yaml"
+const localMetadata = "rules/techs/go/_group.yaml"
 
 // metadataUpdate is what sync or update installs when local rules lose their group's imported metadata.
 var metadataUpdate = map[Target]map[string][]byte{
@@ -24,7 +24,7 @@ var metadataUpdate = map[Target]map[string][]byte{
 // writeMetadataProject writes a local rule without group metadata, and the previous vendor and generated output.
 func writeMetadataProject(t *testing.T, root *os.Root) {
 	t.Helper()
-	writeFixture(t, root, "local/techs/go/fork.md", "local rule")
+	writeFixture(t, root, "rules/techs/go/fork.md", "local rule")
 	writeFixture(t, root, "vendor/team/rule.md", "old rule")
 	writeFixture(t, root, "generated/RULES.md", "old output")
 }
@@ -45,7 +45,7 @@ func requireMetadataProject(t *testing.T, root *os.Root, state string) {
 	case state == "old" && !errors.Is(err, fs.ErrNotExist):
 		t.Fatalf("metadata exists with the old output: %q, %v", data, err)
 	}
-	if data, err := root.ReadFile("local/techs/go/fork.md"); err != nil || string(data) != "local rule" {
+	if data, err := root.ReadFile("rules/techs/go/fork.md"); err != nil || string(data) != "local rule" {
 		t.Fatalf("local rule: %q, %v", data, err)
 	}
 	if err := RequireIdle(root); err != nil {
@@ -87,7 +87,7 @@ func TestApply_KeepsLocalGroupMetadataCreatedDuringStaging(t *testing.T) {
 func TestApply_RejectsTargetsOutsideLocalGroupMetadata(t *testing.T) {
 	root := openProject(t)
 	writeMetadataProject(t, root)
-	for _, target := range []Target{"local/techs/Go/_group.yaml", "local/techs/go/sub/_group.yaml", "local/../_group.yaml"} {
+	for _, target := range []Target{"rules/techs/Go/_group.yaml", "rules/techs/go/sub/_group.yaml", "rules/../_group.yaml"} {
 		err := WithWriter(context.Background(), root, func(w *Writer) error {
 			return w.Apply(map[Target]map[string][]byte{target: {string(target): []byte("x")}}, nil)
 		})
@@ -99,7 +99,7 @@ func TestApply_RejectsTargetsOutsideLocalGroupMetadata(t *testing.T) {
 // TestKilledMetadataWriterRecovers stops the writer after each rename; the next writer restores the previous trees
 // and removes the metadata, or, once the commit marker exists, keeps everything new.
 func TestKilledMetadataWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("CODE_RULES_METADATA_CHILD"); directory != "" {
+	if directory := os.Getenv("SYLLABUS_METADATA_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
@@ -109,7 +109,7 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 			rename := w.rename
 			w.rename = func(from, to string) error {
 				err := rename(from, to)
-				if err == nil && to == os.Getenv("CODE_RULES_METADATA_STOP") {
+				if err == nil && to == os.Getenv("SYLLABUS_METADATA_STOP") {
 					os.Exit(42)
 				}
 				return err
@@ -119,7 +119,7 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 		t.Fatalf("child did not stop at rename: %v", err)
 	}
 	for stop, state := range map[string]string{
-		renameCheck + "/local+techs+go+_group.yaml": "old",
+		renameCheck + "/rules+techs+go+_group.yaml": "old",
 		"vendor":                            "old",
 		"generated":                         "old",
 		localMetadata:                       "old",
@@ -129,7 +129,7 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 			root := openProject(t)
 			writeMetadataProject(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledMetadataWriterRecovers$")
-			child.Env = append(os.Environ(), "CODE_RULES_METADATA_CHILD="+root.Name(), "CODE_RULES_METADATA_STOP="+stop)
+			child.Env = append(os.Environ(), "SYLLABUS_METADATA_CHILD="+root.Name(), "SYLLABUS_METADATA_STOP="+stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {
@@ -149,10 +149,10 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 func TestRecovery_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
 	root := openProject(t)
 	writeFixture(t, root, "aliased/go/_group.yaml", "name: Go\n")
-	if err := root.Mkdir("local", 0700); err != nil {
+	if err := root.Mkdir("rules", 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink("../aliased", root.Name()+"/local/techs"); err != nil {
+	if err := os.Symlink("../aliased", root.Name()+"/rules/techs"); err != nil {
 		t.Fatal(err)
 	}
 	target := LocalGroupMetadata("techs/go")
@@ -176,10 +176,10 @@ func TestRecovery_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
 func TestApply_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
 	root := openProject(t)
 	writeFixture(t, root, "aliased/go/fork.md", "local rule")
-	if err := root.Mkdir("local", 0700); err != nil {
+	if err := root.Mkdir("rules", 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink("../aliased", root.Name()+"/local/techs"); err != nil {
+	if err := os.Symlink("../aliased", root.Name()+"/rules/techs"); err != nil {
 		t.Fatal(err)
 	}
 	err := WithWriter(context.Background(), root, func(w *Writer) error {

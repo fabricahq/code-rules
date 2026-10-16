@@ -5,7 +5,7 @@ description: "Find contradictory rules and make the project's intended policy ex
 
 Rules **conflict** when they require incompatible actions in the same situation. For example, one rule might require interfaces where another requires type aliases. An agent cannot follow both, so you need to decide which guidance your project should use.
 
-Code Rules does not detect contradictions in prose or choose which library takes precedence. In this guide, you'll identify conflicting instructions, review them with an agent, and record your decision by excluding or replacing a rule.
+Syllabus does not detect contradictions in prose or choose which library takes precedence. In this guide, you'll identify conflicting instructions, review them with an agent, and record your decision by excluding or replacing a rule.
 
 ## Recognize a conflict
 
@@ -26,19 +26,19 @@ Repeated guidance may be redundant without being contradictory.
 
 ## Generate a review prompt
 
-`code-rules conflicts --prompt` is not implemented.
-Run `code-rules project check` and resolve any reported problems before reviewing the adopted rules.
+`syllabus conflicts --prompt` is not implemented.
+Run `syllabus project check` and resolve any reported problems before reviewing the adopted rules.
 Then give a repository-aware agent this prompt:
 
 ```text
-Review this project's resolved Code Rules for conflicting guidance.
+Review this project's resolved Syllabus for conflicting guidance.
 
-Read .code-rules/generated/RULES.md, every part of each group index, and
-all linked resolved rules to assess conflicts across the complete adopted
-set.
-Use .code-rules/generated/provenance.json to identify the reviewed snapshot.
-Compare active rules within and across groups, including local additions
-and replacements. Excluded rules and replaced upstream text are context,
+Read .syllabus/generated/RULES.md, every part of each rule group index,
+and all linked resolved rules to assess conflicts across the complete
+adopted set.
+Use .syllabus/generated/provenance.json to identify the reviewed snapshot.
+Compare active rules within and across rule groups, including the project's
+own rules and replacements. Excluded rules and replaced library text are context,
 not active obligations.
 
 For each possible conflict:
@@ -57,41 +57,42 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.yaml`.
+The paths in this prompt are relative to the project root. Project configuration is stored in `.syllabus/config.yaml`.
 Conflict review runs through your agent. The CLI does not provide a `conflicts` command.
 
 ## Resolve the intended policy
 
 First decide which instructions should apply in the overlapping situation.
-Then record that choice using the [import configuration](/guides/select-rules/#adapt-the-import-to-your-project):
+Then record that choice in [configuration](/guides/select-rules/#adapt-the-selection-to-your-project):
 
 - **Clarify scope:** Replace a rule with a complete definition that states its intended conditions and exceptions.
 - **Keep one policy:** Exclude the competing rule under its owning source and explain why.
-- **Define a project policy:** Replace the relevant imported rule with a local definition, and resolve any remaining competing obligations explicitly.
+- **Define a project policy:** Replace the relevant library rule with a rule of your own, and resolve any remaining competing obligations explicitly.
 
-For example, if the project adopts Acme's interface rule, exclude Fabrica's type-alias rule:
+For example, if the project follows Acme's interface rule, exclude Fabrica's type-alias rule:
 
 ```yaml
 sources:
   fabrica:
-    exclude:
-      techs/typescript/prefer-type-aliases:
-        reason: This project follows Acme's interface rule for object types.
+    rules:
+      exclude:
+        - id: techs/typescript/prefer-type-aliases
+          reason: This project follows Acme's interface rule for object types.
 ```
 
 This is a partial configuration snippet.
-Merge it into the existing source while retaining its repository, pins, groups, and other exceptions.
+Merge it into the existing source while retaining its repository, `include`, pins, and other exceptions.
 It affects only Fabrica's rule; Acme's rule stays active.
 
-For a conflicting local addition, edit its authored file under `local/`.
+For a conflicting rule your project wrote, edit its file under `.syllabus/rules/`.
 Keep edits in source files and configuration, then rebuild the indexes and resolved definitions.
 Do not edit `vendor/` or `generated/` directly.
 
 ## Rebuild and review again
 
-Run `code-rules project build` after changing local rules or exceptions.
-Run `code-rules project sync` instead if you also change sources, imported groups or rules, pins, or `ref`.
+Run `syllabus project build` after changing your own rules or exceptions.
+Run `syllabus project sync` instead if you also change sources, `include` selectors, or pins.
 Inspect the regenerated indexes and resolved definitions, then repeat the review against that snapshot.
 
-Commit the configuration, local rules, and generated output together; include vendor changes when sync refreshed them.
-A clean `code-rules project check` confirms file consistency, while the agent review assesses whether the guidance can be followed together.
+Commit the configuration, your own rules, and generated output together; include vendor changes when sync refreshed them.
+A clean `syllabus project check` confirms file consistency, while the agent review assesses whether the guidance can be followed together.

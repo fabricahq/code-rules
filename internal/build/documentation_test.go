@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestDocumentationRules rejects documentation drift that would make copied examples fail a real build.
@@ -32,7 +32,7 @@ func TestDocumentationRules(t *testing.T) {
 				}
 				data = match[1]
 			}
-			config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{}}`))
+			config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"sources":{}}`))
 			if err != nil {
 				t.Fatal(err)
 			}
