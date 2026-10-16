@@ -12,12 +12,6 @@
 practices/accessibility:
   name: Accessibility
   description: Making interfaces usable with assistive technology, keyboards, and varied vision, hearing, and motor abilities.
-practices/agent-autonomy:
-  name: Agent autonomy
-  description: When a coding agent acts, asks, pauses, or keeps going, including long unattended runs and resuming another agent's work.
-practices/agent-delegation:
-  name: Agent delegation
-  description: Briefing, isolating, running in parallel, and checking the work of subagents; reviewing their pull requests belongs in code review.
 practices/agent-instructions:
   name: Agent instructions
   description: Writing and evaluating skills, rules, AGENTS.md files, and other instructions for coding agents; human-facing guides belong in documentation.
