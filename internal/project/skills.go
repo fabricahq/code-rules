@@ -75,6 +75,20 @@ type skillInstall struct {
 	// folder that was absent is nil.
 	read    map[string]*filetxn.Tree
 	changes FileChanges
+	// folders lists, sorted by folder, each installed skill folder the write adds, replaces, or removes.
+	folders []skillFolderChange
+}
+
+// skillFolderChange is one installed skill folder a write adds, replaces, or removes, as check reports it.
+type skillFolderChange struct {
+	// Folder is the folder's path from the repository root, such as .claude/skills/tdd.
+	Folder string
+	// Skill is the project ID of the skill installed there, as the generated or the current installed-skills.json
+	// record names it.
+	Skill string
+	// Kind is MissingSkill for a folder the write adds, ModifiedSkill for one it replaces, and UnexpectedSkill for
+	// one it removes.
+	Kind ProblemKind
 }
 
 // planSkillFolders plans the installed skill folders of output, given generated, the generated tree before the
@@ -85,7 +99,9 @@ type skillInstall struct {
 // target's folder is a symbolic link.
 func planSkillFolders(ctx context.Context, root *os.Root, generated *filetxn.Tree, output build.Output) (skillInstall, error) {
 	plan := skillInstall{targets: map[filetxn.Target]map[string][]byte{}, executable: map[filetxn.Target][]string{}, read: map[string]*filetxn.Tree{}}
-	owned := build.InstalledFolders(treeFiles(generated)[build.InstalledSkillsFile])
+	installed := build.InstalledSkills(treeFiles(generated)[build.InstalledSkillsFile])
+	owned := slices.Sorted(maps.Keys(installed))
+	installing := build.InstalledSkills(output.Files[build.InstalledSkillsFile])
 	touched := slices.Sorted(maps.Keys(output.Skills))
 	for _, folder := range owned {
 		if !slices.Contains(touched, folder) {
@@ -118,6 +134,7 @@ func planSkillFolders(ctx context.Context, root *os.Root, generated *filetxn.Tre
 		if !installs {
 			if current != nil {
 				plan.targets[filetxn.SkillFolder(folder)] = nil
+				plan.folders = append(plan.folders, skillFolderChange{Folder: folder, Skill: installed[folder], Kind: UnexpectedSkill})
 			}
 			continue
 		}
@@ -139,6 +156,11 @@ func planSkillFolders(ctx context.Context, root *os.Root, generated *filetxn.Tre
 		target := filetxn.SkillFolder(folder)
 		plan.targets[target] = want.Files
 		plan.executable[target] = want.Executable
+		kind := ModifiedSkill
+		if current == nil {
+			kind = MissingSkill
+		}
+		plan.folders = append(plan.folders, skillFolderChange{Folder: folder, Skill: installing[folder], Kind: kind})
 	}
 	plan.changes = compareFiles(before, after)
 	for _, name := range modeChanged {
@@ -217,6 +239,16 @@ func noSkillTargetsWarning(output build.Output, targets []string) string {
 		return ""
 	}
 	return fmt.Sprintf("The project has no skill targets, so no copy of its %d skill(s) was installed. Agents can find them through .code-rules/generated/SKILLS.md. To install copies, set skillTargets in .code-rules/config.yaml, such as [claude, agents], then run code-rules project build.", len(output.SkillIDs))
+}
+
+// retiredCitationWarnings returns a warning for each rule an authored skill in output cites that its library
+// retired. Build and sync install the skill anyway; check fails.
+func retiredCitationWarnings(output build.Output) []string {
+	warnings := []string{}
+	for _, retired := range output.RetiredCitations {
+		warnings = append(warnings, retired.Error())
+	}
+	return warnings
 }
 
 // clashFailure converts a *build.ClashError to its CLI failure, returning other errors unchanged.

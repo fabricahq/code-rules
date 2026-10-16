@@ -37,7 +37,8 @@ func TestCheckWithFiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			generated, files, err := checkWithFiles(ctx, options, expected)
+			checked, err := checkWithFiles(ctx, options, expected)
+			generated, files := checked.generated, checked.files
 			if err != nil || len(generated.Added)+len(generated.Changed)+len(generated.Removed) != 0 {
 				t.Fatal(generated, files, err)
 			}
@@ -118,7 +119,7 @@ func TestCheckWithFilesRejectsUnsafeGuide(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root.Name(), "README.md")); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := checkWithFiles(context.Background(), options, map[string][]byte{"README.md": []byte("Outside")}); err == nil {
+	if _, err := checkWithFiles(context.Background(), options, map[string][]byte{"README.md": []byte("Outside")}); err == nil {
 		t.Fatal("followed guide symlink")
 	}
 }

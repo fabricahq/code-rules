@@ -126,7 +126,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(differences.Problems, []Problem{{MissingFile, "generated/groups/techs/go.md", Rebuild}, {StaleContents, "generated/RULES.md", Rebuild}, {UnexpectedFile, "generated/extra.md", Rebuild}}) {
+			if !reflect.DeepEqual(differences.Problems, []Problem{{Kind: MissingFile, Path: "generated/groups/techs/go.md", Repair: Rebuild}, {Kind: StaleContents, Path: "generated/RULES.md", Repair: Rebuild}, {Kind: UnexpectedFile, Path: "generated/extra.md", Repair: Rebuild}}) {
 				t.Fatalf("diffs: %+v", differences)
 			}
 			after, err = filetxn.ReadTree(context.Background(), root, ".")

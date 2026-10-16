@@ -40,7 +40,8 @@ type FileChanges struct {
 	Guide   *GuideChange `json:"guide,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
-	// they wrote. Build reports none.
+	// they wrote, then skills installed nowhere for want of skill targets. Last, for build too, each rule an authored
+	// skill cites that its library retired, which check rejects.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
 	// that command's files, which the lists above don't include.
@@ -85,6 +86,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 			return err
 		}
 		changes = compareFiles(treeFiles(before.generated), output.Files)
+		changes.Warnings = retiredCitationWarnings(output)
 		// Build reports paths relative to generated/, two folders below the repository root.
 		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
@@ -107,39 +109,58 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	return changes, nil
 }
 
-// checkWithFiles checks generated output and additional root-relative files in one optimistic snapshot.
-// Missing files are reported as additions; invalid paths, unreadable files, and concurrent edits are errors.
-func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (FileChanges, FileChanges, error) {
+// checkedProject is what a check found: how generated output and the requested files differ from what build would
+// write, and each installed skill folder build would add, replace, or remove.
+type checkedProject struct {
+	generated, files FileChanges
+	skills           []skillFolderChange
+}
+
+// checkWithFiles checks generated output, the installed skill folders, and additional root-relative files in one
+// optimistic snapshot. Missing files are reported as additions; invalid paths, unreadable files, concurrent edits, a
+// folder in a skill target that Code Rules would install into but didn't install, and a rule an authored skill cites
+// that its library retired are errors.
+func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (checkedProject, error) {
 	if err := ctx.Err(); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	if err := rules.ValidatePaths(expected, nil); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	root, err := openProject(ctx, options, false)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	defer root.Close()
 	if err := filetxn.RequireIdle(root); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	before, err := readProject(ctx, root)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	files, err := readCheckFiles(ctx, root, expected)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	output, err := prepareProject(ctx, before, options)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
+	}
+	if len(output.RetiredCitations) > 0 {
+		return checkedProject{}, output.RetiredCitations[0]
+	}
+	installs, err := planSkillFolders(ctx, root, before.generated, output)
+	if err != nil {
+		return checkedProject{}, err
 	}
 	if err := requireCheckUnchanged(ctx, root, before, expected, files); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
-	return compareFiles(treeFiles(before.generated), output.Files), compareFiles(files, expected), nil
+	if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
+		return checkedProject{}, err
+	}
+	return checkedProject{generated: compareFiles(treeFiles(before.generated), output.Files), files: compareFiles(files, expected), skills: installs.folders}, nil
 }
 
 // readCheckFiles retains only requested files, preserving absence as a missing map entry.

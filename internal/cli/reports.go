@@ -258,7 +258,7 @@ func projectCheckedReport(result projectCheckResult, root, workdir string) comma
 	var out strings.Builder
 	report := commandReport{value: result}
 	if result.Status == "up-to-date" {
-		out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
+		out.WriteString("Status: up to date.\nGenerated guidance, installed skills, and the Code Rules guide are current.\nNo files were changed.\n")
 	} else {
 		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
 		fmt.Fprintf(&out, "Status: out of date.\nNo files were changed.\nPaths relative to %s:\n\nProblems:\n", relativeDirectory(filepath.Join(root, ".code-rules"), workdir))
