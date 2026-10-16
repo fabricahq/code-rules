@@ -1,8 +1,8 @@
-// Package coderules parses the files and Git tags of a Syllabus library exactly as Syllabus reads them:
+// Package syllabus parses the files and Git tags of a Syllabus library exactly as Syllabus reads them:
 // library release tag names and messages, the release records in those messages, rule files, group metadata
 // (_group.yaml), and the canonical group list. The format is specified at
-// https://code-rules.fabricahq.com/reference/library-format/ and
-// https://code-rules.fabricahq.com/reference/rule-versions/.
+// https://syllabus.fabricahq.com/reference/library-format/ and
+// https://syllabus.fabricahq.com/reference/rule-versions/.
 //
 // The package only parses. It has no Git, filesystem, or network access: every function takes bytes or text the
 // caller has already read, such as a tag message read with go-git, and returns typed values. Syllabus itself
@@ -21,4 +21,4 @@
 //
 // This is a public API that follows Syllabus's own version: each Syllabus release includes it, and it may
 // change before Syllabus 1.0.0.
-package coderules
+package syllabus

@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // TestLibraryCommands_RefuseTheLayoutBeforeVersion2 refuses rule-library.yaml and rule folders at the repository
@@ -34,7 +34,7 @@ func TestLibraryCommands_RefuseTheLayoutBeforeVersion2(t *testing.T) {
 			"init":  func(options Options) error { _, err := Initialize(ctx, options, nil, "1.2.3"); return err },
 			"check": func(options Options) error { _, err := Check(ctx, options); return err },
 			"group": func(options Options) error {
-				_, err := AddGroup(ctx, "techs/rust", coderules.GroupMetadata{Name: "Rust", Description: "Rust guidance.", WhenToRead: "When editing Rust."}, options)
+				_, err := AddGroup(ctx, "techs/rust", syllabus.GroupMetadata{Name: "Rust", Description: "Rust guidance.", WhenToRead: "When editing Rust."}, options)
 				return err
 			},
 			"rule": func(options Options) error {
@@ -179,6 +179,33 @@ func TestCheck_ListsTheMovesOfALibrarysOwnFiles(t *testing.T) {
 	}
 }
 
+// TestRequireLibraryLayout_LeavesTheRepositorysOwnFoldersUnread doesn't read a repository root's own assets/ and
+// changes/ folders when nothing at the root marks the layout before version 2, so a folder there that can't be read
+// doesn't stop library commands. A context that has already ended makes any walk of a folder fail, so it shows
+// that neither folder is read.
+func TestRequireLibraryLayout_LeavesTheRepositorysOwnFoldersUnread(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"assets/logo.svg", "changes/2026-10-01.md"} {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("project file\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = root.Close() })
+	ended, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := requireLibraryLayout(ended, root); err != nil {
+		t.Fatalf("got %v; want the repository's own folders left unread", err)
+	}
+}
+
 // tree lists every file and directory under dir, relative to it.
 func tree(t *testing.T, dir string) []string {
 	t.Helper()
@@ -207,13 +234,13 @@ func TestLibraryCommands_ShareTheWriterOfTheSyllabusDirectory(t *testing.T) {
 	if _, err := Check(ctx, options); errorCode(err) != "busy" {
 		t.Fatalf("check while a writer holds the directory: %v", err)
 	}
-	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: coderules.ChangePatch, Summary: "Fix a."}, options)
+	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: syllabus.ChangePatch, Summary: "Fix a."}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	waiting, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
-	if _, err := plan.Commit(waiting, coderules.ChangePatch, "Fix a.", noteDay); err == nil {
+	if _, err := plan.Commit(waiting, syllabus.ChangePatch, "Fix a.", noteDay); err == nil {
 		t.Fatal("recorded a change note while a project command held the writer")
 	}
 	if notes, err := os.ReadDir(filepath.Join(options.Directory, ".syllabus", "changes")); err == nil && len(notes) != 0 {

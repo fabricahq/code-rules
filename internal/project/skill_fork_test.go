@@ -10,13 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/skills"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // skillConfig is a project configuration that installs every skill of the fixture's library into .claude/skills/,
@@ -203,21 +204,37 @@ func TestPlanSkillFork_RefusesWhatItCannotFork(t *testing.T) {
 	}
 }
 
-func TestPlanSkillFork_RefusesARenamedSkill(t *testing.T) {
+// TestPlanSkillFork_ForksARenamedSkillUnderItsInstallName names the fork and its SKILL.md by the rename, and swaps the
+// rename entry for the exclusion, so build installs the fork where agents already found the skill.
+func TestPlanSkillFork_ForksARenamedSkillUnderItsInstallName(t *testing.T) {
 	ctx := context.Background()
 	f, _ := skillLibrary(t)
 	options, git := skillProject(t, f, skillConfig("      rename:\n        skills/review: team-review\n"))
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	source, err := ParseSkillForkSource("team:skills/review")
+	plan, _ := forkSkill(t, options, "team:skills/review", "Ours.")
+	if plan.Name() != "team-review" {
+		t.Fatalf("fork name = %s; want team-review", plan.Name())
+	}
+	if fork := readRepositoryFile(t, options, ".syllabus/skills/team-review/SKILL.md"); !strings.Contains(fork, "\nname: team-review\n") || strings.Contains(fork, "name: review\n") {
+		t.Fatalf("fork's SKILL.md:\n%s", fork)
+	}
+	config := readRepositoryFile(t, options, ".syllabus/config.yaml")
+	if strings.Contains(config, "rename") || !strings.Contains(config, "replacedBy: skills/team-review") {
+		t.Fatalf("config.yaml:\n%s", config)
+	}
+	changes, err := Build(ctx, options)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = PlanSkillFork(ctx, source, options)
-	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.skills.rename.skills/review" || !strings.Contains(invalid.ValidationProblem(), "copy its folder from .syllabus/vendor/team/skills/review/ to .syllabus/skills/team-review/") {
-		t.Fatalf("got %v; want the renamed skill refused", err)
+	if got := installedSkills(t, options); !slices.Contains(got, "team-review") || slices.Contains(got, "review") {
+		t.Fatalf("installed %v; want the fork as team-review", got)
+	}
+	for _, warning := range changes.Warnings {
+		if strings.Contains(warning, "is installed as") {
+			t.Fatalf("build still warns about a rename: %q", warning)
+		}
 	}
 }
 
@@ -247,6 +264,39 @@ func TestPlanSkillFork_CommitRefusesABlankReasonAndAConcurrentChange(t *testing.
 	_, err = plan.Commit(ctx, "Ours.")
 	projectCode(t, err, "concurrent-change")
 	if exists(t, options, ".syllabus/skills/review") {
+		t.Fatal("a refused fork wrote files")
+	}
+}
+
+// TestPlanSkillFork_CommitRefusesASourceAnUpdateMovedAfterPlanning writes nothing when an update, which leaves the
+// configuration as it was, moves the source to a commit with another copy of the skill between plan and commit.
+func TestPlanSkillFork_CommitRefusesASourceAnUpdateMovedAfterPlanning(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, skillConfig(""))
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	source, _ := ParseSkillForkSource("team:skills/build-feature")
+	plan, err := PlanSkillFork(ctx, source, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondSkillRelease(t, f)
+	config := readRepositoryFile(t, options, ".syllabus/config.yaml")
+	update, err := PlanUpdate(ctx, options, git, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := update.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if readRepositoryFile(t, options, ".syllabus/config.yaml") != config {
+		t.Fatal("the update changed the configuration, so the test doesn't isolate the source record")
+	}
+	_, err = plan.Commit(ctx, "We build with make.")
+	projectCode(t, err, "concurrent-change")
+	if exists(t, options, ".syllabus/skills/build-feature") || readRepositoryFile(t, options, ".syllabus/config.yaml") != config {
 		t.Fatal("a refused fork wrote files")
 	}
 }
@@ -366,27 +416,144 @@ func TestSync_ChecksTheCommitAReplacementIsBasedOn(t *testing.T) {
 	}
 }
 
-// TestQualifyCitations_NamesTheSourceInAForkedSkillsCitations keeps a fork of a library's skill citing the library's
-// rules and skills, which in the project need the source's name.
-func TestQualifyCitations_NamesTheSourceInAForkedSkillsCitations(t *testing.T) {
-	original := "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/tdd\n    other:techs/go/errors\n  syllabus-skills-used: |-\n    skills/tdd\n---\n\nskills/tdd stays as written here.\n"
-	metadata, err := skills.ReadMetadata([]byte(original), "SKILL.md")
+// TestForkedSkillFile_NamesTheSourceInAForkedSkillsCitations keeps a fork of a source's skill citing the source's
+// rules and skills, and using the skills skills.uses adds, which in the project need the source's name, and gives a
+// SKILL.md without a name one.
+func TestForkedSkillFile_NamesTheSourceInAForkedSkillsCitations(t *testing.T) {
+	const cited = "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    practices/testing/tdd\n    other:techs/go/errors\n  syllabus-skills-used: |-\n    skills/tdd\n---\n\nskills/tdd stays as written here.\n"
+	const qualified = "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    team:practices/testing/tdd\n    other:techs/go/errors\n  syllabus-skills-used: |\n    team:skills/tdd\n---\n\nskills/tdd stays as written here.\n"
+	for _, test := range []struct {
+		name, original string
+		library        bool
+		uses           []string
+		want           string
+	}{
+		{"library", cited, true, nil, qualified},
+		{"repository that isn't a library", cited, false, nil, strings.Replace(qualified, "team:practices/testing/tdd", "practices/testing/tdd", 1)},
+		{"nothing to qualify", "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: |-\n    other:skills/tdd\n---\n", true, nil, "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: |-\n    other:skills/tdd\n---\n"},
+		{"quoted list", "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: \"skills/tdd\"\n  syllabus-skill-type: playbook\n---\n", true, nil, "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: |\n    team:skills/tdd\n  syllabus-skill-type: playbook\n---\n"},
+		{"plain list on two lines", "---\nname: fix-bug\nmetadata:\n    syllabus-skills-used:\n      skills/tdd\n---\n", true, nil, "---\nname: fix-bug\nmetadata:\n    syllabus-skills-used: |\n      team:skills/tdd\n---\n"},
+		{"configured uses", "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: |\n    skills/tdd\n---\n", true, []string{"skills/plan", "skills/tdd"}, "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: |\n    team:skills/tdd\n    team:skills/plan\n---\n"},
+		{"configured uses without metadata", "---\nname: fix-bug\n---\n# Fix\n", true, []string{"skills/plan"}, "---\nname: fix-bug\nmetadata:\n  syllabus-skills-used: |\n    team:skills/plan\n---\n# Fix\n"},
+		{"no frontmatter", "# Fix\n", false, []string{"tools/plan"}, "---\nname: \"fix-bug\"\nmetadata:\n  syllabus-skills-used: |\n    team:tools/plan\n---\n# Fix\n"},
+		{"no name", "---\r\ndescription: Fix it.\r\n---\r\n# Fix\r\n", false, nil, "---\r\nname: \"fix-bug\"\r\ndescription: Fix it.\r\n---\r\n# Fix\r\n"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := skills.ReadMetadata([]byte(test.original), "SKILL.md")
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := forkedSkillFile([]byte(test.original), metadata, "fix-bug", "team", test.library, test.uses, "SKILL.md")
+			if err != nil || string(got) != test.want {
+				t.Errorf("got %v:\n%s\nwant:\n%s", err, got, test.want)
+			}
+		})
+	}
+}
+
+// TestForkedSkillFile_RefusesWhatItCannotRewrite fails, naming the source's SKILL.md, rather than fork a skill whose
+// citations would name the project's own skills, or that build would refuse.
+func TestForkedSkillFile_RefusesWhatItCannotRewrite(t *testing.T) {
+	for _, test := range []struct {
+		name, original, problem string
+	}{
+		{"flow mapping", "---\nname: fix-bug\nmetadata: {syllabus-skills-used: \"skills/tdd\"}\n---\n", "Syllabus can't rewrite this frontmatter for the fork"},
+		{"invalid type", "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: workflow\n---\n", "syllabus-skill-type is \"workflow\"; use playbook or review"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := skills.ReadMetadata([]byte(test.original), "SKILL.md")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = forkedSkillFile([]byte(test.original), metadata, "fix-bug", "team", true, nil, "SKILL.md")
+			var invalid errs.ValidationError
+			if !errors.As(err, &invalid) || invalid.ValidationLocation() != "SKILL.md" || !strings.Contains(invalid.ValidationProblem(), test.problem) || !strings.Contains(invalid.ValidationProblem(), "copy it into .syllabus/skills/fix-bug/") {
+				t.Fatalf("got %v; want a validation error saying %q", err, test.problem)
+			}
+		})
+	}
+}
+
+// TestPlanSkillFork_ForksASkillWithoutFrontmatter installs the fork of a skill from a repository that isn't a
+// library, whose SKILL.md has no frontmatter, since the fork gets frontmatter that names it.
+func TestPlanSkillFork_ForksASkillWithoutFrontmatter(t *testing.T) {
+	ctx := context.Background()
+	f, err := gitfixture.New(ctx, map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "---\nname: fix-bug\nmetadata:\n  syllabus-skill-type: playbook\n  syllabus-rules-used: |\n    team:practices/testing/tdd\n    other:techs/go/errors\n  syllabus-skills-used: |-\n    team:skills/tdd\n---\n\nskills/tdd stays as written here.\n"
-	if got := string(qualifyCitations([]byte(original), metadata, "team", true, "SKILL.md")); got != want {
-		t.Errorf("library fork:\n%s\nwant:\n%s", got, want)
-	}
-	want = strings.Replace(want, "team:practices/testing/tdd", "practices/testing/tdd", 1)
-	if got := string(qualifyCitations([]byte(original), metadata, "team", false, "SKILL.md")); got != want {
-		t.Errorf("fork from a repository that isn't a library:\n%s\nwant:\n%s", got, want)
-	}
-	flow := "---\nname: fix-bug\nmetadata: {syllabus-skills-used: \"skills/tdd\"}\n---\n"
-	if metadata, err = skills.ReadMetadata([]byte(flow), "SKILL.md"); err != nil {
+	t.Cleanup(func() { _ = f.Close() })
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"tools":{"repository":REPOSITORY,"ref":"v1.0.0","skills":{"include":["*"]}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if got := string(qualifyCitations([]byte(flow), metadata, "team", true, "SKILL.md")); got != flow {
-		t.Errorf("a list that isn't a block string changed:\n%s", got)
+	forkSkill(t, options, "tools:tools/review", "Ours.")
+	if fork := readRepositoryFile(t, options, ".syllabus/skills/review/SKILL.md"); fork != "---\nname: \"review\"\n---\n# Review\n" {
+		t.Fatalf("fork's SKILL.md:\n%s", fork)
+	}
+	if _, err := Build(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	if installed := readRepositoryFile(t, options, ".claude/skills/review/SKILL.md"); !strings.Contains(installed, "edit .syllabus/skills/review/ instead") {
+		t.Fatalf("installed copy isn't the fork:\n%s", installed)
+	}
+}
+
+// TestPlanSkillFork_KeepsTheSkillsThatSkillsUsesAdds names in the fork's syllabus-skills-used the skill that the
+// source's skills.uses adds for the forked skill, which applies only to the source's own skill.
+func TestPlanSkillFork_KeepsTheSkillsThatSkillsUsesAdds(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/build-feature"],"uses":{"skills/build-feature":["skills/review"]}}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	forkSkill(t, options, "team:skills/build-feature", "We build with make.")
+	if fork := readRepositoryFile(t, options, ".syllabus/skills/build-feature/SKILL.md"); !strings.Contains(fork, "  syllabus-skills-used: |\n    team:skills/review\n") {
+		t.Fatalf("fork's SKILL.md:\n%s", fork)
+	}
+	if _, err := Build(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
+	if !strings.Contains(index, "- **Uses:** `review`") {
+		t.Fatalf("SKILLS.md doesn't say the fork uses review:\n%s", index)
+	}
+}
+
+// TestUpdate_ListsAReplacedSkillOnlyAtTheRevisionTheDecisionsChoose keeps the only rule a scoped update moves, so
+// the skills stay at release/1, and the preview no longer lists release/2's changes to the forked skill.
+func TestUpdate_ListsAReplacedSkillOnlyAtTheRevisionTheDecisionsChoose(t *testing.T) {
+	ctx := context.Background()
+	f := scriptLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"rules":{"include":["techs/go/*"]},"skills":{"include":["skills/build-feature"]}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	forkSkill(t, options, "team:skills/build-feature", "We build with make.")
+	publishScriptRelease(t, f)
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := moved.Sources[0].ReplacedSkills; len(got) != 1 || got[0].ID != "skills/build-feature" {
+		t.Fatalf("replaced skills when errors moves = %+v; want build-feature", got)
+	}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
+	for _, step := range []struct {
+		name string
+		run  func(context.Context, []UpdateDecision) (UpdateResult, error)
+	}{{"preview", plan.Preview}, {"apply", plan.Apply}} {
+		kept, err := step.run(ctx, keep)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := kept.Sources[0].ReplacedSkills; got == nil || len(got) != 0 {
+			t.Errorf("%s with errors kept lists replaced skills %+v; want none, since the skills stay at release/1", step.name, got)
+		}
 	}
 }

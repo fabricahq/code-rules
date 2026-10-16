@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // legacyLibrary returns a fixture whose release/1, made before the rename, published rules a and b from
@@ -72,7 +72,7 @@ func TestProject_KeepsWorkingInTheLegacyDirectory(t *testing.T) {
 			t.Fatalf("project %s: exit %d, stderr %q, stdout:\n%s", command, code, diagnostic, out)
 		}
 	}
-	vendored, err := os.ReadFile(filepath.Join(dir, librarytree.LegacyDirectory, "vendor", "team", "practices", "testing", "a.md"))
+	vendored, err := os.ReadFile(filepath.Join(dir, librarytree.LegacyDirectory, "vendor", "team", "rules", "practices", "testing", "a.md"))
 	if err != nil || !strings.Contains(string(vendored), "Test the retry limit.") {
 		t.Fatalf("sync didn't import release/1 from the library's .code-rules/: %v\n%s", err, vendored)
 	}

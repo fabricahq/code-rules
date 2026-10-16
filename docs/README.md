@@ -1,6 +1,6 @@
 # Syllabus documentation
 
-The [Fabrica Syllabus](https://code-rules.fabricahq.com) website documents the Go CLI and its file formats.
+The [Fabrica Syllabus](https://syllabus.fabricahq.com) website documents the Go CLI and its file formats.
 
 The site uses Astro and Starlight, with human-facing guides, a reference, and a dedicated “For agents” section.
 Its visual direction follows [FM Linear's documentation](https://github.com/josh-padnick/fm-linear/tree/main/docs): monochrome typography, generous spacing, and rounded example panels.
@@ -36,10 +36,10 @@ These commands do not publish the site.
 
 ## Publishing
 
-The Documentation workflow publishes the site, including `install.sh`, to GitHub Pages at <https://code-rules.fabricahq.com> after a push to `main` passes every docs check, including the external link check. Pull requests and other branches only run the checks.
+The Documentation workflow publishes the site, including `install.sh`, to GitHub Pages at <https://syllabus.fabricahq.com> after a push to `main` passes every docs check, including the external link check. Pull requests and other branches only run the checks.
 The site is served at the domain root, and page links are root-relative; do not set Astro's `base`.
 GitHub Pages settings, the custom domain, and its DNS record are managed in Fabrica's infrastructure repository, not here.
-Every documentation page loads Cloudflare Web Analytics, which counts visits without cookies, only when served from code-rules.fabricahq.com, so local builds and tests report nothing. `src/analytics.mjs` builds that script, and `astro.config.mjs` holds the public site token from the Cloudflare dashboard. The footer links to Fabrica's privacy policy, which describes the analytics.
+Every documentation page loads Cloudflare Web Analytics, which counts visits without cookies, only when served from syllabus.fabricahq.com, so local builds and tests report nothing. `src/analytics.mjs` builds that script, and `astro.config.mjs` holds the public site token from the Cloudflare dashboard. The footer links to Fabrica's privacy policy, which describes the analytics.
 
 ## Maintain the docs
 
@@ -69,7 +69,7 @@ Run `bun run check` to verify website/tooling formatting, lint, types, tests, th
 
 ### Link checks
 
-`bun run check` checks links and anchors within the built site, including absolute URLs to `code-rules.fabricahq.com`. To also check external links, run `bun run docs:build && bun run docs:links:all` from the repository root.
+`bun run check` checks links and anchors within the built site, including absolute URLs to `syllabus.fabricahq.com`. To also check external links, run `bun run docs:build && bun run docs:links:all` from the repository root.
 
 The Documentation workflow runs both checks on every push and pull request. A broken link fails the workflow, even when the change does not touch a Markdown file.
 

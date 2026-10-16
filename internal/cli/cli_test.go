@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // libraryFile returns where the library repository at dir keeps the file at library path name.

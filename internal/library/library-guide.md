@@ -1,6 +1,6 @@
 # Rule library
 
-This repository contains a [Fabrica Syllabus](https://code-rules.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
+This repository contains a [Fabrica Syllabus](https://syllabus.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
 The library section of `.syllabus/config.yaml` makes the repository a library. Its groups and rules live in `.syllabus/rules/`, shared assets in `.syllabus/assets/`, and change notes in `.syllabus/changes/`.
 Use this README to author and maintain the library.
 
@@ -18,7 +18,7 @@ Library groups supply shared guidance. A consuming project's local groups belong
 
 1. Run the commands below from the folder containing this README. From elsewhere, pass `--directory` with this library's path.
 2. Replace example metadata and guidance with the publisher's intended engineering practices.
-3. Before adding or revising a rule, read the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
+3. Before adding or revising a rule, read the [rule authoring rubric](https://github.com/fabricahq/syllabus/blob/main/docs/src/content/docs/reference/rule-authoring.md).
 4. After the library's first library release, record every rule change in a change note with `syllabus library change`, in the same commit as the change.
 5. After editing, run `syllabus library check`. Fix every error and review licensing warnings before reporting the library ready.
 
@@ -84,6 +84,6 @@ After the first library release, every change to a rule needs a change note in `
 - For a new rule, leave out `--bump`; it starts at version `1.0.0`.
 - To retire a rule, delete its Markdown file and asset directory, then pass `--retire`, and `--replaced-by` with the rule that replaces it, if any.
 
-Pass `--summary` with one line for project maintainers deciding whether to update. `syllabus library check` fails when a changed rule has no note, or a note doesn't match a change. [Version your rules](https://code-rules.fabricahq.com/guides/version-rules/) explains change levels and library releases.
+Pass `--summary` with one line for project maintainers deciding whether to update. `syllabus library check` fails when a changed rule has no note, or a note doesn't match a change. [Version your rules](https://syllabus.fabricahq.com/guides/version-rules/) explains change levels and library releases.
 
 You may customize this README for the library. Re-running `syllabus library init` preserves an existing README.

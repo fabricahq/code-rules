@@ -1,13 +1,13 @@
 // Check release tag names and the split of tag messages into notes and a record at their boundaries.
 
-package coderules_test
+package syllabus_test
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // TestParseReleaseTag_AcceptsOnlyCanonicalReleaseNumbers returns the number of release/<number> and refuses every
@@ -31,9 +31,9 @@ func TestParseReleaseTag_AcceptsOnlyCanonicalReleaseNumbers(t *testing.T) {
 		{"v1.0.0", 0},
 		{"", 0},
 	} {
-		got, err := coderules.ParseReleaseTag(test.name)
+		got, err := syllabus.ParseReleaseTag(test.name)
 		if test.want == 0 {
-			if !errors.Is(err, coderules.ErrNotReleaseTag) || got != 0 {
+			if !errors.Is(err, syllabus.ErrNotReleaseTag) || got != 0 {
 				t.Errorf("ParseReleaseTag(%q) = %d, %v; want ErrNotReleaseTag", test.name, got, err)
 			}
 			continue
@@ -59,8 +59,8 @@ func TestParseReleaseMessage_SplitsAtTheLastSeparatorLine(t *testing.T) {
 		{"empty notes", "---\n" + record2, ""},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			notes, record, err := coderules.ParseReleaseMessage("release/2", []byte(test.message))
-			if err != nil || notes != test.notes || record.Release != 2 || record.Rules["techs/go/a"] != coderules.FirstRuleVersion {
+			notes, record, err := syllabus.ParseReleaseMessage("release/2", []byte(test.message))
+			if err != nil || notes != test.notes || record.Release != 2 || record.Rules["techs/go/a"] != syllabus.FirstRuleVersion {
 				t.Fatalf("got %q, %+v, %v; want notes %q", notes, record, err, test.notes)
 			}
 		})
@@ -81,7 +81,7 @@ func TestParseReleaseMessage_RefusesMessagesWithoutARecord(t *testing.T) {
 		"record for release one": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules: {}\n",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, _, err := coderules.ParseReleaseMessage("release/2", []byte(message)); err == nil || errors.Is(err, coderules.ErrNotReleaseTag) {
+			if _, _, err := syllabus.ParseReleaseMessage("release/2", []byte(message)); err == nil || errors.Is(err, syllabus.ErrNotReleaseTag) {
 				t.Fatalf("got %v; want an invalid record", err)
 			}
 		})
@@ -91,8 +91,8 @@ func TestParseReleaseMessage_RefusesMessagesWithoutARecord(t *testing.T) {
 // TestParseReleaseMessage_RefusesTagNamesThatArentReleases reports the tag name with ErrNotReleaseTag before reading
 // the message.
 func TestParseReleaseMessage_RefusesTagNamesThatArentReleases(t *testing.T) {
-	_, _, err := coderules.ParseReleaseMessage("release/02", []byte("Notes.\n---\n"+record2))
-	if !errors.Is(err, coderules.ErrNotReleaseTag) {
+	_, _, err := syllabus.ParseReleaseMessage("release/02", []byte("Notes.\n---\n"+record2))
+	if !errors.Is(err, syllabus.ErrNotReleaseTag) {
 		t.Fatalf("got %v; want ErrNotReleaseTag", err)
 	}
 }
@@ -105,7 +105,7 @@ func TestParseReleaseMessage_IgnoresTheSignatureOfASignedTag(t *testing.T) {
 		"-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n",
 		"-----BEGIN SIGNED MESSAGE-----\nMIIF\n-----END SIGNED MESSAGE-----\n",
 	} {
-		notes, record, err := coderules.ParseReleaseMessage("release/2", []byte("Notes.\n---\n"+record2+signature))
+		notes, record, err := syllabus.ParseReleaseMessage("release/2", []byte("Notes.\n---\n"+record2+signature))
 		if err != nil || notes != "Notes." || record.Release != 2 || len(record.Rules) != 1 {
 			t.Fatalf("got %q, %+v, %v", notes, record, err)
 		}

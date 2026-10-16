@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // leveledLibrary returns a library whose release/1 publishes techs/go/errors and four skills: ship, required;
@@ -109,37 +109,41 @@ func TestSync_RecordsWhichLibrarySetEachLevel(t *testing.T) {
 	if _, err := Sync(context.Background(), options, git); err != nil {
 		t.Fatal(err)
 	}
+	type setter struct {
+		Library string
+		Release *int
+	}
 	var provenance struct {
 		Skills []struct {
 			ID                                   string
-			RequiredBy, RecommendedBy, OfferedBy *struct {
-				Source  string
-				Release *int
-				Commit  string
-			}
+			Level                                *string
+			RequiredBy, RecommendedBy, OfferedBy *setter
 		}
 	}
 	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/generated/provenance.json")), &provenance); err != nil {
 		t.Fatal(err)
 	}
-	levels := map[string]string{}
+	// deploy is named by ID, so no level brought it in, and its record names no library.
+	levels, setBy := map[string]string{}, map[string]string{}
 	for _, skill := range provenance.Skills {
-		for level, by := range map[string]*struct {
-			Source  string
-			Release *int
-			Commit  string
-		}{"required": skill.RequiredBy, "recommended": skill.RecommendedBy, "offered": skill.OfferedBy} {
+		if skill.Level != nil {
+			levels[skill.ID] = *skill.Level
+		}
+		for level, by := range map[string]*setter{"required": skill.RequiredBy, "recommended": skill.RecommendedBy, "offered": skill.OfferedBy} {
 			if by == nil {
 				continue
 			}
-			if _, set := levels[skill.ID]; set || by.Source != "team" || by.Release == nil || *by.Release != 1 || len(by.Commit) != 40 {
+			if _, set := setBy[skill.ID]; set || by.Library != "team" || by.Release == nil || *by.Release != 1 {
 				t.Fatalf("%s: %s by %+v", skill.ID, level, by)
 			}
-			levels[skill.ID] = level
+			setBy[skill.ID] = level
 		}
 	}
 	if want := map[string]string{"team:skills/ship": "required", "team:skills/review": "recommended", "team:skills/deploy": "offered"}; !mapsEqual(levels, want) {
 		t.Fatalf("provenance levels = %v; want %v", levels, want)
+	}
+	if want := map[string]string{"team:skills/ship": "required", "team:skills/review": "recommended"}; !mapsEqual(setBy, want) {
+		t.Fatalf("provenance set by = %v; want %v", setBy, want)
 	}
 	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
 	for _, want := range []string{"**Level:** required by `team`, release 1", "**Level:** recommended by `team`, release 1", "**Level:** offered by `team`, release 1", "every project that uses the library installs its required skills"} {
@@ -305,6 +309,46 @@ func TestUpdate_PreviewsLevelChangesAndInstallsNewRequiredSkills(t *testing.T) {
 	}
 }
 
+// TestUpdate_TakesLevelChangesFromTheRevisionTheDecisionsChoose keeps the only rule a scoped update moves, so the
+// skills stay at release/1 and the preview shows none of release/2's level changes.
+func TestUpdate_TakesLevelChangesFromTheRevisionTheDecisionsChoose(t *testing.T) {
+	ctx := context.Background()
+	f := leveledLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Require review and wrap errors", gitfixture.Library(map[string][]byte{
+		"config.yaml":        []byte(`{"schemaVersion":2,"sources":{},"library":{"skills":{"required":["skills/review","skills/ship"],"offered":["skills/deploy"]}}}`),
+		"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors to the caller, wrapped.", 1)),
+	})); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Wrap errors.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []imports.SkillLevelUpdate{{ID: "skills/review", From: "recommended", To: "required"}}
+	if got := moved.Sources[0].SkillLevels; !slices.Equal(got, want) {
+		t.Fatalf("level rows when errors moves = %+v; want %+v", got, want)
+	}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
+	kept, err := plan.Preview(ctx, keep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := kept.Sources[0].SkillLevels; got == nil || len(got) != 0 {
+		t.Fatalf("level rows with errors kept = %#v; want none, since the skills stay at release/1", got)
+	}
+}
+
 func TestSync_RenamesARequiredSkill(t *testing.T) {
 	f := leveledLibrary(t)
 	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"rename":{"skills/ship":"team-ship"}}}}}`)
@@ -315,7 +359,7 @@ func TestSync_RenamesARequiredSkill(t *testing.T) {
 	if got := installedSkills(t, options); !slices.Equal(got, []string{"team-ship"}) {
 		t.Fatalf("installed %v; want the required skill under its new name", got)
 	}
-	if len(changes.Warnings) != 1 || !strings.HasPrefix(changes.Warnings[0], "Installed skill team:skills/ship as team-ship instead of ship") {
+	if len(changes.Warnings) != 1 || !strings.HasPrefix(changes.Warnings[0], "team:skills/ship is installed as team-ship.") {
 		t.Fatalf("warnings = %q", changes.Warnings)
 	}
 }

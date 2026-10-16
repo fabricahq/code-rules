@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/ghfixture"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/ghfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // marker appears in every probe's external text, so finding any of it in output shows that text passed through.

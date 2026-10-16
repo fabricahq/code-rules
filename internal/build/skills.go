@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // SkillFiles is one skill folder's files, by path in the folder, and the paths of its executable files, sorted.
@@ -33,7 +33,7 @@ type ClashError struct {
 
 // Error names the skills and the next steps.
 func (e *ClashError) Error() string {
-	return fmt.Sprintf("skills %s and %s both have the install name %s, and installed folders are named by install name, so both can't be installed; give one of them another name with skills.rename in its source's configuration, such as rename: {skills/review: team-review}, or stop including one of them", e.IDs[0], e.IDs[1], e.Name)
+	return fmt.Sprintf("%s and %s both install as %s. Rename one with skills.rename, or exclude one.", e.IDs[0], e.IDs[1], e.Name)
 }
 
 // resolvedSkill is one skill the project installs.

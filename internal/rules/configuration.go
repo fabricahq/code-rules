@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -22,6 +22,9 @@ type Configuration struct {
 	// SkillTargets lists, as configured, where installed copies of skills go, each a key of SkillTargetFolders; it
 	// is empty, never nil, when the configuration has none, which records skills without installing them.
 	SkillTargets []string `json:"skillTargets"`
+	// SkipAgentsFile is true when manageAgentsFile is false, so project commands leave the repository's AGENTS.md
+	// alone; by default they maintain a Syllabus section in it.
+	SkipAgentsFile bool `json:"skipAgentsFile,omitempty"`
 	// Library is the library section, the manifest, or nil when the repository isn't a library.
 	Library *Library `json:"library,omitempty"`
 }
@@ -83,8 +86,8 @@ func (c Configuration) SkillFolders() []string {
 
 // Pin keeps one rule at an exact published version, with the project's reason.
 type Pin struct {
-	Version coderules.RuleVersion `json:"version" yaml:"version"`
-	Reason  string                `json:"reason" yaml:"reason"`
+	Version syllabus.RuleVersion `json:"version" yaml:"version"`
+	Reason  string               `json:"reason" yaml:"reason"`
 }
 
 // Exclusion leaves one rule, or every rule a selector matches, out of generated guidance, with the project's reason.
@@ -95,7 +98,7 @@ type Exclusion struct {
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
 	// one. Configuration alone owns it.
-	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
+	BasedOn *syllabus.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 // Exclusion returns the exclusion that leaves rule id out of generated guidance: the entry for id itself, or else
@@ -165,7 +168,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if versioned && schema == 1 {
 		return Configuration{}, invalid("schemaVersion", versionOneProblem)
 	}
-	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "sources", "library"}, "configuration"); err != nil {
+	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "manageAgentsFile", "sources", "library"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
 	if !versioned || schema != 2 {
@@ -180,6 +183,14 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		return Configuration{}, err
 	}
 	result := Configuration{Sources: make([]Source, 0, len(sources)), SkillTargets: targets}
+	if raw, ok := fields["manageAgentsFile"]; ok {
+		// A pointer tells null, which would otherwise leave manage false, from a boolean.
+		var manage *bool
+		if json.Unmarshal(raw, &manage) != nil || manage == nil {
+			return Configuration{}, invalid("manageAgentsFile", "expected true or false")
+		}
+		result.SkipAgentsFile = !*manage
+	}
 	// repositories maps each repository identity to the first source, in name order, that imports it.
 	repositories := make(map[string]string)
 	for _, name := range slices.Sorted(maps.Keys(sources)) {
@@ -509,12 +520,12 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 }
 
 // quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
-func quotedVersion(raw json.RawMessage, location string) (coderules.RuleVersion, error) {
+func quotedVersion(raw json.RawMessage, location string) (syllabus.RuleVersion, error) {
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
-		return coderules.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+		return syllabus.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
 	}
-	return coderules.ParseRuleVersion(text, location)
+	return syllabus.ParseRuleVersion(text, location)
 }
 
 // parseExclusions validates each exclusion's selector, reason, and, for a rule ID, the optional ID of the local rule

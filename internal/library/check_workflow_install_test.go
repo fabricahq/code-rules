@@ -35,7 +35,7 @@ case "$1 $2" in
   done
   [ -n "$found" ] ;;
 "attestation verify")
-  case "$*" in *"--repo fabricahq/code-rules --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml --source-ref refs/heads/main"*) ;; *) exit 1 ;; esac
+  case "$*" in *"--repo fabricahq/syllabus --signer-workflow fabricahq/syllabus/.github/workflows/release-planner.yml --source-ref refs/heads/main"*) ;; *) exit 1 ;; esac
   [ "$FAKE_ATTESTATION" = pass ] ;;
 *) exit 2 ;;
 esac`

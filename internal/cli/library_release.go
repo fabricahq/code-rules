@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/syllabus/internal/library"
 	"github.com/spf13/cobra"
 )
 

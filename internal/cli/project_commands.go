@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/project"
 	"github.com/spf13/cobra"
 )
 
@@ -68,7 +68,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 
 func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 	initialize, f := newAuthoringCommand("init", "Set up Syllabus in this project", cobra.NoArgs, options.Directory)
-	initialize.Long = initialize.Short + "\n\nCreates the .syllabus/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules and how to connect your coding agent to them. Run it from the repository\nroot; outside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide.\n\nA new configuration installs skills into .claude/skills/ and .agents/skills/.\nChoose others with --skill-targets: repeat it for claude and agents, or pass\nnone to install no copies. On an existing configuration, init changes the skill\ntargets only when you pass --skill-targets.\n\nLearn more: https://code-rules.fabricahq.com/start-here/set-up-project/"
+	initialize.Long = initialize.Short + "\n\nCreates the .syllabus/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules. It also adds a section to AGENTS.md that tells your coding agent to read\nthe rules, creating the file if needed. Run it from the repository root;\noutside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide and section.\n\nA new configuration installs skills into .claude/skills/ and .agents/skills/.\nChoose others with --skill-targets: repeat it for claude and agents, or pass\nnone to install no copies. On an existing configuration, init changes the skill\ntargets only when you pass --skill-targets.\n\nLearn more: https://syllabus.fabricahq.com/start-here/set-up-project/"
 	var skillTargets []string
 	initialize.Flags().StringArrayVar(&skillTargets, "skill-targets", nil, "Where to install skills (repeat): claude for .claude/skills/, agents for .agents/skills/, or none")
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
@@ -80,6 +80,7 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
+		target.ToolVersion = options.Version
 		result, err := project.InitializeWithSkillTargets(cmd.Context(), target, targets)
 		if err != nil {
 			return err

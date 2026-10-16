@@ -16,8 +16,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // Step records an actual command or a deliberate fixture edit and its observable outcome.
@@ -211,7 +211,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if err != nil {
 		return report, err
 	}
-	for name, want := range map[string][]byte{".syllabus/vendor/team/LICENSE.md": terms, ".syllabus/vendor/team/NOTICE.md": notice, ".syllabus/vendor/team/techs/go/assets/errors/diagram.bin": asset} {
+	for name, want := range map[string][]byte{".syllabus/vendor/team/LICENSE.md": terms, ".syllabus/vendor/team/NOTICE.md": notice, ".syllabus/vendor/team/rules/techs/go/assets/errors/diagram.bin": asset} {
 		if !bytes.Equal(files.Files[name], want) {
 			return report, fmt.Errorf("original bytes not preserved: %s", name)
 		}
@@ -359,7 +359,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !bytes.Equal(after.Files[".syllabus/vendor/team/techs/go/errors.md"], document) || !bytes.Equal(after.Files[".syllabus/vendor/team/techs/go/naming.md"], libraryTree.Files[".syllabus/rules/techs/go/naming.md"]) {
+		if !bytes.Equal(after.Files[".syllabus/vendor/team/rules/techs/go/errors.md"], document) || !bytes.Equal(after.Files[".syllabus/vendor/team/rules/techs/go/naming.md"], libraryTree.Files[".syllabus/rules/techs/go/naming.md"]) {
 			return report, fmt.Errorf("sync did not import the pinned version beside the other rule's recorded version")
 		}
 		if !strings.Contains(string(after.Files[".syllabus/generated/rules/team/techs/go/errors.md"]), "Version: 1.1.0") {
@@ -379,7 +379,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !bytes.Equal(after.Files[".syllabus/vendor/team/techs/go/errors.md"], libraryTree.Files[".syllabus/rules/techs/go/errors.md"]) {
+		if !bytes.Equal(after.Files[".syllabus/vendor/team/rules/techs/go/errors.md"], libraryTree.Files[".syllabus/rules/techs/go/errors.md"]) {
 			return report, fmt.Errorf("sync did not return the pinned rule to version 1.0.0")
 		}
 		report.Verified = append(report.Verified, "A pin moves one rule back down")

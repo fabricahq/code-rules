@@ -1,6 +1,6 @@
 // Parse the canonical group list: the group IDs that tools may treat as the same group across libraries.
 
-package coderules
+package syllabus
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // CanonicalGroup is one entry on the canonical group list. Text has no surrounding whitespace.

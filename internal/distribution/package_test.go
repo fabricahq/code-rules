@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"debug/buildinfo"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -20,10 +20,10 @@ jobs:
           archive="syllabus_${version}_linux_amd64.tar.gz"
           dir="$RUNNER_TEMP/syllabus"
           mkdir -p "$dir" && cd "$dir"
-          gh release download "v$version" --repo fabricahq/code-rules \
+          gh release download "v$version" --repo fabricahq/syllabus \
             --pattern SHA256SUMS --pattern "$archive"
-          gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
-            --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml \
+          gh attestation verify SHA256SUMS --repo fabricahq/syllabus \
+            --signer-workflow fabricahq/syllabus/.github/workflows/release-planner.yml \
             --source-ref refs/heads/main
           checksum=$(sha256sum "$archive")
           grep -qxF "$checksum" SHA256SUMS

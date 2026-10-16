@@ -1,155 +1,246 @@
 ---
 title: "Install skills"
-description: "Install skills from a library, another repository, or your own project into the folders your agents read."
+description: "Install skills from libraries and other repositories into the folders your agents read, and manage their levels, names, and exceptions."
 ---
 
-:::note[Preview]
-Skills come in the next Syllabus release. Sync installs the skills a source's skill uses; a skill you author in `.syllabus/skills/` can use a source's skill only when the source already installs it.
+:::caution[Preview]
+Skill support isn't in a released version of Syllabus yet. This guide describes how it will work.
 :::
 
-Syllabus installs [skills](/concepts/skill/) from your sources and from your own project into the folders your agents read. This guide shows how to choose where they go, add skills from a library or another repository, see what's installed and what else you could add, write your own, exclude, fork, or rename a source's skill, and change what's installed.
+A **[skill](/concepts/skill/)** tells an agent how to carry out one kind of task, step by step, and which rules each step applies. Installing skills with Syllabus gives every checkout of your project the same skills, from the revisions you choose, beside the rules they cite.
 
-## Choose where skills are installed
+Skills come from **sources**: the repositories your project takes skills and rules from. A source is usually a [library](/concepts/libraries/), but any Git repository of skill folders works too.
 
-`syllabus project init` writes `skillTargets: [claude, agents]` to a new configuration, so every skill is installed into both `.claude/skills/` and `.agents/skills/`. To choose other targets, pass `--skill-targets` once for each, or `none`:
+In this guide, you'll see which skills your sources offer, install a library's required and recommended skills, and find out where they land. You'll also install skills from a repository that isn't a library, resolve a name clash, exclude or fork a skill, write your own, and commit the result.
 
-```sh
-syllabus project init --skill-targets claude
+Start with a project that already has a `.syllabus/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/). To choose rules as well, see [Include rules](/guides/select-rules/).
+
+## Check your skill targets
+
+Syllabus installs a copy of each skill into the folders your agents read. `skillTargets` in `.syllabus/config.yaml` names them:
+
+```yaml
+schemaVersion: 2
+skillTargets: [claude, agents]
 ```
 
-Running init again on an existing project changes `skillTargets` only when you pass `--skill-targets`. You can also edit `skillTargets` in `.syllabus/config.yaml`; see [Skill targets](/reference/configuration/#skill-targets). With no skill targets, the project still records its skills and lists them in `.syllabus/generated/SKILLS.md`, and sync warns that it installed no copy.
+`claude` installs into `.claude/skills/`, which Claude Code reads. `agents` installs into `.agents/skills/`, which Codex, Cursor, and other agents that follow the shared convention read. `syllabus project init` writes both, and nothing is written to either folder until the project installs a skill.
 
-## Install skills from a library
+To record which skills your sources require before you choose agent folders, set `skillTargets: []`. Syllabus still records and checks every skill and lists it in `.syllabus/generated/SKILLS.md`, but writes no installed copies, and sync warns that it installed nothing. See [Skill targets](/reference/configuration/#skill-targets).
 
-A library marks each of its skills [required, recommended, or offered](/reference/configuration/#skill-levels). Its required skills install as soon as you add the library, whatever you include. Include `recommended` to take the skills it recommends too, name offered skills by ID, the folder's path in the library, such as `skills/build-feature`, or include every skill the library offers with `*`:
+## Add a library
+
+Add your organization's library as a source:
 
 ```sh
 syllabus project add source fabrica \
-  --repository https://github.com/fabricahq/rules.git \
-  --rules 'practices/testing/*' \
+  --repository https://github.com/fabricahq/.syllabus.git \
   --skills recommended \
-  --skills skills/build-feature
-syllabus project sync
+  --non-interactive
 ```
 
-The repository and skill ID are illustrative; replace them with a source you can access. Sync installs each skill from the same library release as the source's rules, so skills that call each other always match, and writes `.claude/skills/build-feature/` and `.agents/skills/build-feature/`. Commit the installed copies with the rest of `.syllabus/`.
-
-To take only the required skills, add the source with no `--rules` or `--skills`. When a later library release requires another skill, `syllabus project update` installs it, and its preview says so.
-
-To install another skill later, add its ID to the source's `skills.include` and run `syllabus project sync`. Sync never moves the source to a newer library release for it: when the recorded library release doesn't have the skill, sync fails with `skill-not-in-revision` and names the update that takes it:
-
-```sh
-syllabus project update fabrica
-```
-
-Syllabus never runs a skill's scripts, but your agents may. When an update moves a library's skills, its preview flags each executable script it adds or changes, including every script of a skill it newly installs, and warns you to read them before you confirm; see [Review skill scripts](/guides/update/#review-skill-scripts).
-
-## Install skills from another repository
-
-A repository that isn't a library, such as a third party's skill collection, works as a source too. Every folder in it that holds a `SKILL.md` is a skill, named by its path from the repository root. Because it has no library releases, set `--ref` to a tag or full commit SHA:
-
-```sh
-syllabus project add source review-tools \
-  --repository https://github.com/example/review-skills.git \
-  --ref v2.1.0 \
-  --skills tools/review
-syllabus project sync
-```
-
-Without `--ref`, sync fails with `ref-required`. `*` installs every skill in the repository except those in folders whose names start with a dot, such as another tool's installed copies. To take a newer revision, change `ref` and sync. Review a third party's skills, including any scripts they bundle, before installing them: agents follow their instructions.
-
-## Install the skills a skill uses
-
-A skill can call other skills. When its `SKILL.md` lists them in `syllabus-skills-used`, sync installs them with it, and the skills they use in turn, from the same source and revision, so you include only the skill you want:
+This records the source in `.syllabus/config.yaml`:
 
 ```yaml
 sources:
-  pstack:
-    repository: https://github.com/example/pstack.git
-    ref: v1.4.0
+  fabrica:
+    repository: https://github.com/fabricahq/.syllabus.git
     skills:
-      include: [skills/poteto-mode]
+      include: [recommended]
 ```
 
-`generated/SKILLS.md` lists each skill a skill uses, and says when one was installed only because another skill uses it, such as `**Installed because:** used by poteto-mode`.
+Then sync:
 
-When a skill calls another without listing it in `syllabus-skills-used`, as many third-party skills do, declare the call in the source's `skills.uses`, so sync installs both:
+```sh
+syllabus project sync
+```
+
+What a library's skills install depends on the **level** the library sets for each one:
+
+- **Required** skills always install. Even a source with no `include` at all installs them, now and after every update that adds one.
+- **Recommended** skills install because you included `recommended`.
+- **Offered** skills install only when you name them, or include `"*"` for everything the library offers.
+
+To add an offered skill, name its ID beside `recommended`:
 
 ```yaml
-    skills:
-      include: [skills/poteto-mode]
-      uses:
-        skills/architect: [skills/how]
+skills:
+  include: [recommended, skills/deploy-preview]
 ```
 
-Syllabus doesn't read skill text to find calls it wasn't told about. See [Declare the skills a skill uses](/reference/configuration/#declare-the-skills-a-skill-uses).
+Including a rule group's rules never installs a skill, and including a skill never includes a rule group's rules. See [Skill selectors](/reference/configuration/#skill-selectors).
 
-## See what's installed and what you could add
+Sync takes the source's newest library release, records it in `.syllabus/vendor/fabrica/_source.json`, and installs every skill from that one release. Later syncs keep that release, even for skills you include later: a skill that isn't in the recorded release makes sync fail and name `syllabus project update fabrica`, the command that moves the source. See [Update skills](/guides/update/#update-skills).
+
+## See what's available
+
+List every skill your sources offer, with its level:
 
 ```sh
 syllabus project list skills
 ```
 
-The list shows every skill each source offers, with its level, the library release that set it, and whether the project installs it, excludes it, replaces it with a fork, or could add it. It reads what the last sync recorded, so run `syllabus project sync` first after changing the configuration. See [project list skills](/reference/cli/#project-list-skills).
-
-## Write your own skill
-
-Create a folder in `.syllabus/skills/` named after the skill, with its `SKILL.md`:
-
 ```text
-.syllabus/skills/release-checklist/SKILL.md
+NAME            ID                                               LEVEL        SET BY             VERSION  STATUS
+build-feature   fabrica:skills/build-feature                     recommended  fabrica release 7  1.3.0    installed
+deploy-preview  fabrica:skills/deploy-preview                    offered      fabrica release 7  1.0.0    installed
+review-change   fabrica:skills/review-change                     offered      fabrica release 7  3.0.0    available
+grilling        fabrica:mattpocock:skills/productivity/grilling  offered      fabrica release 7  8a41d07  available
+ship-service    fabrica:skills/ship-service                      required     fabrica release 7  1.0.0    installed
+tdd             fabrica:skills/tdd                               offered      fabrica release 7  1.1.0    installed
+to-spec         fabrica:mattpocock:skills/engineering/to-spec    recommended  fabrica release 7  8a41d07  installed
 ```
 
-```markdown
----
-name: release-checklist
-description: Prepare a release. Use when asked to cut a release.
-metadata:
-  syllabus-skill-type: playbook
-  syllabus-rules-used: |
-    practices/releases/write-release-notes
-    fabrica:practices/testing/test-behavior-not-implementation
----
+Each row shows a skill's install name, its ID, its level and the library release that set it, its version, or a commit for a skill without versions, and whether the project installs it. `installed` covers skills you included, required skills, and skills another installed skill calls; `available` means a source offers it and the project doesn't install it.
 
-1. Check that the main branch is green.
-2. ...
+The `mattpocock:` skills are **borrowed**: Fabrica's library lists them at a level, but their files come from the original repository, at a commit your project resolves when it updates. See [Borrowed skills](/reference/configuration/#borrowed-skills).
+
+Narrow the list:
+
+- `--type review` lists only review skills, and `--type playbook` only playbooks.
+- `--applies-rules-from practices/testing` lists only skills whose `syllabus-rules-used` names a rule in that rule group.
+- `--json` returns the list for scripts.
+
+See [project list skills](/reference/cli/#project-list-skills) for every option.
+
+## What lands where
+
+After sync, each installed skill appears in several places. Syllabus writes all of them, so don't edit them by hand:
+
+- **`.claude/skills/build-feature/`** and **`.agents/skills/build-feature/`**: the installed copies your agents load, one folder per target.
+- **`.syllabus/vendor/fabrica/skills/build-feature/`**: the original files, as the library published that version.
+- **`.syllabus/generated/SKILLS.md`**: one entry per installed skill, with its description, ID and version, level and the library that set it, type, installed paths, how many rules it applies, the skills it calls, and why it's installed.
+- **`.syllabus/generated/installed-skills.json`**: which folders in the targets Syllabus installed.
+
+An installed copy matches the library's folder, scripts and their executable bits included, with two additions to `SKILL.md`:
+
+- A marker comment as the first line after the frontmatter, naming the skill's project ID and version, such as `<!-- syllabus:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with syllabus project add skill --from. -->`.
+- When the skill cites rules, a generated section at the end, **Rules this skill applies**, which links to your project's version of each rule the skill cites, and a **Skills this skill uses** line when it calls others.
+
+Don't edit installed copies: the next sync replaces them, and `syllabus project check` reports the difference. To change a skill, [fork it](#fork-a-skill).
+
+Syllabus writes only the skill folders it installs. Other folders in `.claude/skills/` and `.agents/skills/`, such as a skill another tool installed, stay as they are. When one of them has the name of a skill you install, sync fails with `skill-folder-not-managed` instead of overwriting it. See [Installed skills](/reference/files/#installed-skills) and [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+
+`generated/RULES.md` gains one line pointing to `SKILLS.md`, so agents whose tools don't load skills from the target folders still find them through the instructions in your `AGENTS.md`.
+
+## Skills a skill calls, and the rules it cites
+
+A skill can call other skills and cite rules. When you install it, Syllabus installs those too:
+
+- **Skills it calls.** Every skill in its `syllabus-skills-used` list, and the skills those call, from the same repository and revision. `SKILLS.md` says each was installed because another skill uses it.
+- **Rules it cites.** Every rule in its `syllabus-rules-used` list, from the same library, even ones your rule `include` doesn't name. These cited rules are reference-only: each gets its generated rule file, and the installed skill links to it, but `RULES.md` doesn't list it. Installing a skill never widens the rules your agents apply to all work.
+
+If you exclude or replace a cited rule, the installed skill follows your choice: it links to your replacement, or says the rule is excluded by this project, with your reason. A cited rule your project also includes is an ordinary rule.
+
+When a skill calls another without saying so in `syllabus-skills-used`, as many third-party skills do, declare the call under `skills.uses`, so Syllabus installs both:
+
+```yaml
+skills:
+  uses:
+    skills/architect: [skills/how]
 ```
 
-`name` must equal the folder's name. The `metadata` keys are optional:
+Syllabus doesn't search skill text for calls it wasn't told about. See [Declare the skills a skill calls](/reference/configuration/#declare-the-skills-a-skill-calls).
 
-- `syllabus-skill-type` labels the skill `playbook` or `review`.
-- `syllabus-rules-used` lists the rules the skill applies, one per line, in a block string that starts with `|`. A bare ID, such as `practices/releases/write-release-notes`, names a rule you author in `.syllabus/rules/`; a source's rule takes its source name, such as `fabrica:practices/testing/test-behavior-not-implementation`.
-- `syllabus-skills-used` lists the skills it calls, in the same form, such as `skills/tag-release` or `fabrica:skills/tdd`.
+## Install skills from a repository that isn't a library
 
-See [What a skill contains](/concepts/skill/#what-a-skill-contains). Then install it:
+Not every useful skill lives in a library. Any Git repository that holds skill folders works as a source, such as a third party's collection. Add it the same way:
 
 ```sh
-syllabus project build
+syllabus project add source pstack \
+  --repository https://github.com/example/pstack.git \
+  --ref main \
+  --skills skills/architect \
+  --non-interactive
 ```
 
-Build works offline and installs authored skills alongside your sources' skills. It fails, naming the skill's `SKILL.md`, when the frontmatter breaks one of these requirements or cites a rule the project doesn't have. Each installed copy ends with a list of links to the project's version of every rule the skill cites; those rules don't join `RULES.md`. Edit the skill in `.syllabus/skills/`, never in an installed copy, and run build again after each change: `syllabus project check` fails while an installed copy differs from what build would write.
+```yaml
+sources:
+  pstack:
+    repository: https://github.com/example/pstack.git
+    ref: main
+    skills:
+      include: [skills/architect]
+```
+
+Then run `syllabus project sync`. You don't declare what kind of source it is: Syllabus finds that the repository has no library manifest, so it's a **non-library source**.
+
+- **Every skill is offered.** Nothing installs until you name it, or include `"*"` for every skill in the repository.
+- **A ref is required.** A non-library source has no library releases, so `ref` must name a branch, tag, or commit. With a branch, sync installs the newest commit on it the first time and records it; later syncs keep that commit, and `syllabus project update` moves to the branch's newest commit and shows which skill folders and files changed.
+- **IDs are paths.** Each folder with a `SKILL.md` is a skill, and its ID is the folder's path in the repository, such as `skills/architect`.
+- **Expect warnings, not failures.** Syllabus checks these skills leniently: where one doesn't follow the Agent Skills format, sync warns and installs it as it is. A non-library source has no rules or versions, so `rules` is rejected on it.
+- **Check the license.** Syllabus looks for terms in the skill's `license` field, then a `LICENSE*` file in its folder, then `LICENSE*` and `NOTICE*` files at the repository root, and records what it finds in provenance. When a skill has none, sync fails with `license-not-found`; ask the owner to add a license, or stop including the skill.
+
+Syllabus never runs a skill's scripts. Before you install or update a skill from a repository you don't control, read its files, scripts included: your agents may run them. To help, the `syllabus project update` preview flags each new or changed executable script and warns you to read it; see [Update skills](/guides/update/#update-skills).
+
+## Try a newer version of a borrowed skill
+
+A library chooses the `ref` it tracks for each repository it borrows skills from, and your project resolves that ref when it updates. To take a borrowed skill from another revision, declare the same repository as your own source, with your own `ref`:
+
+```yaml
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.syllabus.git
+    skills:
+      include: [recommended]
+  mattpocock:
+    repository: https://github.com/mattpocock/skills.git
+    ref: v2.0.0
+```
+
+The skills Fabrica borrows from that repository now come from `v2.0.0`, still at the level Fabrica sets. Repository identity decides the match, not the source name. Remove the source to go back to the library's ref.
+
+## Resolve a name clash
+
+Agents find skills by name, so two installed skills can't share one. When two sources ship skills with the same name, sync fails with `skill-name-clash` and writes nothing:
+
+```text
+Error: skill-name-clash: fabrica:skills/review-change and pstack:skills/review-change both install as review-change. Rename one with skills.rename, or exclude one. No files were written.
+```
+
+Rename one of them:
+
+```yaml
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.syllabus.git
+    skills:
+      include: [recommended, skills/review-change]
+      rename:
+        skills/review-change: fabrica-review
+```
+
+The installed copy is now `fabrica-review`, in `.claude/skills/fabrica-review/`. Its ID stays `fabrica:skills/review-change`. Syllabus doesn't rewrite the old name where other skills mention it, so every sync that applies the rename warns:
+
+```text
+Warning: fabrica:skills/review-change is installed as fabrica-review. Mentions of review-change in skill text aren't rewritten; check the skills that call it by that name.
+```
+
+Check whether any installed skill tells the agent to use `review-change`, the renamed skill's own text included. After the clash, `review-change` is the other source's skill, so an agent following that mention runs the wrong one. [Fork](#fork-a-skill) any skill you need to change. You can rename a required skill too, because it stays installed.
 
 ## Exclude a skill
 
-To leave out a skill that `recommended` or `"*"` brings in, exclude it with a reason:
+Exclude a skill you don't want, such as one that `recommended` or `"*"` brings in, with a reason:
 
 ```yaml
 sources:
   fabrica:
     skills:
-      include: ["*"]
+      include: [recommended]
       exclude:
         - id: skills/write-changelog
           reason: Release Planner writes our release notes.
 ```
 
-This is a partial snippet, not a complete source definition. Run `syllabus project sync`: the skill isn't installed, and `.syllabus/generated/SKILLS.md` lists it with your reason. It stays in `vendor/`, so updates can compare it with a replacement. See [Exclude or replace a skill](/reference/configuration/#exclude-or-replace-a-skill).
+These are partial snippets, not complete source definitions. An excluded skill isn't installed, but it stays in `vendor/`, so updates can show you its changes. When another installed skill calls it, sync warns that the skill it calls isn't installed.
 
-You can't exclude a skill the library requires: sync fails, and says the project must stop using the source to diverge from it. You can't pin a skill to a version either: all of a source's skills come from one revision and move together when the source updates. To keep a skill as it is, fork it.
+You can't exclude or fork a [required skill](/reference/configuration/#skill-levels): sync fails and names the library that requires it. Required skills are your organization's floor; to diverge from one, stop using the source.
+
+You can't pin a skill to a version either: all of a source's skills come from one revision and move together when the source updates. To keep a skill as it is, [fork it](#fork-a-skill), or set the source's `ref` to a library release tag or commit, which holds every rule and skill from that source. See [Update skills](/guides/update/#update-skills).
 
 ## Fork a skill
 
-To change what a source's skill says, fork it into your project. A required skill can't be forked:
+To change what an included skill says, fork it into your project:
 
 ```sh
 syllabus project add skill \
@@ -158,7 +249,7 @@ syllabus project add skill \
   --non-interactive
 ```
 
-The command copies the skill as your project installs it, with its scripts' executable bits, into `.syllabus/skills/fix-bug/`, and adds an exclusion that names the fork and the commit it copied:
+The command copies the version your project installs into `.syllabus/skills/fix-bug/`, and adds an exclusion that names the fork:
 
 ```yaml
 skills:
@@ -166,77 +257,53 @@ skills:
     - id: skills/fix-bug
       reason: We use our own bug workflow.
       replacedBy: skills/fix-bug
-      basedOn: "3f9c2a7b1d4e6f8091a2b3c4d5e6f708192a3b4c"
+      basedOn: "1.0.0"
 ```
 
-:::note[Preview]
-Skills have no versions yet, so `basedOn` is the commit the fork copied, for a library's skill too.
-:::
+Edit the fork, then run `syllabus project build`. Agents get your fork in place of the library's skill. With `basedOn`, `syllabus project update` lists the library's later changes to the skill, so you can decide whether your fork needs them, or replace it with a fork of the newest version with `--update-fork fabrica:skills/fix-bug`. The library's license still applies to the copied text. See [project add skill](/reference/cli/#project-add-skill).
 
-Edit the fork, then run `syllabus project build`. Agents get your fork, under the same name, in place of the source's skill, and `SKILLS.md` says which skill it replaces and why. When the source later changes the skill, `syllabus project update` lists it as `replaced`, with the files that changed since the commit your fork is based on, so you can decide whether your fork needs them; the update never changes your fork. After you merge changes by hand, set `basedOn` to the commit you merged. The source's license still applies to the copied files. See [project add skill](/reference/cli/#project-add-skill).
+## Write your own skill
 
-To replace a skill with one you wrote yourself, name your skill's ID, such as `skills/our-bug-workflow`, as the exclusion's `replacedBy`, without `basedOn`.
+Create a skill for this project alone:
 
-## Rename a skill
-
-Two skills with the same name can't both be installed, because agents find skills by name. When two of your skills clash, such as a library's `review` and one you wrote, build and sync fail with `skill-name-clash` and name both. To keep both, give one another name in its source's configuration:
-
-```yaml
-skills:
-  include: [skills/review]
-  rename:
-    skills/review: fabrica-review
+```sh
+syllabus project add skill review-migration \
+  --description 'Review a database migration for safety before it merges. Use when a change adds or edits a migration.' \
+  --type review \
+  --non-interactive
 ```
 
-This is a partial snippet of a source definition. Run `syllabus project sync`. The skill is installed as `.claude/skills/fabrica-review/`, with `name: fabrica-review` in its installed `SKILL.md`, and keeps its ID, `fabrica:skills/review`. See [Rename a skill](/reference/configuration/#rename-a-skill).
-
-:::caution[Mentions keep the old name]
-Syllabus changes only the `name` in the installed copy's `SKILL.md`. It doesn't rewrite mentions of the old name anywhere else: not in the renamed skill's own text, and not in other skills that call it, such as a playbook step that says "use the `review` skill" or runs `/review`. An agent following that text looks for a skill by the old name. After a clash, the old name usually belongs to the other skill, so the agent can quietly run the wrong one. Syllabus doesn't rewrite mentions because finding them takes guesswork: a bare word, `/review`, and ordinary prose look alike, and a wrong match would corrupt the skill.
-
-Sync and build warn about this every time they apply a rename. Check the skills that mention the old name, and fork any you need to change.
-:::
-
-You can't fork a renamed skill with `syllabus project add skill`. To replace one, copy its folder from `.syllabus/vendor/<source>/` into `.syllabus/skills/<new-name>/`, set the new `name` in its `SKILL.md`, and swap the `rename` entry for an [exclusion](#exclude-a-skill) whose `replacedBy` names your copy.
-
-## Stop installing a skill
-
-Remove the skill's ID, or `recommended`, from `skills.include`, or delete an authored skill's folder, and run `syllabus project sync` or `syllabus project build`. Syllabus removes the installed copies, and a skill target's folder once nothing is left in it.
+The command writes a draft `.syllabus/skills/review-migration/SKILL.md`. Authored skills have no versions; they change when you edit them. In `syllabus-rules-used`, an authored skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `practices/testing/test-project-contracts` for one of your own, because it can cite rules from any source. Run `syllabus project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
 
 ## Personal skills with the same name
 
-:::note[Preview]
-The personal skill warning comes in the next Syllabus release, with skills.
-:::
-
-People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which one to use, and some use the personal one without saying so. `syllabus project sync`, `update`, and `check` look in your personal skill folders and warn about each pair, naming both paths and what each agent does:
+People also install skills for themselves, outside any repository, such as in `~/.claude/skills/`. When one of those **personal skills** has the same name as a skill your project installs, each agent decides which to use, and some use the personal one without saying so. `syllabus project sync`, `update`, and `check` read the known personal skill folders and warn about each pair, naming both paths and what each agent does:
 
 ```text
 Warning: your personal skill ~/.claude/skills/build-feature has the same name as this project's build-feature (fabrica:skills/build-feature, installed at .claude/skills/build-feature).
   Claude Code uses your personal skill.
-  Codex shows both.
-  VS Code uses this project's skill.
+  Grok Build reads both, and its docs don't say which it uses.
+  VS Code reads both, and its docs don't say which it uses.
 Rename or remove your personal skill to use the project's.
 ```
 
 Syllabus never writes to your home directory, and the warning doesn't fail the command. See [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
 
-## When install fails
+## Commit the installed skills
 
-| Failure | What to do |
-| --- | --- |
-| `skill-folder-not-managed` | A folder in a skill target already has the skill's install name, and Syllabus didn't install it, such as a skill you put there by hand. Move or delete that folder, perhaps into `.syllabus/skills/` to make it an authored skill, or stop including the skill. |
-| `skill-name-clash` | Two skills you include have the same install name. [Rename](#rename-a-skill) one of them, or stop including or exclude one. |
-| Exclusion of a required skill | The library requires the skill, so the project can't exclude or fork it. Remove the exclusion, or remove the source to stop using the library. |
-| `skill-not-in-revision` | The revision the source record locks doesn't have a skill you named. Run the update the message names, set `ref` to a revision that has it, or check the ID. |
-| `ref-required` | The source's repository has no library releases. Set its `ref`. |
-| A skill uses a skill that can't be found | A skill's `syllabus-skills-used`, or your `skills.uses`, names a skill the source's revision doesn't have. The message names both skills. Correct `skills.uses`, ask the source's maintainer to correct `syllabus-skills-used`, or stop including the skill. When `skills.uses` names a skill a newer revision has, sync fails with `skill-not-in-revision` instead. |
-| Skills use each other in a cycle | The message lists the cycle, such as `skills/a -> skills/b -> skills/a`. Remove one of the uses. |
-| An invalid authored skill | Its `name` doesn't match its folder, a `metadata` key is invalid, or `syllabus-rules-used` names a rule the project doesn't have. Correct the `SKILL.md` the message names. |
+Commit `.syllabus/` and the installed skill folders together:
 
-## When check fails for a skill
+```sh
+git add .syllabus .claude/skills .agents/skills
+```
 
-`syllabus project check` reports an installed copy that's missing, edited, or left behind by a skill the project no longer installs, as `missing-skill`, `modified-skill`, or `unexpected-skill`, naming the skill and its folder. Run `syllabus project build` to reinstall every skill from its source; it replaces edits to the installed copies, so move any you want to keep into a skill you author first.
+Committed copies give every checkout, CI job, and fresh cloud session the same skills without running sync. Run `syllabus project check` in CI: it fails when an installed copy differs from what sync would write, when a folder Syllabus installed is missing, or when `generated/installed-skills.json` is out of date.
 
-When a skill you author cites a rule its library retired, update, sync, and build warn, and check fails, naming the skill and the rule. Remove the rule from `syllabus-rules-used`, or cite the rule that replaces it.
+If your `.gitignore` excludes a target folder, such as with `/.claude/`, check reports the folders as missing in every fresh checkout. Add an exception for the skills folder. Git can't re-include a folder inside an excluded folder, so first change the ignore line to exclude the folder's contents instead:
 
-For every file sync, update, and build change, see [Sync and recovery](/reference/sync/#skills).
+```text
+/.claude/*
+!/.claude/skills/
+```
+
+This keeps ignoring the rest of `.claude/`, such as local settings, while committing installed skills.

@@ -2,8 +2,8 @@
 package build
 
 import (
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // Library supplies a validated selected catalog and its caller-verified snapshot record: the revision that

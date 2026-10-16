@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 const (
@@ -360,11 +360,11 @@ func TestSync_RenamesAClashingSkillAndWarnsThatMentionsKeepTheOldName(t *testing
 	writeFixture(t, root, "skills/review/SKILL.md", "---\nname: review\ndescription: Our review.\n---\n# Our review\n")
 	_, err = Sync(ctx, options, git)
 	projectCode(t, err, "skill-name-clash")
-	if !strings.Contains(err.Error(), "skills skills/review and team:skills/review both have the install name review") || !strings.Contains(err.Error(), "give one of them another name with skills.rename") {
+	if !strings.Contains(err.Error(), "skills/review and team:skills/review both install as review. Rename one with skills.rename, or exclude one.") {
 		t.Fatalf("clash error = %v", err)
 	}
 	writeFixture(t, root, configurationFile, strings.ReplaceAll(`{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"],"rename":{"skills/review":"team-review"}}}}}`, "REPOSITORY", quoteJSON(f.Repository)))
-	const warning = "Installed skill team:skills/review as team-review instead of review, as sources.team.skills.rename.skills/review asks. Syllabus changed only the name in the installed SKILL.md: mentions of review in this skill or other skills weren't rewritten, so an agent following one may look for a skill named review. Check the skills that mention it."
+	const warning = "team:skills/review is installed as team-review. Mentions of review in skill text aren't rewritten; check the skills that call it by that name."
 	changes, err := Sync(ctx, options, git)
 	if err != nil {
 		t.Fatal(err)

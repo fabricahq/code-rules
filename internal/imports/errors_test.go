@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestGitFailure_ExplainsTheCauseWithoutGitsText classifies the diagnostics Git prints for each cause into a static

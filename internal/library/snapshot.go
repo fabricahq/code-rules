@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // Snapshot owns one source's original library bytes and the record of what was imported, which works like a lockfile.
@@ -131,8 +131,8 @@ func (s Snapshot) IsSkillFile(file string) bool {
 type ImportedRule struct {
 	// Version is nil, and Release is 0, when the rule's files aren't a published version, which only a ref other
 	// than a library release can import.
-	Version *coderules.RuleVersion `json:"version"`
-	Release int                    `json:"release,omitempty"`
+	Version *syllabus.RuleVersion `json:"version"`
+	Release int                   `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
 	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at

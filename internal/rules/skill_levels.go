@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // SkillLevels lists, sorted, the IDs of the library's own skills, skills/<name>, at each level the manifest names.

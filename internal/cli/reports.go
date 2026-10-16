@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // commandReport owns a completed command's data, human rendering, and optional reported failure.
@@ -104,7 +104,7 @@ func projectInitializedReport(result project.AuthoringResult, workdir string) co
 		steps = []nextStep{
 			{Instruction: "Start with a project-only rule (example):", Commands: []string{"syllabus project add group practices/testing", "syllabus project add rule practices/testing/my-rule"}},
 			{Instruction: "Or use a shared library or skills repository (example):", Commands: []string{"syllabus project add source team", "syllabus project sync"}},
-			{Instruction: "Then connect your coding agent to the rules; see .syllabus/README.md."},
+			{Instruction: "AGENTS.md tells your coding agent to read the rules. If your agent reads another file, such as CLAUDE.md, import or link AGENTS.md there; see .syllabus/README.md."},
 		}
 	}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
@@ -174,6 +174,9 @@ func groupCreatedReport(added, changed, warnings []string, groupPath string, sco
 	return authoredReport(&out, added, changed, warnings, steps)
 }
 
+// agentsActions describes each AGENTS.md change in the human report.
+var agentsActions = map[string]string{"created": "added to a new file", "added": "added", "updated": "updated"}
+
 // projectChangesReport lists the files sync, build, or update changed in the project at root, naming their directory
 // relative to workdir, as authoring reports name paths.
 func projectChangesReport(action string, result project.FileChanges, root, workdir string) commandReport {
@@ -189,6 +192,9 @@ func projectChangesReport(action string, result project.FileChanges, root, workd
 			status = "created"
 		}
 		fmt.Fprintf(&out, "Syllabus guide %s: %s\n", status, filepath.Join(syllabus, result.Guide.Path))
+	}
+	if result.Agents != nil {
+		fmt.Fprintf(&out, "Syllabus section %s: %s\n", agentsActions[result.Agents.Action], filepath.Join(filepath.Dir(syllabus), result.Agents.Path))
 	}
 	fmt.Fprintf(&out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(action[:1])+action[1:], len(result.Added), len(result.Changed), len(result.Removed))
 	if len(result.Added)+len(result.Changed)+len(result.Removed) > 0 {

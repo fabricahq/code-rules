@@ -4,7 +4,9 @@ package cli
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -22,15 +24,18 @@ func TestProjectInitGuidance(t *testing.T) {
 			t.Fatal("init led with internal file changes", out)
 		}
 		// Like other authoring commands, init lists the files it added, relative to the working directory.
-		if !strings.Contains(out, "Added:\n  .syllabus/config.yaml\n  .syllabus/rules/README.md\n  .syllabus/README.md\n") || strings.Contains(out, "Project configuration:") {
+		if !strings.Contains(out, "Added:\n  .syllabus/config.yaml\n  .syllabus/rules/README.md\n  .syllabus/README.md\n  AGENTS.md\n") || strings.Contains(out, "Project configuration:") {
 			t.Fatal("init doesn't list the files it added", out)
 		}
 		if !strings.Contains(out, "Or use a shared library or skills repository") || !strings.Contains(out, "syllabus project sync") {
 			t.Fatal("missing shared-library path", out)
 		}
-		// Without this step, a user who follows only the CLI output has rules that no agent reads.
-		if !strings.Contains(out, "connect your coding agent to the rules; see .syllabus/README.md") {
+		// Without this step, a user whose agent doesn't read AGENTS.md has rules that no agent reads.
+		if !strings.Contains(out, "AGENTS.md tells your coding agent to read the rules. If your agent reads another file, such as CLAUDE.md, import or link AGENTS.md there") {
 			t.Fatal("missing agent connection step", out)
+		}
+		if agents, err := os.ReadFile(filepath.Join(directory, "AGENTS.md")); err != nil || !strings.HasPrefix(string(agents), "<!-- syllabus:begin ") || !strings.Contains(string(agents), "Read `.syllabus/generated/RULES.md`") {
+			t.Fatal("init didn't add the AGENTS.md section", string(agents), err)
 		}
 		// Execute the displayed project-only examples, supplying metadata to avoid terminal prompts.
 		steps := 0

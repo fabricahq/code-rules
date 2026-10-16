@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -141,7 +141,7 @@ func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 // wildcard, then groups as selectors, then rules in rules.include, and omitting empty fields.
 func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 	input := []byte("schemaVersion: 2\nsources: {}\n")
-	pinned, err := coderules.ParseRuleVersion("1.3.0", "version")
+	pinned, err := syllabus.ParseRuleVersion("1.3.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // ParseConfigurationYAML validates one UTF-8 YAML document using the configuration schema.
@@ -26,8 +26,9 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 // AppendConfigurationSource adds a source without dropping existing comments or reordering entries. Its rules.include
 // lists the source's wildcard, then its groups as selectors such as techs/go/*, then its individually selected rules;
 // its pins and exclude lists follow in rule ID order, and are omitted when empty, as ref is. rules is omitted for a
-// source that includes no rules, and skills.include, which lists the source's skill selectors, for one that includes
-// no skills. Pinned versions are written quoted, such as version: "1.3.0".
+// source that includes no rules. skills.include lists the source's skill selectors, and skills.uses the skills each
+// skill uses beyond what it declares, in skill ID order; each is omitted when empty, and skills when both are.
+// Pinned versions are written quoted, such as version: "1.3.0".
 // Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
@@ -53,17 +54,21 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	type selection struct {
 		Include []string `yaml:"include"`
 	}
+	type skillSelection struct {
+		Include []string            `yaml:"include,omitempty"`
+		Uses    map[string][]string `yaml:"uses,omitempty"`
+	}
 	declaration := struct {
-		Repository string     `yaml:"repository"`
-		Ref        string     `yaml:"ref,omitempty"`
-		Rules      *selection `yaml:"rules,omitempty"`
-		Skills     *selection `yaml:"skills,omitempty"`
+		Repository string          `yaml:"repository"`
+		Ref        string          `yaml:"ref,omitempty"`
+		Rules      *selection      `yaml:"rules,omitempty"`
+		Skills     *skillSelection `yaml:"skills,omitempty"`
 	}{Repository: source.Repository, Ref: source.Ref.String()}
 	if len(include) > 0 {
 		declaration.Rules = &selection{include}
 	}
-	if len(source.Skills) > 0 {
-		declaration.Skills = &selection{source.Skills}
+	if len(source.Skills) > 0 || len(source.SkillUses) > 0 {
+		declaration.Skills = &skillSelection{source.Skills, source.SkillUses}
 	}
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {
@@ -145,15 +150,18 @@ type SourceEdit struct {
 	// Unpin names rules whose existing pins the edit removes.
 	Unpin []string
 	// BasedOn sets the basedOn version of each existing replacement it names, adding or replacing the field.
-	BasedOn map[string]coderules.RuleVersion
+	BasedOn map[string]syllabus.RuleVersion
 	// SkillExclude holds the entries to add to skills.exclude, by skill ID.
 	SkillExclude map[string]SkillExclusion
+	// SkillUnrename names skills whose existing skills.rename entries the edit removes.
+	SkillUnrename []string
 }
 
 // EditConfigurationSource adds pins, exclusions, and skill exclusions to the existing source alias, removes the pins
-// edit.Unpin names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced
+// edit.Unpin names and the skill renames edit.SkillUnrename names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced
 // value's comment, without dropping other comments or reordering entries. Setting basedOn of a rule the source
-// doesn't replace fails. A rules.pins list left empty is removed; a pin to remove that the source lacks fails. New
+// doesn't replace fails. A rules.pins list or skills.rename mapping left empty is removed; a pin or rename to remove that the source lacks
+// fails. New
 // entries follow the source's existing ones in rule or skill ID order, in a rules.pins, rules.exclude, or
 // skills.exclude list that is created when absent. Versions and commits are written quoted, such as
 // version: "1.3.0", so YAML reads them as text. A rule or skill the source already pins or excludes by its ID fails
@@ -172,6 +180,9 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
+	if err := removeSkillRenames(source, edit.SkillUnrename, "sources."+alias+".skills"); err != nil {
+		return nil, err
+	}
 	if err := addSkillExclusions(source, edit.SkillExclude, "sources."+alias+".skills"); err != nil {
 		return nil, err
 	}
@@ -233,6 +244,39 @@ func addSkillExclusions(source *yaml.Node, exclude map[string]SkillExclusion, wh
 		nodes[id] = node
 	}
 	return addEntries(skillFields, "exclude", nodes, where)
+}
+
+// removeSkillRenames deletes the entry of each of ids from the skills.rename mapping of source, and the mapping
+// itself once it's empty. An ID the mapping lacks fails with its location under where.
+func removeSkillRenames(source *yaml.Node, ids []string, where string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	skillFields := mappingValue(source, "skills")
+	renames := mappingValue(skillFields, "rename")
+	for _, id := range ids {
+		if !removeKey(renames, id) {
+			return invalid(where+".rename."+id, "the source has no such entry to remove")
+		}
+	}
+	if len(renames.Content) == 0 {
+		removeKey(skillFields, "rename")
+	}
+	return nil
+}
+
+// removeKey deletes key and its value from mapping, reporting whether mapping had it. A nil mapping has no keys.
+func removeKey(mapping *yaml.Node, key string) bool {
+	if mapping == nil {
+		return false
+	}
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		if mapping.Content[i].Value == key {
+			mapping.Content = slices.Delete(mapping.Content, i, i+2)
+			return true
+		}
+	}
+	return false
 }
 
 // mappingValue returns the value of key in mapping, or nil when mapping is nil or lacks the key.
@@ -343,7 +387,7 @@ func exclusionNodes(exclude map[string]Exclusion) map[string]*yaml.Node {
 }
 
 // versionNode encodes a rule version double-quoted, such as "1.3.0", so YAML reads it as text.
-func versionNode(version coderules.RuleVersion) *yaml.Node {
+func versionNode(version syllabus.RuleVersion) *yaml.Node {
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: version.String(), Style: yaml.DoubleQuotedStyle}
 }
 

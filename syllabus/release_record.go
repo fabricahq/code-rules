@@ -1,6 +1,6 @@
 // Parse the release record in a library release tag's message without accessing Git.
 
-package coderules
+package syllabus
 
 import (
 	"encoding/json"
@@ -10,8 +10,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // ReleaseRecord is the permanent record of one library release, read from its release/<number> tag's message. Rule

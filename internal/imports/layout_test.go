@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // legacyRule is a valid rule whose body links to the shared asset guide.md as link spells it.
@@ -105,16 +105,16 @@ func TestReadPublishedRule_ReadsAVersionPublishedBeforeTheLibraryMoved(t *testin
 	h := movedHistory(t)
 	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
 	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
-	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", coderules.RuleVersion{Major: 1}, options)
+	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !published.LegacyLayout || published.Commit != h.commits[1] || published.GroupMetadata == nil || published.Files["assets/guide.md"] == nil {
 		t.Fatalf("published %+v", published)
 	}
-	_, err = ReadPublishedRule(context.Background(), source, "techs/go/b", coderules.RuleVersion{Major: 1}, options)
+	_, err = ReadPublishedRule(context.Background(), source, "techs/go/b", syllabus.RuleVersion{Major: 1}, options)
 	requireCode(t, err, "unsupported-library-layout")
-	moved, err := ReadPublishedRule(context.Background(), source, "techs/go/b", coderules.RuleVersion{Major: 1, Patch: 1}, options)
+	moved, err := ReadPublishedRule(context.Background(), source, "techs/go/b", syllabus.RuleVersion{Major: 1, Patch: 1}, options)
 	if err != nil || moved.LegacyLayout || moved.Commit != h.commits[2] {
 		t.Fatalf("published %+v, %v", moved, err)
 	}
@@ -184,5 +184,80 @@ func TestImport_RefusesARepositoryWithoutALibrarySection(t *testing.T) {
 	_, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"]}`), nil)
 	if err == nil || !strings.Contains(err.Error(), "the configuration has no library section, so the repository isn't a library") {
 		t.Fatalf("got %v; want the missing library section reported", err)
+	}
+}
+
+// legacyLibrary is a library whose release/1 keeps files, by library path, in the layout before version 2, beside
+// rule-library.yaml with manifest, publishing techs/go/a at 1.0.0, and whose release/2 moves the same files into
+// .syllabus/ without changing a.
+func legacyLibrary(t *testing.T, manifest string, files map[string][]byte) history {
+	t.Helper()
+	ctx := context.Background()
+	release1 := map[string][]byte{"rule-library.yaml": []byte(manifest), "techs/go/_group.yaml": groupMetadata}
+	maps.Copy(release1, files)
+	f, err := gitfixture.New(ctx, release1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	h := history{fixture: f, commits: map[int]string{1: f.LatestCommit}}
+	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/a: 1.0.0\nchanges:\n  techs/go/a: {change: new, summaries: [Add the rule.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	moved := map[string][]byte{}
+	for name := range release1 {
+		moved[name] = nil
+	}
+	release2 := map[string][]byte{"config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n")}
+	maps.Copy(release2, files)
+	release2["techs/go/_group.yaml"] = groupMetadata
+	maps.Copy(moved, gitfixture.Library(release2))
+	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .syllabus", moved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.commits[2] = commit
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n"); err != nil {
+		t.Fatal(err)
+	}
+	return h
+}
+
+// TestReadPublishedRule_RefusesAVersionWhoseAssetLinksMovedWithTheLibrary fails, as for the rule's own links, when
+// a Markdown file in the rule's asset directory, published before the move, links relatively to a shared asset from
+// the repository root, both when forking and when importing the version.
+func TestReadPublishedRule_RefusesAVersionWhoseAssetLinksMovedWithTheLibrary(t *testing.T) {
+	h := legacyLibrary(t, "formatVersion: 1\n", map[string][]byte{
+		"techs/go/a.md":              legacyRule("a 1.0.0", "assets/a/notes.md"),
+		"techs/go/assets/a/notes.md": []byte("[Guide](../../../../assets/guide.md)\n"),
+		"assets/guide.md":            []byte("Guide.\n"),
+	})
+	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
+	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
+	_, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
+	requireCode(t, err, "unsupported-library-layout")
+	if !strings.Contains(err.Error(), "its link to assets/guide.md resolves differently") {
+		t.Fatalf("got %v; want the link that moved named", err)
+	}
+	_, err = h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"]}`), nil)
+	requireCode(t, err, "unsupported-library-layout")
+}
+
+// TestReadPublishedRule_LeavesOutANoticeThatALegacyManifestDeclares reads a rule version, published before the move,
+// that links to a shared notice file its rule-library.yaml declares, without the notice, as for the current layout.
+func TestReadPublishedRule_LeavesOutANoticeThatALegacyManifestDeclares(t *testing.T) {
+	h := legacyLibrary(t, "formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices: [assets/NOTICE.md]\n", map[string][]byte{
+		"LICENSE.md":       []byte("MIT License\n"),
+		"techs/go/a.md":    legacyRule("a 1.0.0", "/assets/NOTICE.md"),
+		"assets/NOTICE.md": []byte("Notice.\n"),
+	})
+	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
+	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
+	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := slices.Sorted(maps.Keys(published.Files)), []string{"techs/go/a.md"}; !published.LegacyLayout || !reflect.DeepEqual(got, want) {
+		t.Fatalf("files %v, want %v; legacy layout %v", got, want, published.LegacyLayout)
 	}
 }

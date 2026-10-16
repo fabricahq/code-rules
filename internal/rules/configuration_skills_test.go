@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 func TestParseConfigurationReadsSkillTargetsAndSkillSelectors(t *testing.T) {
@@ -152,6 +152,21 @@ func TestAppendConfigurationSourceWritesSkillSelectors(t *testing.T) {
 	}
 	config, err := rules.ParseConfigurationYAML(out)
 	if err != nil || !reflect.DeepEqual(config.Sources[0].Skills, []string{"*"}) {
+		t.Fatalf("parsed %+v, %v", config, err)
+	}
+}
+
+func TestAppendConfigurationSourceWritesTheSkillsEachSkillUses(t *testing.T) {
+	uses := map[string][]string{"skills/review": {"skills/tdd"}, "skills/architect": {"skills/how", "skills/tdd"}}
+	out, err := rules.AppendConfigurationSource([]byte("schemaVersion: 2\nsources: {}\n"), "pstack", rules.Source{Repository: "https://example.invalid/pstack.git", Skills: []string{"skills/architect", "skills/review"}, SkillUses: uses})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "      uses:\n        skills/architect:\n          - skills/how\n          - skills/tdd\n        skills/review:\n          - skills/tdd\n") {
+		t.Fatalf("configuration:\n%s", out)
+	}
+	config, err := rules.ParseConfigurationYAML(out)
+	if err != nil || !reflect.DeepEqual(config.Sources[0].SkillUses, uses) {
 		t.Fatalf("parsed %+v, %v", config, err)
 	}
 }

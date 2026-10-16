@@ -7,14 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/syllabus/syllabus"
 	"github.com/spf13/cobra"
 )
 
@@ -75,10 +76,13 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				if updatesForks(decisions[flagged:]) {
 					f.status("Reading forked rule versions...")
 				}
+				shown := preview
 				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
 				f.introduction += "\n" + answersSummary(preview.Sources)
+				// Keeping a rule can move the skills to another revision, whose scripts people read before consenting.
+				f.introduction += answeredSkills(shown, preview)
 			}
 			f.introduction += "\n"
 			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
@@ -397,25 +401,27 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
-		for _, row := range source.Skills {
-			fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
-			for _, line := range skillUpdateDetails(row) {
-				fmt.Fprintf(out, "%s%s\n", indent, line)
-			}
-		}
+		formatSkillRows(out, source.Skills)
 		for _, row := range source.ReplacedSkills {
 			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, imports.UpdateReplaced, idWidth, row.ID, commitSpan(row.From, row.To))
 			for _, line := range replacedSkillDetails(row) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
-		for _, row := range source.SkillLevels {
-			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "level", idWidth, row.ID, levelSpan(row))
-			fmt.Fprintf(out, "%s%s\n", indent, levelDetail(row))
-		}
+		formatLevelRows(out, source.SkillLevels, idWidth)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
+	}
+}
+
+// formatLevelRows lists a source's skill level rows with the skill ID, in a column idWidth wide, and the levels it
+// moves between, each row's detail indented beneath it.
+func formatLevelRows(out *strings.Builder, rows []imports.SkillLevelUpdate, idWidth int) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "level", idWidth, row.ID, levelSpan(row))
+		fmt.Fprintf(out, "%s%s\n", indent, levelDetail(row))
 	}
 }
 
@@ -441,6 +447,50 @@ func levelDetail(row imports.SkillLevelUpdate) string {
 		return "Now recommended: it installs when skills.include has recommended."
 	}
 	return `No longer recommended: it installs only when skills.include names it or has "*".`
+}
+
+// formatSkillRows lists a source's skill rows with the change and skill ID, each row's details indented beneath them.
+func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
+		for _, line := range skillUpdateDetails(row) {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
+	}
+}
+
+// answeredSkills lists the skill and level rows of each source whose rows in after, the preview with the answers,
+// differ from those in before, the preview shown before the questions, then after's scripts warning, or returns empty
+// when no source's skill or level rows differ.
+func answeredSkills(before, after project.UpdateResult) string {
+	shown := map[string]imports.SourceUpdate{}
+	for _, source := range before.Sources {
+		shown[source.Name] = source
+	}
+	var out strings.Builder
+	for _, source := range after.Sources {
+		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) {
+			continue
+		}
+		if out.Len() == 0 {
+			out.WriteString("\nYour answers change the update's skills:\n")
+		}
+		out.WriteString(source.Name + "\n")
+		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 {
+			out.WriteString("  No skill changes.\n")
+		}
+		formatSkillRows(&out, source.Skills)
+		idWidth := 0
+		for _, row := range source.SkillLevels {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		formatLevelRows(&out, source.SkillLevels, idWidth)
+	}
+	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
+		fmt.Fprintf(&out, "\nWarning: %s\n", warning)
+	}
+	return out.String()
 }
 
 // skillUpdateDetails returns the lines shown under a skill's row: the files a changed skill's update changes, then
@@ -514,7 +564,7 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Replaced by "+row.ReplacedBy+".")
 	}
 	// A row spanning several versions labels each summary with its version, so people can tell which change is which.
-	spans := slices.ContainsFunc(row.SummaryVersions, func(version coderules.RuleVersion) bool { return version != row.SummaryVersions[0] })
+	spans := slices.ContainsFunc(row.SummaryVersions, func(version syllabus.RuleVersion) bool { return version != row.SummaryVersions[0] })
 	for i, summary := range row.Summaries {
 		if spans && i < len(row.SummaryVersions) {
 			summary = row.SummaryVersions[i].String() + ": " + summary

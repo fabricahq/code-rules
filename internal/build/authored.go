@@ -5,7 +5,7 @@ package build
 import (
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // authoredLocation returns where the authored file keyed file sits in the Syllabus directory. Authored files are

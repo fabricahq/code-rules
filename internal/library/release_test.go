@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/test/ghfixture"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/ghfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // gitHubRepositoryURL points a clone's origin at GitHub.com; the fixture's transport still serves it.
@@ -292,6 +292,12 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - .syllabus/changes/a.yaml isn't committed\n  - .syllabus/rules/practices/testing/a.md differs from its committed copy\n  - .syllabus/rules/practices/testing/b.md was deleted, and the deletion isn't committed\n  - .syllabus/rules/practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
+			}},
+		{name: "uncommitted skill changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - .syllabus/skills/fix/SKILL.md differs from its committed copy\n  - .syllabus/skills/review/SKILL.md isn't committed\n  - .syllabus/skills/tdd/SKILL.md was deleted, and the deletion isn't committed\nCommit and push your changes",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				// The committed fix skill's name doesn't match its folder; only the working tree corrects it.
+				commitAndPush(t, fixture, options.Directory, map[string][]byte{".syllabus/skills/fix/SKILL.md": []byte("---\nname: fixer\ndescription: Fix a bug.\n---\n"), ".syllabus/skills/tdd/SKILL.md": []byte("---\nname: tdd\ndescription: Test first.\n---\n")})
+				edit(t, options.Directory, map[string]string{".syllabus/skills/fix/SKILL.md": "---\nname: fix\ndescription: Fix a bug.\n---\n", ".syllabus/skills/review/SKILL.md": "---\nname: review\ndescription: Review a change.\n---\n", ".syllabus/skills/tdd": ""})
 			}},
 		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - .syllabus/assets/note.txt differs from its committed copy\n",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {

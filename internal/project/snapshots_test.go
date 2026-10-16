@@ -5,15 +5,17 @@ package project
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // Commits of the fixture's two library releases.
@@ -38,7 +40,7 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"rules":{"include":["techs/go/*"]}`)
-	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
+	one, two := syllabus.RuleVersion{Major: 1}, syllabus.RuleVersion{Major: 1, Minor: 1}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne, LegacyLayout: true}},
 		Files: map[string][]byte{
@@ -85,6 +87,33 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	encoded["team/assets/image.bin"][0] = 9
 	if input["team"].Files["assets/image.bin"][0] != 0 {
 		t.Fatal("encoded bytes alias input")
+	}
+}
+
+// TestSnapshotRuleLinkToSharedAssetResolvesInVendor stores a rule where it is in the library's Syllabus directory,
+// under rules/, so its link to a shared asset, written from .syllabus/rules/techs/go/, reaches the vendored asset.
+func TestSnapshotRuleLinkToSharedAssetResolvesInVendor(t *testing.T) {
+	config, input := snapshotFixture(t)
+	link := "../../../assets/image.bin"
+	input["team"].Files["techs/go/errors.md"] = []byte(projectRule + "\nSee [the diagram](" + link + ").\n")
+	encoded, err := encodeSnapshots(config, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := "team/rules/techs/go/errors.md"
+	if _, ok := encoded[rule]; !ok {
+		t.Fatalf("no vendored rule at vendor/%s; got %v", rule, slices.Sorted(maps.Keys(encoded)))
+	}
+	target, _, local, err := rules.RelativeTarget(link, "vendor/"+rule)
+	if err != nil || !local || !strings.HasPrefix(target, "vendor/team/") {
+		t.Fatalf("link resolves to %q, %v, %v; want a file in vendor/team/", target, local, err)
+	}
+	if _, ok := encoded[strings.TrimPrefix(target, "vendor/")]; !ok {
+		t.Fatalf("link resolves to %s, which the snapshot doesn't have", target)
+	}
+	got, err := decodeSnapshots(config, encoded)
+	if err != nil || !reflect.DeepEqual(got, input) {
+		t.Fatalf("round trip: %v", err)
 	}
 }
 
@@ -248,7 +277,11 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 	}{
 		{"missing record", func(v map[string][]byte) { delete(v, "team/_source.json") }},
 		{"missing content", func(v map[string][]byte) { delete(v, "team/LICENSE") }},
-		{"missing older rule", func(v map[string][]byte) { delete(v, "team/techs/go/naming.md") }},
+		{"missing older rule", func(v map[string][]byte) { delete(v, "team/rules/techs/go/naming.md") }},
+		{"rule outside rules/", func(v map[string][]byte) {
+			v["team/techs/go/naming.md"] = v["team/rules/techs/go/naming.md"]
+			delete(v, "team/rules/techs/go/naming.md")
+		}},
 		{"changed bytes", func(v map[string][]byte) { v["team/LICENSE"] = []byte("Terms\nPreserved\n") }},
 		{"extra content", func(v map[string][]byte) { v["team/untracked"] = []byte("x") }},
 		{"removed source", func(v map[string][]byte) { v["retired/_source.json"] = []byte("{}") }},
@@ -409,7 +442,7 @@ func TestRecordedSnapshotsReadRecordsWithoutCheckingConfiguration(t *testing.T) 
 // TestSnapshotRefChecks verifies what offline checks can about ref: the commit a SHA names, the library release
 // a release tag names, and no library release for any other tag.
 func TestSnapshotRefChecks(t *testing.T) {
-	one := coderules.RuleVersion{Major: 1}
+	one := syllabus.RuleVersion{Major: 1}
 	for _, test := range []struct {
 		name, ref string
 		release   int

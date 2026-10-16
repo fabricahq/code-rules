@@ -6,7 +6,7 @@ package imports
 import (
 	"errors"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/syllabus/internal/gitexec"
 )
 
 // Error is the type of every import failure, including Git failures. Its Code is stable for callers.

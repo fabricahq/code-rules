@@ -12,7 +12,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/syllabus/internal/decode"
 )
 
 // File is the file whose presence makes a folder a skill folder.
@@ -123,7 +123,7 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 		if json.Unmarshal(*fields.Metadata, &metadata) != nil {
 			return Metadata{}, invalid(location+".metadata", "expected a mapping of string keys to string values")
 		}
-		if raw, ok := metadata[TypeKey]; ok && json.Unmarshal(raw, &result.Type) != nil {
+		if raw, ok := metadata[TypeKey]; ok && !readString(raw, &result.Type) {
 			return Metadata{}, invalid(location+".metadata."+TypeKey, "expected a string, such as playbook or review")
 		}
 		for _, field := range []struct {
@@ -135,7 +135,7 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 				continue
 			}
 			var text string
-			if json.Unmarshal(raw, &text) != nil {
+			if !readString(raw, &text) {
 				return Metadata{}, invalid(location+".metadata."+field.key, "expected a string with one ID per line; write it as a YAML block string, starting with |")
 			}
 			*field.lines = idLines(text)
@@ -147,6 +147,12 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 		}
 	}
 	return result, nil
+}
+
+// readString decodes raw into value and reports whether raw is a JSON string. It reports false for null, such as
+// a metadata key written with no value, which json.Unmarshal would accept by leaving value unchanged.
+func readString(raw json.RawMessage, value *string) bool {
+	return string(raw) != "null" && json.Unmarshal(raw, value) == nil
 }
 
 // idLines returns the lines of text, trimmed of surrounding whitespace, without blank lines.

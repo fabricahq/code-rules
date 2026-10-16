@@ -1,11 +1,11 @@
 // The validation error this package reports for invalid input, and its translation of internal packages' errors.
 
-package coderules
+package syllabus
 
 import (
 	"errors"
 
-	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/syllabus/internal/errs"
 )
 
 // ValidationError reports invalid input at a location, such as a field of a release record or a rule file. Every

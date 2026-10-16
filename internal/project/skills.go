@@ -13,9 +13,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // authoredSkills returns the authored skills in tree, the project's skills/ folder, by ID, skills/<name>, each with
@@ -246,7 +246,7 @@ func noSkillTargetsWarning(output build.Output, targets []string) string {
 func renameWarnings(output build.Output) []string {
 	warnings := []string{}
 	for _, skill := range output.RenamedSkills {
-		warnings = append(warnings, fmt.Sprintf("Installed skill %s as %s instead of %s, as sources.%s.skills.rename.%s asks. Syllabus changed only the name in the installed SKILL.md: mentions of %s in this skill or other skills weren't rewritten, so an agent following one may look for a skill named %s. Check the skills that mention it.", skill.ID, skill.To, skill.From, skill.Source, skill.Folder, skill.From, skill.From))
+		warnings = append(warnings, fmt.Sprintf("%s is installed as %s. Mentions of %s in skill text aren't rewritten; check the skills that call it by that name.", skill.ID, skill.To, skill.From))
 	}
 	return warnings
 }

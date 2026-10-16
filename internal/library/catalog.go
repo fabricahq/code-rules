@@ -18,9 +18,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 const (
@@ -45,9 +45,9 @@ type Catalog struct {
 
 // Group includes display metadata and path-sorted rules; empty groups are valid.
 type Group struct {
-	ID       string                  `json:"id"`
-	Metadata coderules.GroupMetadata `json:"metadata"`
-	Rules    []coderules.Rule        `json:"rules"`
+	ID       string                 `json:"id"`
+	Metadata syllabus.GroupMetadata `json:"metadata"`
+	Rules    []syllabus.Rule        `json:"rules"`
 }
 
 // reader binds resource limits and cancellation to one rooted catalog read.
@@ -339,7 +339,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 	if err != nil {
 		return Group{}, err
 	}
-	metadata, err := coderules.ParseGroupMetadata(data, source+"/"+metadataPath)
+	metadata, err := syllabus.ParseGroupMetadata(data, source+"/"+metadataPath)
 	if err != nil {
 		return Group{}, err
 	}
@@ -348,7 +348,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 		return Group{}, err
 	}
 	slices.Sort(paths)
-	group := Group{ID: id, Metadata: metadata, Rules: []coderules.Rule{}}
+	group := Group{ID: id, Metadata: metadata, Rules: []syllabus.Rule{}}
 	for _, path := range paths {
 		data, err := r.read(path)
 		if err != nil {
@@ -360,7 +360,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 		if strings.HasPrefix(strings.ReplaceAll(string(data[:min(len(data), 128)]), "\r\n", "\n"), "version https://git-lfs.github.com/spec/v1\n") {
 			return Group{}, bad(path, "Git LFS pointers are unsupported")
 		}
-		rule, err := coderules.ParseRule(string(data), path, source)
+		rule, err := syllabus.ParseRule(string(data), path, source)
 		if err != nil {
 			return Group{}, err
 		}

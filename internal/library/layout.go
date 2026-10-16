@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // legacyLayoutMoves is how many of a library's files the refusal of the layout before version 2 lists before it
@@ -84,9 +84,27 @@ var (
 
 // requireLibraryLayout fails, writing nothing, when the repository at root keeps a library in the layout before
 // version 2: rule-library.yaml, or a techs or practices entry, at the repository root, whatever its kind. It lists
-// where each of the library's files at the repository root belongs now. It fails with ctx's error when ctx ends.
+// where each of the library's files at the repository root belongs now. Without such an entry, it reads nothing
+// else, so the repository's own assets/ and changes/ folders don't matter. It fails with ctx's error when ctx ends.
 func requireLibraryLayout(ctx context.Context, root *os.Root) error {
 	location := ""
+	for _, name := range legacyMarkers {
+		info, err := root.Lstat(name)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("inspect the repository root's %s: %v", name, err)
+		}
+		location = name
+		if info.IsDir() {
+			location += "/"
+		}
+		break
+	}
+	if location == "" {
+		return nil
+	}
 	var paths []string
 	for _, name := range slices.Concat(legacyMarkers, legacyCompanions) {
 		info, err := root.Lstat(name)
@@ -95,12 +113,6 @@ func requireLibraryLayout(ctx context.Context, root *os.Root) error {
 		}
 		if err != nil {
 			return fmt.Errorf("inspect the repository root's %s: %v", name, err)
-		}
-		if location == "" && slices.Contains(legacyMarkers, name) {
-			location = name
-			if info.IsDir() {
-				location += "/"
-			}
 		}
 		if !info.IsDir() || name == librarytree.LegacyManifest {
 			paths = append(paths, name)
@@ -114,9 +126,6 @@ func requireLibraryLayout(ctx context.Context, root *os.Root) error {
 			return fmt.Errorf("list the files in the repository root's %s: %v", name, err)
 		}
 		paths = append(paths, files...)
-	}
-	if location == "" {
-		return nil
 	}
 	// The manifest, when there is one, stays first.
 	if len(paths) > 0 && paths[0] == librarytree.LegacyManifest {
