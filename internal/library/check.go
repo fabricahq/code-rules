@@ -340,7 +340,7 @@ func requireLibraryUnchanged(ctx context.Context, root *os.Root, before checkInp
 	return nil
 }
 
-// requireLeveledSkills fails when manifest, the library's configuration, gives a level to a skill the library
+// requireLeveledSkills fails when manifest, the library's configuration, gives a level to an own skill the library
 // doesn't have: a folder in .syllabus/skills/ with a SKILL.md, in the repository at root.
 func requireLeveledSkills(root *os.Root, manifest []byte) error {
 	declaration, err := rules.ParseLibraryManifest(manifest, manifestPath)
@@ -348,6 +348,10 @@ func requireLeveledSkills(root *os.Root, manifest []byte) error {
 		return err
 	}
 	for _, id := range declaration.Skills.Listed() {
+		// A borrowed skill is in the repository the library borrows it from, which each project resolves for itself.
+		if strings.Contains(id, ":") {
+			continue
+		}
 		file := librarytree.Directory + "/" + id + "/" + skills.File
 		info, err := root.Lstat(file)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {

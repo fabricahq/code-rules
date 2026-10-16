@@ -61,6 +61,21 @@ type sourceRecord struct {
 	AvailableSkills map[string]availableSkill `json:"availableSkills"`
 	Files           map[string]string         `json:"files"`
 	Executable      []string                  `json:"executable"`
+	// Borrowed records, by name, the revision of each source the library borrows skills from; it is omitted when
+	// the source borrows none.
+	Borrowed map[string]recordBorrowed `json:"borrowed,omitempty"`
+}
+
+// recordBorrowed is the revision a project resolved for one source a library borrows skills from. Kind is that
+// repository's kind at the commit, and Source names the project's own source that supplied the revision, when one
+// declares the same repository.
+type recordBorrowed struct {
+	Kind       string `json:"kind"`
+	Repository string `json:"repository"`
+	Ref        string `json:"ref,omitempty"`
+	Release    int    `json:"release,omitempty"`
+	Commit     string `json:"resolvedCommit"`
+	Source     string `json:"source,omitempty"`
 }
 
 // recordSkill is one installed skill's record. Level is null for a skill from a source that isn't a library.
@@ -161,6 +176,16 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		for id, skill := range snapshot.AvailableSkills {
 			record.AvailableSkills[id] = availableSkill{Level: nullableLevel(skill.Level)}
 		}
+		for name, borrowed := range snapshot.Borrowed {
+			if record.Borrowed == nil {
+				record.Borrowed = map[string]recordBorrowed{}
+			}
+			kind := libraryKind
+			if borrowed.NonLibrary {
+				kind = nonLibraryKind
+			}
+			record.Borrowed[name] = recordBorrowed{Kind: kind, Repository: borrowed.Repository, Ref: borrowed.Ref.String(), Release: borrowed.Release, Commit: borrowed.Commit, Source: borrowed.Source}
+		}
 		for id, rule := range snapshot.Rules {
 			entry := recordRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
 			if rule.Version != nil {
@@ -206,6 +231,12 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		return nil, err
 	}
 	return output, nil
+}
+
+// isBorrowedSkill reports whether id names a skill a library borrows.
+func isBorrowedSkill(id string) bool {
+	_, _, borrowed := library.SplitBorrowed(id)
+	return borrowed
 }
 
 // nonNil returns list, or an empty list for nil, so a record encodes an empty list rather than null.
@@ -350,7 +381,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
-	allowed := []string{"formatVersion", "checksum", "kind", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "skillInclude", "skills", "availableSkills", "files", "executable"}
+	allowed := []string{"formatVersion", "checksum", "kind", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "skillInclude", "skills", "availableSkills", "files", "executable", "borrowed"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
@@ -434,11 +465,14 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if err := rules.ValidatePaths(paths, nil); err != nil {
 		return parsedRecord{}, fmt.Errorf("%s: %w", where, err)
 	}
+	if result.Borrowed, err = readRecordBorrowed(record, where); err != nil {
+		return parsedRecord{}, err
+	}
 	if err := readRecordSkills(record, where, paths, &result.Snapshot); err != nil {
 		return parsedRecord{}, err
 	}
 	if result.NonLibrary {
-		if result.Release != 0 || len(result.Groups) > 0 || len(result.Rules) > 0 || len(result.RetiredRules) > 0 || !result.Selection.IsEmpty() || len(result.RuleSelection) > 0 {
+		if result.Release != 0 || len(result.Groups) > 0 || len(result.Rules) > 0 || len(result.RetiredRules) > 0 || !result.Selection.IsEmpty() || len(result.RuleSelection) > 0 || len(result.Borrowed) > 0 {
 			return parsedRecord{}, invalidSnapshot(where, "a record of a source that isn't a library has no library release, groups, or rules")
 		}
 		for file := range paths {
@@ -462,10 +496,39 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	return result, nil
 }
 
+// readRecordBorrowed validates the record's borrowed sources and returns them by name, or nil when there are none.
+func readRecordBorrowed(record sourceRecord, where string) (map[string]library.BorrowedSource, error) {
+	if len(record.Borrowed) == 0 {
+		return nil, nil
+	}
+	result := map[string]library.BorrowedSource{}
+	for _, name := range slices.Sorted(maps.Keys(record.Borrowed)) {
+		location := where + ".borrowed." + name
+		entry := record.Borrowed[name]
+		address, _ := json.Marshal(entry.Repository)
+		if _, err := rules.ParseRepository(address, location+".repository"); err != nil {
+			return nil, err
+		}
+		if entry.Kind != libraryKind && entry.Kind != nonLibraryKind || !fullCommit(entry.Commit) || entry.Release < 0 || entry.Kind == nonLibraryKind && entry.Release != 0 {
+			return nil, invalidSnapshot(location, "expected the kind, repository, and full commit SHA of the revision the borrowed skills come from")
+		}
+		borrowed := library.BorrowedSource{Repository: entry.Repository, Release: entry.Release, Commit: entry.Commit, Source: entry.Source, NonLibrary: entry.Kind == nonLibraryKind}
+		if entry.Ref != "" {
+			var err error
+			if borrowed.Ref, err = rules.ParseGitRef(entry.Ref, location+".ref"); err != nil {
+				return nil, err
+			}
+		}
+		result[name] = borrowed
+	}
+	return result, nil
+}
+
 // readRecordSkills validates the record's skill selection, skills, and executable files against its file inventory
 // paths, and stores them in snapshot. A library's skills have the IDs of its skills/ folder and a level; another
-// repository's have no level. Each installed skill needs its SKILL.md, and is one of the available skills, with the
-// same level.
+// repository's have no level; a borrowed skill names a recorded borrowed source and has a level. Each installed
+// skill needs its SKILL.md, and is one of the available skills, with the same level, except a borrowed skill
+// installed only because other borrowed skills use it, which the library doesn't list.
 func readRecordSkills(record sourceRecord, where string, paths map[string][]byte, snapshot *library.Snapshot) error {
 	snapshot.SkillSelection = []string{}
 	for i, id := range record.SkillInclude {
@@ -487,18 +550,19 @@ func readRecordSkills(record sourceRecord, where string, paths map[string][]byte
 	for id, skill := range record.Skills {
 		installed[id] = skill.Level
 	}
-	if snapshot.AvailableSkills, err = readRecordSkillLevels(available, where+".availableSkills", snapshot.NonLibrary); err != nil {
+	if snapshot.AvailableSkills, err = readRecordSkillLevels(available, where+".availableSkills", snapshot.NonLibrary, snapshot.Borrowed, false); err != nil {
 		return err
 	}
-	if snapshot.Skills, err = readRecordSkillLevels(installed, where+".skills", snapshot.NonLibrary); err != nil {
+	if snapshot.Skills, err = readRecordSkillLevels(installed, where+".skills", snapshot.NonLibrary, snapshot.Borrowed, true); err != nil {
 		return err
 	}
 	for _, id := range slices.Sorted(maps.Keys(snapshot.Skills)) {
 		location := where + ".skills." + id
-		if available, ok := snapshot.AvailableSkills[id]; !ok || available.Level != snapshot.Skills[id].Level {
+		available, ok := snapshot.AvailableSkills[id]
+		if !ok && !(isBorrowedSkill(id) && !record.Skills[id].Included) || ok && available.Level != snapshot.Skills[id].Level {
 			return invalidSnapshot(location, "expected one of availableSkills, with the same level")
 		}
-		if _, ok := paths[id+"/"+skills.File]; !ok {
+		if _, ok := paths[library.SkillFolder(id)+"/"+skills.File]; !ok {
 			return invalidSnapshot(location, "missing the skill's SKILL.md from inventory")
 		}
 		usedBy := record.Skills[id].UsedBy
@@ -524,21 +588,34 @@ func readRecordSkills(record sourceRecord, where string, paths map[string][]byte
 
 // readRecordSkillLevels validates the levels of the skills recorded at location, by ID: a library's skills,
 // skills/<name>, each with a level, or, when nonLibrary is set, skills from another repository with a null level,
-// none in another's folder. It returns the skills with only their levels.
-func readRecordSkillLevels(records map[string]*string, location string, nonLibrary bool) (map[string]library.ImportedSkill, error) {
+// and a library's borrowed skills, each with a level and, when installed is set, of a source in borrowed; none in
+// another's folder. Available skills needn't name a recorded source, since a library lists borrowed skills that a
+// project may not install, and a borrowed source is recorded only when the project installs its skills. It returns the skills with only their
+// levels.
+func readRecordSkillLevels(records map[string]*string, location string, nonLibrary bool, borrowed map[string]library.BorrowedSource, installed bool) (map[string]library.ImportedSkill, error) {
 	result := map[string]library.ImportedSkill{}
 	for _, id := range slices.Sorted(maps.Keys(records)) {
 		where := location + "." + id
-		if err := skills.ValidateID(id, where); err != nil {
-			return nil, err
-		}
 		level := records[id]
-		name, authored := strings.CutPrefix(id, skills.Directory+"/")
-		if nonLibrary && level != nil || !nonLibrary && (level == nil || !slices.Contains(skills.Levels, *level) || !authored || !skills.ValidName(name)) {
-			return nil, invalidSnapshot(where, "expected a library's skill, skills/<name>, with level required, recommended, or offered, or a skill from another repository with a null level")
+		if source, skill, isBorrowed := library.SplitBorrowed(id); isBorrowed {
+			if err := skills.ValidateID(skill, where); err != nil {
+				return nil, err
+			}
+			_, recorded := borrowed[source]
+			if installed && !recorded || level == nil || !slices.Contains(skills.Levels, *level) {
+				return nil, invalidSnapshot(where, "expected a borrowed skill, of a recorded borrowed source when installed, with level required, recommended, or offered")
+			}
+		} else {
+			if err := skills.ValidateID(id, where); err != nil {
+				return nil, err
+			}
+			name, authored := strings.CutPrefix(id, skills.Directory+"/")
+			if nonLibrary && level != nil || !nonLibrary && (level == nil || !slices.Contains(skills.Levels, *level) || !authored || !skills.ValidName(name)) {
+				return nil, invalidSnapshot(where, "expected a library's skill, skills/<name>, with level required, recommended, or offered, or a skill from another repository with a null level")
+			}
 		}
 		for other := range records {
-			if strings.HasPrefix(id, other+"/") {
+			if strings.HasPrefix(library.SkillFolder(id), library.SkillFolder(other)+"/") {
 				return nil, invalidSnapshot(where, "a skill's folder can't be inside another skill's folder, "+other)
 			}
 		}
@@ -562,6 +639,9 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		if record.AvailableSkills[id].Level == skills.LevelRequired {
 			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.RequiredSkillProblem(source.Name, id, record.Release)}
 		}
+		if slices.Contains(source.LibraryRequires, id) {
+			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.LibraryRequiresProblem(source.Name, id)}
+		}
 	}
 	included := []string{}
 	for id, skill := range record.Skills {
@@ -570,7 +650,9 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		}
 	}
 	slices.Sort(included)
-	if !slices.Equal(record.SelectedSkills(source.Skills), included) {
+	selected := slices.Concat(record.SelectedSkills(source.Skills), source.LibraryRequires)
+	slices.Sort(selected)
+	if !slices.Equal(slices.Compact(selected), included) {
 		return invalidSnapshot(where, "recorded skills differ from sources."+source.Name+".skills.include and the library's required skills; run syllabus project sync")
 	}
 	if record.NonLibrary && source.Ref.IsZero() {
@@ -632,19 +714,27 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 
 // matchSkillUses checks, without fetching Git, that snapshot records exactly the skills its included skills bring in
 // and why: the skills they use, transitively, by the syllabus-skills-used of the vendored SKILL.md files and the source's
-// skills.uses. A difference means configuration changed since sync, such as a new skills.uses entry, so it fails
+// skills.uses, a borrowed skill's from the repository it was borrowed from. A difference means configuration changed since sync, such as a new skills.uses entry, so it fails
 // asking for sync, which checks the change against the source.
 func matchSkillUses(source rules.Source, snapshot library.Snapshot) error {
 	where := "vendor/" + source.Name + "/_source.json"
 	uses := map[string][]string{}
 	included := []string{}
 	for _, id := range slices.Sorted(maps.Keys(snapshot.Skills)) {
-		file := id + "/" + skills.File
+		file := library.SkillFolder(id) + "/" + skills.File
 		metadata, err := skills.ReadMetadata(snapshot.Files[file], "vendor/"+source.Name+"/"+file)
 		if err != nil {
 			return err
 		}
-		uses[id] = slices.Concat(metadata.SkillsUsed, source.SkillUses[id])
+		// A borrowed skill uses skills of the repository it was borrowed from, borrowed with it.
+		if name, _, borrowed := library.SplitBorrowed(id); borrowed {
+			uses[id] = []string{}
+			for _, used := range metadata.SkillsUsed {
+				uses[id] = append(uses[id], name+":"+used)
+			}
+		} else {
+			uses[id] = slices.Concat(metadata.SkillsUsed, source.SkillUses[id])
+		}
 		if snapshot.Skills[id].Included {
 			included = append(included, id)
 		}
