@@ -10,11 +10,12 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // SkillForkSource names the configured source and the skill in it that a fork copies.
@@ -44,8 +45,9 @@ func ParseSkillForkSource(value string) (SkillForkSource, error) {
 type SkillForkPlan struct {
 	from    SkillForkSource
 	options Options
-	// configBytes is the configuration planning read; Commit refuses to write when it changed.
-	configBytes []byte
+	// configBytes is the configuration planning read, and record the source record it copied the skill as, which
+	// digests every vendored file; Commit refuses to write when either changed.
+	configBytes, record []byte
 	// name is the skill's install name, which names the fork's folder, and commit the commit of the source's
 	// repository that the source record locks, which the exclusion records as basedOn.
 	name, commit string
@@ -54,11 +56,11 @@ type SkillForkPlan struct {
 }
 
 // PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ as the source's
-// last sync recorded it, with the IDs its SKILL.md cites qualified as qualifyCitations does, into skills/<name>/,
-// where name is the skill's install name, without writing. It fails when the source isn't configured, when its
-// record doesn't match its configuration, when its last sync didn't install the skill, when the source already
-// excludes the skill, or when the project already has an authored skill with that name or another exclusion names it
-// as a replacement, since existing authored skills and exclusions are never replaced.
+// last sync recorded it, with its SKILL.md rewritten as forkedSkillFile rewrites it, into skills/<name>/, where name
+// is the skill's install name, without writing. It fails when the source isn't configured, when its record doesn't
+// match its configuration, when its last sync didn't install the skill, when the source already excludes the skill,
+// when the project already has an authored skill with that name or another exclusion names it as a replacement, since
+// existing authored skills and exclusions are never replaced, or when forkedSkillFile fails.
 func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (*SkillForkPlan, error) {
 	plan := &SkillForkPlan{from: from}
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
@@ -87,6 +89,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 			return err
 		}
 		snapshot := snapshots[source.Name]
+		plan.record = treeFiles(vendor)[source.Name+"/_source.json"]
 		if _, installed := snapshot.Skills[from.Skill]; !installed {
 			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run syllabus project sync first", source.Name, from.Skill)}
 		}
@@ -108,7 +111,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		for _, name := range slices.Sorted(maps.Keys(files)) {
 			content := files[name]
 			if name == skills.File {
-				content = qualifyCitations(content, metadata, source.Name, !snapshot.NonLibrary, location)
+				if content, err = forkedSkillFile(content, metadata, plan.name, source.Name, !snapshot.NonLibrary, source.SkillUses[from.Skill], location); err != nil {
+					return err
+				}
 			}
 			plan.files = append(plan.files, filetxn.File{Path: path.Join(folder, name), Content: content, Executable: slices.Contains(executable, name)})
 		}
@@ -143,7 +148,8 @@ func (p *SkillForkPlan) BasedOn() string { return p.commit }
 // Commit writes the fork under writer ownership, and, in the same edit, adds the source's exclusion of the skill
 // with reason, the fork as replacedBy, and the commit it copied as basedOn, so the fork installs in place of the
 // source's skill and updates list the source's later changes to it. It writes nothing when reason is blank, when the
-// configuration changed after planning, or when any of the fork's files exists.
+// configuration or the source record changed after planning, such as when an update moved the source to another
+// commit, or when any of the fork's files exists.
 func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, error) {
 	if p == nil || p.name == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned skill fork", nil)
@@ -160,6 +166,13 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 		if !bytes.Equal(original, p.configBytes) {
 			return nil, failure("concurrent-change", "the project's configuration changed after the fork was planned; run the command again", nil)
 		}
+		record, err := filetxn.ReadOptional(ctx, root, "vendor/"+p.from.Source+"/_source.json")
+		if err != nil {
+			return nil, err
+		}
+		if !bytes.Equal(record, p.record) {
+			return nil, failure("concurrent-change", "the source's imported files changed after the fork was planned; run the command again", nil)
+		}
 		if err := requireSkillForkTarget(ctx, root, config, folder); err != nil {
 			return nil, err
 		}
@@ -172,61 +185,119 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 	})
 }
 
-// qualifyCitations returns data, the SKILL.md of a skill the source named source supplies, with the source's name
-// added to each bare ID its syllabus-skills-used lists, and, when the source is a library, its syllabus-rules-used,
-// so the fork, an authored skill, still names the source's skills and rules: in the source, skills/tdd is the
-// source's own skill, and in the project, the project's. metadata is data's, read at location. It returns data
-// unchanged when the lists aren't block strings it can rewrite exactly, leaving the fork's author to qualify them.
-func qualifyCitations(data []byte, metadata skills.Metadata, source string, library bool, location string) []byte {
-	keys := []string{skills.SkillsUsedKey}
-	if library {
-		keys = append(keys, skills.RulesUsedKey)
-	}
-	qualify := func(lines []string) []string {
+// forkedSkillFile returns data, the SKILL.md of a skill the source named source supplies, as its fork, the authored
+// skill skills/<name>, needs it: with frontmatter that names the skill name, which a SKILL.md from a repository that
+// isn't a library can lack; with the source's name added to each bare ID its syllabus-skills-used lists, and, when the
+// source is a library, its syllabus-rules-used, since in the project a bare ID names the project's own skill or rule;
+// and with uses, the IDs the source's skills.uses adds for the skill, added to syllabus-skills-used the same way, since
+// skills.uses applies only to the source's own skills. metadata is data's, read at location. It rewrites only what
+// differs, replacing a list it changes with a block string. It fails, at location, when it can't rewrite the
+// frontmatter to say exactly that, such as a list inside a flow mapping, or when the result fails the checks build
+// applies to an authored skill, such as a type other than playbook or review.
+func forkedSkillFile(data []byte, metadata skills.Metadata, name, source string, library bool, uses []string, location string) ([]byte, error) {
+	qualify := func(ids []string) []string {
 		result := []string{}
-		for _, line := range lines {
-			if !strings.Contains(line, ":") {
-				line = source + ":" + line
+		for _, id := range ids {
+			if !strings.Contains(id, ":") {
+				id = source + ":" + id
 			}
-			result = append(result, line)
+			if !slices.Contains(result, id) {
+				result = append(result, id)
+			}
 		}
 		return result
 	}
-	lines := strings.SplitAfter(string(data), "\n")
-	if len(lines) == 0 || strings.TrimRight(lines[0], "\r\n") != "---" {
-		return data
+	skillsUsed, rulesUsed := qualify(slices.Concat(metadata.SkillsUsed, uses)), metadata.RulesUsed
+	if library {
+		rulesUsed = qualify(metadata.RulesUsed)
 	}
-	// keyIndent is the indentation of the key whose block string the loop is in, or -1 outside one.
-	keyIndent := -1
-	for i := 1; i < len(lines); i++ {
-		text := strings.TrimRight(lines[i], "\r\n")
-		content := strings.TrimSpace(text)
-		if content == "---" {
-			break
+	text := string(data)
+	eol := "\n"
+	if first, _, _ := strings.Cut(text, "\n"); strings.HasSuffix(first, "\r") {
+		eol = "\r\n"
+	}
+	// A quoted name stays a string even when it reads as a number or a boolean, such as 2048.
+	nameLine := "name: " + strconv.Quote(name) + eol
+	switch {
+	case !metadata.Frontmatter:
+		text = "---" + eol + nameLine + "---" + eol + text
+	case metadata.Name == "":
+		opening, rest, _ := strings.Cut(text, "\n")
+		text = opening + "\n" + nameLine + rest
+	}
+	if !slices.Equal(skillsUsed, metadata.SkillsUsed) {
+		text = setMetadataList(text, skills.SkillsUsedKey, skillsUsed, eol)
+	}
+	if !slices.Equal(rulesUsed, metadata.RulesUsed) {
+		text = setMetadataList(text, skills.RulesUsedKey, rulesUsed, eol)
+	}
+	forked, err := skills.ReadMetadata([]byte(text), location)
+	if err != nil || forked.Name != name || !slices.Equal(forked.SkillsUsed, skillsUsed) || !slices.Equal(forked.RulesUsed, rulesUsed) || forked.Description != metadata.Description || forked.Type != metadata.Type || !slices.Equal(forked.ReservedKeys, metadata.ReservedKeys) {
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("Syllabus can't rewrite this frontmatter for the fork, which must name the skill %s and cite the source's skills and rules with the source's name, such as %s:skills/tdd, because it isn't written as block mappings Syllabus can edit. %s", name, source, forkByHand(name))}
+	}
+	if problems := skills.Check(name, forked, true); len(problems) > 0 {
+		return nil, &ValidationError{Location: location, Problem: problems[0] + ", and build refuses a skill you author, as a fork is, with this problem. " + forkByHand(name)}
+	}
+	return []byte(text), nil
+}
+
+// forkByHand tells how to fork the skill named name when the command can't.
+func forkByHand(name string) string {
+	return "To fork the skill, copy it into .syllabus/skills/" + name + "/, correct its frontmatter, and add the exclusion to config.yaml by hand"
+}
+
+// setMetadataList returns text, a SKILL.md whose frontmatter starts at its first line, with key of the top-level
+// metadata block mapping set to ids, one per line, as a literal block string, adding the key, and the mapping, when
+// missing. eol ends each line it writes. It returns text unchanged when the frontmatter has no closing line or
+// metadata isn't a block mapping, which the caller detects by reading the result.
+func setMetadataList(text, key string, ids []string, eol string) string {
+	lines := strings.SplitAfter(text, "\n")
+	content := func(i int) string { return strings.TrimSpace(lines[i]) }
+	indent := func(i int) int { return len(lines[i]) - len(strings.TrimLeft(lines[i], " ")) }
+	closing := slices.IndexFunc(lines[1:], func(line string) bool { return strings.TrimRight(line, "\r\n") == "---" }) + 1
+	if closing == 0 {
+		return text
+	}
+	block := func(at int) []string {
+		result := []string{strings.Repeat(" ", at) + key + ": |" + eol}
+		for _, id := range ids {
+			result = append(result, strings.Repeat(" ", at+2)+id+eol)
 		}
-		indent := len(text) - len(strings.TrimLeft(text, " "))
-		if keyIndent >= 0 && content != "" && indent > keyIndent {
-			if !strings.Contains(content, ":") {
-				lines[i] = text[:indent] + source + ":" + content + lines[i][len(text):]
-			}
+		return result
+	}
+	mapping := slices.IndexFunc(lines[1:closing], func(line string) bool { return strings.HasPrefix(line, "metadata:") }) + 1
+	if mapping == 0 {
+		return strings.Join(slices.Insert(lines, closing, append([]string{"metadata:" + eol}, block(2)...)...), "")
+	}
+	if value := strings.TrimSpace(strings.TrimPrefix(content(mapping), "metadata:")); value != "" && !strings.HasPrefix(value, "#") {
+		return text
+	}
+	// last is the mapping's last line, and child the indentation of its keys, or -1 before its first key.
+	last, child := mapping, -1
+	for i := mapping + 1; i < closing && (content(i) == "" || indent(i) > 0); i++ {
+		if content(i) == "" {
 			continue
 		}
-		if content != "" {
-			keyIndent = -1
+		if child < 0 && !strings.HasPrefix(content(i), "#") {
+			child = indent(i)
 		}
-		for _, key := range keys {
-			if value, ok := strings.CutPrefix(content, key+":"); ok && strings.HasPrefix(strings.TrimSpace(value), "|") {
-				keyIndent = indent
+		last = i
+	}
+	if child < 0 {
+		child = 2
+	}
+	for i := mapping + 1; i <= last; i++ {
+		if indent(i) != child || !strings.HasPrefix(content(i), key+":") {
+			continue
+		}
+		// The value runs to the last line indented more than the key, which covers every scalar style.
+		end := i
+		for j := i + 1; j <= last && (content(j) == "" || indent(j) > child); j++ {
+			if content(j) != "" {
+				end = j
 			}
 		}
+		return strings.Join(slices.Replace(lines, i, end+1, block(child)...), "")
 	}
-	qualified := []byte(strings.Join(lines, ""))
-	rewritten, err := skills.ReadMetadata(qualified, location)
-	if err != nil || !slices.Equal(rewritten.SkillsUsed, qualify(metadata.SkillsUsed)) {
-		return data
-	}
-	if library && !slices.Equal(rewritten.RulesUsed, qualify(metadata.RulesUsed)) || !library && !slices.Equal(rewritten.RulesUsed, metadata.RulesUsed) {
-		return data
-	}
-	return qualified
+	return strings.Join(slices.Insert(lines, last+1, block(child)...), "")
 }

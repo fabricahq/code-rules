@@ -20,10 +20,10 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // changesDirectory holds change notes, by their library paths; projects never import it. The repository keeps it
@@ -38,7 +38,7 @@ type ChangeRequest struct {
 	// IDs are library rule IDs, such as practices/testing/verify-retry-limits, in the order given.
 	IDs []string
 	// Bump is major, minor, or patch for rules that have a version, and empty for new or retired rules.
-	Bump coderules.Change
+	Bump syllabus.Change
 	// Summary is one line for project maintainers; for a retirement, it explains why.
 	Summary string
 	// Retire records that the rules were retired; their Markdown files must already be gone.
@@ -81,7 +81,7 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 // by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
 // collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
 // A retirement whose replacement isn't a rule yet succeeds with a warning.
-func (p *ChangePlan) Commit(ctx context.Context, bump coderules.Change, summary string, date time.Time) (AuthoringResult, error) {
+func (p *ChangePlan) Commit(ctx context.Context, bump syllabus.Change, summary string, date time.Time) (AuthoringResult, error) {
 	if p == nil || len(p.request.IDs) == 0 {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned change note", nil)
 	}
@@ -264,7 +264,7 @@ func validateRequest(request ChangeRequest) error {
 		}
 	}
 	switch request.Bump {
-	case "", coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch:
+	case "", syllabus.ChangeMajor, syllabus.ChangeMinor, syllabus.ChangePatch:
 	default:
 		return failure("invalid-arguments", "--bump must be major, minor, or patch", nil)
 	}
@@ -365,13 +365,13 @@ func renderNote(request ChangeRequest, versioned bool, name string) ([]byte, err
 		var change *yaml.Node
 		switch {
 		case request.Retire && request.ReplacedBy != "":
-			change = &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{text("change"), text(string(coderules.ChangeRetired)), text("replacedBy"), text(request.ReplacedBy)}}
+			change = &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{text("change"), text(string(syllabus.ChangeRetired)), text("replacedBy"), text(request.ReplacedBy)}}
 		case request.Retire:
-			change = text(string(coderules.ChangeRetired))
+			change = text(string(syllabus.ChangeRetired))
 		case versioned:
 			change = text(string(request.Bump))
 		default:
-			change = text(string(coderules.ChangeNew))
+			change = text(string(syllabus.ChangeNew))
 		}
 		entries.Content = append(entries.Content, text(id), change)
 	}

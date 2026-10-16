@@ -1,36 +1,45 @@
 ---
 title: "Project files"
-description: "What to edit, what Syllabus manages, and where your agent starts reading."
+description: "What to edit, what Syllabus manages, where installed skills go, and where your agent starts reading."
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
 
-A **project** is the codebase whose rules and skills Syllabus manages. Its **Syllabus directory**, `.syllabus/` at the project root, contains project configuration, project-only rules and their shared assets, project-only skills, imported source snapshots, and generated guidance. These files define which rules and skills the project uses and give your agents a shared place to read them. Installed copies of the skills live in the project's skill target folders, such as `.claude/skills/`.
-
-:::note[Preview]
-Skills, `skills/`, `SKILLS.md`, `installed-skills.json`, and the skill target folders come in the next Syllabus release.
+:::caution[Preview]
+This page describes the version 2 layout and skill support, which aren't in a released version of Syllabus yet.
 :::
 
-## Project layout
+Every repository that uses Syllabus, whether a project, a library, or both, has the same **Syllabus directory**, `.syllabus/` at its root. It holds the configuration, the rules, skills, and assets the repository authors, vendor snapshots of what it takes from each source, and generated guidance. When the repository installs skills, Syllabus also writes them into **target folders** outside that directory, where agents look for skills.
 
-The tree below shows **`/.syllabus/` at the project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
+## Layout
+
+The tree below shows the **repository root**, the top-level directory of your codebase. The leading `/` refers to the repository root, not your computer's filesystem root.
 
 <FileTree>
 
-- /.claude/skills/
-  - build-feature/
-    - SKILL.md
 - /.agents/skills/
   - build-feature/
     - SKILL.md
+    - scripts/
+      - verify.sh
+  - fix-bug/
+    - ...
+- /.claude/skills/
+  - build-feature/
+    - ...
+  - fix-bug/
+    - ...
+  - release/ another tool's skill, which Syllabus leaves alone
 - /.syllabus/
   - config.yaml
   - README.md
   - rules/
-    - README.md
     - practices/testing/
       - _group.yaml
       - test-failure-paths.md
+  - skills/
+    - fix-bug/
+      - SKILL.md
   - assets/
     - retry-lifecycle.svg
   - skills/
@@ -40,58 +49,54 @@ The tree below shows **`/.syllabus/` at the project root**, the top-level direct
     - fabrica/
       - _source.json
       - config.yaml
-      - practices/testing/
+      - rules/
+        - practices/testing/
+          - ...
+      - assets/
+        - ...
+      - skills/
+        - build-feature/
+          - ...
+      - borrowed/
+        - mattpocock/
+          - skills/engineering/to-spec/
+            - ...
+    - pstack/
+      - _source.json
+      - skills/architect/
         - ...
       - skills/build-feature/
         - SKILL.md
   - generated/
     - RULES.md
     - SKILLS.md
-    - installed-skills.json
     - groups/
       - ...
     - rules/
       - ...
     - libraries/
       - ...
+    - installed-skills.json
     - provenance.json
 
 </FileTree>
 
-Your `AGENTS.md` stays outside the Syllabus directory, at the project root. Syllabus maintains one section of it, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers, and leaves the rest to you. The **project configuration** is `.syllabus/config.yaml`.
+`.claude/skills/` and `.agents/skills/` exist only for the [skill targets](/reference/configuration/#skill-targets) the repository configures, and only once it installs a skill. Your `AGENTS.md` stays outside the Syllabus directory, at the repository root. Syllabus maintains one section of it, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers, and leaves the rest to you. A library also has `changes/` in its Syllabus directory, for its [change notes](/reference/rule-versions/#change-notes); see [Library format](/reference/library-format/).
 
-Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.syllabus/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
+Initialize from the repository root. In Git repositories, other commands find the nearest Git root and use its `.syllabus/` directory. Outside Git, run commands from the repository root. See [Working directories](/reference/cli/#working-directories).
 
-## Authored, imported, and resolved rules
+## Authored, vendored, and generated content
 
-The directories serve different purposes:
+The Syllabus directory holds three kinds of content:
 
-- **`rules/` and `assets/`: content you author for this project.** Add your own groups and rules to `rules/`, or write replacements for imported rules and select those replacements in `config.yaml`. Put supporting files that several of your rules share in `assets/`; a rule's own assets sit beside it in `rules/`. You maintain these files; syncing libraries preserves them.
-- **`vendor/`: source files imported from libraries.** Syllabus keeps a snapshot of each selected rule at its recorded version, along with the library files it needs. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `rules/` instead.
-- **`generated/`: the resolved rules your agents read.** Syllabus combines the imported and authored rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
+- **Authored content: `rules/`, `skills/`, and `assets/`.** The rules, rule group metadata, skills, and shared assets written in this repository. Add your own rules and skills here, including replacements and forks of rules and skills you include from sources. You maintain these files; sync preserves them. A library publishes exactly this content.
+- **Vendor snapshots: `vendor/<source-name>/`.** A copy of what the repository takes from each source, at its recorded library release or commit, with `_source.json`, the record of that revision and of every rule's and skill's version. A library's snapshot mirrors its Syllabus directory, with its `config.yaml` for the manifest, so a rule's relative links to the library's shared assets work in the copy too; license and notice files from outside the library's `.syllabus/` keep their paths from its repository root. A non-library source's files keep their paths in its repository. Skills a library [borrows](/reference/configuration/#borrowed-skills) are stored with the library that listed them, under `borrowed/<borrowed-source>/`. Snapshots are kept per source because two sources can both have the same rule group ID. Do not customize them; put your changes in authored content instead.
+- **Generated guidance: `generated/`.** The resolved rules your agents read. Syllabus combines the included and authored rules according to `config.yaml`, applies exclusions and replacements, and writes the reading indexes, including `SKILLS.md`. Do not edit this directory; rebuild it after changing your inputs.
 
-- **`skills/`: skills you author for this project.** Each folder, such as `skills/release-checklist/`, is one skill with its `SKILL.md`; its ID is `skills/<name>`. Build and sync install it like a source's skill. A fork of a source's skill, which `syllabus project add skill --from` writes, lives here too, and a `skills.exclude` entry names it as the skill's replacement.
-- **Skill target folders: installed copies of every skill.** Build and sync copy each skill into each folder that `skillTargets` names, `.claude/skills/` and `.agents/skills/`, with a marker line saying not to edit it, and record the folders they installed in `generated/installed-skills.json`. They never replace or remove a folder there that they didn't install. Commit the copies; edit the skill's source instead. Check fails while a copy differs from what build would write.
+Installed skills are output too: Syllabus writes a copy of each installed skill into every target folder, such as `.claude/skills/build-feature/`, from its vendored or authored source. See [Installed skills](#installed-skills).
 
-When a skill cites rules in `syllabus-rules-used`, the installed `SKILL.md` ends with a generated section that links to the project's version of each one, relative to the copy, so the same copy works in every skill target:
-
-```md
-## Rules this skill applies
-
-Read each rule in full before the step that applies it. These are the project's versions of the rules this skill cites, for reference: they don't join RULES.md.
-
-- `fabrica:practices/testing/test-behavior-not-implementation` 1.3.0: [.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md](../../../.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md)
-- `local:practices/releases/write-release-notes`: [.syllabus/generated/rules/local/practices/releases/write-release-notes.md](../../../.syllabus/generated/rules/local/practices/releases/write-release-notes.md)
-```
-
-A cited rule the project replaces names the authored rule that does; one it excluded, doesn't include, or whose library retired it, has no link and says why.
-
-Think of `rules/`, `assets/`, `skills/`, and `vendor/` as inputs, and `generated/` and the installed skill copies as the output for your agent.
-For example, when you replace a library rule, its imported source stays in `vendor/`, your replacement lives in `rules/`, and `generated/` presents the replacement to your agent.
-
-The same layout serves a library: a library repository keeps its manifest in the `library` section of `config.yaml`, the rules it publishes in `rules/`, their shared assets in `assets/`, and its change notes in `changes/`, so one repository can be both a project and a library. A library never publishes `vendor/` or `generated/`. See [Library format](/reference/library-format/). An imported library's `vendor/<source-name>/config.yaml` holds only that library's `library` section.
-
-Syllabus doesn't read a `local/` directory, where earlier versions kept authored rules. Every project command fails while `.syllabus/local/` exists, and its message shows where each file moves: groups and rules to `rules/`, and `local/assets/` to `assets/`. Rule IDs don't change. A moved rule sits one directory deeper, so add one `../` to its links to shared assets.
+Think of authored content and `vendor/` as inputs, and `generated/` and the installed skills as the output for your agents.
+For example, when you replace a library rule, its vendored copy stays in `vendor/`, your replacement lives in `rules/`, and `generated/` presents the replacement to your agent.
 
 ## What to edit
 
@@ -99,39 +104,40 @@ Syllabus doesn't read a `local/` directory, where earlier versions kept authored
 | --- | --- | --- |
 | `AGENTS.md` | You, outside the Syllabus section | Your instructions for agents. |
 | The Syllabus section of `AGENTS.md` | `syllabus project init`, `syllabus project build`, `syllabus project sync`, and `syllabus project update` | Tell your agent to read the generated rules and skills. |
-| `.syllabus/config.yaml` | You | Choose libraries, groups, rule versions, and exceptions. |
-| `.syllabus/rules/` | You, after initialization | Add project rules, replacements, and group metadata. |
-| `.syllabus/assets/` | You | Add supporting files that several of your rules share. |
-| `.syllabus/skills/` | You | Add skills, one folder with a `SKILL.md` per skill. |
-| `.claude/skills/`, `.agents/skills/` | `syllabus project sync`, `syllabus project update`, and `syllabus project build`, for the folders they install | Installed copies of the project's skills, for agents that load skills from these folders. |
-| `.syllabus/README.md` | `syllabus project init`, `syllabus project build`, and `syllabus project sync` | Explain the project's rule setup and commands. |
-| `.syllabus/vendor/` | `syllabus project sync` and `syllabus project update` | Store imported source files and their records of each rule's version. |
-| `.syllabus/generated/` | `syllabus project sync`, `syllabus project update`, and `syllabus project build` | Provide resolved rules and indexes for your agent. |
+| `.syllabus/config.yaml` | You | Choose sources, the rules and skills to include, versions, skill targets, exceptions, and, for a library, its manifest. |
+| `.syllabus/rules/`, `skills/`, and `assets/` | You | Add authored rules, rule group metadata, replacements, skills, and shared assets. |
+| `.syllabus/README.md` | `syllabus project init`, `syllabus project build`, and `syllabus project sync` | Explain the repository's rule setup and commands. |
+| `.syllabus/vendor/` | `syllabus project sync` and `syllabus project update` | Store vendor snapshots and their records of each rule's and skill's version. |
+| `.syllabus/generated/` | `syllabus project sync`, `syllabus project update`, and `syllabus project build` | Provide resolved rules, indexes, and the record of installed skills. |
+| Skill folders that Syllabus installed in `.claude/skills/` and `.agents/skills/` | `syllabus project sync`, `syllabus project update`, and `syllabus project build` | Provide installed copies of skills where agents look for them. |
+| Other folders in `.claude/skills/` and `.agents/skills/` | You, or the tool that installed them | Syllabus never changes or removes them. |
 
-Keep authored changes in configuration, `rules/`, `assets/`, and `skills/`. Edits in `vendor/`, `generated/`, or installed skill copies will be replaced or removed.
-Commit configuration, authored rules, assets, and skills, both managed directories, and the installed skill copies so your team and agents can use the same rules and skills offline.
+Keep your changes in configuration and authored content. Edits in `vendor/`, `generated/`, or an installed skill folder will be replaced or removed. To change a skill you include from a source, [fork it](/reference/cli/#fork-a-skill) into `skills/`.
+Commit configuration, authored content, both managed directories, and the installed skill folders, so your team, CI, and every fresh checkout use the same rules and skills offline.
 Commit the project instructions and README as well.
+If your `.gitignore` excludes a target folder, such as with `/.claude/`, change the line to `/.claude/*` and add the exception `!/.claude/skills/`, or `syllabus project check` reports the missing folders. Git can't re-include a folder inside an excluded folder, so `!/.claude/skills/` alone doesn't work after `/.claude/`.
 
 Use `syllabus project build` to regenerate guidance from stored inputs, and `syllabus project check` to verify consistency without changing files.
-Missing or mismatched imported snapshots require `syllabus project sync`.
+Missing or mismatched vendor snapshots require `syllabus project sync`.
 For recovery and file ownership details, see [Sync and recovery](/reference/sync/).
 
-Generated Markdown and the managed Syllabus guide include a "Generated by Syllabus" notice and regeneration instructions. `generated/provenance.json` stores that notice in `generatedNotice`. Copied license and notice files retain their original bytes.
+Generated Markdown and the managed Syllabus guide include a "Generated by Syllabus" notice and regeneration instructions. `generated/provenance.json` and `generated/installed-skills.json` store that notice in `generatedNotice`. Copied license and notice files retain their original bytes. An installed `SKILL.md` carries a [marker line](#installed-skills) instead, because its frontmatter must start at the first byte.
 
-## Project and group guides
+## Project and rule group guides
 
-`syllabus project init` creates `.syllabus/README.md` with definitions and commands for managing rules. It preserves the project's own `README.md` at the project root.
+`syllabus project init` creates `.syllabus/README.md` with definitions and commands for managing rules. It preserves the repository's own `README.md` at the repository root.
 
-After upgrading Syllabus, run `syllabus project build` to refresh an older guide and regenerate guidance, or rerun `syllabus project init` to refresh only the guide and setup files. Build, sync, and init preserve valid configuration and authored rules but refuse to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `syllabus project check` reports a missing or outdated managed guide without changing it.
+After upgrading Syllabus, run `syllabus project build` to refresh an older guide and regenerate guidance, or rerun `syllabus project init` to refresh only the guide and setup files. Build, sync, and init preserve valid configuration and authored content but refuse to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `syllabus project check` reports a missing or outdated managed guide without changing it.
 
-Managed guide format changes are breaking changes under the [version policy](https://github.com/fabricahq/code-rules/blob/main/.release-planner/policy.md#choosing-a-version): a new minor version of Syllabus before 1.0, and a new major version after 1.0. This guide is separate from your project's own README.
+Managed guide format changes are breaking changes under the [version policy](https://github.com/fabricahq/syllabus/blob/main/.release-planner/policy.md#choosing-a-version): a new minor version of Syllabus before 1.0, and a new major version after 1.0. This guide is separate from your repository's own README.
 
-Local and library group creation also writes a `README.md` beside `_group.yaml`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
+Creating a rule group also writes a `README.md` beside `_group.yaml`. Rule group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing rule group files are preserved.
 
 ## Where agents start
 
-The Syllabus section of `AGENTS.md` points your agent to `.syllabus/generated/RULES.md`. It lists the groups and explains when to read each one.
-Agents then open relevant groups and read the applicable rules in full.
+The Syllabus section of `AGENTS.md` points your agent to `.syllabus/generated/RULES.md`. It lists the rule groups and explains when to read each one.
+Agents then open relevant rule groups and read the applicable rules in full.
+When the repository installs skills, `RULES.md` also has one line pointing to `SKILLS.md`, so the same instructions reach agents whose tools don't load skills from the target folders.
 See [Plan, write, and review](/for-agents/) for the section's text and a workflow built on it.
 
 The commands that write the section create `AGENTS.md` when it's missing, and add the section after your text. Each refresh replaces only the lines between the markers. The begin marker records the Syllabus version that wrote the section and a digest of its lines, so build, sync, update, and init refuse to replace a section edited by hand: move your text outside the markers and delete the section, then rerun the command. `syllabus project check` reports a missing or outdated section. To manage `AGENTS.md` yourself, set [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section).
@@ -140,29 +146,136 @@ When `AGENTS.md` already points to `.syllabus/generated/RULES.md` outside the ma
 
 | Generated path | Contents |
 | --- | --- |
-| `RULES.md` | The entry point for discovering relevant groups. |
-| `groups/` | Group pages containing full rules or summaries with links to full definitions. |
-| `rules/` | Individual resolved rules, available even when a group also includes them inline. |
+| `RULES.md` | The entry point for discovering relevant rule groups. |
+| `SKILLS.md` | One entry per installed skill. Present only when the repository includes skills. |
+| `groups/` | Rule group pages containing full rules or summaries with links to full definitions. |
+| `rules/` | Individual resolved rules, available even when a rule group also includes them inline, and the reference-only rules that installed skills cite. |
 | `libraries/` | Source summaries and retained license and notice files. |
-| `provenance.json` | Machine-readable source versions, origins, replacement decisions, and installed skills. |
-| `SKILLS.md` | Each installed skill: what it does, where it came from, where it's installed, how many rules it applies, and, for a replacement, the skill it replaces and why. It also lists the skills each one uses, by install name, and says why a source's skill is installed: `included`, `used by <name>` when only other skills use it, or both. Then it lists the skills the project excludes, with their reasons. `RULES.md` links to it when the project installs a skill. |
-| `installed-skills.json` | The skill folders Syllabus installed, with each skill's ID, install name, and folder digest, so later commands replace or remove only those folders. |
+| `installed-skills.json` | The skill folders Syllabus installed in the target folders. Present only when the repository includes skills. |
+| `provenance.json` | Machine-readable source versions, origins, and replacement decisions. |
 
 Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.
 Full rule definitions are never shortened to fit an index.
 
 A rule's source name appears in its generated path. For example, `fabrica:practices/testing/test-failure-paths` lives at `rules/fabrica/practices/testing/test-failure-paths.md` under `generated/`.
-Authored rules and replacements use `local/` in place of the imported source name. Excluded rules and replaced upstream bodies have no generated rule file.
+Authored rules and replacements have no source name, so `practices/testing/test-failure-paths` lives at `rules/practices/testing/test-failure-paths.md`. Excluded rules and replaced rule bodies have no generated rule file.
+A rule that only an installed skill cites has a generated rule file at the same kind of path, but no rule group page or `RULES.md` entry lists it.
 
 For rule versions, replacement history, and retained license records, see [Provenance](/reference/provenance/).
 
+## Installed skills
+
+For each installed skill, Syllabus writes the folder `<target>/<install-name>/` in every [skill target](/reference/configuration/#skill-targets), such as `.claude/skills/build-feature/`. The folder holds every file of the skill as its source has it, with each file's executable bit, plus two changes to `SKILL.md`, and a third when the repository [renames](/reference/configuration/#rename-a-skill) the skill: its `name` field becomes the install name.
+
+First, a marker comment is the first line after the frontmatter:
+
+```markdown
+---
+name: build-feature
+description: Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
+metadata:
+  syllabus-skill-type: playbook
+  syllabus-rules-used: |
+    practices/testing/test-behavior-not-implementation
+    practices/verification/verify-on-the-surface-users-touch
+  syllabus-skills-used: |
+    skills/tdd
+---
+<!-- syllabus:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with syllabus project add skill --from. -->
+
+1. Read the spec and name the slice you're building.
+```
+
+The marker names the skill's project ID and its version. A skill from a non-library source shows its full commit SHA in place of a version. An authored skill has no version, and its marker says where to edit it instead: `<!-- syllabus:installed skills/fix-bug. Do not edit; edit .syllabus/skills/fix-bug/ instead. -->`. A `SKILL.md` without frontmatter, which only a non-library source can supply, gets the marker as its first line. The marker never includes the Syllabus version, so upgrading Syllabus doesn't change installed copies.
+
+Second, a generated section is appended to the end of `SKILL.md`. When the skill cites rules, it lists each one's project ID, version, and generated rule file:
+
+```markdown
+## Rules this skill applies
+
+Read each rule in full before the step that applies it.
+
+- `fabrica:practices/testing/test-behavior-not-implementation` 2.0.0: [.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md](../../../.syllabus/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md)
+- `practices/verification/verify-in-staging`, which replaces `fabrica:practices/verification/verify-on-the-surface-users-touch`: [.syllabus/generated/rules/practices/verification/verify-in-staging.md](../../../.syllabus/generated/rules/practices/verification/verify-in-staging.md)
+
+Skills this skill uses: `tdd`
+```
+
+- A rule the repository replaced shows the replacement, its version when it has one, and the rule it replaces.
+- A rule the repository excluded without a replacement shows "excluded by this project" and the exclusion's reason, with no link.
+- The "Skills this skill uses" line names each skill it calls by its install name, including those your configuration's [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-calls) adds, and those an authored skill replaces. It appears only when the skill calls others, and without a heading when the skill cites no rules.
+
+Links are relative to the installed `SKILL.md`, so they work from either target. A skill that cites no rules and calls no skills gets no generated section.
+
+Syllabus records what it installed in `generated/installed-skills.json`:
+
+```json
+{
+  "formatVersion": 1,
+  "generatedNotice": "Generated by Syllabus. …",
+  "skills": [
+    {
+      "name": "build-feature",
+      "id": "fabrica:skills/build-feature",
+      "version": "1.3.0",
+      "commit": null,
+      "targets": [
+        ".agents/skills/build-feature",
+        ".claude/skills/build-feature"
+      ],
+      "digest": "8c2f…d41a"
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `formatVersion` | The record's format version, `1`. |
+| `name` | The install name, which is the installed folder's name. |
+| `id` | The skill's project ID. |
+| `version` | The installed version, or `null` for an authored skill, a skill from a non-library source, or one with unreleased changes. |
+| `commit` | For a skill from a non-library source, including a borrowed one, the full commit SHA it came from; otherwise `null`. |
+| `targets` | Each folder Syllabus installed the skill in, relative to the repository root, sorted. When one target folder links to the other, both paths are listed, though the files are written once. Empty when the repository has no skill targets. |
+| `digest` | The SHA-256 checksum of the installed folder: every file's path, executable bit, and contents, as sync wrote them. |
+
+This record is how Syllabus knows which folders it owns: it replaces and removes only the folders listed here, and refuses to write over any other. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+
+### SKILLS.md: find a skill
+
+`generated/SKILLS.md` has one entry per installed skill, so people, and agents whose tools don't load skills from the target folders, can see what's installed, where it came from, and why:
+
+```md
+### build-feature
+
+Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
+
+- **Skill:** `fabrica:skills/build-feature`, version 1.3.0
+- **Level:** recommended by `fabrica`, release 7
+- **Type:** playbook
+- **Installed at:** `.agents/skills/build-feature/SKILL.md`, `.claude/skills/build-feature/SKILL.md`
+- **Applies:** 2 rules
+- **Uses:** `tdd`
+- **Installed because:** included
+```
+
+**Level** names the skill's [level](/reference/configuration/#skill-levels) and the library and library release that set it, such as `required by fabrica, release 7`. It's absent for an authored skill, and for one the repository named directly from a non-library source. A skill installed only because another one calls it says so, such as `**Installed because:** used by build-feature`. **Type** is absent for a skill without one, and **Uses** for a skill that calls none. A renamed skill's heading is its install name, and its entry adds `**Renamed from:** review-change`. A skill from a non-library source shows its commit in place of a version. With no skill targets, **Installed at** gives the skill's source folder in `vendor/` or `skills/` instead, and **Applies** lists the generated file of each rule it cites, because no installed copy carries that list.
+
+`SKILLS.md` lists skills; it doesn't tell agents to prefer them over skills a person installed. See [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+
+`RULES.md` points to this file with one line:
+
+```md
+This project also installs agent skills. See [SKILLS.md](SKILLS.md) for what each one does and where it's installed.
+```
+
 ## Example: follow a rule from the index
 
-These abbreviated excerpts show how an agent finds a local rule. The full generated files also include reading instructions, metadata, and source information.
+These abbreviated excerpts show how an agent finds an authored rule. The full generated files also include reading instructions, metadata, and source information.
 
-### RULES.md: choose a group
+### RULES.md: choose a rule group
 
-`.syllabus/generated/RULES.md` is the starting point. Each entry tells the agent when to open a group:
+`.syllabus/generated/RULES.md` is the starting point. Each entry tells the agent when to open a rule group:
 
 ```md
 ### Testing
@@ -172,21 +285,21 @@ These abbreviated excerpts show how an agent finds a local rule. The full genera
 **Open group:** [Testing](groups/practices/testing.md)
 ```
 
-### Group page: find the rules
+### Rule group page: find the rules
 
-`.syllabus/generated/groups/practices/testing.md` contains the group's rules. Small groups include full rule text; larger groups use summaries like this, linking to each full definition:
+`.syllabus/generated/groups/practices/testing.md` contains the rule group's rules. Small rule groups include full rule text; larger ones use summaries like this, linking to each full definition:
 
 ```md
 ### Test changed behavior
 
-Rule ID: `local:practices/testing/test-changed-behavior`
+Rule ID: `practices/testing/test-changed-behavior`
 
 **When to read:** When adding or changing externally visible behavior.
 
-**Read full rule:** [Test changed behavior](../../rules/local/practices/testing/test-changed-behavior.md)
+**Read full rule:** [Test changed behavior](../../rules/practices/testing/test-changed-behavior.md)
 ```
 
-An imported rule also shows its version below its ID, so agents and reviewers can cite it:
+A rule from a source also shows its version below its ID, so agents and reviewers can cite it:
 
 ```md
 Rule ID: `fabrica:practices/testing/verify-retry-limits`
@@ -194,16 +307,16 @@ Rule ID: `fabrica:practices/testing/verify-retry-limits`
 Version: 1.3.0
 ```
 
-Local rules have no version.
+Authored rules have no version.
 
 ### Rule file: read the guidance
 
-`.syllabus/generated/rules/local/practices/testing/test-changed-behavior.md` contains the rule the agent follows:
+`.syllabus/generated/rules/practices/testing/test-changed-behavior.md` contains the rule the agent follows:
 
 ```md
 # Test changed behavior
 
-Rule ID: `local:practices/testing/test-changed-behavior`
+Rule ID: `practices/testing/test-changed-behavior`
 
 ## Guidance
 
@@ -212,10 +325,10 @@ When a change alters behavior that a caller or user relies on, add or update a t
 
 The authored version stays in `.syllabus/rules/practices/testing/test-changed-behavior.md`. Edit that source file and rebuild to update the generated copy.
 
-### Examples of other project files
+### Examples of other files
 
-- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.yaml`.
-- [Group metadata](/reference/rule-format/#group-metadata): the name and reading cues in `_group.yaml`.
+- [Configuration](/reference/configuration/#complete-example): the sources, selectors, exclusions, and replacements declared in `config.yaml`.
+- [Rule group metadata](/reference/rule-format/#rule-group-metadata): the name and reading cues in `_group.yaml`.
 - [Authored rule](/reference/rule-authoring/#markdown-template): the Markdown and metadata you write before building.
-- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the rule versions stored in `vendor/<source>/_source.json`.
+- [Vendor snapshot record](/reference/provenance/#inspect-the-vendor-snapshot): the rule and skill versions stored in `vendor/<source>/_source.json`.
 - [Provenance](/reference/provenance/#trace-a-rule-to-its-source): how `generated/provenance.json` records a rule's origin.

@@ -114,7 +114,7 @@ Previews are untrusted and are not an installation channel; official release pub
 
 Repository configuration does not install the Renovate GitHub App or enforce these protection and access settings.
 
-1. Grant the [Mend Renovate GitHub App](https://github.com/apps/renovate) access to `fabricahq/code-rules`. Limit its installation to repositories the organization intends it to manage.
+1. Grant the [Mend Renovate GitHub App](https://github.com/apps/renovate) access to `fabricahq/syllabus`. Limit its installation to repositories the organization intends it to manage.
 2. Keep the dependency graph and GitHub's **Dependabot alerts** enabled. Renovate reads these alerts; Dependabot does not need to create PRs.
 3. Leave **Dependabot security updates** disabled and do not add a Dependabot version-update configuration. Renovate owns update PRs.
 4. Give Renovate read access to vulnerability alerts and complete its onboarding after this configuration reaches `main`.

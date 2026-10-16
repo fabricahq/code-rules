@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // entries returns a tree of regular files at names, keyed by repository path.

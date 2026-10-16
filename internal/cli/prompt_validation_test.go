@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
 )
 
 // TestInteractiveImpactRetry retains previous answers and validates impact before asking why it matters.

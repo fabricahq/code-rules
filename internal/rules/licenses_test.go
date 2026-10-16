@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // TestLicenseFixtures checks the license declarations of complete configurations against independent expectations.
@@ -98,5 +98,18 @@ func TestPublishedManifest(t *testing.T) {
 	}
 	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {}\n"), "config.yaml"); err == nil {
 		t.Fatal("published a library section with skill levels")
+	}
+}
+
+// TestLicenseDeclaredInTheLegacyDirectory reads a license file declared in .code-rules/assets/, as a library release
+// from before Code Rules was renamed Syllabus declares it, as the shared asset it is.
+func TestLicenseDeclaredInTheLegacyDirectory(t *testing.T) {
+	text := "schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: .code-rules/assets/LICENSE.md\n    notices: [.code-rules/assets/NOTICE.md]\n"
+	library, err := rules.ParseLibraryManifest([]byte(text), "config.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := library.License; !reflect.DeepEqual(got.Files, []string{"assets/LICENSE.md"}) || !reflect.DeepEqual(got.AttributionFiles, []string{"assets/NOTICE.md"}) {
+		t.Fatalf("got %+v; want the shared assets", got)
 	}
 }

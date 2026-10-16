@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // commandReport owns a completed command's data, human rendering, and optional reported failure.

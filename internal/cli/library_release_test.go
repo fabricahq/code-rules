@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/ghfixture"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/ghfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // releaseEnvironment returns the fixture's environment with a PATH holding only Git and a fake gh that

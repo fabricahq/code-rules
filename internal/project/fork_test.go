@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/imports"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // forkedRule is a rule document whose body is text.
@@ -295,8 +295,8 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
 		t.Fatal(err)
 	}
-	rule, err := coderules.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	rule, err := syllabus.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
+	want := []syllabus.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -306,7 +306,7 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 // layout keeps them, cites other hosts' HTTPS addresses, and gives other addresses no entry.
 func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
-	version, _ := coderules.ParseRuleVersion("1.3.0", "version")
+	version, _ := syllabus.ParseRuleVersion("1.3.0", "version")
 	for _, test := range []struct {
 		repository, url string
 		legacy          bool
@@ -379,24 +379,28 @@ func TestFork_RefusesWithoutWriting(t *testing.T) {
 }
 
 // TestFork_NeverReplacesAnExistingExclusion refuses before reading the library when the source already excludes
-// the rule.
+// the rule, by its ID or by a selector that matches it.
 func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
-	f := newForkFixture(t, "")
-	root, err := openProject(context.Background(), f.options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer root.Close()
-	config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: techs/go/errors\n          reason: Not for us.\n"
-	writeFixture(t, root, configurationFile, config)
-	source, _ := ParseForkSource("team@1.0.0")
-	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude.techs/go/errors" {
-		t.Fatalf("got %v", err)
-	}
-	if got := string(f.files(t)["config.yaml"]); got != config {
-		t.Fatalf("configuration changed to %q", got)
+	for _, entry := range []string{"techs/go/errors", "techs/go/*", "techs/*", `"*"`} {
+		t.Run(entry, func(t *testing.T) {
+			f := newForkFixture(t, "")
+			root, err := openProject(context.Background(), f.options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: " + entry + "\n          reason: Not for us.\n"
+			writeFixture(t, root, configurationFile, config)
+			source, _ := ParseForkSource("team@1.0.0")
+			_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
+			var invalid errs.ValidationError
+			if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude" {
+				t.Fatalf("got %v", err)
+			}
+			if got := string(f.files(t)["config.yaml"]); got != config {
+				t.Fatalf("configuration changed to %q", got)
+			}
+		})
 	}
 }
 

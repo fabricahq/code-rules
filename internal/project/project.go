@@ -12,11 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/build"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 // Options identifies the project root and controls rendering.
@@ -235,8 +235,12 @@ type projectState struct {
 	local, assets, skills, vendor, generated *filetxn.Tree
 }
 
-// readProject validates configuration and retains every authored and managed byte used for change detection.
+// readProject validates configuration and retains every authored and managed byte used for change detection. It
+// fails when local/ has appeared since the project opened, so the input recheck refuses it too.
 func readProject(ctx context.Context, root *os.Root) (projectState, error) {
+	if err := requireNoLocalFolder(ctx, root); err != nil {
+		return projectState{}, err
+	}
 	data, config, err := configuration(ctx, root)
 	if err != nil {
 		return projectState{}, err

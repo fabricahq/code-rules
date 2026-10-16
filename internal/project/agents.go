@@ -15,8 +15,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // agentsFile is the instruction file Syllabus maintains a section in, at the repository root, the parent of the

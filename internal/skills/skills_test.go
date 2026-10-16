@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/skills"
 )
 
 func TestValidNameFollowsTheAgentSkillsGrammar(t *testing.T) {
@@ -73,6 +73,9 @@ func TestReadMetadataRejectsUnreadableFrontmatter(t *testing.T) {
 		"boolean type":     "---\nname: x\nmetadata:\n  syllabus-skill-type: true\n---\n",
 		"list rules used":  "---\nname: x\nmetadata:\n  syllabus-rules-used: [techs/go/errors]\n---\n",
 		"number skills":    "---\nname: x\nmetadata:\n  syllabus-skills-used: 3\n---\n",
+		"empty rules used": "---\nname: x\nmetadata:\n  syllabus-rules-used:\n---\n",
+		"null skills used": "---\nname: x\nmetadata:\n  syllabus-skills-used: null\n---\n",
+		"null type":        "---\nname: x\nmetadata:\n  syllabus-skill-type: ~\n---\n",
 		"duplicate key":    "---\nname: x\nname: y\n---\n",
 	} {
 		t.Run(name, func(t *testing.T) {

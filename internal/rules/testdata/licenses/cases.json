@@ -1092,7 +1092,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1108,7 +1108,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1124,7 +1124,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1140,8 +1140,108 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-rules-folder-notice",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE.md\", \"notices\": [\"rules/techs/go/a.md\"]}}}"
+    },
+    "location": "library/.syllabus/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.syllabus/config.yaml: library.license.notices[0]: \"rules/techs/go/a.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.syllabus/config.yaml: library.license.notices[0]"
+      }
+    }
+  },
+  {
+    "id": "license-root-rules-folder-any-case",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"Rules/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.syllabus/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"Rules/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.syllabus/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-skills-folder",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"skills/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.syllabus/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"skills/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.syllabus/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-borrowed-folder",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"borrowed/LICENSE.md\", \"notices\": []}}}"
+    },
+    "location": "library/.syllabus/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"borrowed/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.syllabus/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-root-source-record",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"_source.json\", \"notices\": []}}}"
+    },
+    "location": "library/.syllabus/config.yaml",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/.syllabus/config.yaml: library.license.file: \"_source.json\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.syllabus/config.yaml: library.license.file"
+      }
+    }
+  },
+  {
+    "id": "license-nested-rules-folder",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"docs/rules/LICENSE.md\", \"notices\": [\"rules.md\"]}}}"
+    },
+    "location": "library/.syllabus/config.yaml",
+    "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": null,
+        "files": [
+          "docs/rules/LICENSE.md"
+        ],
+        "attributionFiles": [
+          "rules.md"
+        ]
       }
     }
   },
@@ -1156,7 +1256,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1172,7 +1272,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1188,7 +1288,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1204,7 +1304,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }
@@ -1220,7 +1320,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files",
+        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
         "location": "library/.syllabus/config.yaml: library.license.file"
       }
     }

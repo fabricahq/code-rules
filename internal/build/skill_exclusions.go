@@ -7,7 +7,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // skillReplacement is what an authored skill replaces: a source's skill, which the project excludes and installs

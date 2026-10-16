@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // versionedRule is a valid rule whose body names its version, so tests can tell which version's file arrived.
@@ -149,7 +149,7 @@ func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *test
 func TestImport_RecordedVersionsStayWhenNewerOnesExist(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"rules":{"include":["techs/go/*"]}`)
-	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
+	one, two := syllabus.RuleVersion{Major: 1}, syllabus.RuleVersion{Major: 1, Minor: 1}
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 2, Commit: h.commits[2], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/a": {Version: &two, Release: 2, Commit: h.commits[2]}, "techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	imported, err := h.sync(t, config, &recorded)
@@ -203,7 +203,7 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 func TestImport_NewlySelectedRulesGetTheirNewestVersion(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"rules":{"include":["techs/go/*"]}`)
-	one := coderules.RuleVersion{Major: 1}
+	one := syllabus.RuleVersion{Major: 1}
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/a": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	imported, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*","practices/testing/*"]}`), &recorded)
@@ -283,7 +283,7 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 func TestImport_PinnedRuleTheLibraryRetiredKeepsImporting(t *testing.T) {
 	h := newHistory(t)
 	pinned := `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/b","version":"1.0.0","reason":"Keep."}]}`
-	one := coderules.RuleVersion{Major: 1}
+	one := syllabus.RuleVersion{Major: 1}
 	config := h.source(t, pinned)
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
@@ -727,8 +727,8 @@ func TestImport_WarnsAboutSelectorsAnotherSelectorCovers(t *testing.T) {
 func TestVersionList_ListsAtMostTenVersionsNewestFirst(t *testing.T) {
 	history := releaseHistory{}
 	for number := 1; number <= 12; number++ {
-		version := coderules.RuleVersion{Major: 1, Minor: number - 1}
-		history.releases = append(history.releases, libraryRelease{number: number, record: coderules.ReleaseRecord{Rules: map[string]coderules.RuleVersion{"techs/go/a": version}, Changes: map[string]coderules.RecordedChange{"techs/go/a": {Change: coderules.ChangeMinor}}}})
+		version := syllabus.RuleVersion{Major: 1, Minor: number - 1}
+		history.releases = append(history.releases, libraryRelease{number: number, record: syllabus.ReleaseRecord{Rules: map[string]syllabus.RuleVersion{"techs/go/a": version}, Changes: map[string]syllabus.RecordedChange{"techs/go/a": {Change: syllabus.ChangeMinor}}}})
 	}
 	if got, want := history.versionList("techs/go/a"), "1.11.0, 1.10.0, 1.9.0, 1.8.0, 1.7.0, 1.6.0, 1.5.0, 1.4.0, 1.3.0, 1.2.0, and 2 older"; got != want {
 		t.Fatalf("got %q, want %q", got, want)
@@ -757,6 +757,32 @@ func TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns(t *testing.T) {
 			t.Fatalf("sync %d: warnings %q, retired %v", sync, imported.Warnings, imported.Snapshot.RetiredRules)
 		}
 		snapshot = imported.Snapshot
+	}
+}
+
+// TestImport_RecordsTheRetiredRulesOfAnExclusionSelector: the last sync selected techs/empty while it had no rules;
+// the library later published and retired x in it. Adding an exclusion of techs/empty/* to an otherwise unchanged
+// selection only warns, and the record lists x as retired, so offline checks accept the selector too.
+func TestImport_RecordsTheRetiredRulesOfAnExclusionSelector(t *testing.T) {
+	h := newHistory(t)
+	include := `"rules":{"include":["techs/go/*","techs/empty/*"]`
+	recorded, err := h.sync(t, h.source(t, include+`}`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.release(t, 4, map[string][]byte{"techs/empty/x.md": versionedRule("x 1.0.0")},
+		"formatVersion: 1\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  techs/empty/x: 1.0.0\n  practices/testing/c: 1.0.0\nchanges:\n  techs/empty/x: {change: new, summaries: [Add the rule.]}\n")
+	h.release(t, 5, map[string][]byte{"techs/empty/x.md": nil},
+		"formatVersion: 1\nrelease: 5\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nretired:\n  techs/empty/x: {lastVersion: 1.0.0, summaries: [No longer recommended.]}\n")
+	imported, err := h.sync(t, h.source(t, include+`,"exclude":[{"id":"techs/empty/*","reason":"Old."}]}`), &recorded.Snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], "sources.team.rules.exclude names techs/empty/*, which matches only rules the library retired") {
+		t.Fatalf("warnings %q", imported.Warnings)
+	}
+	if imported.Snapshot.Release != recorded.Snapshot.Release || !slices.Equal(imported.Snapshot.RetiredRules, []string{"techs/empty/x", "techs/go/b"}) {
+		t.Fatalf("release %d, retired rules %v; want release %d with techs/empty/x and techs/go/b", imported.Snapshot.Release, imported.Snapshot.RetiredRules, recorded.Snapshot.Release)
 	}
 }
 

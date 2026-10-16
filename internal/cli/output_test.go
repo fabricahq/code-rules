@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 // TestCLIOutputModes covers human initialization and structured success, help, and failures.

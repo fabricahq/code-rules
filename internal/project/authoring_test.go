@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // TestProjectAuthoringLifecycle covers idempotent init, local authoring, offline build, and config-only source addition.
@@ -32,7 +32,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil || len(result.Written()) != 0 {
 		t.Fatal(result, err)
 	}
-	metadata := coderules.GroupMetadata{Name: " Go ", Description: " Local Go guidance. ", WhenToRead: " When editing Go. "}
+	metadata := syllabus.GroupMetadata{Name: " Go ", Description: " Local Go guidance. ", WhenToRead: " When editing Go. "}
 	result, err = AddLocalGroup(ctx, "techs/go", metadata, options)
 	if err != nil || len(result.Written()) != 2 {
 		t.Fatal(result, err)
@@ -57,7 +57,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed, err := coderules.ParseRule(string(document), "techs/go/errors.md", "local")
+	parsed, err := syllabus.ParseRule(string(document), "techs/go/errors.md", "local")
 	if err != nil || parsed.Title != ruleMeta.Title {
 		t.Fatal(parsed, err)
 	}
@@ -124,7 +124,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 				cancel()
 			}
 			before, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
-			result, err := AddLocalGroup(ctx, "techs/go", coderules.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
+			result, err := AddLocalGroup(ctx, "techs/go", syllabus.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
 			if err == nil || result.Written() != nil {
 				t.Fatal("expected no partial result", result, err)
 			}

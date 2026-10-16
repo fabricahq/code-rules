@@ -1,6 +1,6 @@
 // Verify complete rules through the public parser and independent shared cases.
 
-package coderules_test
+package syllabus_test
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // TestParseRuleSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
@@ -25,7 +25,7 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 		Input    struct{ Text, Path, Source string }
 		Expected struct {
 			OK    bool
-			Value coderules.Rule
+			Value syllabus.Rule
 			Error *struct{ Name, Message, Location string }
 		}
 	}
@@ -34,18 +34,18 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			got, err := coderules.ParseRule(test.Input.Text, test.Input.Path, test.Input.Source)
+			got, err := syllabus.ParseRule(test.Input.Text, test.Input.Path, test.Input.Source)
 			if test.Expected.OK {
 				if err != nil || !reflect.DeepEqual(got, test.Expected.Value) {
 					t.Fatalf("got %#v, %v; want %#v", got, err, test.Expected.Value)
 				}
 				return
 			}
-			var validation *coderules.ValidationError
+			var validation *syllabus.ValidationError
 			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
-			if !reflect.DeepEqual(got, coderules.Rule{}) {
+			if !reflect.DeepEqual(got, syllabus.Rule{}) {
 				t.Fatalf("failure returned partial data: %#v", got)
 			}
 		})
@@ -54,8 +54,8 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 
 // TestParseRulePathBeforeDocument checks that an invalid path fails before document parsing begins.
 func TestParseRulePathBeforeDocument(t *testing.T) {
-	_, err := coderules.ParseRule("malformed", "../escape.md", "team")
-	var invalid *coderules.ValidationError
+	_, err := syllabus.ParseRule("malformed", "../escape.md", "team")
+	var invalid *syllabus.ValidationError
 	if !errors.As(err, &invalid) || invalid.Location != "team:../escape.md" || !strings.HasPrefix(invalid.Problem, "expected a contained relative path") {
 		t.Fatalf("got %v; want the path refused", err)
 	}
@@ -67,13 +67,13 @@ func FuzzParseRule(f *testing.F) {
 	f.Add("---\na: &a [*a]\n---\nBody")
 	f.Add("---\ntitle: [\n---\nBody")
 	f.Fuzz(func(t *testing.T, text string) {
-		got, err := coderules.ParseRule(text, "techs/go/example.md", "fuzz")
+		got, err := syllabus.ParseRule(text, "techs/go/example.md", "fuzz")
 		if err != nil {
-			var validation *coderules.ValidationError
+			var validation *syllabus.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("untyped failure: %v", err)
 			}
-			if !reflect.DeepEqual(got, coderules.Rule{}) {
+			if !reflect.DeepEqual(got, syllabus.Rule{}) {
 				t.Fatal("partial result on failure")
 			}
 			return
@@ -87,7 +87,7 @@ func FuzzParseRule(f *testing.F) {
 // TestParseRuleManyEscapedScalars checks a large tag collection without changing its authored text.
 func TestParseRuleManyEscapedScalars(t *testing.T) {
 	text := escapedTagDocument(2000)
-	got, err := coderules.ParseRule(text, "techs/go/example.md", "lab")
+	got, err := syllabus.ParseRule(text, "techs/go/example.md", "lab")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func BenchmarkParseRuleEscapedScalars(b *testing.B) {
 			text := escapedTagDocument(count)
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := coderules.ParseRule(text, "techs/go/example.md", "lab"); err != nil {
+				if _, err := syllabus.ParseRule(text, "techs/go/example.md", "lab"); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -126,15 +126,15 @@ func escapedTagDocument(count int) string {
 func TestParseRuleDocumentEncoding(t *testing.T) {
 	prefix := "---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\n"
 	for _, body := range []string{"Guidance: \xff", "Guidance: \xe2\x82", "Guidance: café 🐹 \ufffd"} {
-		got, err := coderules.ParseRule(prefix+body, "techs/go/example.md", "local")
+		got, err := syllabus.ParseRule(prefix+body, "techs/go/example.md", "local")
 		if strings.HasPrefix(body, "Guidance: café") {
 			if err != nil || got.Document != prefix+body {
 				t.Fatalf("valid Unicode changed: %#v, %v", got, err)
 			}
 			continue
 		}
-		var validation *coderules.ValidationError
-		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, coderules.Rule{}) {
+		var validation *syllabus.ValidationError
+		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, syllabus.Rule{}) {
 			t.Fatalf("expected UTF-8 error and zero rule, got %#v, %v", got, err)
 		}
 	}

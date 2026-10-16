@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 )
 
 // TestRepositoryPath_PlacesLibraryFilesInTheSyllabusDirectory covers rules, shared assets, change notes, the
@@ -84,6 +84,24 @@ func TestUpgrade_ReadsATreeFromBeforeTheRename(t *testing.T) {
 	} {
 		if got := librarytree.Upgrade(file); got != want {
 			t.Errorf("Upgrade(%q) = %q; want %q", file, got, want)
+		}
+	}
+}
+
+// TestSnapshotPath_MirrorsTheSyllabusDirectory stores rules under rules/, beside shared assets and the manifest, and
+// keeps files outside the Syllabus directory, such as license files, at their repository paths.
+func TestSnapshotPath_MirrorsTheSyllabusDirectory(t *testing.T) {
+	for file, want := range map[string]string{
+		"config.yaml":                        "config.yaml",
+		"techs/go/errors.md":                 "rules/techs/go/errors.md",
+		"practices/testing/_group.yaml":      "rules/practices/testing/_group.yaml",
+		"techs/go/assets/errors/diagram.png": "rules/techs/go/assets/errors/diagram.png",
+		"assets/retry-lifecycle.svg":         "assets/retry-lifecycle.svg",
+		"LICENSE.md":                         "LICENSE.md",
+		"docs/NOTICE.md":                     "docs/NOTICE.md",
+	} {
+		if got := librarytree.SnapshotPath(file); got != want {
+			t.Errorf("SnapshotPath(%q) = %q; want %q", file, got, want)
 		}
 	}
 }

@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/project"
 )
 
 // commandDirectory resolves the nearest .git boundary for ordinary commands and refuses nested init.
@@ -112,7 +112,7 @@ const legacyDirectoryWarning = `this project keeps its files in .code-rules/, th
 
   git mv .code-rules .syllabus
 
-Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .syllabus/generated/RULES.md, and run syllabus project build.`
+In a project that isn't in a Git repository, use mv instead of git mv. Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .syllabus/generated/RULES.md, and run syllabus project build.`
 
 // warnLegacyDirectory warns, for a project command, when root, the project root, has no Syllabus directory but has
 // one under the name Code Rules used, which the project package then opens.

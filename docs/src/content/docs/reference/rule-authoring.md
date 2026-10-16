@@ -7,7 +7,7 @@ A **rule** is a Markdown file that tells an agent what to do, when the instructi
 
 Use this page when writing a new rule, improving an existing one, or reviewing a proposed rule. The **template** gives you a starting structure. The **rubric** is a checklist for deciding whether the rule is clear, useful, and verifiable.
 
-The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/). For the fields and files Syllabus accepts, see [Rule and group format](/reference/rule-format/).
+The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/). For the fields and files Syllabus accepts, see [Rule and rule group format](/reference/rule-format/).
 
 ## What goes in a rule
 
@@ -34,7 +34,7 @@ A relevant rule is not evidence of a violation. Its full instruction and excepti
 
 ## Markdown template
 
-Copy the template below and replace the placeholders. The [local rule command](/start-here/set-up-project/) uses this same starting structure.
+Copy the template below and replace the placeholders. The [rule creation command](/start-here/set-up-project/) uses this same starting structure.
 
 Keep sections that add useful information and remove unused prompts. You do not need a separate Implementation or Validation section if the instruction and examples already answer those questions.
 
@@ -96,7 +96,7 @@ You can add optional `tags` for search terms, such as `tags: [testing, cancellat
 
 Size a rule to its obligation. A narrow rule, such as one API choice or one performance technique, can be complete with a sentence or two stating the obligation, a sentence on when it does not apply, one counterexample paired with the correct approach, and a short check. It does not need every template heading or several applications.
 
-Add sections and applications when they carry information an agent would otherwise miss: a rationale that is not obvious, a context that changes how to follow the rule, or an exception that is easy to overlook. Length is not evidence of quality. A rule that repeats the same lesson in more words is harder to apply, and large groups are summarized in generated guidance, so each rule's title and `whenToRead` cue must stand on their own.
+Add sections and applications when they carry information an agent would otherwise miss: a rationale that is not obvious, a context that changes how to follow the rule, or an exception that is easy to overlook. Length is not evidence of quality. A rule that repeats the same lesson in more words is harder to apply, and large rule groups are summarized in generated guidance, so each rule's title and `whenToRead` cue must stand on their own.
 
 ## Write whenToRead guidance that helps selection
 
@@ -112,15 +112,15 @@ A more useful cue describes the work itself:
 
 The second cue also applies to a function that is already well structured. Reading the full rule determines whether the agent should make a change.
 
-### Distinguish group guidance from rule guidance
+### Distinguish rule group guidance from rule guidance
 
-A group's `whenToRead` field describes an area of work. A rule's field describes the specific situations that warrant reading that rule.
+A rule group's `whenToRead` field describes an area of work. A rule's field describes the specific situations that warrant reading that rule.
 
-For example, a code-design group could say:
+For example, a code design practice group could say:
 
 > Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.
 
-Describe the group's intended scope even if it contains only one rule. After opening a group, agents use each rule's cue to decide what to read next. Opening the group does not mean every rule applies.
+Describe the rule group's intended scope even if it contains only one rule. After opening a rule group, agents use each rule's cue to decide what to read next. Opening the rule group does not mean every rule applies.
 
 ### Make the cue recognizable
 
@@ -216,7 +216,7 @@ Put prerequisites and instructions in the body. Mention them in `whenToRead` onl
 
 ## Supporting material
 
-Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the `.syllabus/assets/` directory.
+Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library's `.syllabus/assets/` directory.
 
 Link to supporting files using ordinary Markdown. Markdown in an asset directory is supporting text, not another rule.
 
@@ -224,7 +224,7 @@ Each rule must remain independently selectable. Do not link to another rule docu
 
 See [Supporting assets](/reference/rule-format/#supporting-assets) for the required layout and examples.
 
-When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Syllabus format.
+When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; license overrides on a single rule or rule group are unsupported. Use optional [structured attribution](/reference/rule-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Syllabus format.
 
 ## Record changes to a library rule
 

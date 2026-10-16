@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/filetxn"
 )
 
 // TestCheckWithFiles reports guide drift together with generated drift without writing repairs.

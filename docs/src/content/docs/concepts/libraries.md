@@ -1,55 +1,68 @@
 ---
 title: "Library"
-description: "Share rule groups across projects and choose which rules each project adopts."
+description: "Share rule groups and skills across projects, and set which skills each project gets."
 ---
 
-A **library** is an independently maintained collection of [rule groups](/concepts/groups/) that projects can import. Libraries let you share engineering practices across projects, within your organization, or with third parties.
+:::caution[Preview]
+This page describes the version 2 library layout and skill levels, which aren't in a released version of Syllabus yet. The released CLI reads `rule-library.yaml` and rules at the repository root.
+:::
 
-You can publish your team's rules in a library or import libraries from others. Rules needed by only one project can stay local to that project.
+A **library** is a repository whose manifest publishes its authored [rule groups](/concepts/groups/) and [skills](/concepts/skill/) for other repositories. Libraries let you share engineering practices across projects, within your organization, or with third parties.
+
+You can publish your team's rules and skills in a library, or take them from libraries others publish. Rules and skills needed by only one project can live in that project.
 
 ## What a library contains
 
-A library lives in a Git repository, in the same Syllabus directory, `.syllabus/`, that a project uses. It contains:
+A library lives in a Git repository, in the same Syllabus directory, `.syllabus/`, that every repository uses. It contains:
 
-- **A manifest**, the `library` section of `.syllabus/config.yaml`, which makes the repository a library and declares any license information.
-- **Groups** under `.syllabus/rules/techs/` and `.syllabus/rules/practices/`, each with group metadata and Markdown rule files.
-- **Skills**, optionally, under `.syllabus/skills/`, one folder per [skill](/concepts/skill/). Projects install the ones they include, from the same library release as the library's rules. Skills come in the next Syllabus release.
+- **The manifest**, the `library` section of `.syllabus/config.yaml`, which makes the repository a library, declares its license, and sets the [level](#skill-levels) of each skill it offers.
+- **Rule groups** under `rules/techs/` and `rules/practices/`, each with rule group metadata and Markdown rule files.
+- **Skills** under `skills/`, one folder per skill, each with a `SKILL.md`. Optional.
 
 For example, a repository named "engineering-rules" might contain:
 
 ```text
 engineering-rules/
+  LICENSE.md
   .syllabus/
     config.yaml
-    rules/practices/testing/
-      _group.yaml
-      test-changed-behavior.md
+    rules/
+      practices/testing/
+        _group.yaml
+        test-changed-behavior.md
+    skills/
+      build-feature/
+        SKILL.md
 ```
 
-The repository name is your choice. Rules can also include [supporting assets](/reference/rule-format/#supporting-assets). A library publishes only these files and its license files; its change notes stay in the repository.
+The repository name is your choice. Rules can also include [supporting assets](/reference/rule-format/#supporting-assets). A library can also be a project: the same configuration can take rules and skills from other sources for the library's own work.
 
-Because a library and a project share the layout, one repository can be both: its configuration lists the `sources` it imports beside its `library` section, and the rules in `.syllabus/rules/` guide its own agents as well as the projects that import them. See [A repository that is a project and a library](/reference/library-format/#a-repository-that-is-a-project-and-a-library).
+## Skill levels
+
+A library sets a **level** for each skill it offers: **required** skills install in every project that uses the library, **recommended** skills install in projects that include the library's recommendations, and **offered** skills install only when a project names them. An organization can publish an **org library**, such as `<organization>/.syllabus`, whose required and recommended skills become the shared default for its projects.
+
+A library can also list skills from another repository at a level, **borrowing** them, such as a third party's skill its teams should use. See [Skill levels](/concepts/skill/#skill-levels).
 
 ## How projects use a library
 
-Each [project](/concepts/project/) chooses which libraries and groups to import in `.syllabus/config.yaml`. A project can use several libraries and add its own local rules.
+Each [project](/concepts/project/) names the libraries it uses as **sources** in `.syllabus/config.yaml`, and includes rules and skills from each with selectors, such as `practices/testing/*` or `recommended`. A project can use several libraries and add its own rules and skills.
 
-Running `syllabus project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
+Running `syllabus project sync` downloads the included rules and skills, generates the guidance agents read, and installs the skills. Rule groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 
-A project records the version of every rule it imports. Running `syllabus project update` moves rules to newer versions and reports every rule that changed, so each project adopts updates on its own schedule. A project can also pin a rule to a version, with a reason, or import only specific rules instead of whole groups. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
+A project records the library release it took from each library, and the version of every rule and skill. Running `syllabus project update` moves them to newer versions and reports every one that changed, so each project takes updates on its own schedule. A project can also pin a rule to a version, with a reason, or include only specific rules instead of whole rule groups. Skills aren't pinned: all of a library's skills come from one library release, and move together when the project updates. See [Include rules](/guides/select-rules/), [Install skills](/guides/install-skills/), and [Update rules and skills](/guides/update/) for the steps.
 
 ## How a library publishes rules
 
-A library doesn't have one version for all of its rules. Each rule has [its own version](/concepts/rule/#how-a-rule-is-versioned), so a project can see exactly which rules changed in a library release and whether work that complied with the previous version could fail the new one.
+A library doesn't have one version for all of its rules and skills. Each rule and skill has its own version ([rules](/concepts/rule/#how-a-rule-is-versioned), [skills](/concepts/skill/#how-a-skill-is-versioned)), so a project can see exactly which rules changed in a library release and whether work that complied with the previous version could fail the new one.
 
-When an author changes a rule, they add a change note saying how large the change is and what changed. A **library release** turns the pending notes into new rule versions at once, and can hold one rule change or many. Projects import only published versions, unless one deliberately imports an exact commit, so they never see changes that haven't been published.
+When an author changes a rule or skill, they add a change note saying how large the change is and what changed. A **library release** turns the pending notes into new versions at once, and can hold one change or many. Projects take only published versions, unless one deliberately takes an exact commit, so they never see changes that haven't been published.
 
-`syllabus library release` publishes a library release as one Git tag that records every rule's version, along with one GitHub Release page that lists the changes. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule. See [Version your rules](/guides/version-rules/).
+`syllabus library release` publishes a library release as one Git tag that records every rule's and skill's version, along with one GitHub Release page that lists the changes. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule, and take a library's skills together from one library release. See [Version your rules](/guides/version-rules/).
 
 ## Sharing a library
 
-Libraries can be public or private. Imports copy their content into the consuming project, so use private libraries only in projects allowed to hold and share that content.
+Libraries can be public or private. Projects keep a vendor snapshot of what they take, so use private libraries only in projects allowed to hold and share that content.
 
-Syllabus preserves declared license text and notices with imported rules. For choosing terms, see [License rules](/guides/license-rules/).
+Syllabus preserves declared license text and notices with the rules and skills projects take. For choosing terms, see [License rules](/guides/license-rules/).
 
 To publish your own, follow [Create your first library](/start-here/create-library/). For file details, see [Library format](/reference/library-format/).

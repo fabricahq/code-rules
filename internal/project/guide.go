@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/filetxn"
 )
 
 // projectGuideTemplate ships with the binary; its shell examples are exercised by CLI integration tests.
@@ -84,7 +84,7 @@ Authored and library definitions can contribute to the same group, such as techs
 
 ## Manage authored rules
 
-Follow [the project guide](../{{PROJECT_GUIDE}}) to add groups and rules. Keep rules within their group's scope and follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
+Follow [the project guide](../{{PROJECT_GUIDE}}) to add groups and rules. Keep rules within their group's scope and follow the [rule authoring rubric](https://github.com/fabricahq/syllabus/blob/main/docs/src/content/docs/reference/rule-authoring.md).
 
 Complete drafts before building. Run syllabus project build after editing these files, or syllabus project sync after changing a library source. Read the resulting [resolved rules](../generated/RULES.md) when working on the project.
 `

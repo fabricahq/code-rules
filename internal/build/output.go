@@ -11,9 +11,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/syllabus"
 )
 
 // prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
@@ -271,25 +272,29 @@ type provenanceGroup struct {
 
 // provenanceRule records effective origin, replacement history, and declared attribution.
 type provenanceRule struct {
-	ID           string                  `json:"id"`
-	Group        string                  `json:"group"`
-	Origin       provenanceOrigin        `json:"origin"`
-	Upstream     *provenanceOrigin       `json:"upstream"`
-	Reason       *string                 `json:"replacementReason"`
-	BasedOn      *coderules.RuleVersion  `json:"basedOn"`
-	LicenseBasis string                  `json:"licenseBasis"`
-	License      *provenanceLicense      `json:"license"`
-	Attribution  []coderules.Attribution `json:"attribution"`
+	ID           string                 `json:"id"`
+	Group        string                 `json:"group"`
+	Origin       provenanceOrigin       `json:"origin"`
+	Upstream     *provenanceOrigin      `json:"upstream"`
+	Reason       *string                `json:"replacementReason"`
+	BasedOn      *syllabus.RuleVersion  `json:"basedOn"`
+	LicenseBasis string                 `json:"licenseBasis"`
+	License      *provenanceLicense     `json:"license"`
+	Attribution  []syllabus.Attribution `json:"attribution"`
 }
 
-// termProvenance maps declared source terms to retained workspace and generated paths.
-func termProvenance(source, originalPrefix string, license *rules.LicenseDeclaration) *provenanceLicense {
+// termProvenance maps declared source terms to retained workspace and generated paths. The original paths are
+// library paths, or, with a snapshot directory such as vendor/team/, where the snapshot stores the files.
+func termProvenance(source, snapshot string, license *rules.LicenseDeclaration) *provenanceLicense {
 	if license == nil {
 		return nil
 	}
 	record := &provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
 	for _, mapping := range licenseMappings(source, license) {
-		original := originalPrefix + mapping.Source
+		original := mapping.Source
+		if snapshot != "" {
+			original = snapshot + librarytree.SnapshotPath(mapping.Source)
+		}
 		if mapping.Kind == "license" {
 			record.Files = append(record.Files, original)
 			record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)
@@ -374,13 +379,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 // the commit that supplied the rule's files; Version and Release are null for local rules and for imported
 // files that aren't a published version.
 type provenanceOrigin struct {
-	Source     string                 `json:"source"`
-	File       string                 `json:"file"`
-	Repository *string                `json:"repository"`
-	Ref        *string                `json:"ref"`
-	Commit     *string                `json:"resolvedCommit"`
-	Version    *coderules.RuleVersion `json:"version"`
-	Release    *int                   `json:"release"`
+	Source     string                `json:"source"`
+	File       string                `json:"file"`
+	Repository *string               `json:"repository"`
+	Ref        *string               `json:"ref"`
+	Commit     *string               `json:"resolvedCommit"`
+	Version    *syllabus.RuleVersion `json:"version"`
+	Release    *int                  `json:"release"`
 }
 
 // nonNilList returns list, or an empty list for nil, so JSON shows an empty list rather than null.

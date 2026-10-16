@@ -12,11 +12,12 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 const transactionName = ".syllabus-transaction"
@@ -36,22 +37,35 @@ const maxJournalFormat = 8
 const lockName = ".syllabus-lock"
 const cleanupName = ".syllabus-cleanup"
 
-// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Syllabus. Their
-// presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers.
-var legacyNames = []string{".code-rules-lock", ".code-rules-transaction", ".code-rules-cleanup"}
+// legacyLockName is the lock Code Rules took before it was renamed Syllabus. A writer of a project still in
+// legacyDirectory takes it too, before its own, so a Code Rules process can't write the project at the same time.
+const legacyLockName = ".code-rules-lock"
 
-// requireNoLegacyWriter fails with busy when root holds one of legacyNames.
-func requireNoLegacyWriter(root *os.Root) error {
-	for _, name := range legacyNames {
+// legacyDirectory is the project directory Code Rules used before it was renamed Syllabus.
+const legacyDirectory = ".code-rules"
+
+// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Syllabus. Their
+// presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers;
+// legacyLockName can also be held by a Syllabus writer of a project in legacyDirectory.
+var legacyNames = []string{legacyLockName, ".code-rules-transaction", ".code-rules-cleanup"}
+
+// requireNoLegacyWriter fails with busy when root holds one of names, which are some of legacyNames.
+func requireNoLegacyWriter(root *os.Root, names []string) error {
+	for _, name := range names {
 		present, err := exists(root, name)
 		if err != nil {
 			return err
 		}
 		if present {
-			return failure("busy", name+": a Code Rules process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command with the code-rules version that was interrupted to recover its changes, then run this command again", nil)
+			return failure("busy", name+": another process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command again with the version that was interrupted, code-rules or syllabus, to recover its changes, then run this command again", nil)
 		}
 	}
 	return nil
+}
+
+// isLegacyRoot reports whether root is a project directory still named legacyDirectory.
+func isLegacyRoot(root *os.Root) bool {
+	return filepath.Base(root.Name()) == legacyDirectory
 }
 
 // Target is a managed directory, project guide, the project configuration, an authored group's metadata, an
@@ -106,7 +120,7 @@ type journalRecord struct {
 // RequireIdle refuses read-only operations while writing or recovery could expose mixed output.
 // It never creates a lock or performs recovery.
 func RequireIdle(root *os.Root) error {
-	if err := requireNoLegacyWriter(root); err != nil {
+	if err := requireNoLegacyWriter(root, legacyNames); err != nil {
 		return err
 	}
 	for _, name := range []string{lockName, transactionName, cleanupName} {
@@ -130,10 +144,23 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	if root == nil || operation == nil {
 		return failure("invalid-operation", "expected an open project root and writer operation", nil)
 	}
-	if err := requireNoLegacyWriter(root); err != nil {
+	unlocked := legacyNames
+	if isLegacyRoot(root) {
+		// Code Rules honors only its own lock, so a project it can still write is locked under that name first.
+		if err := acquireLock(ctx, root, legacyLockName); err != nil {
+			return err
+		}
+		defer func() {
+			if removeErr := root.RemoveAll(legacyLockName); removeErr != nil {
+				err = errors.Join(err, removeErr)
+			}
+		}()
+		unlocked = legacyNames[1:]
+	}
+	if err := requireNoLegacyWriter(root, unlocked); err != nil {
 		return err
 	}
-	if err := acquireLock(ctx, root); err != nil {
+	if err := acquireLock(ctx, root, lockName); err != nil {
 		return err
 	}
 	// Joining only a failed removal keeps err itself, so callers still see its identity, such as a validation error.
@@ -151,8 +178,8 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	return operation(w)
 }
 
-// acquireLock exclusively creates an owner record or serializes reclamation of a dead local owner.
-func acquireLock(ctx context.Context, root *os.Root) error {
+// acquireLock exclusively creates an owner record in lockName or serializes reclamation of a dead local owner.
+func acquireLock(ctx context.Context, root *os.Root, lockName string) error {
 	host, err := os.Hostname()
 	if err != nil {
 		return err

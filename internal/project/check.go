@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/syllabus/internal/rules"
 )
 
 // ProblemKind distinguishes the observed mismatch without relying on presentation text.

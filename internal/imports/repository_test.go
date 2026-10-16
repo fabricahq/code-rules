@@ -5,13 +5,16 @@ package imports
 import (
 	"context"
 	"errors"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // fixtureRepository creates a real repository served by an isolated local upload-pack helper.
@@ -211,4 +214,43 @@ func TestFetchRevisionFailsBeforeStartingGit(t *testing.T) {
 	}
 	_, _, err = fetchRevision(context.Background(), rules.Source{Repository: "https://example.invalid/rules"}, "v1.0.0", Options{GitPath: "/missing/git"})
 	requireCode(t, err, "git-unavailable")
+}
+
+// TestReadSkillsFetchesOnlyTheSkillsTheSourceInstalls downloads the files of the included skill and the skill it uses,
+// but not the SKILL.md of a skill nothing installed uses, which a large repository may have many of.
+func TestReadSkillsFetchesOnlyTheSkillsTheSourceInstalls(t *testing.T) {
+	ctx := context.Background()
+	f, err := gitfixture.New(ctx, map[string][]byte{
+		"skills/selected/SKILL.md": []byte("---\nname: selected\ndescription: Use selected.\nmetadata:\n  syllabus-skills-used: skills/used\n---\n"),
+		"skills/used/SKILL.md":     []byte("---\nname: used\ndescription: Use used.\n---\n"),
+		"skills/unused/SKILL.md":   []byte("---\nname: unused\ndescription: Use unused.\n---\n"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	source := rules.Source{Name: "team", Repository: f.Repository, Skills: []string{"skills/selected"}}
+	repo, commit, err := fetchRevision(ctx, source, "v1.0.0", Options{GitPath: f.GitPath, Environment: f.Environment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer repo.Close()
+	imported, err := repo.readSkills(ctx, source, sourcePlan{commit: commit}, false, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := slices.Sorted(maps.Keys(imported.skills)); !slices.Equal(got, []string{"skills/selected", "skills/used"}) {
+		t.Fatalf("installed %v", got)
+	}
+	tree, err := repo.repositoryTree(ctx, commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	listing, err := repo.runner.Output(ctx, repo.directory, []string{"cat-file", "--batch-all-objects", "--batch-check=%(objectname)"}, 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unused := tree["skills/unused/SKILL.md"].object; strings.Contains(string(listing), unused) {
+		t.Fatalf("fetched skills/unused/SKILL.md (%s), which no installed skill uses", unused)
+	}
 }

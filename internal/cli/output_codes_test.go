@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/syllabus/internal/test/gitfixture"
 )
 
 // TestSyncJSON_ReportsGitFailureCode lets scripts branch on why an import failed without parsing its message.
