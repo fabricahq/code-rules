@@ -202,3 +202,25 @@ func TestGenerateRejectsRenamesThatClash(t *testing.T) {
 		t.Fatalf("got %v; want a clash of team:skills/fix and team:skills/review", err)
 	}
 }
+
+// TestGenerateRenamesASkillWhoseOwnNameIsInvalid installs a non-library skill whose folder name breaks the name
+// grammar under the name skills.rename gives it, which only a rename can do.
+func TestGenerateRenamesASkillWhoseOwnNameIsInvalid(t *testing.T) {
+	libraries := skillSnapshot()
+	team := libraries["team"]
+	team.Snapshot.Skills = map[string]library.ImportedSkill{"tools/Review": {}}
+	team.Snapshot.Files = map[string][]byte{"tools/Review/SKILL.md": []byte("# Review\n")}
+	libraries["team"] = team
+	if _, err := build.Generate(renameConfig(t, `{}`), libraries, nil, build.Options{ToolVersion: "test"}); err == nil || !strings.Contains(err.Error(), `the skill's name "Review" doesn't follow`) {
+		t.Fatalf("without a rename: %v; want the invalid name rejected", err)
+	}
+	output, err := build.Generate(renameConfig(t, `{"tools/Review":"team-review"}`), libraries, nil, build.Options{ToolVersion: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []build.RenamedSkill{{ID: "team:tools/Review", Source: "team", Folder: "tools/Review", From: "Review", To: "team-review"}}
+	installed := output.Skills[".claude/skills/team-review"].Files["SKILL.md"]
+	if !reflect.DeepEqual(output.RenamedSkills, want) || !strings.HasPrefix(string(installed), "---\nname: team-review\n---\n") {
+		t.Fatalf("renamed %+v, installed SKILL.md:\n%s", output.RenamedSkills, installed)
+	}
+}

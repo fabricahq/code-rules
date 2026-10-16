@@ -94,11 +94,8 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 				continue
 			}
 			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
-			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
+			if err := describeSkill(&skill, source.SkillRename[id], "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
 				return nil, nil, err
-			}
-			if name, renamed := source.SkillRename[id]; renamed && name != skill.Name {
-				skill.RenamedFrom, skill.Name = skill.Name, name
 			}
 			result = append(result, skill)
 		}
@@ -113,7 +110,7 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 		if replacement, replaces := replacements[id]; replaces {
 			skill.Replaces = &replacement
 		}
-		if err := describeSkill(&skill, id+"/"+skills.File); err != nil {
+		if err := describeSkill(&skill, "", id+"/"+skills.File); err != nil {
 			return nil, nil, err
 		}
 		result = append(result, skill)
@@ -138,9 +135,11 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 }
 
 // describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, type, and
-// cited rules. An authored skill's frontmatter must also pass skills.Check, which reports its first problem; a
+// cited rules. A non-empty rename, the name the source's skills.rename gives the skill, is its install name, and the
+// name it replaces is recorded as RenamedFrom unless they're the same; the replaced name needn't follow the name
+// grammar, so a rename can install a skill whose own name agents couldn't find it by. An authored skill's frontmatter must also pass skills.Check, which reports its first problem; a
 // source's skills were checked by their library, or, from a repository that isn't a library, install as they are.
-func describeSkill(skill *resolvedSkill, location string) error {
+func describeSkill(skill *resolvedSkill, rename, location string) error {
 	data, ok := skill.Files.Files[skills.File]
 	if !ok {
 		return invalid(location, "missing the skill's SKILL.md")
@@ -154,8 +153,18 @@ func describeSkill(skill *resolvedSkill, location string) error {
 			return invalid(location, problems[0])
 		}
 	}
-	if skill.Name, err = skills.InstallName(skill.Folder, metadata, location); err != nil {
+	original := metadata.Name
+	if original == "" {
+		original = path.Base(skill.Folder)
+	}
+	name, err := skills.InstallName(skill.Folder, metadata, location)
+	switch {
+	case rename != "" && rename != original:
+		skill.Name, skill.RenamedFrom = rename, original
+	case err != nil:
 		return err
+	default:
+		skill.Name = name
 	}
 	skill.Description, skill.Type, skill.RulesUsed, skill.SkillsUsed = metadata.Description, metadata.Type, metadata.RulesUsed, metadata.SkillsUsed
 	return nil

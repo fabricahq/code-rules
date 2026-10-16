@@ -106,11 +106,10 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		if err != nil {
 			return err
 		}
-		if plan.name, err = skills.InstallName(from.Skill, metadata, location); err != nil {
-			return err
-		}
 		if name, renamed := source.SkillRename[from.Skill]; renamed {
 			plan.name, plan.renamed = name, true
+		} else if plan.name, err = skills.InstallName(from.Skill, metadata, location); err != nil {
+			return err
 		}
 		plan.commit = snapshot.Commit
 		folder := skills.AuthoredID(plan.name)
