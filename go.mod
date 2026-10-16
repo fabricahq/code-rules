@@ -1,4 +1,4 @@
-module github.com/fabricahq/syllabus
+module github.com/fabricahq/trailguide
 
 go 1.27.2
 

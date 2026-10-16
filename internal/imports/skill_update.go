@@ -9,9 +9,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // SkillChange is how an update affects one skill, or one script in a skill, as the update preview lists it.

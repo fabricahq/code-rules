@@ -7,7 +7,7 @@ A **rule** is a Markdown file that tells an agent what to do, when the instructi
 
 Use this page when writing a new rule, improving an existing one, or reviewing a proposed rule. The **template** gives you a starting structure. The **rubric** is a checklist for deciding whether the rule is clear, useful, and verifiable.
 
-The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/). For the fields and files Syllabus accepts, see [Rule and rule group format](/reference/rule-format/).
+The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/). For the fields and files Trail Guide accepts, see [Rule and rule group format](/reference/rule-format/).
 
 ## What goes in a rule
 
@@ -90,7 +90,7 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 
 The [rule metadata reference](/reference/rule-format/#rule-metadata) defines the required fields and accepted values. For a filled-in template, see the [complete rule example](/guides/write-rules/#example-rule).
 
-You can add optional `tags` for search terms, such as `tags: [testing, cancellation]`. Tags do not determine whether a rule applies, and Syllabus does not use them to filter rules. Omit tags that add no useful search terms.
+You can add optional `tags` for search terms, such as `tags: [testing, cancellation]`. Tags do not determine whether a rule applies, and Trail Guide does not use them to filter rules. Omit tags that add no useful search terms.
 
 ### Keep narrow rules short
 
@@ -146,7 +146,7 @@ Check rule selection separately from compliance. A well-structured function with
 
 When trying cues with an agent, record both missed relevant rules and unnecessary selections. Revise the cue using those cases. This is an authoring practice, not another metadata field or proof that every agent will select correctly.
 
-We adapted these recommendations from the [Agent Skills specification](https://agentskills.io/specification#description-field) and Anthropic's [authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#writing-effective-descriptions) and [evaluation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise#evaluating-skills-before-deployment) guidance. Those sources discuss skill discovery. Applying them to rule selection is a design inference, not a measured improvement in Syllabus compliance.
+We adapted these recommendations from the [Agent Skills specification](https://agentskills.io/specification#description-field) and Anthropic's [authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#writing-effective-descriptions) and [evaluation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise#evaluating-skills-before-deployment) guidance. Those sources discuss skill discovery. Applying them to rule selection is a design inference, not a measured improvement in Trail Guide compliance.
 
 ## Describe impact through consequences
 
@@ -216,7 +216,7 @@ Put prerequisites and instructions in the body. Mention them in `whenToRead` onl
 
 ## Supporting material
 
-Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library's `.syllabus/assets/` directory.
+Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library's `.trailguide/assets/` directory.
 
 Link to supporting files using ordinary Markdown. Markdown in an asset directory is supporting text, not another rule.
 
@@ -224,7 +224,7 @@ Each rule must remain independently selectable. Do not link to another rule docu
 
 See [Supporting assets](/reference/rule-format/#supporting-assets) for the required layout and examples.
 
-When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; license overrides on a single rule or rule group are unsupported. Use optional [structured attribution](/reference/rule-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Syllabus format.
+When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; license overrides on a single rule or rule group are unsupported. Use optional [structured attribution](/reference/rule-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Trail Guide format.
 
 ## Record changes to a library rule
 

@@ -15,7 +15,7 @@ the skills a library recommends, or * for every skill the source offers. A
 library's required skills install either way. A source can be a library, or
 any Git repository with skill folders; a repository without library releases
 needs --ref.
-See syllabus project add source --help.
+See trailguide project add source --help.
 
 Example source:
   Repository: https://github.com/example/rules.git
@@ -27,7 +27,7 @@ func sourceSelectionIntroduction(name string) string {
 
 - The name %q identifies this source in your project configuration.
 
-This command updates your project configuration. Run syllabus project sync afterward to fetch the source, build guidance, and install its skills.
+This command updates your project configuration. Run trailguide project sync afterward to fetch the source, build guidance, and install its skills.
 
 %s
 
@@ -38,15 +38,15 @@ Enter the source's details below.
 
 const sourceSelectionHelp = `Add a source of rules and skills to the project configuration without fetching
 it. A source is a library, or any other Git repository with skill folders; sync
-detects which. Run from your project root after syllabus project init.
+detects which. Run from your project root after trailguide project init.
 
 Interactive setup:
-  syllabus project add source team
+  trailguide project add source team
 
   Answer the prompts for the repository URL, rules, and skills.
 
 For agents and scripts (no prompts):
-  syllabus project add source team \
+  trailguide project add source team \
     --repository https://github.com/example/rules.git \
     --rules 'practices/testing/*' --rules 'techs/go/*' \
     --skills skills/build-feature \
@@ -74,7 +74,7 @@ Choosing skills:
 
 A library marks each of its skills required, recommended, or offered. Its
 required skills install whatever you choose, so a source without --rules or
---skills installs only those. A library's skill IDs are its .syllabus/skills/
+--skills installs only those. A library's skill IDs are its .trailguide/skills/
 folders, such as skills/build-feature. In another repository, a skill is any
 folder with a SKILL.md, named by its path from the repository root, such as
 tools/review; * takes every one outside folders whose names start with a dot.
@@ -88,4 +88,4 @@ Taking one revision:
   not supported.
 
 After adding the source, fetch it, build guidance, and install its skills:
-  syllabus project sync`
+  trailguide project sync`

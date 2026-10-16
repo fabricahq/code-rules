@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/fabricahq/syllabus/internal/project"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/project"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // askValidated retries only rejected answers; cancellation and terminal failures end the command.
@@ -37,13 +37,13 @@ func validateAnswer(name, value string) error {
 	}
 	switch name {
 	case "bump":
-		switch syllabus.Change(value) {
-		case syllabus.ChangeMajor, syllabus.ChangeMinor, syllabus.ChangePatch:
+		switch trailguide.Change(value) {
+		case trailguide.ChangeMajor, trailguide.ChangeMinor, trailguide.ChangePatch:
 			return nil
 		}
 		return fmt.Errorf("--bump must be major, minor, or patch")
 	case "impact":
-		_, err := syllabus.ParseImpact(value, "--impact")
+		_, err := trailguide.ParseImpact(value, "--impact")
 		return err
 	case "repository":
 		data, err := json.Marshal(value)

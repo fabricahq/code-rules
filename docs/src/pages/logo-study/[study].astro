@@ -43,7 +43,7 @@ const favorites = [
             <div class="card-heading"><span class="number">{String(index + 1).padStart(2, '0')}</span><h3>{item.name}</h3></div>
             <div class="art-stage"><span class="mark large" aria-hidden="true"></span><span class="reverse-sample"><span class="mark" aria-hidden="true"></span></span></div>
             {study.smallSamples && <div class="size-samples">{[16, 12, 8].map(size => <div><span class="mark" style={`width:${size}px;height:${size}px`} aria-hidden="true"></span><span>{size}px</span></div>)}</div>}
-            <div class="header-sample" aria-label={`${item.name} at 16 pixels`}><span class="mark tiny" aria-hidden="true"></span><span class="parent-name">Fabrica</span><span class="slash">/</span><strong>Syllabus</strong></div>
+            <div class="header-sample" aria-label={`${item.name} at 16 pixels`}><span class="mark tiny" aria-hidden="true"></span><span class="parent-name">Fabrica</span><span class="slash">/</span><strong>Trail Guide</strong></div>
             <p class="description">{item.description}</p>
             {item.combination && <details><summary>Idea combination</summary><p>{item.combination.metaphor}<br /><span>+</span> {item.combination.form}<br /><span>+</span> {item.combination.character}</p><code>{item.combination.chunk}</code></details>}
             <a class="try-link" href={`/?variant=${item.id}`}>Try in the docs header <span aria-hidden="true">↗</span></a>

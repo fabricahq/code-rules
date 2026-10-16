@@ -1,20 +1,20 @@
-# Contributing to Syllabus
+# Contributing to Trail Guide
 
-Thanks for helping build Syllabus. This guide covers building the CLI, validating changes, working on the documentation website, testing PR builds, and releases.
+Thanks for helping build Trail Guide. This guide covers building the CLI, validating changes, working on the documentation website, testing PR builds, and releases.
 The [README](README.md) introduces the product; [AGENTS.md](AGENTS.md) holds the product context and decisions that guide changes.
 
 ## Build the CLI
 
-Install the Go version declared in [go.mod](go.mod). Commands that fetch or publish libraries, such as `syllabus project sync`, `syllabus project update`, and `syllabus library release`, require Git; GitHub Release pages also require the [GitHub CLI](https://cli.github.com/).
+Install the Go version declared in [go.mod](go.mod). Commands that fetch or publish libraries, such as `trailguide project sync`, `trailguide project update`, and `trailguide library release`, require Git; GitHub Release pages also require the [GitHub CLI](https://cli.github.com/).
 
 ```sh
-go build -o ./dist/syllabus ./cmd/syllabus
-./dist/syllabus --help
+go build -o ./dist/trailguide ./cmd/trailguide
+./dist/trailguide --help
 ```
 
-The executable runs without Node.js or Bun. From a consuming project's root, run `syllabus project init`, create a local group and rule, then `syllabus project build`. To adopt a library or a repository of skills, use `syllabus project add source` with its repository and rule or skill selectors, then run `syllabus project sync`.
+The executable runs without Node.js or Bun. From a consuming project's root, run `trailguide project init`, create a local group and rule, then `trailguide project build`. To adopt a library or a repository of skills, use `trailguide project add source` with its repository and rule or skill selectors, then run `trailguide project sync`.
 
-Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `syllabus project check` reports status and problems without writing files.
+Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `trailguide project check` reports status and problems without writing files.
 
 ## Validate changes
 
@@ -24,7 +24,7 @@ go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
 go test -race ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
-go build ./cmd/syllabus ./cmd/package-binaries
+go build ./cmd/trailguide ./cmd/package-binaries
 go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes=
 ```
 
@@ -58,11 +58,11 @@ A new commit needs a new approval.
 
 **Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
 
-The comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD), and a one-line command that uses the signed-in GitHub CLI to download the file for your computer as `./syllabus` in the current directory, replacing any existing file there. The command runs [`_tools/install-preview.sh`](_tools/install-preview.sh) from the default branch's workflow commit, never from the PR. To download by hand instead, rename the file to `syllabus`, then run:
+The comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD), and a one-line command that uses the signed-in GitHub CLI to download the file for your computer as `./trailguide` in the current directory, replacing any existing file there. The command runs [`_tools/install-preview.sh`](_tools/install-preview.sh) from the default branch's workflow commit, never from the PR. To download by hand instead, rename the file to `trailguide`, then run:
 
 ```sh
-chmod +x syllabus
-./syllabus --help
+chmod +x trailguide
+./trailguide --help
 ```
 
 Each preview command prints this warning to stderr before command output, including help, version, and JSON commands:
@@ -71,7 +71,7 @@ Each preview command prints this warning to stderr before command output, includ
 WARNING: Unreleased preview from commit <full SHA>. For testing only; not for production use.
 ```
 
-JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Syllabus.
+JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Trail Guide.
 
 No extraction or global installation is needed. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, whether the PR is open, closed, or merged.
 
@@ -80,7 +80,7 @@ No extraction or global installation is needed. The comment also links to the bu
 To build unreleased archives locally, commit your changes first: packaging builds committed source. Release builds take an explicit version; candidate versions default to a source commit identifier.
 
 ```sh
-go run ./cmd/package-binaries --candidate --output /tmp/syllabus-artifacts
+go run ./cmd/package-binaries --candidate --output /tmp/trailguide-artifacts
 ```
 
 Use a new output directory for each attempt. Verify archive checksums against a trusted manifest before extraction. Describe these builds as unpublished review candidates, and claim platform compatibility only where testing supports it. Read the [packaging command](cmd/package-binaries/) for options.
@@ -91,7 +91,7 @@ Use a new output directory for each attempt. Verify archive checksums against a 
 
 ## Implementation map
 
-- `syllabus`: the public Go package for reading libraries; the root package of the same name only embeds the license for the CLI. It parses library release tags, release records, rule files, group metadata, and the canonical group list, for Syllabus and for other tools such as catalogs, without Git, filesystem, or network access. Its exports are a public API that follows Syllabus's version, so keep them deliberate.
+- `trailguide`: the public Go package for reading libraries; the root package of the same name only embeds the license for the CLI. It parses library release tags, release records, rule files, group metadata, and the canonical group list, for Trail Guide and for other tools such as catalogs, without Git, filesystem, or network access. Its exports are a public API that follows Trail Guide's version, so keep them deliberate.
 - `internal/errs`: error contracts several packages share, such as the `ValidationError` interface that each package's own validation error satisfies.
 - `internal/decode`: the strict rules every format shares for decoding YAML and JSON text into generic values, before the format's own parser reads them.
 - `internal/librarytree`: the structure of files and directories in a library, and the group and rule IDs derived from positions in that tree.

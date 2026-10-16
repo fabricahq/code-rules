@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 func TestLibraryCheck_RequiresEveryLeveledSkillToExist(t *testing.T) {
@@ -31,7 +31,7 @@ func TestLibraryCheck_RequiresEveryLeveledSkillToExist(t *testing.T) {
 	write("config.yaml", "schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    required: [skills/ship]\n    recommended: [skills/review]\n")
 	_, err := Check(context.Background(), options)
 	var validation *ValidationError
-	if !errors.As(err, &validation) || validation.Location != ".syllabus/config.yaml: library.skills.recommended" || validation.Problem != "skills/review names no skill of the library, because .syllabus/skills/review/SKILL.md doesn't exist; add the skill, or remove it from the list" {
+	if !errors.As(err, &validation) || validation.Location != ".trailguide/config.yaml: library.skills.recommended" || validation.Problem != "skills/review names no skill of the library, because .trailguide/skills/review/SKILL.md doesn't exist; add the skill, or remove it from the list" {
 		t.Fatalf("got %v; want the missing recommended skill reported", err)
 	}
 	write("skills/review/SKILL.md", "---\nname: review\ndescription: Review a change.\n---\n# Review\n")

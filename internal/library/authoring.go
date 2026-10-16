@@ -16,11 +16,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // AuthoringResult lists the absolute paths of the library files an operation created and changed, and any
@@ -63,28 +63,28 @@ type RuleOptions struct {
 //go:embed library-guide.md
 var libraryReadme string
 
-// checkWorkflow runs syllabus library check on pull requests; checkWorkflowFor fills in checkWorkflowVersion.
+// checkWorkflow runs trailguide library check on pull requests; checkWorkflowFor fills in checkWorkflowVersion.
 //
 //go:embed check-workflow.yml
 var checkWorkflow string
 
-// checkWorkflowVersion marks where checkWorkflow's install step sets the Syllabus version it installs.
-const checkWorkflowVersion = "SYLLABUS_VERSION"
+// checkWorkflowVersion marks where checkWorkflow's install step sets the Trail Guide version it installs.
+const checkWorkflowVersion = "TRAILGUIDE_VERSION"
 
 // latestVersion is the shell command that the install step of a development build's workflow runs to find the
-// version of the latest Syllabus release, without its v prefix.
-const latestVersion = `$(gh release view --repo fabricahq/syllabus --json tagName --jq '.tagName | ltrimstr("v")')`
+// version of the latest Trail Guide release, without its v prefix.
+const latestVersion = `$(gh release view --repo fabricahq/trailguide --json tagName --jq '.tagName | ltrimstr("v")')`
 
 // developmentVersion prefixes the versions of builds that no release published: development builds and
 // unpublished candidates, such as 0.0.0-development and 0.0.0-dev.g0123456789ab.
 const developmentVersion = "0.0.0-"
 
 // checkWorkflowPath is the GitHub Actions workflow library init writes.
-const checkWorkflowPath = ".github/workflows/syllabus.yml"
+const checkWorkflowPath = ".github/workflows/trailguide.yml"
 
 // openLibrary opens the library repository's root, enforcing the same final-root no-link policy as project
 // authoring. It fails, closing the root, when the repository is in the library layout before version 2 or keeps
-// its Syllabus directory under the name Code Rules used.
+// its Trail Guide directory under the name Code Rules used.
 func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, error) {
 	directory := options.Directory
 	if directory == "" {
@@ -98,7 +98,7 @@ func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, e
 		root, err = filetxn.Open(ctx, directory)
 	}
 	if errors.Is(err, os.ErrNotExist) && !create {
-		return nil, failure("needs-init", directory+": missing library directory; run syllabus library init first", err)
+		return nil, failure("needs-init", directory+": missing library directory; run trailguide library init first", err)
 	}
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func declaredTerms(ctx context.Context, root *os.Root, manifest []byte, planned 
 		return nil, nil, err
 	}
 	if declaration == nil {
-		return nil, nil, failure("needs-init", manifestPath+" has no library section, so this repository isn't a library; run syllabus library init to add one", nil)
+		return nil, nil, failure("needs-init", manifestPath+" has no library section, so this repository isn't a library; run trailguide library init to add one", nil)
 	}
 	inventory := map[string][]byte{librarytree.Manifest: manifest}
 	for _, name := range rules.LicensePaths(declaration.License) {
@@ -172,18 +172,18 @@ func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *ru
 		return nil, nil, err
 	}
 	if data == nil {
-		return nil, nil, failure("needs-init", "missing "+manifestPath+"; run syllabus library init first", nil)
+		return nil, nil, failure("needs-init", "missing "+manifestPath+"; run trailguide library init first", nil)
 	}
 	return declaredTerms(ctx, root, data, nil)
 }
 
 // Initialize creates missing scaffolding and explicit terms without overwriting existing terms, README, or check
-// workflow. It adds a library section to .syllabus/config.yaml, creating the configuration when it's missing and
+// workflow. It adds a library section to .trailguide/config.yaml, creating the configuration when it's missing and
 // keeping an existing one's sources and comments; an existing library section stays unchanged. The workflow installs
-// syllabusVersion, an unprefixed version such as 0.2.0, from the Syllabus release tagged with it, or the latest
+// trailguideVersion, an unprefixed version such as 0.2.0, from the Trail Guide release tagged with it, or the latest
 // release for a 0.0.0- development build.
-func Initialize(ctx context.Context, options Options, terms *Terms, syllabusVersion string) (AuthoringResult, error) {
-	workflow, err := checkWorkflowFor(syllabusVersion)
+func Initialize(ctx context.Context, options Options, terms *Terms, trailguideVersion string) (AuthoringResult, error) {
+	workflow, err := checkWorkflowFor(trailguideVersion)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -192,7 +192,7 @@ func Initialize(ctx context.Context, options Options, terms *Terms, syllabusVers
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	dir, err := openSyllabusDirectory(ctx, root, true)
+	dir, err := openTrailGuideDirectory(ctx, root, true)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -285,7 +285,7 @@ func Initialize(ctx context.Context, options Options, terms *Terms, syllabusVers
 // version first and then installs exactly that one.
 func checkWorkflowFor(version string) ([]byte, error) {
 	if canonical, err := rules.TagVersion(version, "version"); err != nil || canonical != version {
-		return nil, failure("invalid-version", "Syllabus version "+strconv.Quote(version)+" is not a complete semantic version", err)
+		return nil, failure("invalid-version", "Trail Guide version "+strconv.Quote(version)+" is not a complete semantic version", err)
 	}
 	installed := version
 	if strings.HasPrefix(version, developmentVersion) {
@@ -305,7 +305,7 @@ func readOptionalBelow(ctx context.Context, root *os.Root, name string) ([]byte,
 	return filetxn.ReadOptional(ctx, root, name)
 }
 
-// editLibrary revalidates manifest and the target category under the writer of the Syllabus directory before
+// editLibrary revalidates manifest and the target category under the writer of the Trail Guide directory before
 // publication; prepare returns files by repository path.
 func editLibrary(ctx context.Context, options Options, group string, prepare func(*os.Root) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openLibrary(ctx, options, false)
@@ -313,7 +313,7 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	dir, err := openSyllabusDirectory(ctx, root, false)
+	dir, err := openTrailGuideDirectory(ctx, root, false)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -331,7 +331,7 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 }
 
 // AddGroup creates complete metadata without changing existing library content.
-func AddGroup(ctx context.Context, id string, metadata syllabus.GroupMetadata, options Options) (AuthoringResult, error) {
+func AddGroup(ctx context.Context, id string, metadata trailguide.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
@@ -360,7 +360,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 	if err != nil || data == nil {
 		return false, err
 	}
-	_, err = syllabus.ParseGroupMetadata(data, id)
+	_, err = trailguide.ParseGroupMetadata(data, id)
 	return err == nil, err
 }
 
@@ -405,6 +405,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the repository root, four directories above this folder.\nUse `syllabus library add rule %s/<rule-name>` to add a rule; run `syllabus library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `syllabus library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the repository root, four directories above this folder.\nUse `trailguide library add rule %s/<rule-name>` to add a rule; run `trailguide library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `trailguide library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

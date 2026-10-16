@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // ProblemKind distinguishes the observed mismatch without relying on presentation text.
@@ -18,7 +18,7 @@ const (
 	StaleContents  ProblemKind = "stale-contents"
 	UnexpectedFile ProblemKind = "unexpected-file"
 	OutdatedGuide  ProblemKind = "outdated-readme"
-	// OutdatedAgents means the repository's AGENTS.md lacks the Syllabus section, or holds an older one.
+	// OutdatedAgents means the repository's AGENTS.md lacks the Trail Guide section, or holds an older one.
 	OutdatedAgents ProblemKind = "outdated-agents-section"
 	// MissingSkill, ModifiedSkill, and UnexpectedSkill report an installed skill folder that is missing, differs from
 	// the copy of its source build writes, or belongs to a skill the project no longer installs.
@@ -59,7 +59,7 @@ type CheckResult struct {
 // Current reports whether generated output, the managed guide, and the AGENTS.md section match the selected inputs.
 func (r CheckResult) Current() bool { return len(r.Problems) == 0 }
 
-// Check compares generated output, the installed skill folders, the managed guide, and the Syllabus section of the
+// Check compares generated output, the installed skill folders, the managed guide, and the Trail Guide section of the
 // repository's AGENTS.md in one optimistic snapshot. It performs no writes, locks, recovery, Git, or network access.
 // Staleness is a result, not an error; invalid inputs, including an authored skill that cites a rule its library
 // retired, an edited section, or broken markers in AGENTS.md, are errors. It also warns about personal skills in
@@ -76,7 +76,7 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	if err != nil {
 		return CheckResult{}, err
 	}
-	// The snapshot covers the Syllabus directory; AGENTS.md, outside it, must also be as planned when it ends.
+	// The snapshot covers the Trail Guide directory; AGENTS.md, outside it, must also be as planned when it ends.
 	if err := agents.requireUnchanged(ctx); err != nil {
 		return CheckResult{}, err
 	}

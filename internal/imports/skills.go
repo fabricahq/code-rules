@@ -11,11 +11,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // librarySkillsFolder is where a library keeps the skills it publishes, relative to its repository root.
@@ -23,7 +23,7 @@ const librarySkillsFolder = librarytree.Directory + "/" + skills.Directory + "/"
 
 // skillFolders returns the skills in files, a commit's tree by repository path, keyed by skill ID, each with its
 // files keyed by their path in the vendor snapshot. A library's skills are the folders directly in its
-// .syllabus/skills/ that hold a SKILL.md, with IDs skills/<name> and snapshot paths in skills/. Any other
+// .trailguide/skills/ that hold a SKILL.md, with IDs skills/<name> and snapshot paths in skills/. Any other
 // repository's are the folders that hold a SKILL.md, other than the repository root and a folder inside another
 // skill's folder, which belongs to that skill; their IDs and snapshot paths are their repository paths.
 func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[string]treeEntry {
@@ -86,7 +86,7 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 	if levels != nil {
 		for _, id := range levels.Listed() {
 			if !slices.Contains(available, id) {
-				return nil, fail("unsupported-content", fmt.Sprintf("sources.%s: the library's manifest at %s gives skill %s a level, but the library has no such skill there. Ask the library's maintainer to fix library.skills; syllabus library check catches this.", source.Name, revision, id), nil)
+				return nil, fail("unsupported-content", fmt.Sprintf("sources.%s: the library's manifest at %s gives skill %s a level, but the library has no such skill there. Ask the library's maintainer to fix library.skills; trailguide library check catches this.", source.Name, revision, id), nil)
 			}
 		}
 		chosen = append(chosen, levels.Required...)
@@ -120,13 +120,13 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 func skillNotInRevision(source rules.Source, plan sourcePlan, field, id string) error {
 	revision := revisionName(plan.release, plan.commit)
 	if plan.locked != "" && plan.locked == plan.commit {
-		next := fmt.Sprintf("Run syllabus project update %s, which moves the source to its newest library release, and takes the skill from it if it has it, or check the skill ID.", source.Name)
+		next := fmt.Sprintf("Run trailguide project update %s, which moves the source to its newest library release, and takes the skill from it if it has it, or check the skill ID.", source.Name)
 		if !source.Ref.IsZero() {
-			next = fmt.Sprintf("To take the skill, set sources.%s.ref to a tag or commit that has it, then run syllabus project sync, or check the skill ID.", source.Name)
+			next = fmt.Sprintf("To take the skill, set sources.%s.ref to a tag or commit that has it, then run trailguide project sync, or check the skill ID.", source.Name)
 		}
 		return fail("skill-not-in-revision", fmt.Sprintf("%s names %s, which isn't in %s, the revision vendor/%s/_source.json records for the source. Sync never moves a source, so it takes every skill from that revision. %s", field, id, revision, source.Name, next), nil)
 	}
-	return &ValidationError{Location: field, Problem: fmt.Sprintf("the source has no skill %s at %s; check the skill ID. A library's skills are the folders in its .syllabus/skills/, such as skills/build-feature; another repository's are the folders that hold a SKILL.md, named by their path from the repository root", id, revision)}
+	return &ValidationError{Location: field, Problem: fmt.Sprintf("the source has no skill %s at %s; check the skill ID. A library's skills are the folders in its .trailguide/skills/, such as skills/build-feature; another repository's are the folders that hold a SKILL.md, named by their path from the repository root", id, revision)}
 }
 
 // requireConfiguredUses checks that every skill the source's skills.uses lists is one of available, the IDs of the
@@ -145,7 +145,7 @@ func requireConfiguredUses(source rules.Source, plan sourcePlan, available []str
 
 // installedSkills returns every skill the source installs, by ID, with why: chosen, the skills skills.include
 // selects, and every skill they use, transitively. uses maps each skill chosen reaches that the plan's revision has
-// to the skills it uses, by its syllabus-skills-used and the source's skills.uses. A skill that uses one the revision lacks,
+// to the skills it uses, by its trailguide-skills-used and the source's skills.uses. A skill that uses one the revision lacks,
 // skills that use each other in a cycle, and a skills.uses key the source doesn't install fail as invalid
 // configuration of the source's skills, naming the skills involved.
 func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses map[string][]string) (map[string]skills.Installed, error) {
@@ -159,9 +159,9 @@ func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses
 		if missing.Via != missing.Skill {
 			installing = fmt.Sprintf("%s, which %s uses", missing.Skill, missing.Via)
 		}
-		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("%s uses %s, which isn't a skill in %s: %s names it in syllabus-skills-used. Syllabus installs every skill an installed skill uses, so it can't install %s. Ask the source's maintainer to correct syllabus-skills-used, or stop including %s", missing.Skill, missing.Missing, revisionName(plan.release, plan.commit), missing.Skill, installing, missing.Via)}
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("%s uses %s, which isn't a skill in %s: %s names it in trailguide-skills-used. Trail Guide installs every skill an installed skill uses, so it can't install %s. Ask the source's maintainer to correct trailguide-skills-used, or stop including %s", missing.Skill, missing.Missing, revisionName(plan.release, plan.commit), missing.Skill, installing, missing.Via)}
 	case errors.As(err, &cycle):
-		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("the skills the source installs use each other in a cycle: %s. Syllabus installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct syllabus-skills-used, or remove the use from %s.uses", strings.Join(cycle.Cycle, " -> "), location)}
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("the skills the source installs use each other in a cycle: %s. Trail Guide installs every skill an installed skill uses, so uses can't form a cycle. Ask the source's maintainer to correct trailguide-skills-used, or remove the use from %s.uses", strings.Join(cycle.Cycle, " -> "), location)}
 	case err != nil:
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses
 }
 
 // skillUses reads the SKILL.md of every skill chosen reaches in folders, the skills of the plan's commit, and returns
-// what each uses: its syllabus-skills-used lines, then the skills the source's skills.uses adds. It fetches the
+// what each uses: its trailguide-skills-used lines, then the skills the source's skills.uses adds. It fetches the
 // SKILL.md files one level of uses at a time, so it never downloads those of skills nothing installed uses. A used
 // skill folders lacks is absent from the result, for installedSkills to report. It fails when a SKILL.md it reads
 // has unreadable frontmatter.
@@ -216,7 +216,7 @@ func (r *repository) skillUses(ctx context.Context, source rules.Source, folders
 	return uses, nil
 }
 
-// isLibrary reports whether a fetched commit holds a library: a .syllabus/config.yaml with a library section, or a
+// isLibrary reports whether a fetched commit holds a library: a .trailguide/config.yaml with a library section, or a
 // rule-library.yaml in the layout before version 2. A configuration it can't read counts as a library's, so the
 // catalog loader reports what is wrong with it.
 func (r *repository) isLibrary(ctx context.Context, commit string) (bool, error) {
@@ -261,7 +261,7 @@ func (r *repository) skillLevels(ctx context.Context, commit string) (*rules.Ski
 	return &declaration.Skills, nil
 }
 
-// manifest reads .syllabus/config.yaml from tree, a commit's tree by repository path, reporting false when it has
+// manifest reads .trailguide/config.yaml from tree, a commit's tree by repository path, reporting false when it has
 // none.
 func (r *repository) manifest(ctx context.Context, tree map[string]treeEntry) ([]byte, bool, error) {
 	file := librarytree.RepositoryPath(librarytree.Manifest)
@@ -330,7 +330,7 @@ func (r *repository) readSkills(ctx context.Context, source rules.Source, plan s
 		result.skills[id] = skill
 		for name, entry := range folders[id] {
 			if !entry.mode.IsRegular() {
-				return importedSkills{}, fail("unsupported-content", fmt.Sprintf("sources.%s: skill %s has a symbolic link or submodule at %s, which Syllabus doesn't install. Ask the source's maintainer to replace it with a file.", source.Name, id, name), nil)
+				return importedSkills{}, fail("unsupported-content", fmt.Sprintf("sources.%s: skill %s has a symbolic link or submodule at %s, which Trail Guide doesn't install. Ask the source's maintainer to replace it with a file.", source.Name, id, name), nil)
 			}
 			entries[name] = entry
 			prefetch = append(prefetch, entry)

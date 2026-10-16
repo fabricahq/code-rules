@@ -2,7 +2,7 @@
 
 package skills
 
-import "github.com/fabricahq/syllabus/internal/errs"
+import "github.com/fabricahq/trailguide/internal/errs"
 
 // ValidationError reports invalid input at a location, such as a configuration key or a skill's file.
 type ValidationError struct {

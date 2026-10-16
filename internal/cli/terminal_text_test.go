@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // TestTerminalText_EscapesControlCharactersAndKeepsNewlines covers each kind of character a terminal could act on.

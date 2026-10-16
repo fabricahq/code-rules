@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // RequireAbsent rejects existing targets and unsafe parents without reading file contents.

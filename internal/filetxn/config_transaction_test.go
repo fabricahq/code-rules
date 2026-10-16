@@ -92,7 +92,7 @@ func TestApply_RefusesAConfigurationEditedDuringStaging(t *testing.T) {
 // TestKilledConfigWriterRecovers stops the writer after each rename; the next writer restores all three targets,
 // or, once the commit marker exists, keeps all three new ones.
 func TestKilledConfigWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("SYLLABUS_CONFIG_CHILD"); directory != "" {
+	if directory := os.Getenv("TRAILGUIDE_CONFIG_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
@@ -102,7 +102,7 @@ func TestKilledConfigWriterRecovers(t *testing.T) {
 			rename := w.rename
 			w.rename = func(from, to string) error {
 				err := rename(from, to)
-				if err == nil && to == os.Getenv("SYLLABUS_CONFIG_STOP") {
+				if err == nil && to == os.Getenv("TRAILGUIDE_CONFIG_STOP") {
 					os.Exit(42)
 				}
 				return err
@@ -123,7 +123,7 @@ func TestKilledConfigWriterRecovers(t *testing.T) {
 			root := openProject(t)
 			writeConfigProject(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledConfigWriterRecovers$")
-			child.Env = append(os.Environ(), "SYLLABUS_CONFIG_CHILD="+root.Name(), "SYLLABUS_CONFIG_STOP="+stop)
+			child.Env = append(os.Environ(), "TRAILGUIDE_CONFIG_CHILD="+root.Name(), "TRAILGUIDE_CONFIG_STOP="+stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

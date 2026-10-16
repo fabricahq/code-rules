@@ -179,7 +179,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 		t.Run(fmt.Sprintf("json=%t", structured), func(t *testing.T) {
 			directory := t.TempDir()
 			output := &commandOutput{json: structured}
-			root := &cobra.Command{Use: "syllabus", SilenceErrors: true, SilenceUsage: true}
+			root := &cobra.Command{Use: "trailguide", SilenceErrors: true, SilenceUsage: true}
 			root.AddCommand(projectInitCommand(Options{Directory: directory}, output))
 			command, _, err := root.Find([]string{"init"})
 			if err != nil {
@@ -194,7 +194,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), "terminal output unavailable") {
 				t.Fatal("expected post-commit output failure", err)
 			}
-			if _, err := os.Stat(filepath.Join(directory, ".syllabus", "config.yaml")); err != nil {
+			if _, err := os.Stat(filepath.Join(directory, ".trailguide", "config.yaml")); err != nil {
 				t.Fatal("initialization did not commit", err)
 			}
 			var out, diagnostic bytes.Buffer

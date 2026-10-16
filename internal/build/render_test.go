@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
@@ -45,7 +45,7 @@ func TestRenderRules(t *testing.T) {
 }
 
 // TestRenderLinksSharedAuthoredAssets links a rule in rules/ to a shared asset in assets/ through its place in the
-// Syllabus directory, three levels up.
+// Trail Guide directory, three levels up.
 func TestRenderLinksSharedAuthoredAssets(t *testing.T) {
 	output, err := renderFixture(t, "[diagram](../../../assets/diagram.svg)", map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestRenderRejectsLinksOutsideAuthoredFolders(t *testing.T) {
 		t.Run(test.target, func(t *testing.T) {
 			output, err := renderFixture(t, test.body, map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
 			var validation errs.ValidationError
-			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .syllabus/rules/ and .syllabus/assets/; link to this rule's own assets directory, or to a shared asset in .syllabus/assets/" || output != nil {
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .trailguide/rules/ and .trailguide/assets/; link to this rule's own assets directory, or to a shared asset in .trailguide/assets/" || output != nil {
 				t.Fatalf("got %v, %v", output, err)
 			}
 		})
@@ -110,7 +110,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			if state == "unselected" {
 				target = "techs/rust/other.md"
 			} else {
-				other, err := syllabus.ParseRule(document, target, "team")
+				other, err := trailguide.ParseRule(document, target, "team")
 				if err != nil {
 					t.Fatal(err)
 				}

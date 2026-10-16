@@ -4,10 +4,10 @@ description: "Move the rules and skills your project takes from its sources to n
 ---
 
 :::caution[Preview]
-Skills, skill levels, borrowed skills, non-library sources, and branch refs aren't in a released version of Syllabus yet. This guide describes how updating them will work. The released CLI doesn't move a source that uses `ref`.
+Skills, skill levels, borrowed skills, non-library sources, and branch refs aren't in a released version of Trail Guide yet. This guide describes how updating them will work. The released CLI doesn't move a source that uses `ref`.
 :::
 
-This guide is for projects that take rules and skills from sources: libraries, and repositories of skills that aren't libraries. Updating brings changes from those sources into your project. Library authors may improve advice, fix mistakes, add rules and skills, make rules stricter, change a skill's steps or level, or retire either. Your project takes those changes only when you run `syllabus project update` and confirm them. `syllabus project sync` never moves a source, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
+This guide is for projects that take rules and skills from sources: libraries, and repositories of skills that aren't libraries. Updating brings changes from those sources into your project. Library authors may improve advice, fix mistakes, add rules and skills, make rules stricter, change a skill's steps or level, or retire either. Your project takes those changes only when you run `trailguide project update` and confirm them. `trailguide project sync` never moves a source, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
 In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one source](#update-one-source) or [move a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how [skills](#update-skills), [skill levels](#level-changes), [non-library sources and borrowed skills](#update-a-non-library-source), and [one library release](#take-one-library-release) update, how to change what you include, and how to recover from a failed update.
 
@@ -17,17 +17,17 @@ Start with a project that already [includes rules](/guides/select-rules/). To pu
 
 Two commands take rules and skills from your sources, and they do different things:
 
-- **`syllabus project sync`** restores the **lock** recorded in `.syllabus/vendor/`: each source's library release or commit, and each rule's version. Everyone who syncs the project gets the same rules and skills. Sync never moves a source: a rule or skill you newly include comes from the recorded library release or commit too, and a source that's new to the project is taken as an update would take it. When you include something the recorded revision doesn't have, sync fails and names `syllabus project update SOURCE`.
-- **`syllabus project update`** moves each source along its `ref`: it looks for newer rule and skill versions, new rules and skills, level changes, retirements, and new commits on branches and tags, including those of [borrowed skills](/reference/configuration/#borrowed-skills), shows you a preview, and applies the changes once you confirm.
+- **`trailguide project sync`** restores the **lock** recorded in `.trailguide/vendor/`: each source's library release or commit, and each rule's version. Everyone who syncs the project gets the same rules and skills. Sync never moves a source: a rule or skill you newly include comes from the recorded library release or commit too, and a source that's new to the project is taken as an update would take it. When you include something the recorded revision doesn't have, sync fails and names `trailguide project update SOURCE`.
+- **`trailguide project update`** moves each source along its `ref`: it looks for newer rule and skill versions, new rules and skills, level changes, retirements, and new commits on branches and tags, including those of [borrowed skills](/reference/configuration/#borrowed-skills), shows you a preview, and applies the changes once you confirm.
 
-Neither command runs during ordinary coding, review, or `syllabus project check`, so rules and skills never change underneath your agents.
+Neither command runs during ordinary coding, review, or `trailguide project check`, so rules and skills never change underneath your agents.
 
 ## Update your sources
 
 From the project root, run:
 
 ```sh
-syllabus project update
+trailguide project update
 ```
 
 The command previews every change in each source, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm:
@@ -53,7 +53,7 @@ team
             pass --update-fork team:techs/react/use-query-hooks.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
-            Reason: Waiting on the author's response to acme/.syllabus#45.
+            Reason: Waiting on the author's response to acme/.trailguide#45.
 ```
 
 When a rule moves through several versions, each summary starts with the version it belongs to, such as `1.4.0: Add an example.`
@@ -74,12 +74,12 @@ Read the major changes, new rules, and retirements closely: each can change what
 
 For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing replaces or removes. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would replace and those it would remove. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
 
-To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.syllabus/config.yaml` to the version you merged, so later updates list only newer changes. Syllabus never moves `basedOn` on its own, because only you know whether your rule took the changes in.
+To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.trailguide/config.yaml` to the version you merged, so later updates list only newer changes. Trail Guide never moves `basedOn` on its own, because only you know whether your rule took the changes in.
 
 The preview lists a skill you [forked](/guides/install-skills/#fork-a-skill) as `replaced` too, when the source's copy changed since the commit your fork is based on, naming the files that changed. The update never changes your fork: compare the files, merge what you need, and set the exclusion's `basedOn` to the commit you merged. See [project update](/reference/cli/#project-update).
 
 :::note[Preview]
-Forking skills comes in the next Syllabus release.
+Forking skills comes in the next Trail Guide release.
 :::
 
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
@@ -87,7 +87,7 @@ In a terminal, the command also asks about each new rule: add it, or exclude it.
 In a script or CI job, where there's no terminal to confirm in, the command only shows the preview. To apply it, pass `--yes`:
 
 ```sh
-syllabus project update --yes
+trailguide project update --yes
 ```
 
 ## Update skills
@@ -113,10 +113,10 @@ fabrica
             To replace your skill with a fork of 1.1.0,
             pass --update-fork fabrica:skills/fix-bug.
 
-Warning: some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm.
+Warning: some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm.
 ```
 
-Under each skill's row, the preview flags every executable file that's new or changed: a file whose executable bit is set at the new revision and that the update adds or changes, as `script added` or `script changed`, and a file whose executable bit changed, as `script changed`. When it flags any, the preview ends with one warning. Syllabus never runs these scripts, but your agents may, so read them before you confirm. The warning doesn't block the update.
+Under each skill's row, the preview flags every executable file that's new or changed: a file whose executable bit is set at the new revision and that the update adds or changes, as `script added` or `script changed`, and a file whose executable bit changed, as `script changed`. When it flags any, the preview ends with one warning. Trail Guide never runs these scripts, but your agents may, so read them before you confirm. The warning doesn't block the update.
 
 For a skill, the change levels describe what the skill does rather than an obligation:
 
@@ -128,7 +128,7 @@ For a skill, the change levels describe what the skill does rather than an oblig
 
 A skill's new version can use more skills or cite more rules. The preview lists each skill it newly brings in as `new`, saying which skill uses it, and each rule it newly cites as `new`, at the rule's newest version, marked reference-only unless your selectors also reach it. A skill or cited rule that no installed skill needs any longer is dropped.
 
-`--exclude` and `--update-fork` take skill IDs the same way they take rule IDs, such as `--exclude fabrica:skills/review-change`. Pins and `--keep` are for rules only, and `syllabus project update fabrica:skills/build-feature` is refused: skills move only when their whole source updates, in a full update or `syllabus project update fabrica`. In a terminal, the update asks you to confirm each major skill change, retirement, and level change, and asks about each new skill that isn't required, as it does for rules. To hold a skill back, stop the update, then [exclude](/guides/install-skills/#exclude-a-skill) or [fork](/guides/install-skills/#fork-a-skill) it, or set the source's [`ref`](#take-one-library-release), which holds every rule and skill from that source. `--update-fork` replaces your whole `.syllabus/skills/<name>/` folder with a fork of the newest version and sets the exclusion's `basedOn` to it; files you added to the folder are removed, so commit your edits first.
+`--exclude` and `--update-fork` take skill IDs the same way they take rule IDs, such as `--exclude fabrica:skills/review-change`. Pins and `--keep` are for rules only, and `trailguide project update fabrica:skills/build-feature` is refused: skills move only when their whole source updates, in a full update or `trailguide project update fabrica`. In a terminal, the update asks you to confirm each major skill change, retirement, and level change, and asks about each new skill that isn't required, as it does for rules. To hold a skill back, stop the update, then [exclude](/guides/install-skills/#exclude-a-skill) or [fork](/guides/install-skills/#fork-a-skill) it, or set the source's [`ref`](#take-one-library-release), which holds every rule and skill from that source. `--update-fork` replaces your whole `.trailguide/skills/<name>/` folder with a fork of the newest version and sets the exclusion's `basedOn` to it; files you added to the folder are removed, so commit your edits first.
 
 After you confirm, the update rewrites the installed copies in your target folders, `generated/SKILLS.md`, and `generated/installed-skills.json` in the same step as `vendor/` and `generated/`.
 
@@ -170,14 +170,14 @@ pstack  main: 3f9c2e1 -> 8a41d07
   removed   skills/sketch
             The folder no longer exists on main.
 
-Warning: some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm.
+Warning: some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm.
 ```
 
 - `changed` lists a skill folder whose files differ, including a file whose executable bit changed.
-- `added` lists a new skill folder that the source's `"*"` includes. New folders you haven't included aren't listed; run `syllabus project list skills` to see them.
+- `added` lists a new skill folder that the source's `"*"` includes. New folders you haven't included aren't listed; run `trailguide project list skills` to see them.
 - `removed` lists an installed skill whose folder is gone. Applying the update stops installing it. When the skill is in your `skills.include`, the entry no longer does anything, and sync and update warn about it so you can delete it.
 
-Scripts are flagged and warned about as they are for [library skills](#update-skills). Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A tag that now names a different commit than at your last update moves too, and the preview warns that the tag moved. A non-library source whose `ref` is a commit never moves; to take another commit, change `ref` and run `syllabus project update SOURCE`. `--keep` and pins don't apply to non-library sources; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
+Scripts are flagged and warned about as they are for [library skills](#update-skills). Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A tag that now names a different commit than at your last update moves too, and the preview warns that the tag moved. A non-library source whose `ref` is a commit never moves; to take another commit, change `ref` and run `trailguide project update SOURCE`. `--keep` and pins don't apply to non-library sources; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
 
 ### Borrowed skills
 
@@ -194,10 +194,10 @@ To take a newer or older revision of a borrowed skill than the library's ref giv
 
 ## Update one source
 
-When your project takes rules and skills from several sources, you can update just one of them. Name the source, its name under `sources` in `.syllabus/config.yaml`:
+When your project takes rules and skills from several sources, you can update just one of them. Name the source, its name under `sources` in `.trailguide/config.yaml`:
 
 ```sh
-syllabus project update team
+trailguide project update team
 ```
 
 The update works like a full one, with the same preview and questions, for `team` only. Your other sources stay where they are until your next full update.
@@ -207,7 +207,7 @@ The update works like a full one, with the same preview and questions, for `team
 To move a single rule to its newest version, without taking anything else from its library, name it after its source, as `SOURCE:RULE`:
 
 ```sh
-syllabus project update team:techs/react/prefer-server-components
+trailguide project update team:techs/react/prefer-server-components
 ```
 
 The preview and the update cover only that rule. The library's new rules, its other rule changes, and its shared files stay where they are, with one exception: when the rule's new version comes from a newer library release than your shared files, they move to that library release, because a rule version can rely on the shared files its library release published. The source's skills come from the same library release, so they move with the shared files, and the preview lists them. To move several rules together, name each of them.
@@ -223,27 +223,27 @@ When an update brings a change you're not ready for, keep that rule where it is 
 ```yaml
 sources:
   team:
-    repository: https://github.com/acme/.syllabus.git
+    repository: https://github.com/acme/.trailguide.git
     rules:
       include: [techs/react/*, practices/testing/*]
       pins:
         - id: practices/testing/verify-retry-limits
           version: "1.3.0"
-          reason: Waiting on the author's response to acme/.syllabus#45.
+          reason: Waiting on the author's response to acme/.trailguide#45.
 ```
 
 There are three ways to add one:
 
-- **During the update.** In a terminal, `syllabus project update` asks whether to take each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
+- **During the update.** In a terminal, `trailguide project update` asks whether to take each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
 - **With `--keep`.** Pin rules as part of the update, without prompts:
 
   ```sh
-  syllabus project update --yes \
+  trailguide project update --yes \
     --keep team:practices/testing/verify-retry-limits \
-    --reason "Waiting on the author's response to acme/.syllabus#45."
+    --reason "Waiting on the author's response to acme/.trailguide#45."
   ```
 
-- **By hand.** Add the pin to `.syllabus/config.yaml`, using the version recorded in `.syllabus/vendor/<source-name>/_source.json`, and run `syllabus project sync`. An agent asked to keep a rule at its current version can do this for you.
+- **By hand.** Add the pin to `.trailguide/config.yaml`, using the version recorded in `.trailguide/vendor/<source-name>/_source.json`, and run `trailguide project sync`. An agent asked to keep a rule at its current version can do this for you.
 
 Pins are for rules only. To hold a skill back, see [Update skills](#update-skills).
 
@@ -252,16 +252,16 @@ A pinned rule keeps its identity: it still appears as the library's rule, with i
 When you're ready for the newer version, delete the pin and [update that rule](#update-one-rule-to-its-newest-version):
 
 ```sh
-syllabus project update team:practices/testing/verify-retry-limits
+trailguide project update team:practices/testing/verify-retry-limits
 ```
 
-A pin can also move a rule to a specific version: set `version`, and `syllabus project sync` moves the rule to exactly that version, up or down, when your recorded library release or an earlier one published it; for a later version, run `syllabus project update SOURCE`. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's `.syllabus/rules/`. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
+A pin can also move a rule to a specific version: set `version`, and `trailguide project sync` moves the rule to exactly that version, up or down, when your recorded library release or an earlier one published it; for a later version, run `trailguide project update SOURCE`. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's `.trailguide/rules/`. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
 
 ## Handle retirements
 
 A retired rule or skill appears in the preview with its last version, the summary explaining why, and its replacement if it has one. A rule never replaces a skill, or the reverse. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped, or the skill's installed folders are removed. For a rule with a replacement, read the replacement, and check that your selectors include it; for a skill, check that you include its replacement. To keep using a skill the library retires, [fork it](/guides/install-skills/#fork-a-skill) before you apply the update.
 
-To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or include by ID a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only source of its rule group's metadata, the update writes that metadata to `.syllabus/rules/<group-id>/_group.yaml` so the fork keeps its rule group.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or include by ID a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only source of its rule group's metadata, the update writes that metadata to `.trailguide/rules/<group-id>/_group.yaml` so the fork keeps its rule group.
 
 ## Take one library release
 
@@ -276,15 +276,15 @@ sources:
       include: ["*"]
 ```
 
-`syllabus project update` doesn't move this source past release 5. To take another library release, change the tag and run `syllabus project update vendor-rules`; sync never moves a source, so it reports that the record is out of date. To go back to following library releases, remove `ref` and update the source.
+`trailguide project update` doesn't move this source past release 5. To take another library release, change the tag and run `trailguide project update vendor-rules`; sync never moves a source, so it reports that the record is out of date. To go back to following library releases, remove `ref` and update the source.
 
-`ref` also accepts a branch, any other tag, or a full commit SHA, which library authors use to test unreleased changes. Rules and skills with unreleased changes have no version, so Syllabus warns about them every time you sync or update. See [Take one revision](/reference/configuration/#take-one-revision).
+`ref` also accepts a branch, any other tag, or a full commit SHA, which library authors use to test unreleased changes. Rules and skills with unreleased changes have no version, so Trail Guide warns about them every time you sync or update. See [Take one revision](/reference/configuration/#take-one-revision).
 
 ## Review and commit the update
 
-`syllabus project update` reports added, changed, and removed file paths. Before committing:
+`trailguide project update` reports added, changed, and removed file paths. Before committing:
 
-- Inspect the diff of `.syllabus/vendor/` for changes from your sources, including rules and skills hidden by your exclusions and replacements, and changes to retained licenses and notices.
+- Inspect the diff of `.trailguide/vendor/` for changes from your sources, including rules and skills hidden by your exclusions and replacements, and changes to retained licenses and notices.
 - Inspect the diff of the installed skills in `.claude/skills/` and `.agents/skills/`, especially scripts, which your agents may run.
 - For each `replaced` rule in the preview, compare the library's old and new text before deciding whether your own rule still makes sense.
 - When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
@@ -293,17 +293,17 @@ Commit the configuration, vendor snapshots, generated files, and installed skill
 
 ## Change what you include
 
-Edit the source's `rules.include` or `skills.include`, or its `exclude` lists, and run `syllabus project sync`.
-Sync takes newly included rules and skills from the library release or commit your project already recorded for the source, and leaves the rest of your rules and skills unchanged. Each new rule gets the newest version that library release or an earlier one published. When something you include isn't in the recorded revision, such as a skill the library published after your last update, sync fails and names `syllabus project update SOURCE`, which moves the whole source.
+Edit the source's `rules.include` or `skills.include`, or its `exclude` lists, and run `trailguide project sync`.
+Sync takes newly included rules and skills from the library release or commit your project already recorded for the source, and leaves the rest of your rules and skills unchanged. Each new rule gets the newest version that library release or an earlier one published. When something you include isn't in the recorded revision, such as a skill the library published after your last update, sync fails and names `trailguide project update SOURCE`, which moves the whole source.
 The vendor snapshot must match your selectors before an offline build can use it.
 Regeneration removes a rule group index only when no source or authored rule group still supplies it.
-You don't need to create rule group metadata before you stop including, or remove, the last source supplying an authored rule's rule group: sync writes the rule group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the rule group, from its last vendored copy, to `.syllabus/rules/<group-id>/_group.yaml` and warns that it did. See [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule). Review the file afterward; it's now yours to edit. If `.syllabus/rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
+You don't need to create rule group metadata before you stop including, or remove, the last source supplying an authored rule's rule group: sync writes the rule group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the rule group, from its last vendored copy, to `.trailguide/rules/<group-id>/_group.yaml` and warns that it did. See [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule). Review the file afterward; it's now yours to edit. If `.trailguide/rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 
-`syllabus project update` and `syllabus project sync` validate and render before installing output.
+`trailguide project update` and `trailguide project sync` validate and render before installing output.
 A failed sync, or an update you didn't confirm, preserves the previous working rules and skills.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
 Rules and skills never change automatically during coding, review, or offline checks.
-Syllabus keeps the versions and commits it recorded until you change a pin or confirm an update.
+Trail Guide keeps the versions and commits it recorded until you change a pin or confirm an update.

@@ -1,4 +1,4 @@
-// Check the frontmatter of the skills a library authors: each folder's name, and the metadata keys Syllabus defines.
+// Check the frontmatter of the skills a library authors: each folder's name, and the metadata keys Trail Guide defines.
 
 package library
 
@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // skillsDirectory is where a library's skills live in its repository.
-const skillsDirectory = ".syllabus/" + skills.Directory
+const skillsDirectory = ".trailguide/" + skills.Directory
 
 // skillProblems returns every problem in the skills tree holds, by path in the library's skills/ folder, in path
 // order, each starting with the file or folder it's about: a file directly in skills/, a folder whose name breaks the
@@ -78,7 +78,7 @@ func skillProblems(tree *filetxn.Tree, current []string, changes libraryChanges)
 	return problems
 }
 
-// citedRuleProblem returns why id, a line of syllabus-rules-used, doesn't name a current rule of the library, or empty when
+// citedRuleProblem returns why id, a line of trailguide-rules-used, doesn't name a current rule of the library, or empty when
 // it does or isn't a rule ID, which skills.Check reports instead. retiring holds the pending change notes'
 // retirements by rule.
 func citedRuleProblem(id string, current []string, history releaseHistory, retiring map[string][]rules.NoteChange) string {

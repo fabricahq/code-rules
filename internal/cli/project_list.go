@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/trailguide/internal/project"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ import (
 func projectListCommand(options Options, output *commandOutput) *cobra.Command {
 	list := &cobra.Command{Use: "list", Short: "List what the project installs and could install"}
 	skills := &cobra.Command{Use: "skills", Short: "List every installed and available skill, with its level", Args: cobra.NoArgs}
-	skills.Long = "List each skill the project's sources offer, whether the project installs it,\nexcludes it, replaces it with its own skill, or could add it, and the level the\nsource's library gives it: required, recommended, or offered. Then list the\nproject's own skills. The listing reads the source records sync wrote, so run\nsyllabus project sync first after changing the configuration." + documentationHelp
+	skills.Long = "List each skill the project's sources offer, whether the project installs it,\nexcludes it, replaces it with its own skill, or could add it, and the level the\nsource's library gives it: required, recommended, or offered. Then list the\nproject's own skills. The listing reads the source records sync wrote, so run\ntrailguide project sync first after changing the configuration." + documentationHelp
 	skills.RunE = func(cmd *cobra.Command, _ []string) error {
 		directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)
 		if err != nil {

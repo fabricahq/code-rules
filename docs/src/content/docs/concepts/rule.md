@@ -35,7 +35,7 @@ Each rule has one home in a [rule group](/concepts/groups/).
 For example, a library can store the retry rule at:
 
 ```text
-.syllabus/rules/practices/testing/verify-retry-limits.md
+.trailguide/rules/practices/testing/verify-retry-limits.md
 ```
 
 Keep a rule in one project, or publish it in a library that other projects take rules from.
@@ -53,13 +53,13 @@ A rule can also be **retired**, when a better rule replaces it or the practice i
 
 Each version is recorded in the library release that published it, with a summary of what changed. The rule file itself has no version field; see [Find a rule's current version](/guides/version-rules/#find-a-rules-current-version). Library authors never set a version by hand: they [record each change in a change note](/guides/version-rules/#change-rules-after-the-first-library-release), and a library release turns the notes into new versions.
 
-Projects see the version of each rule they take in their generated guidance, and move a rule to its newest version with `syllabus project update`; see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version). Before a project takes a major change or retirement of a rule it uses, someone on the project accepts it. A project's own rules have no versions.
+Projects see the version of each rule they take in their generated guidance, and move a rule to its newest version with `trailguide project update`; see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version). Before a project takes a major change or retirement of a rule it uses, someone on the project accepts it. A project's own rules have no versions.
 
 See [Rule and skill versions](/reference/rule-versions/) for the tag format, [Version your rules](/guides/version-rules/) for authors, and [Update rules and skills](/guides/update/) for projects.
 
 ## How agents identify and use it
 
-When you build or sync a project, Syllabus combines its own rules and the rules it includes from sources into generated rule group files. Each rule group file contains the rules in full, or summaries with links to the full rules when the rule group is large. The project's exclusions and replacements determine which rules appear.
+When you build or sync a project, Trail Guide combines its own rules and the rules it includes from sources into generated rule group files. Each rule group file contains the rules in full, or summaries with links to the full rules when the rule group is large. The project's exclusions and replacements determine which rules appear.
 
 Agents read the generated guidance in this order:
 

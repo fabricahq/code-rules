@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // skillProblems returns the problems of checked that are about installed skill folders.
@@ -89,11 +89,11 @@ func TestBuild_LinksAnAuthoredSkillToTheAuthoredRuleItCites(t *testing.T) {
 	ctx := context.Background()
 	root, options := localProject(t)
 	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"skillTargets":["claude"],"sources":{}}`)
-	writeFixture(t, root, "skills/tidy/SKILL.md", "---\nname: tidy\nmetadata:\n  syllabus-rules-used: techs/go/errors\n---\n# Tidy\n")
+	writeFixture(t, root, "skills/tidy/SKILL.md", "---\nname: tidy\nmetadata:\n  trailguide-rules-used: techs/go/errors\n---\n# Tidy\n")
 	if _, err := Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	if installed := readRepositoryFile(t, options, ".claude/skills/tidy/SKILL.md"); !strings.HasSuffix(installed, "- `local:techs/go/errors`: [.syllabus/generated/rules/local/techs/go/errors.md](../../../.syllabus/generated/rules/local/techs/go/errors.md)\n") {
+	if installed := readRepositoryFile(t, options, ".claude/skills/tidy/SKILL.md"); !strings.HasSuffix(installed, "- `local:techs/go/errors`: [.trailguide/generated/rules/local/techs/go/errors.md](../../../.trailguide/generated/rules/local/techs/go/errors.md)\n") {
 		t.Fatalf("installed SKILL.md:\n%s", installed)
 	}
 	requireCurrent(t, options)
@@ -125,15 +125,15 @@ func TestCheck_FailsWhenAnAuthoredSkillCitesARuleItsLibraryRetired(t *testing.T)
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, "skills/fix/SKILL.md", "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  syllabus-rules-used: |\n    team:techs/go/errors\n---\n# Fix\n")
+	writeFixture(t, root, "skills/fix/SKILL.md", "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  trailguide-rules-used: |\n    team:techs/go/errors\n---\n# Fix\n")
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
 	installed := readRepositoryFile(t, options, ".claude/skills/fix/SKILL.md")
-	if want := "\n## Rules this skill applies\n\nRead each rule in full before the step that applies it. These are the project's versions of the rules this skill cites, for reference: they don't join RULES.md.\n\n- `team:techs/go/errors` 1.0.0: [.syllabus/generated/rules/team/techs/go/errors.md](../../../.syllabus/generated/rules/team/techs/go/errors.md)\n"; !strings.HasSuffix(installed, want) {
+	if want := "\n## Rules this skill applies\n\nRead each rule in full before the step that applies it. These are the project's versions of the rules this skill cites, for reference: they don't join RULES.md.\n\n- `team:techs/go/errors` 1.0.0: [.trailguide/generated/rules/team/techs/go/errors.md](../../../.trailguide/generated/rules/team/techs/go/errors.md)\n"; !strings.HasSuffix(installed, want) {
 		t.Fatalf("installed SKILL.md:\n%s\nwant it to end with\n%s", installed, want)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, ".syllabus/generated/rules/team/techs/go/errors.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(options.Directory, ".trailguide/generated/rules/team/techs/go/errors.md")); err != nil {
 		t.Fatalf("the cited rule's link has no target: %v", err)
 	}
 	requireCurrent(t, options)
@@ -143,7 +143,7 @@ func TestCheck_FailsWhenAnAuthoredSkillCitesARuleItsLibraryRetired(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	const problem = "syllabus-rules-used names team:techs/go/errors, which its library retired; remove it from syllabus-rules-used, or cite the rule that replaces it"
+	const problem = "trailguide-rules-used names team:techs/go/errors, which its library retired; remove it from trailguide-rules-used, or cite the rule that replaces it"
 	applied, err := plan.Apply(ctx, nil)
 	if err != nil || !slices.Contains(applied.Warnings, "skills/fix/SKILL.md: "+problem) {
 		t.Fatalf("update = %+v, %v; want a warning that the skill cites a retired rule", applied, err)
@@ -180,9 +180,9 @@ func TestSync_RejectsAnAuthoredSkillCitingARuleItsSourceDoesntHave(t *testing.T)
 	}
 	defer root.Close()
 	citing := func(cited string) string {
-		return "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  syllabus-rules-used: |\n    team:techs/go/" + cited + "\n    team:practices/testing/verify\n---\n# Fix\n"
+		return "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  trailguide-rules-used: |\n    team:techs/go/" + cited + "\n    team:practices/testing/verify\n---\n# Fix\n"
 	}
-	const problem = "syllabus-rules-used names team:techs/go/error, which isn't a rule in team's library; correct the rule ID, or remove it from syllabus-rules-used"
+	const problem = "trailguide-rules-used names team:techs/go/error, which isn't a rule in team's library; correct the rule ID, or remove it from trailguide-rules-used"
 	rejected := func(operation string, err error) {
 		t.Helper()
 		var validation errs.ValidationError
@@ -201,7 +201,7 @@ func TestSync_RejectsAnAuthoredSkillCitingARuleItsSourceDoesntHave(t *testing.T)
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if installed := readRepositoryFile(t, options, ".claude/skills/fix/SKILL.md"); !strings.HasSuffix(installed, "- `team:techs/go/errors` 1.0.0: [.syllabus/generated/rules/team/techs/go/errors.md](../../../.syllabus/generated/rules/team/techs/go/errors.md)\n- `team:practices/testing/verify`: not included by this project, so it has no version of it\n") {
+	if installed := readRepositoryFile(t, options, ".claude/skills/fix/SKILL.md"); !strings.HasSuffix(installed, "- `team:techs/go/errors` 1.0.0: [.trailguide/generated/rules/team/techs/go/errors.md](../../../.trailguide/generated/rules/team/techs/go/errors.md)\n- `team:practices/testing/verify`: not included by this project, so it has no version of it\n") {
 		t.Fatalf("installed SKILL.md:\n%s", installed)
 	}
 	requireCurrent(t, options)

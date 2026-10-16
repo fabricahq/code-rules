@@ -1,4 +1,4 @@
-// Check that rendered rules and groups are exactly what the syllabus package reads back.
+// Check that rendered rules and groups are exactly what the trailguide package reads back.
 
 package rules_test
 
@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // TestRenderRule_DraftHasOneBlankLineAfterItsMetadata starts the template's body right after one blank line.
@@ -27,12 +27,12 @@ func TestRenderRule_DraftHasOneBlankLineAfterItsMetadata(t *testing.T) {
 // TestRenderGroup_WritesTrimmedMetadataThatParsesBack keeps text YAML would read as another type, such as a date,
 // as text, and trims surrounding whitespace.
 func TestRenderGroup_WritesTrimmedMetadataThatParsesBack(t *testing.T) {
-	data, err := rules.RenderGroup(syllabus.GroupMetadata{Name: " Go ", Description: "2026-10-01", WhenToRead: "true"})
+	data, err := rules.RenderGroup(trailguide.GroupMetadata{Name: " Go ", Description: "2026-10-01", WhenToRead: "true"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := syllabus.ParseGroupMetadata(data, "_group.yaml")
-	want := syllabus.GroupMetadata{Name: "Go", Description: "2026-10-01", WhenToRead: "true"}
+	got, err := trailguide.ParseGroupMetadata(data, "_group.yaml")
+	want := trailguide.GroupMetadata{Name: "Go", Description: "2026-10-01", WhenToRead: "true"}
 	if err != nil || got != want {
 		t.Fatalf("got %+v, %v from:\n%s", got, err, data)
 	}
@@ -40,7 +40,7 @@ func TestRenderGroup_WritesTrimmedMetadataThatParsesBack(t *testing.T) {
 
 // TestRenderGroup_RefusesBlankText reports the blank field at its location in the group file.
 func TestRenderGroup_RefusesBlankText(t *testing.T) {
-	_, err := rules.RenderGroup(syllabus.GroupMetadata{Name: "Go", Description: " \t", WhenToRead: "When editing Go."})
+	_, err := rules.RenderGroup(trailguide.GroupMetadata{Name: "Go", Description: " \t", WhenToRead: "When editing Go."})
 	var validation errs.ValidationError
 	if !errors.As(err, &validation) || validation.ValidationLocation() != "_group.yaml.description" || validation.ValidationProblem() != "expected nonempty text" {
 		t.Fatalf("got %v", err)

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // TestParseTagAdvertisementKeepsTagAndPeeledObjects retains both records of an annotated tag.

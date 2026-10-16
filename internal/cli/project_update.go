@@ -11,11 +11,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/project"
-	"github.com/fabricahq/syllabus/internal/skills"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/project"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 	"github.com/spf13/cobra"
 )
 
@@ -564,7 +564,7 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Replaced by "+row.ReplacedBy+".")
 	}
 	// A row spanning several versions labels each summary with its version, so people can tell which change is which.
-	spans := slices.ContainsFunc(row.SummaryVersions, func(version syllabus.RuleVersion) bool { return version != row.SummaryVersions[0] })
+	spans := slices.ContainsFunc(row.SummaryVersions, func(version trailguide.RuleVersion) bool { return version != row.SummaryVersions[0] })
 	for i, summary := range row.Summaries {
 		if spans && i < len(row.SummaryVersions) {
 			summary = row.SummaryVersions[i].String() + ": " + summary

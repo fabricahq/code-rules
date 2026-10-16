@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // Snapshot owns one source's original library bytes and the record of what was imported, which works like a lockfile.
@@ -70,7 +70,7 @@ type ImportedSkill struct {
 	// Included reports that the source's skills.include selects the skill; a skill it doesn't select is installed
 	// because other installed skills of the source use it.
 	Included bool `json:"included"`
-	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their syllabus-skills-used
+	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their trailguide-skills-used
 	// or the source's skills.uses; it is empty, never nil, when none does, which happens only when Included is set.
 	UsedBy []string `json:"usedBy"`
 }
@@ -131,12 +131,12 @@ func (s Snapshot) IsSkillFile(file string) bool {
 type ImportedRule struct {
 	// Version is nil, and Release is 0, when the rule's files aren't a published version, which only a ref other
 	// than a library release can import.
-	Version *syllabus.RuleVersion `json:"version"`
-	Release int                   `json:"release,omitempty"`
+	Version *trailguide.RuleVersion `json:"version"`
+	Release int                     `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
 	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
-	// their library paths from the repository root rather than in .syllabus/rules/.
+	// their library paths from the repository root rather than in .trailguide/rules/.
 	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
 

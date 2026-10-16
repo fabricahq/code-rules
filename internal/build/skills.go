@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillFiles is one skill folder's files, by path in the folder, and the paths of its executable files, sorted.
@@ -55,16 +55,16 @@ type resolvedSkill struct {
 	Level string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
-	// RulesUsed lists the lines of the skill's syllabus-rules-used, and Cited how the project resolves each of them, in
+	// RulesUsed lists the lines of the skill's trailguide-rules-used, and Cited how the project resolves each of them, in
 	// the same order; both are empty for a skill that cites no rules.
 	RulesUsed []string
 	Cited     []citedRule
-	// SkillsUsed lists the lines of the skill's syllabus-skills-used, as written; nil when it has none.
+	// SkillsUsed lists the lines of the skill's trailguide-skills-used, as written; nil when it has none.
 	SkillsUsed []string
 	// Included reports that the configuration includes the skill, as it includes every authored skill; a source's
 	// skill that isn't included is installed because other skills use it.
 	Included bool
-	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its syllabus-skills-used
+	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its trailguide-skills-used
 	// and its source's skills.uses, and of those that use it; each is empty, never nil, when there are none.
 	Uses, UsedBy []string
 	// Replaces is the source's skill an authored skill is installed in place of, or nil when it replaces none.
@@ -153,9 +153,9 @@ func describeSkill(skill *resolvedSkill, location string) error {
 // skill, and, for an authored skill, where to edit it.
 func (skill resolvedSkill) marker() string {
 	if skill.Source == "" {
-		return fmt.Sprintf("<!-- syllabus:installed %s. Do not edit; edit .syllabus/%s/ instead. -->", skill.ID, skill.Folder)
+		return fmt.Sprintf("<!-- trailguide:installed %s. Do not edit; edit .trailguide/%s/ instead. -->", skill.ID, skill.Folder)
 	}
-	return fmt.Sprintf("<!-- syllabus:installed %s %s. Do not edit; syllabus project sync replaces this copy. -->", skill.ID, skill.Commit)
+	return fmt.Sprintf("<!-- trailguide:installed %s %s. Do not edit; trailguide project sync replaces this copy. -->", skill.ID, skill.Commit)
 }
 
 // installed returns the files of skill's installed copy: its files with the marker line in SKILL.md, and, when the
@@ -216,19 +216,19 @@ func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[strin
 	return folders, files, nil
 }
 
-// InstalledSkillsFile is the record, in generated/, of the skill folders Syllabus installed, which is how it knows
+// InstalledSkillsFile is the record, in generated/, of the skill folders Trail Guide installed, which is how it knows
 // which folders in the skill targets it owns.
 const InstalledSkillsFile = "installed-skills.json"
 
 // InstalledFolders reads the folders an installed-skills.json record lists, by path from the repository root,
-// sorted. A record it can't read lists none, so no folder counts as installed by Syllabus.
+// sorted. A record it can't read lists none, so no folder counts as installed by Trail Guide.
 func InstalledFolders(data []byte) []string {
 	return slices.Sorted(maps.Keys(InstalledSkillIDs(data)))
 }
 
 // InstalledSkillIDs reads the folders an installed-skills.json record lists, by path from the repository root, each
 // with the project ID of the skill installed there. It keeps only folders in a skill target folder whose name
-// follows the skill name grammar. A record it can't read lists none, so no folder counts as installed by Syllabus.
+// follows the skill name grammar. A record it can't read lists none, so no folder counts as installed by Trail Guide.
 func InstalledSkillIDs(data []byte) map[string]string {
 	folders := map[string]string{}
 	for _, skill := range InstalledSkills(data) {
@@ -296,7 +296,7 @@ func folderDigest(folder SkillFiles) string {
 // skillsIndex renders SKILLS.md: one entry per installed skill, saying what it does, where it comes from, what it
 // replaces, and where agents find it, then the skills the project excludes, each with its reason.
 func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
-	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.syllabus/skills/` and rebuild."}
+	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.trailguide/skills/` and rebuild."}
 	if slices.ContainsFunc(resolved, func(skill resolvedSkill) bool { return skill.Level != "" }) {
 		sections = append(sections, "A skill's level says how strongly the library that supplies it asks projects to use it: every project that uses the library installs its required skills, and the team chose to install its recommended and offered ones.")
 	}
@@ -330,22 +330,22 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		} else if len(skill.Cited) > 0 {
 			lines := []string{}
 			for _, cited := range skill.Cited {
-				lines = append(lines, "  - "+citedLine(cited, ".syllabus/generated/SKILLS.md"))
+				lines = append(lines, "  - "+citedLine(cited, ".trailguide/generated/SKILLS.md"))
 			}
 			facts = append(facts, "- **Applies:**\n"+strings.Join(lines, "\n"))
 		}
 		facts = append(facts, useFacts(skill, resolved)...)
 		if len(skill.Targets) == 0 {
-			source := ".syllabus/" + skill.Folder + "/" + skills.File
+			source := ".trailguide/" + skill.Folder + "/" + skills.File
 			if skill.Source != "" {
-				source = ".syllabus/vendor/" + skill.Source + "/" + skill.Folder + "/" + skills.File
+				source = ".trailguide/vendor/" + skill.Source + "/" + skill.Folder + "/" + skills.File
 			}
-			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", source)+").")
+			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".trailguide/generated/SKILLS.md", source)+").")
 		} else {
 			links := []string{}
 			for _, target := range skill.Targets {
 				file := target + "/" + skills.File
-				links = append(links, "["+file+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", file)+")")
+				links = append(links, "["+file+"]("+rules.RelativeLink(".trailguide/generated/SKILLS.md", file)+")")
 			}
 			facts = append(facts, "- **Installed at:** "+strings.Join(links, ", "))
 		}

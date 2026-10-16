@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // citedRule is one rule a skill cites, as the project resolves it. Exactly one of Active, Excluded, Retired, and
@@ -29,7 +29,7 @@ type citedRule struct {
 	Retired bool
 }
 
-// citeRules resolves the rules each skill in resolved cites, in the order its syllabus-rules-used lists them, and returns
+// citeRules resolves the rules each skill in resolved cites, in the order its trailguide-rules-used lists them, and returns
 // a validation error at the skill's SKILL.md for each rule an authored skill cites that its library retired. A
 // library's skill cites rules by their ID in that library; a skill from a repository that isn't a library cites
 // none, since the repository has no rules; an authored skill cites the project's authored rules by bare ID and a
@@ -68,7 +68,7 @@ func citeRules(resolved *resolution, config rules.Configuration, libraries map[s
 			switch _, configured := sources[citation.Source]; {
 			case citation.Source == "":
 				if active["local:"+citation.ID] == nil {
-					return nil, invalid(location, fmt.Sprintf("%s names %s, which isn't a rule in .syllabus/rules/; write the rule, or cite a source's rule with its source name, such as fabrica:%s", skills.RulesUsedKey, citation.ID, citation.ID))
+					return nil, invalid(location, fmt.Sprintf("%s names %s, which isn't a rule in .trailguide/rules/; write the rule, or cite a source's rule with its source name, such as fabrica:%s", skills.RulesUsedKey, citation.ID, citation.ID))
 				}
 				citation.Source = "local"
 			case !configured:
@@ -96,7 +96,7 @@ func citeRules(resolved *resolution, config rules.Configuration, libraries map[s
 	return retired, nil
 }
 
-// skillLocation returns where a skill's SKILL.md is, relative to the Syllabus directory, for diagnostics.
+// skillLocation returns where a skill's SKILL.md is, relative to the Trail Guide directory, for diagnostics.
 func skillLocation(skill resolvedSkill) string {
 	if skill.Source == "" {
 		return skill.Folder + "/" + skills.File
@@ -130,7 +130,7 @@ func citedLine(cited citedRule, installed string) string {
 		} else if cited.Active.Origin.Version != nil {
 			label += " " + cited.Active.Origin.Version.String()
 		}
-		file := ".syllabus/generated/" + rulePath(cited.Active.Rule)
+		file := ".trailguide/generated/" + rulePath(cited.Active.Rule)
 		return label + ": [" + file + "](" + rules.RelativeLink(installed, file) + ")"
 	case cited.Retired:
 		return id + ": retired by its library, so the project has no version of it"

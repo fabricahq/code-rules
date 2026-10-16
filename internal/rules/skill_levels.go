@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillLevels lists, sorted, the IDs of the library's own skills, skills/<name>, at each level the manifest names.
@@ -73,11 +73,11 @@ func parseSkillLevels(input json.RawMessage, location string) (SkillLevels, erro
 				return SkillLevels{}, err
 			}
 			if source, _, borrowed := strings.Cut(id, ":"); borrowed {
-				return SkillLevels{}, invalid(at, "listing another source's skills, such as "+decode.Quote(source)+"'s, isn't supported yet in this version of Syllabus; list the library's own skills, such as skills/build-feature")
+				return SkillLevels{}, invalid(at, "listing another source's skills, such as "+decode.Quote(source)+"'s, isn't supported yet in this version of Trail Guide; list the library's own skills, such as skills/build-feature")
 			}
 			name, authored := strings.CutPrefix(id, skills.Directory+"/")
 			if !authored || !skills.ValidName(name) {
-				return SkillLevels{}, invalid(at, "expected the ID of one of the library's skills, skills/<name>, the folder's path in .syllabus/, such as skills/build-feature, got "+decode.Quote(id))
+				return SkillLevels{}, invalid(at, "expected the ID of one of the library's skills, skills/<name>, the folder's path in .trailguide/, such as skills/build-feature, got "+decode.Quote(id))
 			}
 			if other, listed := seen[id]; listed {
 				if other == level {

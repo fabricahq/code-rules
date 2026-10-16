@@ -54,8 +54,8 @@ func TestBuild_ListsTheMovesOfALocalFoldersOwnFiles(t *testing.T) {
 		{name: "as many files as the list shows", files: rules(localFolderMoves), want: ":\n\n" + moves(localFolderMoves) + "\n\nRule IDs"},
 		{name: "one file more than the list shows", files: rules(localFolderMoves + 1), want: ":\n\n" + moves(localFolderMoves) + "\n  and 1 more file, moved the same way\n\nRule IDs"},
 		{name: "many files more than the list shows", files: rules(localFolderMoves + 7), want: ":\n\n" + moves(localFolderMoves) + "\n  and 7 more files, moved the same way\n\nRule IDs"},
-		{name: "an empty folder", dir: true, want: "It no longer reads .syllabus/local/, which holds no files: delete it, then run syllabus project build."},
-		{name: "a file", want: "It no longer reads .syllabus/local/, which holds no files: delete it, then run syllabus project build."},
+		{name: "an empty folder", dir: true, want: "It no longer reads .trailguide/local/, which holds no files: delete it, then run trailguide project build."},
+		{name: "a file", want: "It no longer reads .trailguide/local/, which holds no files: delete it, then run trailguide project build."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			root, options := localProject(t)
@@ -72,7 +72,7 @@ func TestBuild_ListsTheMovesOfALocalFoldersOwnFiles(t *testing.T) {
 			}
 			_, err := Build(context.Background(), options)
 			var invalid *ValidationError
-			if !errors.As(err, &invalid) || invalid.Location != ".syllabus/local/" || !strings.Contains(invalid.Problem, test.want) {
+			if !errors.As(err, &invalid) || invalid.Location != ".trailguide/local/" || !strings.Contains(invalid.Problem, test.want) {
 				t.Fatalf("got %v; want a problem containing\n%s", err, test.want)
 			}
 		})

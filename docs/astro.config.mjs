@@ -1,4 +1,4 @@
-/** @fileoverview Configures the Syllabus documentation site, navigation, and Markdown rendering. */
+/** @fileoverview Configures the Trail Guide documentation site, navigation, and Markdown rendering. */
 
 import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
@@ -8,7 +8,7 @@ import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
 import { cloudflareWebAnalytics } from './src/analytics.mjs';
 
 // Served at the domain root; page links are root-relative.
-const site = 'https://syllabus.fabricahq.com';
+const site = 'https://trailguide.fabricahq.com';
 
 export default defineConfig({
   site,
@@ -29,7 +29,7 @@ export default defineConfig({
   },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
-    title: 'Syllabus',
+    title: 'Trail Guide',
     description: 'The package manager for your agent skills and rules',
     favicon: '/favicon.svg',
     head: [
@@ -50,8 +50,8 @@ export default defineConfig({
     // Open the active section initially; Starlight remembers subsequent toggles in this tab.
     sidebar: [
       { label: 'Start here', collapsed: true, items: [
-        { label: 'What is Syllabus?', slug: 'start-here/overview' },
-        { label: 'Install Syllabus', slug: 'start-here/install' },
+        { label: 'What is Trail Guide?', slug: 'start-here/overview' },
+        { label: 'Install Trail Guide', slug: 'start-here/install' },
         { label: 'Set up your first project', slug: 'start-here/set-up-project' },
         { label: 'Create your first library', slug: 'start-here/create-library' },
       ] },

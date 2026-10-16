@@ -17,10 +17,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
-const transactionName = ".syllabus-transaction"
+const transactionName = ".trailguide-transaction"
 
 // backupPrefix begins the name of each backup of a target's previous output in the transaction directory.
 const backupPrefix = "old-"
@@ -28,25 +28,25 @@ const backupPrefix = "old-"
 // maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
 // trees, format 3 adds a project guide, format 4 adds the configuration, format 5 adds local group metadata, format 6
 // adds local rules and their asset directories, which it can remove, format 7 adds skill folders outside the
-// Syllabus directory, which it can remove too, and format 8 adds the repository's AGENTS.md.
+// Trail Guide directory, which it can remove too, and format 8 adds the repository's AGENTS.md.
 var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules, 7: 4 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders, 8: 5 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders}
 
 // maxJournalFormat is the newest journal format; Apply writes the oldest one that can hold its targets.
 const maxJournalFormat = 8
 
-const lockName = ".syllabus-lock"
-const cleanupName = ".syllabus-cleanup"
+const lockName = ".trailguide-lock"
+const cleanupName = ".trailguide-cleanup"
 
-// legacyLockName is the lock Code Rules took before it was renamed Syllabus. A writer of a project still in
+// legacyLockName is the lock Code Rules took before it was renamed Trail Guide. A writer of a project still in
 // legacyDirectory takes it too, before its own, so a Code Rules process can't write the project at the same time.
 const legacyLockName = ".code-rules-lock"
 
-// legacyDirectory is the project directory Code Rules used before it was renamed Syllabus.
+// legacyDirectory is the project directory Code Rules used before it was renamed Trail Guide.
 const legacyDirectory = ".code-rules"
 
-// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Syllabus. Their
+// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Trail Guide. Their
 // presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers;
-// legacyLockName can also be held by a Syllabus writer of a project in legacyDirectory.
+// legacyLockName can also be held by a Trail Guide writer of a project in legacyDirectory.
 var legacyNames = []string{legacyLockName, ".code-rules-transaction", ".code-rules-cleanup"}
 
 // requireNoLegacyWriter fails with busy when root holds one of names, which are some of legacyNames.
@@ -57,7 +57,7 @@ func requireNoLegacyWriter(root *os.Root, names []string) error {
 			return err
 		}
 		if present {
-			return failure("busy", name+": another process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command again with the version that was interrupted, code-rules or syllabus, to recover its changes, then run this command again", nil)
+			return failure("busy", name+": another process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command again with the version that was interrupted, code-rules or trailguide, to recover its changes, then run this command again", nil)
 		}
 	}
 	return nil
@@ -299,7 +299,7 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 				return err
 			}
 		}
-		// AGENTS.md's one file is named for the target, outside the Syllabus directory, which writeTarget checks.
+		// AGENTS.md's one file is named for the target, outside the Trail Guide directory, which writeTarget checks.
 		if err := rules.ValidatePaths(files, nil); err != nil && target != AgentsFile {
 			return err
 		}
@@ -336,7 +336,7 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 			recoveryErr = w.root.RemoveAll(transactionName)
 		}
 		if recoveryErr != nil {
-			err = failure("recovery-required", "update failed and rollback could not finish; preserve .syllabus-transaction for recovery", errors.Join(err, recoveryErr))
+			err = failure("recovery-required", "update failed and rollback could not finish; preserve .trailguide-transaction for recovery", errors.Join(err, recoveryErr))
 		}
 	}()
 	entries := []journalEntry{}
@@ -381,7 +381,7 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 			return err
 		}
 		if fileTarget(target) {
-			// The transaction directory is the same in either root, so the probe uses the Syllabus directory's.
+			// The transaction directory is the same in either root, so the probe uses the Trail Guide directory's.
 			if err := w.probeFileRename(target, path.Join(transactionName, "new-"+entryName(target))); err != nil {
 				return err
 			}
@@ -500,7 +500,7 @@ type parent struct {
 	directory string
 }
 
-// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Syllabus
+// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Trail Guide
 // directory.
 func (w *Writer) renameIn(p place, from, to string) error {
 	if p.root == w.root {
@@ -590,7 +590,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	ctx := context.Background()
 	places := &roots{project: root}
 	defer places.close()
-	// renameIn renames within p.root, through rename in the Syllabus directory.
+	// renameIn renames within p.root, through rename in the Trail Guide directory.
 	renameIn := func(p place, from, to string) error {
 		if p.root == root {
 			return rename(from, to)

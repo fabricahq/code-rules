@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 // libraryFile returns where the library repository at dir keeps the file at library path name.
@@ -22,8 +22,8 @@ func libraryFile(dir, name string) string {
 // buildCLI compiles the real entry point so tests cover process exit and standard streams.
 func buildCLI(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "syllabus")
-	command := exec.Command("go", "build", "-o", binary, "../../cmd/syllabus")
+	binary := filepath.Join(t.TempDir(), "trailguide")
+	command := exec.Command("go", "build", "-o", binary, "../../cmd/trailguide")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build: %v %s", err, output)
 	}
@@ -120,7 +120,7 @@ func TestCLIProcess(t *testing.T) {
 			}
 		})
 	}
-	root := filepath.Join(dir, ".syllabus")
+	root := filepath.Join(dir, ".trailguide")
 	if err := os.Mkdir(root, 0700); err != nil {
 		t.Fatal(err)
 	}

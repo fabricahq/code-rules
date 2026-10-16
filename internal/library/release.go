@@ -9,12 +9,12 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/fabricahq/syllabus/internal/releasetag"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/releasetag"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
-// ReleaseRequest selects what syllabus library release does.
+// ReleaseRequest selects what trailguide library release does.
 type ReleaseRequest struct {
 	Options
 	// DryRun shows what would be published without creating a tag or a GitHub Release page.
@@ -216,7 +216,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 
 // plannedRelease is the library release a commit publishes after the latest library release in its history.
 type plannedRelease struct {
-	record  syllabus.ReleaseRecord
+	record  trailguide.ReleaseRecord
 	notes   string
 	message []byte
 	// empty reports that the commit changes no rules and no library-wide files, so there's nothing to publish.
@@ -251,19 +251,19 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
 	release, err := releasetag.ParseObject(name, body)
-	// A newer Syllabus may have created the tag and stopped before pushing it; this version can't compare it.
-	var unsupported *syllabus.UnsupportedReleaseRecordError
+	// A newer Trail Guide may have created the tag and stopped before pushing it; this version can't compare it.
+	var unsupported *trailguide.UnsupportedReleaseRecordError
 	if errors.As(err, &unsupported) {
 		return unsupportedRecord(name, unsupported.FormatVersion)
 	}
 	if err == nil && !planned.empty && release.Notes == planned.notes && reflect.DeepEqual(release.Record, planned.record) {
 		return nil
 	}
-	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what syllabus library release computes from the change notes since the remote's latest library release. Only syllabus library release creates release tags; delete this one with git tag --delete "+name+", then run syllabus library release again.", nil)
+	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what trailguide library release computes from the change notes since the remote's latest library release. Only trailguide library release creates release tags; delete this one with git tag --delete "+name+", then run trailguide library release again.", nil)
 }
 
 // describe fills in what a library release publishes.
-func describe(result *ReleaseResult, record syllabus.ReleaseRecord, notes string) {
+func describe(result *ReleaseResult, record trailguide.ReleaseRecord, notes string) {
 	result.Release = record.Release
 	result.Tag = "release/" + strconv.Itoa(record.Release)
 	result.Rules = releaseRules(record)
