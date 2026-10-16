@@ -63,6 +63,9 @@ func parseSkillExclusions(input json.RawMessage, location string) (map[string]Sk
 				return nil, err
 			}
 		}
+		if _, _, borrowed := strings.Cut(id, ":"); borrowed && exclusion.ReplacedBy != "" {
+			return nil, invalid(where+".replacedBy", "a borrowed skill can be excluded but not replaced, since its revision isn't the library's; to fork it, declare the repository it comes from as a source of your own and fork the skill from that source")
+		}
 		if raw, ok := fields["basedOn"]; ok {
 			if exclusion.ReplacedBy == "" {
 				return nil, invalid(where+".basedOn", "basedOn records the commit a replacement was copied from, so it needs replacedBy")

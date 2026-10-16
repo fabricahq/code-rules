@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/syllabus/internal/filetxn"
+	"github.com/fabricahq/syllabus/internal/library"
 	"github.com/fabricahq/syllabus/internal/rules"
 	"github.com/fabricahq/syllabus/internal/skills"
 )
@@ -78,6 +79,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 			return &ValidationError{Location: "--from", Problem: "no source named " + from.Source + " in .syllabus/config.yaml; name a configured source"}
 		}
 		source := config.Sources[index]
+		if _, _, borrowed := library.SplitBorrowed(from.Skill); borrowed {
+			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("%s is a skill library %s borrows from another repository, which a fork can't record a revision for; declare that repository as a source of your own, run syllabus project sync, and fork the skill from that source", from.Skill, source.Name)}
+		}
 		if _, excluded := source.SkillExclude[from.Skill]; excluded {
 			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + from.Skill, Problem: "the source already excludes this skill, and a fork never replaces an existing exclusion; delete the entry to fork the skill"}
 		}

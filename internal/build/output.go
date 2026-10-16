@@ -269,8 +269,8 @@ func setLevel(record *provenanceSkill, skill resolvedSkill, include []string) {
 	}
 	record.Level = &skill.Level
 	by := &provenanceLevel{Library: skill.Source}
-	if skill.Release != 0 {
-		by.Release = &skill.Release
+	if skill.LevelRelease != 0 {
+		by.Release = &skill.LevelRelease
 	}
 	every := slices.Contains(include, skills.Wildcard)
 	switch {
@@ -294,6 +294,11 @@ type provenanceSkillOrigin struct {
 	Folder     string  `json:"folder"`
 	Version    *string `json:"version"`
 	Release    *int    `json:"release"`
+	// Borrowed names, for a borrowed skill, the source in the library's manifest it was borrowed from, whose
+	// repository and commit Repository and Commit then are, and Override the project's own source that supplied
+	// that revision, when one declares the same repository; each is omitted otherwise.
+	Borrowed *string `json:"borrowed,omitempty"`
+	Override *string `json:"overriddenBy,omitempty"`
 }
 
 // skillOrigin returns the origin of skill: its source, repository, ref, and commit, which are null for an authored
@@ -303,6 +308,7 @@ func skillOrigin(skill resolvedSkill) provenanceSkillOrigin {
 	if skill.Source != "" {
 		origin.Source, origin.Repository, origin.Ref, origin.Commit = &skill.Source, &skill.Repository, nullableText(skill.Ref), &skill.Commit
 	}
+	origin.Borrowed, origin.Override = nullableText(skill.Borrowed), nullableText(skill.Override)
 	return origin
 }
 

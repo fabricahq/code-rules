@@ -65,6 +65,13 @@ type Source struct {
 	// there are none, and never names an excluded skill. Whether the source installs each skill is
 	// checked when skills resolve.
 	SkillRename map[string]string `json:"skillRename,omitempty"`
+	// LibraryRequires lists, sorted, the IDs of the source's skills that the configuration's own library section
+	// requires, borrowing them, which the repository installs as a project too, so its maintainers work with the
+	// skills it asks projects to use. It is nil when there are none.
+	LibraryRequires []string `json:"libraryRequires,omitempty"`
+	// Lends reports that the configuration's own library section borrows skills from the source, which then needs
+	// to install nothing itself.
+	Lends bool `json:"lends,omitempty"`
 }
 
 // HasRules reports whether the source includes rules.
@@ -201,9 +208,22 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		result.Sources = append(result.Sources, source)
 	}
 	if raw, ok := fields["library"]; ok {
-		if result.Library, err = parseLibrary(raw); err != nil {
+		if result.Library, err = parseLibrary(raw, result.Sources); err != nil {
 			return Configuration{}, err
 		}
+		for name := range result.Library.Borrowed {
+			index := slices.IndexFunc(result.Sources, func(source Source) bool { return source.Name == name })
+			result.Sources[index].Lends = true
+		}
+		for _, id := range result.Library.Skills.Required {
+			if name, skill, borrowed := strings.Cut(id, ":"); borrowed {
+				index := slices.IndexFunc(result.Sources, func(source Source) bool { return source.Name == name })
+				result.Sources[index].LibraryRequires = append(result.Sources[index].LibraryRequires, skill)
+			}
+		}
+	}
+	for i := range result.Sources {
+		slices.Sort(result.Sources[i].LibraryRequires)
 	}
 	return result, nil
 }

@@ -7,6 +7,7 @@ package imports
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -38,7 +39,7 @@ type Library struct {
 // chosen only where configuration asks for something a snapshot doesn't have. It never installs files in a
 // consuming project. Source temporary state is closed on every path.
 func ImportLibraries(ctx context.Context, configuration rules.Configuration, recorded map[string]library.Snapshot, options Options) (map[string]Library, error) {
-	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+	return importSources(ctx, configuration, options, borrowing{recorded: recorded}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		return planSource(ctx, repo, source, recordedSnapshot(recorded, source.Name))
 	})
 }
@@ -46,8 +47,9 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, rec
 // resolver chooses what one source imports, reading its library through repo only when a choice needs it.
 type resolver func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error)
 
-// importSources imports every source of configuration as resolve plans it, or returns no partial result.
-func importSources(ctx context.Context, configuration rules.Configuration, options Options, resolve resolver) (map[string]Library, error) {
+// importSources imports every source of configuration as resolve plans it, then the skills each library source
+// borrows, at the revisions borrow chooses, or returns no partial result.
+func importSources(ctx context.Context, configuration rules.Configuration, options Options, borrow borrowing, resolve resolver) (map[string]Library, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, gitexec.ContextFailure(err)
 	}
@@ -62,7 +64,21 @@ func importSources(ctx context.Context, configuration rules.Configuration, optio
 		}
 		result[source.Name] = imported
 	}
+	// Borrowing comes second, so a project source that declares a borrowed repository has its revision chosen.
+	for _, source := range configuration.Sources {
+		imported := result[source.Name]
+		if err := borrowSkills(ctx, configuration, source, &imported, result, borrow, options); err != nil {
+			return nil, sourceError(source.Name, err)
+		}
+		result[source.Name] = imported
+	}
 	return result, nil
+}
+
+// quote returns text as a JSON string.
+func quote(text string) json.RawMessage {
+	encoded, _ := json.Marshal(text)
+	return encoded
 }
 
 // recordedSnapshot returns the snapshot recorded holds for a source, or nil when it holds none.

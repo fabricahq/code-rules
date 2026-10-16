@@ -84,7 +84,7 @@ type UpdateResult struct {
 // keep. A replaced row counts even when its imported copy stays, since applying it can replace the local rule's fork.
 func (r UpdateResult) Moves() bool {
 	for _, source := range r.Sources {
-		if source.SharedFiles != nil || len(source.Skills) > 0 {
+		if source.SharedFiles != nil || len(source.Skills) > 0 || len(source.Borrowed) > 0 {
 			return true
 		}
 		for _, row := range source.Rules {
@@ -96,11 +96,15 @@ func (r UpdateResult) Moves() bool {
 	return false
 }
 
-// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows
-// flags a script, or empty when none does.
+// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows,
+// borrowed skills' included, flags a script, or empty when none does.
 func (r UpdateResult) ScriptsWarning() string {
 	for _, source := range r.Sources {
-		for _, skill := range source.Skills {
+		rows := slices.Clone(source.Skills)
+		for _, borrowed := range source.Borrowed {
+			rows = append(rows, borrowed.Changes...)
+		}
+		for _, skill := range rows {
 			if len(skill.Scripts) == 0 {
 				continue
 			}
@@ -332,7 +336,8 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		edits[decision.Source] = edit
 	}
 	// Keeping a rule a scoped update would move can leave the shared files where they are, so they and the skills,
-	// including the replaced skills' rows and level changes, which come from the same revision, follow the decisions.
+	// including the replaced skills' rows, level changes, and borrowed skills, which come from the same revision,
+	// follow the decisions.
 	for i := range sources {
 		kept := slices.Collect(maps.Keys(edits[sources[i].Name].Pins))
 		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, kept)
@@ -343,6 +348,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		sources[i].Skills = skills
 		sources[i].ReplacedSkills = p.update.ReplacedSkills(sources[i].Name, kept)
 		sources[i].SkillLevels = p.update.SkillLevels(sources[i].Name, kept)
+		sources[i].Borrowed = p.update.Borrowed(sources[i].Name, kept)
 	}
 	return sources, edits, forks, nil
 }
