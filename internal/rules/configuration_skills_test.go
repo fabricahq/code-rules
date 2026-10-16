@@ -130,6 +130,21 @@ func TestAppendConfigurationSourceWritesSkillSelectors(t *testing.T) {
 	}
 }
 
+func TestAppendConfigurationSourceWritesTheSkillsEachSkillUses(t *testing.T) {
+	uses := map[string][]string{"skills/review": {"skills/tdd"}, "skills/architect": {"skills/how", "skills/tdd"}}
+	out, err := rules.AppendConfigurationSource([]byte("schemaVersion: 2\nsources: {}\n"), "pstack", rules.Source{Repository: "https://example.invalid/pstack.git", Skills: []string{"skills/architect", "skills/review"}, SkillUses: uses})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "      uses:\n        skills/architect:\n          - skills/how\n          - skills/tdd\n        skills/review:\n          - skills/tdd\n") {
+		t.Fatalf("configuration:\n%s", out)
+	}
+	config, err := rules.ParseConfigurationYAML(out)
+	if err != nil || !reflect.DeepEqual(config.Sources[0].SkillUses, uses) {
+		t.Fatalf("parsed %+v, %v", config, err)
+	}
+}
+
 func TestSetConfigurationSkillTargetsKeepsOtherFields(t *testing.T) {
 	input := "# Team configuration.\nschemaVersion: 2\nsources: {} # none yet\n"
 	added, err := rules.SetConfigurationSkillTargets([]byte(input), []string{"claude", "agents"})

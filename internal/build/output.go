@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 	"github.com/fabricahq/syllabus/internal/rules"
 	"github.com/fabricahq/syllabus/syllabus"
 )
@@ -282,14 +283,18 @@ type provenanceRule struct {
 	Attribution  []syllabus.Attribution `json:"attribution"`
 }
 
-// termProvenance maps declared source terms to retained workspace and generated paths.
-func termProvenance(source, originalPrefix string, license *rules.LicenseDeclaration) *provenanceLicense {
+// termProvenance maps declared source terms to retained workspace and generated paths. The original paths are
+// library paths, or, with a snapshot directory such as vendor/team/, where the snapshot stores the files.
+func termProvenance(source, snapshot string, license *rules.LicenseDeclaration) *provenanceLicense {
 	if license == nil {
 		return nil
 	}
 	record := &provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
 	for _, mapping := range licenseMappings(source, license) {
-		original := originalPrefix + mapping.Source
+		original := mapping.Source
+		if snapshot != "" {
+			original = snapshot + librarytree.SnapshotPath(mapping.Source)
+		}
 		if mapping.Kind == "license" {
 			record.Files = append(record.Files, original)
 			record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)

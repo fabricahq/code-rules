@@ -132,18 +132,22 @@ func quoteSelector(text string) string {
 // retiredRules returns the retired rules a sync that chose plan records. When the source selects what recorded did,
 // from the same revision, with the same shared files, it keeps recorded's list, so that a sync changing nothing
 // else, such as an exclusion the list already covers, never rewrites the record, whatever the planner happened to
-// read; it adds only the retired rules of pins and exclusions that sync just found retired, which the record didn't
-// cover, so offline checks accept them too. Otherwise it returns the release history's, as freshRetiredRules does.
+// read; it adds only the retired rules that sync just found its pins and exclusions, selectors included, match,
+// which the record didn't cover, so offline checks accept them too. Otherwise it returns the release history's, as freshRetiredRules does.
 func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
 	recorded := p.recorded
 	if recorded == nil || !recorded.Selection.Equal(p.source.Groups) || !slices.Equal(recorded.RuleSelection, p.source.Rules) || !p.source.Ref.Equal(recorded.Ref) || plan.release != recorded.Release || plan.commit != recorded.Commit {
 		return p.freshRetiredRules()
 	}
 	retired := slices.Clone(recorded.RetiredRules)
-	for _, id := range slices.Concat(slices.Sorted(maps.Keys(p.source.Pins)), slices.Sorted(maps.Keys(p.source.Exclude))) {
+	if p.history != nil {
 		// Validating such a pin or exclusion read the history, which records why it only warns.
-		if _, imported := plan.rules[id]; !imported && !slices.Contains(retired, id) && p.history != nil && p.history.retired(id) {
-			retired = append(retired, id)
+		for _, entry := range slices.Concat(slices.Sorted(maps.Keys(p.source.Pins)), slices.Sorted(maps.Keys(p.source.Exclude))) {
+			for _, id := range p.retiredMatches(entry, *p.history) {
+				if _, imported := plan.rules[id]; !imported && !slices.Contains(retired, id) {
+					retired = append(retired, id)
+				}
+			}
 		}
 	}
 	slices.Sort(retired)
@@ -563,7 +567,7 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	if err != nil {
 		return err
 	}
-	if p.retiredMatch(id, history) {
+	if len(p.retiredMatches(id, history)) > 0 {
 		plan.warnings = append(plan.warnings, p.retiredEntry(field, id))
 		return nil
 	}
@@ -577,20 +581,24 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	return &ValidationError{Location: location, Problem: "rule is not imported by this source; name a rule that its rules.include selects"}
 }
 
-// retiredMatch reports whether the configuration entry id, a rule ID or an exclusion's selector, matches a rule the
-// library retired that the source would otherwise import.
-func (p *planner) retiredMatch(id string, history releaseHistory) bool {
+// retiredMatches returns, unordered, the rules the library retired that the source would otherwise import and that
+// the configuration entry id, a rule ID or an exclusion's selector, matches.
+func (p *planner) retiredMatches(id string, history releaseHistory) []string {
 	if !strings.HasSuffix(id, "*") {
-		return p.wouldImport(id) && history.retired(id)
+		if p.wouldImport(id) && history.retired(id) {
+			return []string{id}
+		}
+		return nil
 	}
+	matches := []string{}
 	for _, release := range history.releases {
 		for retired := range release.record.Retired {
-			if rules.SelectorMatches(id, retired) && p.wouldImport(retired) {
-				return true
+			if rules.SelectorMatches(id, retired) && p.wouldImport(retired) && !slices.Contains(matches, retired) {
+				matches = append(matches, retired)
 			}
 		}
 	}
-	return false
+	return matches
 }
 
 // wouldImport reports whether the source would import rule id if the library still published it: its include

@@ -175,7 +175,7 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	if err != nil {
 		return Library{}, err
 	}
-	imported, err := r.readSkills(ctx, source, plan, true)
+	imported, err := r.readSkills(ctx, source, plan, true, input.total)
 	if err != nil {
 		return Library{}, err
 	}
@@ -189,7 +189,7 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 // importNonLibrary imports the skills of a source whose repository has no library manifest at the plan's commit:
 // a snapshot without rules, groups, or a library release, and an empty catalog.
 func (r *repository) importNonLibrary(ctx context.Context, source rules.Source, plan sourcePlan) (Library, error) {
-	imported, err := r.readSkills(ctx, source, plan, false)
+	imported, err := r.readSkills(ctx, source, plan, false, 0)
 	if err != nil {
 		return Library{}, err
 	}
