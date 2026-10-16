@@ -110,7 +110,7 @@ Keep Fabrica's private rule corpus separate; public examples must be original or
 
 Projects retain their product vision, domain knowledge, and architecture context.
 Syllabus manages which versioned rules and skills a codebase adopts, delivers the rules' resolved definitions, and installs the skills.
-Syllabus supplies a Skills and Rules section that projects add to `AGENTS.md`; it tells agents to read `RULES.md`, which links to `SKILLS.md`. Syllabus never edits `AGENTS.md`, and it can't guarantee that agents follow the rules or use the skills.
+By default, Syllabus keeps a Skills and Rules section in the project's `AGENTS.md`, between markers, and never changes the rest of the file; it tells agents to read `RULES.md` and `SKILLS.md`. Projects can turn the section off and write their own. Syllabus can't guarantee that agents follow the rules or use the skills.
 Projects can add their own guidance on how agents apply rules and skills, in other procedures, skills, or elsewhere in `AGENTS.md`, and choose their own validation and enforcement.
 Rule and skill input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-syllabus-does-not-do).
 

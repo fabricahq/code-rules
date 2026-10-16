@@ -44,7 +44,7 @@ The bigger payoff comes after an agent session. When an agent misses something y
 1. Run `syllabus project init` to create a `.syllabus` directory in your repo.
 2. In `.syllabus/config.yaml`, choose the skills and rules you want from libraries, and add any of your own.
 3. Run `syllabus project sync`. Syllabus copies in the rules, writes `RULES.md` to index them, and installs the skills where your agents look for them.
-4. Copy the **Skills and Rules** section from `.syllabus/README.md` into your `AGENTS.md`, so your agents read the rules and use the skills that fit each task.
+4. Syllabus adds a **Skills and Rules** section to your `AGENTS.md` and keeps it current, so your agents read the rules and use the skills that fit each task.
 5. Commit the results. When a library publishes new versions, run `syllabus project update` to adopt them.
 
 [Set up your first project](/start-here/set-up-project/) walks through these steps.
@@ -99,6 +99,6 @@ Syllabus assembles rules and skills from multiple sources into a cohesive, agent
 
 Syllabus installs skills into your repository, not on your computer. It doesn't manage the personal skills a person installs for all of their repositories, though it warns when one has the same name as a skill your project installs.
 
-Syllabus also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: a **Skills and Rules** section, which tells them to read `RULES.md` and apply the rules that fit the task, and to use any installed skill listed in `SKILLS.md` that fits it. `syllabus project init` puts the section in `.syllabus/README.md`, and you, or your agent, copy it into `AGENTS.md`. Syllabus doesn't edit `AGENTS.md` itself. See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
+Syllabus also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: a **Skills and Rules** section, which tells them to read `RULES.md` and apply the rules that fit the task, and to use any installed skill listed in `SKILLS.md` that fits it. `syllabus project init` adds the section to `AGENTS.md`, and later commands keep it current between its markers without changing the rest of the file. To manage `AGENTS.md` yourself, turn the section off with [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section). See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
 
 That is where Syllabus's work ends. It can't guarantee that your agents followed your rules or used your skills. You can add your own guidance on how agents should apply them, in other procedures, in skills, or elsewhere in `AGENTS.md`.

@@ -22,6 +22,9 @@ type Configuration struct {
 	// SkillTargets lists, as configured, where installed copies of skills go, each a key of SkillTargetFolders; it
 	// is empty, never nil, when the configuration has none, which records skills without installing them.
 	SkillTargets []string `json:"skillTargets"`
+	// SkipAgentsFile is true when manageAgentsFile is false, so project commands leave the repository's AGENTS.md
+	// alone; by default they maintain a Syllabus section in it.
+	SkipAgentsFile bool `json:"skipAgentsFile,omitempty"`
 	// Library is the library section, the manifest, or nil when the repository isn't a library.
 	Library *Library `json:"library,omitempty"`
 }
@@ -161,7 +164,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if versioned && schema == 1 {
 		return Configuration{}, invalid("schemaVersion", versionOneProblem)
 	}
-	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "sources", "library"}, "configuration"); err != nil {
+	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "manageAgentsFile", "sources", "library"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
 	if !versioned || schema != 2 {
@@ -176,6 +179,14 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		return Configuration{}, err
 	}
 	result := Configuration{Sources: make([]Source, 0, len(sources)), SkillTargets: targets}
+	if raw, ok := fields["manageAgentsFile"]; ok {
+		// A pointer tells null, which would otherwise leave manage false, from a boolean.
+		var manage *bool
+		if json.Unmarshal(raw, &manage) != nil || manage == nil {
+			return Configuration{}, invalid("manageAgentsFile", "expected true or false")
+		}
+		result.SkipAgentsFile = !*manage
+	}
 	// repositories maps each repository identity to the first source, in name order, that imports it.
 	repositories := make(map[string]string)
 	for _, name := range slices.Sorted(maps.Keys(sources)) {
