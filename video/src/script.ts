@@ -9,64 +9,78 @@ export type SceneScript = {
 
 /** The IDs of the tour's scenes. */
 export type SceneId =
-  | 'the-mess'
-  | 'what-a-library-is'
-  | 'the-ask'
-  | 'add-their-library'
-  | 'sync'
-  | 'rules-too'
-  | 'skills-and-rules'
-  | 'agent-at-work'
-  | 'capture-what-you-learn'
+  | 'guidance'
+  | 'skills-today'
+  | 'enter-trail-guide'
+  | 'package-manager'
+  | 'what-a-rule-is'
+  | 'mix-and-match'
+  | 'an-insight'
+  | 'into-rules'
+  | 'where-they-live'
+  | 'skills-as-playbooks'
+  | 'get-started'
   | 'close';
 
 /** The tour's scenes, in the order they play. */
 export const SCENES = [
   {
-    id: 'the-mess',
-    narration: 'Your agents already use skills. But where did each one come from, and which version are they running?',
-  },
-  {
-    id: 'what-a-library-is',
+    id: 'guidance',
     narration:
-      'With Syllabus, teams and organizations share their skills in a Syllabus library. It’s an ordinary Git repository of skills, but it gives each skill its own version, change notes with every release, and a recommendation level that tells consumers whether each skill is required, recommended, or just available. A library can also publish rules, which we’ll get to shortly.',
+      'Your agents need guidance to build the right thing. Without it, they guess, and you correct the same mistakes in review.',
   },
   {
-    id: 'the-ask',
+    id: 'skills-today',
     narration:
-      'Now, let’s say you like the way the payments team writes automated tests, and you want your agent to write them the same way.',
+      'Today, the most common way to give that guidance is skills. But a skill is coarse-grained: one file bundles dozens of insights, so you can’t adopt one and leave the rest. And skills are versioned only loosely. Most people just take the latest and hope nothing important changed.',
   },
   {
-    id: 'add-their-library',
-    narration: 'The payments team publishes a Syllabus library, so add it as a source and include their testing skill.',
-  },
-  {
-    id: 'sync',
+    id: 'enter-trail-guide',
     narration:
-      'Running syllabus project sync installs the skill into every folder your agents read, and records exactly where it came from.',
+      'Enter Trail Guide. Trail Guide gives your agents better guidance in two ways: it’s a package manager for skills, and it introduces a more granular kind of guidance, called a rule.',
   },
   {
-    id: 'rules-too',
+    id: 'package-manager',
     narration:
-      'But the payments team has more than a skill for writing good tests. They also have a set of rules for guaranteeing that a critical operation actually happened. So let’s add those rules too.',
+      'First, the package manager. Curate your skills, your own and the best from anywhere, in one library for your organization. Mark each one required or recommended. Then any project installs them with one command, into every agent’s folder, and updates only when you choose.',
   },
   {
-    id: 'skills-and-rules',
+    id: 'what-a-rule-is',
     narration:
-      'Rules are a more granular kind of guidance than skills: one best practice each, with its own version. Syllabus lets you pull in rules, skills, or both, from many different sources, or write your own.',
+      'Second, rules. A rule is one best practice in one Markdown file: what to do, when it applies, and how to check it, with its own version.',
   },
   {
-    id: 'agent-at-work',
+    id: 'mix-and-match',
     narration:
-      'Now when your agent writes tests, it follows the payments team’s skill and checks its work against their rules.',
+      'Mix and match rules and skills from many sources: your organization’s library, public libraries, and your own project. Adopt the ones that fit, and exclude the ones that don’t.',
   },
   {
-    id: 'capture-what-you-learn',
+    id: 'an-insight',
     narration:
-      'And every time you have an insight, record it as a new rule, a new skill, or an update to one. Share it with others in a library, or keep it in this project.',
+      'And because a rule is so small, every insight can become one. Say you’ve just read an article on how to build better software factories.',
+  },
+  {
+    id: 'into-rules',
+    narration:
+      'Ask your agent to turn it into rules. Each recommendation becomes its own rule, with examples your agent can follow.',
+  },
+  {
+    id: 'where-they-live',
+    narration:
+      'Keep them in your project, add them to your organization’s library so every project gets them, or publish them in a public library, versioned, for anyone to use.',
+  },
+  {
+    id: 'skills-as-playbooks',
+    narration:
+      'Skills still matter. They become playbooks that cite the rules they apply, so one verification skill can walk your agent through the whole task, rule by rule.',
+  },
+  {
+    id: 'get-started',
+    narration:
+      'To get started, tell your agent to install Trail Guide. It installs the command line tool, sets up your project, and adds your first rules and skills.',
   },
   {
     id: 'close',
-    narration: 'Syllabus. The package manager for your agent skills and rules.',
+    narration: 'Trail Guide. Agent guidance, one small insight at a time.',
   },
 ] as const satisfies ReadonlyArray<SceneScript>;

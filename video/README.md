@@ -1,6 +1,6 @@
-# Syllabus tour video
+# Trail Guide tour video
 
-A narrated tour of Syllabus for the docs homepage, made with [Remotion](https://www.remotion.dev). A developer installs the payments team's testing skill from their Syllabus library, adds the team's rules, and records a new rule of their own.
+A narrated tour of Trail Guide for the docs homepage, made with [Remotion](https://www.remotion.dev). It explains why skills alone fall short, introduces Trail Guide as a package manager for skills and the home of rules, and turns an article into a set of rules.
 
 The narration lives in [`src/script.ts`](src/script.ts). Each scene plays for as long as its narration clip, so changing a line retimes its scene.
 
@@ -11,8 +11,8 @@ From this directory:
 ```sh
 bun install
 bun run studio           # preview in the browser
-bun run render:silent    # out/syllabus-tour-silent.mp4, captions only
-bun run render           # out/syllabus-tour.mp4, with the voiceover
+bun run render:silent    # out/trailguide-tour-silent.mp4, captions only
+bun run render           # out/trailguide-tour.mp4, with the voiceover
 ```
 
 Without a voiceover, scenes are timed from an estimated speaking rate and render silent with captions.

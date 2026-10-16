@@ -9,7 +9,7 @@ const DEFAULT_PROPS: TourProps = { scenes: [] };
 export function RemotionRoot() {
   return (
     <Composition
-      id="SyllabusTour"
+      id="TrailGuideTour"
       component={Tour}
       width={VIDEO.width}
       height={VIDEO.height}

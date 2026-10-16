@@ -20,7 +20,7 @@ export function Check() {
   return <span style={{ color: COLORS.success }}>✓</span>;
 }
 
-/** A Syllabus command or skill name called out in prose. */
+/** A Trail Guide command or skill name called out in prose. */
 export function Accent({ children }: SpanProps) {
   return <span style={{ color: COLORS.action }}>{children}</span>;
 }

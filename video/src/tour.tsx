@@ -4,17 +4,19 @@ import { AbsoluteFill, Audio, Sequence, Series, staticFile } from 'remotion';
 import { getAudioDurationInSeconds } from '@remotion/media-utils';
 import type { CalculateMetadataFunction } from 'remotion';
 import { Caption } from './components/caption';
-import { AddTheirLibrary } from './scenes/add-their-library';
-import { AgentAtWork } from './scenes/agent-at-work';
-import { CaptureWhatYouLearn } from './scenes/capture-what-you-learn';
+import { AnInsight } from './scenes/an-insight';
 import { Close } from './scenes/close';
-import { RulesToo } from './scenes/rules-too';
+import { EnterTrailGuide } from './scenes/enter-trail-guide';
+import { GetStarted } from './scenes/get-started';
+import { Guidance } from './scenes/guidance';
+import { IntoRules } from './scenes/into-rules';
+import { MixAndMatch } from './scenes/mix-and-match';
+import { PackageManager } from './scenes/package-manager';
 import type { SceneProps } from './scenes/scene-props';
-import { SkillsAndRules } from './scenes/skills-and-rules';
-import { Sync } from './scenes/sync';
-import { TheAsk } from './scenes/the-ask';
-import { TheMess } from './scenes/the-mess';
-import { WhatALibraryIs } from './scenes/what-a-library-is';
+import { SkillsAsPlaybooks } from './scenes/skills-as-playbooks';
+import { SkillsToday } from './scenes/skills-today';
+import { WhatARuleIs } from './scenes/what-a-rule-is';
+import { WhereTheyLive } from './scenes/where-they-live';
 import { SCENES, type SceneId } from './script';
 import { COLORS, VIDEO } from './theme';
 import {
@@ -32,15 +34,17 @@ const LEAD_SECONDS = 0.5;
 const TAIL_SECONDS = 0.7;
 
 const SCENE_COMPONENTS = {
-  'the-mess': TheMess,
-  'what-a-library-is': WhatALibraryIs,
-  'the-ask': TheAsk,
-  'add-their-library': AddTheirLibrary,
-  sync: Sync,
-  'rules-too': RulesToo,
-  'skills-and-rules': SkillsAndRules,
-  'agent-at-work': AgentAtWork,
-  'capture-what-you-learn': CaptureWhatYouLearn,
+  guidance: Guidance,
+  'skills-today': SkillsToday,
+  'enter-trail-guide': EnterTrailGuide,
+  'package-manager': PackageManager,
+  'what-a-rule-is': WhatARuleIs,
+  'mix-and-match': MixAndMatch,
+  'an-insight': AnInsight,
+  'into-rules': IntoRules,
+  'where-they-live': WhereTheyLive,
+  'skills-as-playbooks': SkillsAsPlaybooks,
+  'get-started': GetStarted,
   close: Close,
 } as const satisfies Record<SceneId, ComponentType<SceneProps>>;
 

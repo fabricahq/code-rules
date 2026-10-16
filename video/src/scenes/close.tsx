@@ -1,25 +1,24 @@
-/** @fileoverview Scene 10: the Syllabus name, tagline, and site. */
-import { BrandMark } from '../components/brand-mark';
+/** @fileoverview Scene 12: the Trail Guide name, tagline, and site. */
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';
 import { Headline } from '../components/text';
+import { Wordmark } from '../components/wordmark';
 import { COLORS, FONTS } from '../theme';
 import type { SceneProps } from './scene-props';
 
-/** Ends on the brand and where to learn more. */
+/** Ends on the name and where to learn more. */
 export function Close(props: SceneProps) {
   return (
     <SceneFrame durationInFrames={props.durationInFrames}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 40, textAlign: 'center' }}>
-        <Reveal at={0} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <BrandMark size={110} />
-          <span style={{ fontSize: 96, fontWeight: 600, letterSpacing: '-0.05em' }}>Syllabus</span>
+        <Reveal at={0}>
+          <Wordmark fontSize={112} />
         </Reveal>
         <Reveal at={12}>
-          <Headline style={{ fontSize: 64 }}>The package manager for your agent skills and rules</Headline>
+          <Headline style={{ fontSize: 64 }}>Agent guidance, one small insight at a time.</Headline>
         </Reveal>
         <Reveal at={24}>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 32, color: COLORS.muted }}>syllabus.fabricahq.com</div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 32, color: COLORS.muted }}>trailguide.fabricahq.com</div>
         </Reveal>
       </div>
     </SceneFrame>
