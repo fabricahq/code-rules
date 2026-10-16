@@ -1,8 +1,9 @@
 /** @fileoverview Scene 2: skills are the common way to guide agents, but they're coarse-grained and loosely versioned. */
+import { interpolate, useCurrentFrame } from 'remotion';
 import { Panel } from '../components/panel';
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';
-import { Chip, Muted } from '../components/text';
+import { Chip } from '../components/text';
 import { COLORS, FONTS } from '../theme';
 import { cue, type SceneProps } from './scene-props';
 
@@ -16,6 +17,13 @@ const INSIGHTS = [
 
 /** Shows one skill bundling many insights, with no version anyone checks. */
 export function SkillsToday(props: SceneProps) {
+  const frame = useCurrentFrame();
+  // The rest of the skill lands with a pop, as the narration says it bundles dozens of insights.
+  const moreAt = cue(props, 0.22);
+  const moreScale = interpolate(frame, [moreAt, moreAt + 14], [1.3, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
     <SceneFrame durationInFrames={props.durationInFrames}>
       <Reveal at={0}>
@@ -31,13 +39,22 @@ export function SkillsToday(props: SceneProps) {
         >
           <div style={{ fontFamily: FONTS.mono, fontSize: 30, lineHeight: 1.65 }}>
             <div># Testing</div>
-            {INSIGHTS.map((insight, index) => (
-              <Reveal key={insight} at={cue(props, 0.12 + index * 0.05)}>
-                - {insight}
-              </Reveal>
+            {INSIGHTS.map((insight) => (
+              <div key={insight}>- {insight}</div>
             ))}
-            <Reveal at={cue(props, 0.38)}>
-              <Muted>- … 40 more insights</Muted>
+            <Reveal at={moreAt}>
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 44,
+                  fontWeight: 600,
+                  color: COLORS.warning,
+                  transform: `scale(${moreScale})`,
+                  transformOrigin: 'left center',
+                }}
+              >
+                … 40 more insights
+              </div>
             </Reveal>
           </div>
         </Panel>
