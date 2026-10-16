@@ -1912,7 +1912,7 @@
     }
   },
   {
-    "id": "configuration-library-skills-borrowed",
+    "id": "configuration-library-skills-borrowed-undeclared-source",
     "operation": "configuration",
     "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"recommended\": [\"mattpocock:skills/to-spec\"]}}}",
     "location": "configuration",
@@ -1920,7 +1920,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library.skills.recommended[0]: listing another source's skills, such as \"mattpocock\"'s, isn't supported yet in this version of Trail Guide; list the library's own skills, such as skills/build-feature",
+        "message": "library.skills.recommended[0]: mattpocock:skills/to-spec borrows from mattpocock, which isn't a source in sources; add sources.mattpocock with the repository the skill comes from, and a ref unless the repository publishes library releases",
         "location": "library.skills.recommended[0]"
       }
     }

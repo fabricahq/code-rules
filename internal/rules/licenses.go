@@ -21,8 +21,11 @@ import (
 type Library struct {
 	// License is nil when the library declares no license.
 	License *LicenseDeclaration `json:"license"`
-	// Skills holds the levels the library gives its skills.
+	// Skills holds the levels the library gives its skills, its own and those it borrows.
 	Skills SkillLevels `json:"skills"`
+	// Borrowed maps the name of each source that Skills borrows from to its repository and ref, as the
+	// configuration's sources declare them; it is nil when the library borrows nothing.
+	Borrowed map[string]BorrowedSource `json:"borrowed,omitempty"`
 }
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -74,25 +77,37 @@ func PublishedManifest(text []byte, location string) ([]byte, error) {
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return nil, err
 	}
-	return PublishedManifestOf(fields["library"])
+	return PublishedManifestOf(fields["library"], fields["sources"])
 }
 
-// PublishedManifestOf returns the configuration that PublishedManifest publishes for a library section, given as
-// JSON: schema version 2, no sources, and the section with its object keys sorted.
-func PublishedManifestOf(section json.RawMessage) ([]byte, error) {
+// PublishedManifestOf returns the configuration that PublishedManifest publishes for a library section and the
+// configuration's sources, both given as JSON: schema version 2, the repository and ref of each source the
+// section's skills borrow from, which projects resolve for themselves, and the section, with object keys sorted.
+func PublishedManifestOf(section, sources json.RawMessage) ([]byte, error) {
 	var value any
 	if err := json.Unmarshal(section, &value); err != nil {
 		return nil, err
 	}
-	encoded, err := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{}, "library": value})
+	var declared map[string]map[string]any
+	_ = json.Unmarshal(sources, &declared)
+	published := map[string]any{}
+	for _, name := range borrowedNames(section) {
+		source := map[string]any{"repository": declared[name]["repository"]}
+		if ref, ok := declared[name]["ref"]; ok {
+			source["ref"] = ref
+		}
+		published[name] = source
+	}
+	encoded, err := json.Marshal(map[string]any{"schemaVersion": 2, "sources": published, "library": value})
 	if err != nil {
 		return nil, err
 	}
 	return append(encoded, '\n'), nil
 }
 
-// parseLibrary validates a configuration's library section: its license and the levels of its skills.
-func parseLibrary(input json.RawMessage) (*Library, error) {
+// parseLibrary validates a configuration's library section: its license and the levels of its skills, whose
+// borrowed skills must borrow from sources, the configuration's sources.
+func parseLibrary(input json.RawMessage, sources []Source) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
 		return nil, err
@@ -106,9 +121,14 @@ func parseLibrary(input json.RawMessage) (*Library, error) {
 			return nil, err
 		}
 	}
-	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills"); err != nil {
+	names := []string{}
+	for _, source := range sources {
+		names = append(names, source.Name)
+	}
+	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills", names); err != nil {
 		return nil, err
 	}
+	result.Borrowed = borrowedSources(result.Skills, sources)
 	return result, nil
 }
 

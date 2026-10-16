@@ -39,7 +39,10 @@ func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[str
 			}
 			continue
 		}
-		ids = append(ids, folder)
+		// A colon separates a borrowed skill's source from its ID, so a folder whose path has one can't be named.
+		if !strings.Contains(folder, ":") {
+			ids = append(ids, folder)
+		}
 	}
 	slices.Sort(ids)
 	// Sorting puts each folder before the folders inside it, so an outer skill is kept before its inner ones are seen.
@@ -79,11 +82,28 @@ func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[str
 // skill except those in a folder whose name starts with a dot, such as another tool's installed copies in
 // .claude/skills/, and each skill it names. A named skill the revision lacks fails: with skill-not-in-revision when
 // the revision is the one the source record locks, since sync never moves a source, and otherwise as invalid
-// configuration. Excluding a required skill fails too, since a project that uses the library can't diverge from it.
+// configuration. Excluding a required skill fails too, since a project that uses the library can't diverge from it,
+// as does excluding one LibraryRequires lists.
+// The skills the library borrows, whose IDs have a colon, are borrowSkills' to choose, and naming one of a repository
+// that isn't a library fails, since only a library borrows skills; the skills the configuration's own library section
+// requires of the source, LibraryRequires, are chosen as required too.
 func chooseSkills(source rules.Source, plan sourcePlan, available []string, levels *rules.SkillLevels) ([]string, error) {
 	chosen := []string{}
 	revision := revisionName(plan.release, plan.commit)
+	for _, id := range source.LibraryRequires {
+		if !slices.Contains(available, id) {
+			return nil, &ValidationError{Location: "library.skills.required", Problem: fmt.Sprintf("lists %s:%s, which sources.%s doesn't have at %s; check the skill ID, or set sources.%s.ref to a revision that has it", source.Name, id, source.Name, revision, source.Name)}
+		}
+	}
+	for _, id := range slices.Sorted(maps.Keys(source.SkillExclude)) {
+		if slices.Contains(source.LibraryRequires, id) {
+			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.LibraryRequiresProblem(source.Name, id)}
+		}
+	}
+	chosen = append(chosen, source.LibraryRequires...)
 	if levels != nil {
+		own := ownSkillLevels(*levels)
+		levels = &own
 		for _, id := range levels.Listed() {
 			if !slices.Contains(available, id) {
 				return nil, fail("unsupported-content", fmt.Sprintf("sources.%s: the library's manifest at %s gives skill %s a level, but the library has no such skill there. Ask the library's maintainer to fix library.skills; trailguide library check catches this.", source.Name, revision, id), nil)
@@ -106,12 +126,23 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 			chosen = append(chosen, levels.Recommended...)
 		case slices.Contains(available, id):
 			chosen = append(chosen, id)
+		case strings.Contains(id, ":") && levels != nil:
+		case strings.Contains(id, ":"):
+			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("names %s, but only a library's borrowed skills have IDs with a colon, and the repository isn't a library at %s, so it borrows none; name its skills by their folder, such as skills/to-spec", id, revision)}
 		default:
 			return nil, skillNotInRevision(source, plan, "sources."+source.Name+".skills.include", id)
 		}
 	}
 	slices.Sort(chosen)
 	return slices.Compact(chosen), nil
+}
+
+// ownSkillLevels returns levels without the skills the library borrows.
+func ownSkillLevels(levels rules.SkillLevels) rules.SkillLevels {
+	own := func(ids []string) []string {
+		return slices.DeleteFunc(slices.Clone(ids), func(id string) bool { return strings.Contains(id, ":") })
+	}
+	return rules.SkillLevels{Required: own(levels.Required), Recommended: own(levels.Recommended), Offered: own(levels.Offered)}
 }
 
 // skillNotInRevision reports that field, a configuration field of source, names skill id, which the plan's revision
@@ -323,35 +354,46 @@ func (r *repository) readSkills(ctx context.Context, source rules.Source, plan s
 		return importedSkills{}, err
 	}
 	entries := map[string]treeEntry{}
-	prefetch := []treeEntry{}
 	for _, id := range slices.Sorted(maps.Keys(installed)) {
 		skill := importedSkill(id, levels)
 		skill.Included, skill.UsedBy = installed[id].Included, installed[id].UsedBy
 		result.skills[id] = skill
-		for name, entry := range folders[id] {
-			if !entry.mode.IsRegular() {
-				return importedSkills{}, fail("unsupported-content", fmt.Sprintf("sources.%s: skill %s has a symbolic link or submodule at %s, which Trail Guide doesn't install. Ask the source's maintainer to replace it with a file.", source.Name, id, name), nil)
-			}
-			entries[name] = entry
-			prefetch = append(prefetch, entry)
+		maps.Copy(entries, folders[id])
+	}
+	if result.files, result.executable, err = r.readFiles(ctx, source.Name, entries, retained); err != nil {
+		return importedSkills{}, err
+	}
+	return result, nil
+}
+
+// readFiles reads the skill files entries lists, by snapshot path, for the source named source, returning their
+// bytes and, sorted, the paths of the executable ones. retained is the bytes the source's import already read, which
+// count toward the same retained limit. It fails for a symbolic link or submodule, which Trail Guide doesn't install.
+func (r *repository) readFiles(ctx context.Context, source string, entries map[string]treeEntry, retained int) (map[string][]byte, []string, error) {
+	files, executable := map[string][]byte{}, []string{}
+	prefetch := []treeEntry{}
+	for _, name := range slices.Sorted(maps.Keys(entries)) {
+		if !entries[name].mode.IsRegular() {
+			return nil, nil, fail("unsupported-content", fmt.Sprintf("sources.%s: skill file %s is a symbolic link or submodule, which Trail Guide doesn't install. Ask the skill's maintainer to replace it with a file.", source, name), nil)
 		}
+		prefetch = append(prefetch, entries[name])
 	}
 	if err := r.prefetch(ctx, prefetch); err != nil {
-		return importedSkills{}, err
+		return nil, nil, err
 	}
 	input := newGitFiles(ctx, r, entries)
 	input.total = retained
 	for _, name := range slices.Sorted(maps.Keys(entries)) {
 		data, err := input.ReadFile(name)
 		if err != nil {
-			return importedSkills{}, err
+			return nil, nil, err
 		}
-		result.files[name] = data
+		files[name] = data
 		if entries[name].mode.Perm()&0o100 != 0 {
-			result.executable = append(result.executable, name)
+			executable = append(executable, name)
 		}
 	}
-	return result, nil
+	return files, executable, nil
 }
 
 // importedSkill returns the record of skill id given levels, the levels its library gives its skills, or nil for a
@@ -381,6 +423,10 @@ func (r *repository) skillLevelChanges(ctx context.Context, recorded *library.Sn
 	}
 	after := map[string]string{}
 	for id := range skillFolders(tree, true) {
+		after[id] = levels.Level(id)
+	}
+	// A borrowed skill is in the library's lists, not its skills/ folder.
+	for _, id := range levels.Borrowed() {
 		after[id] = levels.Level(id)
 	}
 	ids := slices.Sorted(maps.Keys(after))

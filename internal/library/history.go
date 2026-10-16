@@ -272,7 +272,7 @@ func manifestDigest(data []byte) string {
 				section, _ = json.Marshal(fields)
 			}
 			if section != nil {
-				if manifest, err := rules.PublishedManifestOf(section); err == nil {
+				if manifest, err := rules.PublishedManifestOf(section, fields["sources"]); err == nil {
 					published = manifest
 				}
 			}

@@ -370,7 +370,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 		if p.source.HasRules() {
 			return sourcePlan{}, &ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: fmt.Sprintf("the repository has no library manifest, a .trailguide/config.yaml with a library section, at %s, so it isn't a library and has no rules to include; remove rules, and include its skills with skills.include", revisionName(plan.release, plan.commit))}
 		}
-		if len(p.source.Skills) == 0 {
+		if len(p.source.Skills) == 0 && !p.source.Lends {
 			return sourcePlan{}, &ValidationError{Location: "sources." + p.source.Name, Problem: fmt.Sprintf("the repository has no library manifest at %s, so it isn't a library and requires no skills; include its skills with skills.include, such as include: [\"*\"]", revisionName(plan.release, plan.commit))}
 		}
 		plan.nonLibrary = true

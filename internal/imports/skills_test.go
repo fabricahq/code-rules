@@ -94,6 +94,7 @@ func TestChooseSkillsTakesEverySkillFromThePlannedRevision(t *testing.T) {
 		"missing from the locked ref":          {pinned, []string{"skills/new"}, sourcePlan{commit: locked, locked: locked}, nil, "skill-not-in-revision", "set sources.team.ref to a tag or commit that has it"},
 		"missing from a newly chosen revision": {release, []string{"skills/new"}, sourcePlan{release: 2, commit: newer, locked: locked}, nil, "", "the source has no skill skills/new at release/2"},
 		"missing without a record":             {release, []string{"skills/new"}, sourcePlan{commit: newer}, nil, "", "the source has no skill skills/new at commit " + newer},
+		"a borrowed ID outside a library":      {release, []string{"pocock:skills/to-spec"}, sourcePlan{commit: locked}, nil, "", "only a library's borrowed skills have IDs with a colon"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -183,5 +184,25 @@ func TestInstalledSkillsReportsTheSkillsAMissingUseOrCycleInvolves(t *testing.T)
 				t.Fatalf("got %v\nwant %s: %s", err, test.location, test.problem)
 			}
 		})
+	}
+}
+
+func TestBorrowedSkillsWildcardSkipsDotFolders(t *testing.T) {
+	manifest := &rules.Library{Skills: rules.SkillLevels{Required: []string{}, Recommended: []string{}, Offered: []string{"pocock:.claude/skills/local", "pocock:skills/grilling"}}}
+	for _, test := range []struct {
+		include []string
+		want    []string
+	}{
+		{[]string{"*"}, []string{"pocock:skills/grilling"}},
+		{[]string{"*", "pocock:.claude/skills/local"}, []string{"pocock:.claude/skills/local", "pocock:skills/grilling"}},
+	} {
+		got, err := borrowedSkills(manifest, rules.Source{Name: "team", Skills: test.include}, 1)
+		ids := []string{}
+		for _, skill := range got["pocock"] {
+			ids = append(ids, skill.id)
+		}
+		if err != nil || !slices.Equal(ids, test.want) {
+			t.Errorf("include %v: borrowedSkills = %v, %v; want %v", test.include, ids, err, test.want)
+		}
 	}
 }
