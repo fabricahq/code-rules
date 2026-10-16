@@ -17,9 +17,10 @@ import { SkillsAsPlaybooks } from './scenes/skills-as-playbooks';
 import { SkillsToday } from './scenes/skills-today';
 import { WhatARuleIs } from './scenes/what-a-rule-is';
 import { WhereTheyLive } from './scenes/where-they-live';
-import { SCENES, type SceneId } from './script';
+import { SCENES, speechFor, type SceneId } from './script';
 import { COLORS, VIDEO } from './theme';
 import {
+  captionWords,
   estimateNarrationSeconds,
   estimateWords,
   MANIFEST_PATH,
@@ -78,7 +79,7 @@ export const calculateTourMetadata: CalculateMetadataFunction<TourProps> = async
   const scenes: Array<TimedScene> = [];
   for (const scene of SCENES) {
     const clip = manifest?.clips[scene.id];
-    const isCurrent = clip !== undefined && clip.text === scene.narration;
+    const isCurrent = clip !== undefined && clip.text === speechFor(scene);
     if (clip !== undefined && !isCurrent) {
       console.warn(`The voiceover for ${scene.id} is stale; run bun run voiceover. Rendering it silent.`);
     }
@@ -86,7 +87,7 @@ export const calculateTourMetadata: CalculateMetadataFunction<TourProps> = async
       ? await getAudioDurationInSeconds(staticFile(clip.file))
       : estimateNarrationSeconds(scene.narration);
     const words = isCurrent
-      ? clip.words
+      ? captionWords({ spoken: clip.words, narration: scene.narration, durationInSeconds: narrationSeconds })
       : estimateWords({ text: scene.narration, durationInSeconds: narrationSeconds });
     scenes.push({
       id: scene.id,

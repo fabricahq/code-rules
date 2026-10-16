@@ -8,7 +8,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SCENES } from '../src/script';
+import { SCENES, speechFor } from '../src/script';
 import {
   MANIFEST_PATH,
   parseManifest,
@@ -136,22 +136,25 @@ async function main(): Promise<void> {
 
   for (const [index, scene] of SCENES.entries()) {
     const existing = isSameVoice ? previous.clips[scene.id] : undefined;
-    if (existing?.text === scene.narration && existsSync(join(PUBLIC_DIR, existing.file))) {
+    const speech = speechFor(scene);
+    if (existing?.text === speech && existsSync(join(PUBLIC_DIR, existing.file))) {
       clips[scene.id] = existing;
       console.log(`unchanged  ${scene.id}`);
       continue;
     }
-    const speech = await synthesize({
+    const previousScene = SCENES[index - 1];
+    const nextScene = SCENES[index + 1];
+    const result = await synthesize({
       apiKey,
       voiceId,
       modelId,
-      text: scene.narration,
-      previousText: SCENES[index - 1]?.narration,
-      nextText: SCENES[index + 1]?.narration,
+      text: speech,
+      previousText: previousScene === undefined ? undefined : speechFor(previousScene),
+      nextText: nextScene === undefined ? undefined : speechFor(nextScene),
     });
     const file = `voiceover/${scene.id}.mp3`;
-    await writeFile(join(PUBLIC_DIR, file), speech.audio);
-    clips[scene.id] = { file, text: scene.narration, words: toWords(speech.alignment) };
+    await writeFile(join(PUBLIC_DIR, file), result.audio);
+    clips[scene.id] = { file, text: speech, words: toWords(result.alignment) };
     console.log(`generated  ${scene.id}`);
   }
 

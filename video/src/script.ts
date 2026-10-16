@@ -4,7 +4,13 @@
 export type SceneScript = {
   /** Stable ID, used for the scene's component and its voiceover file name. */
   id: SceneId;
+  /** What the captions show. */
   narration: string;
+  /**
+   * What the voice reads, when it differs from the narration: the same words with
+   * ElevenLabs audio tags such as `[sharing something new]` and capitals for emphasis.
+   */
+  speech?: string;
 };
 
 /** The IDs of the tour's scenes. */
@@ -28,6 +34,8 @@ export const SCENES = [
     id: 'guidance',
     narration:
       'Your agents need guidance to build the right thing. Without it, they guess, you correct the same mistakes in review.',
+    speech:
+      '[sharing something new] Your agents need guidance to build the RIGHT thing. Without it, they guess, you correct the same mistakes in review.',
   },
   {
     id: 'skills-today',
@@ -84,3 +92,8 @@ export const SCENES = [
     narration: 'Trail Guide. Agent guidance, one small insight at a time.',
   },
 ] as const satisfies ReadonlyArray<SceneScript>;
+
+/** The text the voice reads for a scene: its speech, or its narration when it has none. */
+export function speechFor(scene: SceneScript): string {
+  return scene.speech ?? scene.narration;
+}

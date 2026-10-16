@@ -2,7 +2,7 @@
 
 A narrated tour of Trail Guide for the docs homepage, made with [Remotion](https://www.remotion.dev). It explains why skills alone fall short, introduces Trail Guide as a package manager for skills and the home of rules, and turns an article into a set of rules.
 
-The narration lives in [`src/script.ts`](src/script.ts). Each scene plays for as long as its narration clip, so changing a line retimes its scene.
+The narration lives in [`src/script.ts`](src/script.ts). Each scene plays for as long as its narration clip, so changing a line retimes its scene. A scene's `speech` is what the voice reads when it differs from the captions, such as a line with an ElevenLabs audio tag like `[sharing something new]` or capitals for emphasis.
 
 ## Preview and render
 

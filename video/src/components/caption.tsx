@@ -6,20 +6,47 @@ import type { TimedWord } from '../voiceover';
 /** The most words a caption shows at once. */
 const MAX_WORDS_PER_PHRASE = 11;
 
-/** Splits words into phrases that end at sentence or clause breaks and stay short enough for one line. */
-export function toPhrases(words: ReadonlyArray<TimedWord>): Array<Array<TimedWord>> {
-  const phrases: Array<Array<TimedWord>> = [];
-  let current: Array<TimedWord> = [];
+/** Splits words into groups that each end with one of the given punctuation marks, or at the end. */
+function splitAfter<T extends { text: string }>(words: ReadonlyArray<T>, pattern: RegExp): Array<Array<T>> {
+  const groups: Array<Array<T>> = [];
+  let current: Array<T> = [];
   for (const word of words) {
     current.push(word);
-    const endsSentence = /[.?!]$/.test(word.text);
-    const endsClause = /[,:;]$/.test(word.text) && current.length >= 6;
-    if (endsSentence || endsClause || current.length >= MAX_WORDS_PER_PHRASE) {
-      phrases.push(current);
+    if (pattern.test(word.text)) {
+      groups.push(current);
       current = [];
     }
   }
-  if (current.length > 0) phrases.push(current);
+  if (current.length > 0) groups.push(current);
+  return groups;
+}
+
+/** Splits a clause too long for one caption into even chunks, so no chunk is a stray word or two. */
+function splitEvenly<T>(clause: ReadonlyArray<T>): Array<Array<T>> {
+  const count = Math.ceil(clause.length / MAX_WORDS_PER_PHRASE);
+  const size = Math.ceil(clause.length / count);
+  const chunks: Array<Array<T>> = [];
+  for (let index = 0; index < clause.length; index += size) chunks.push(clause.slice(index, index + size));
+  return chunks;
+}
+
+/**
+ * Splits words into captions: each sentence on its own, its clauses joined while
+ * they fit on one line, and a clause too long for a line split evenly.
+ */
+export function toPhrases(words: ReadonlyArray<TimedWord>): Array<Array<TimedWord>> {
+  const phrases: Array<Array<TimedWord>> = [];
+  for (const sentence of splitAfter(words, /[.?!]$/)) {
+    let current: Array<TimedWord> = [];
+    for (const clause of splitAfter(sentence, /[,:;]$/).flatMap(splitEvenly)) {
+      if (current.length > 0 && current.length + clause.length > MAX_WORDS_PER_PHRASE) {
+        phrases.push(current);
+        current = [];
+      }
+      current.push(...clause);
+    }
+    if (current.length > 0) phrases.push(current);
+  }
   return phrases;
 }
 

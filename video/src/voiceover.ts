@@ -8,7 +8,7 @@ export type TimedWord = { text: string; start: number; end: number };
 export type VoiceoverClip = {
   /** Path under `public/`, such as `voiceover/sync.mp3`. */
   file: string;
-  /** The narration the clip was generated from; a mismatch means the clip is stale. */
+  /** The speech the clip was generated from; a mismatch means the clip is stale. */
   text: string;
   words: ReadonlyArray<TimedWord>;
 };
@@ -99,6 +99,33 @@ export function estimateWords({
     elapsed += length;
     return timed;
   });
+}
+
+/**
+ * Times the caption words from a clip's spoken words. Audio tags such as
+ * `[sharing something new]` are dropped, and each remaining word takes the
+ * narration's spelling, so emphasis capitals don't show. If the words don't line
+ * up with the narration, they're spread across the clip instead.
+ */
+export function captionWords({
+  spoken,
+  narration,
+  durationInSeconds,
+}: {
+  spoken: ReadonlyArray<TimedWord>;
+  narration: string;
+  durationInSeconds: number;
+}): Array<TimedWord> {
+  const narrationWords = narration.split(/\s+/).filter((word) => word.length > 0);
+  const said: Array<TimedWord> = [];
+  let isInTag = false;
+  for (const word of spoken) {
+    if (word.text.startsWith('[')) isInTag = true;
+    if (!isInTag) said.push(word);
+    if (word.text.endsWith(']')) isInTag = false;
+  }
+  if (said.length !== narrationWords.length) return estimateWords({ text: narration, durationInSeconds });
+  return said.map((word, index) => ({ ...word, text: narrationWords[index] ?? word.text }));
 }
 
 /** How long a narration takes to say at an ordinary pace, for scenes with no clip yet. */
