@@ -4,112 +4,107 @@
   "clips": {
     "guidance": {
       "file": "voiceover/guidance.mp3",
-      "text": "Your agents need guidance to build the right thing. Without it, they guess, and you correct the same mistakes in review.",
+      "text": "Your agents need guidance to build the right thing. Without it, they guess, you correct the same mistakes in review.",
       "words": [
         {
           "text": "Your",
           "start": 0,
-          "end": 0.209
+          "end": 0.197
         },
         {
           "text": "agents",
-          "start": 0.267,
-          "end": 0.615
+          "start": 0.232,
+          "end": 0.511
         },
         {
           "text": "need",
-          "start": 0.673,
-          "end": 0.848
+          "start": 0.557,
+          "end": 0.708
         },
         {
           "text": "guidance",
-          "start": 0.929,
-          "end": 1.382
+          "start": 0.766,
+          "end": 1.161
         },
         {
           "text": "to",
-          "start": 1.428,
-          "end": 1.509
+          "start": 1.196,
+          "end": 1.265
         },
         {
           "text": "build",
-          "start": 1.591,
-          "end": 1.823
+          "start": 1.335,
+          "end": 1.521
         },
         {
           "text": "the",
-          "start": 1.869,
-          "end": 1.939
+          "start": 1.556,
+          "end": 1.625
         },
         {
           "text": "right",
-          "start": 1.997,
-          "end": 2.171
+          "start": 1.695,
+          "end": 1.904
         },
         {
           "text": "thing.",
-          "start": 2.218,
-          "end": 2.647
+          "start": 1.95,
+          "end": 2.334
         },
         {
           "text": "Without",
-          "start": 3.251,
-          "end": 3.587
+          "start": 2.775,
+          "end": 3.135
         },
         {
           "text": "it,",
-          "start": 3.622,
-          "end": 3.715
+          "start": 3.17,
+          "end": 3.297
         },
         {
           "text": "they",
-          "start": 3.738,
-          "end": 3.866
+          "start": 3.344,
+          "end": 3.483
         },
         {
           "text": "guess,",
-          "start": 3.913,
-          "end": 4.412
-        },
-        {
-          "text": "and",
-          "start": 4.795,
-          "end": 4.923
+          "start": 3.529,
+          "end": 3.947
         },
         {
           "text": "you",
-          "start": 4.957,
-          "end": 5.039
+          "start": 4.272,
+          "end": 4.377
         },
         {
           "text": "correct",
-          "start": 5.108,
-          "end": 5.341
+          "start": 4.447,
+          "end": 4.656
         },
         {
           "text": "the",
-          "start": 5.375,
-          "end": 5.445
+          "start": 4.679,
+          "end": 4.748
         },
         {
           "text": "same",
-          "start": 5.503,
-          "end": 5.735
+          "start": 4.783,
+          "end": 4.946
         },
         {
           "text": "mistakes",
-          "start": 5.759,
-          "end": 6.107
+          "start": 4.969,
+          "end": 5.317
         },
         {
           "text": "in",
-          "start": 6.142,
-          "end": 6.188
+          "start": 5.352,
+          "end": 5.41
         },
         {
           "text": "review.",
-          "start": 6.246,
-          "end": 7.43
+          "start": 5.468,
+          "end": 6.734
         }
       ]
     },
