@@ -8,7 +8,7 @@ Syllabus is a standalone binary for macOS and Linux. [Using Windows?](#installin
 ## Use the standalone installer
 
 ```sh
-curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
+curl -fsSL https://syllabus.fabricahq.com/install.sh | sh
 ```
 
 This installs the latest stable release into `~/.local/bin` and sets up your shell's `PATH`. No `sudo` needed. [View the installer script](/install.sh).
@@ -84,7 +84,7 @@ brew uninstall syllabus
 Add `--version` to install an older or specific [release](https://github.com/fabricahq/syllabus/releases), or `--install-dir` to choose an absolute, writable directory:
 
 ```sh
-curl -fsSL https://code-rules.fabricahq.com/install.sh |
+curl -fsSL https://syllabus.fabricahq.com/install.sh |
   sh -s -- --version 0.1.0 --install-dir "$HOME/bin"
 ```
 

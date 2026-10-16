@@ -14,10 +14,10 @@
 </p>
 
 <p align="center">
-  <a href="https://code-rules.fabricahq.com">Docs</a> ·
+  <a href="https://syllabus.fabricahq.com">Docs</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="https://code-rules.fabricahq.com/start-here/overview/">Why Syllabus</a> ·
-  <a href="https://code-rules.fabricahq.com/reference/cli/">CLI reference</a>
+  <a href="https://syllabus.fabricahq.com/start-here/overview/">Why Syllabus</a> ·
+  <a href="https://syllabus.fabricahq.com/reference/cli/">CLI reference</a>
 </p>
 
 ---
@@ -45,13 +45,13 @@ Most people already guide their agents with skills, the AI skills we all know, o
 
 Pulling many files from versioned sources into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Syllabus applies that same approach to skills. Each project declares its sources in one configuration file, and Syllabus records each skill's source and exact revision, updates it only when you ask, and writes it into the folders your agents read. Your organization can publish shared skills in its own `.syllabus` repository and require or recommend them for every project.
 
-To publish skills, you put them in a **[library](https://code-rules.fabricahq.com/concepts/libraries/)**: a Git repository whose manifest lists the skills it offers, with a version for each skill and a change note for each change, so tools and projects can read exactly what you publish. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
+To publish skills, you put them in a **[library](https://syllabus.fabricahq.com/concepts/libraries/)**: a Git repository whose manifest lists the skills it offers, with a version for each skill and a change note for each change, so tools and projects can read exactly what you publish. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 
 ### Skills aren't enough
 
 Skills are coarse-grained. They're good for playbooks, techniques, and coordinating a whole task, such as building a feature or reviewing a pull request. But a skill that bundles many practices makes it hard to use a subset of its guidance on a specific project.
 
-So Syllabus adds **[rules](https://code-rules.fabricahq.com/concepts/rule/)**: one practice per Markdown file, optionally following the [Syllabus rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs, and live in **rule groups**. **[Skills](https://code-rules.fabricahq.com/concepts/skill/)** cite the rules each step applies, so a project can exclude or replace one rule without forking the skill.
+So Syllabus adds **[rules](https://syllabus.fabricahq.com/concepts/rule/)**: one practice per Markdown file, optionally following the [Syllabus rule template](https://syllabus.fabricahq.com/reference/rule-authoring/). Rules give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs, and live in **rule groups**. **[Skills](https://syllabus.fabricahq.com/concepts/skill/)** cite the rules each step applies, so a project can exclude or replace one rule without forking the skill.
 
 Syllabus manages rules and skills together, for libraries that publish them, organizations that standardize on them, and projects that use them. You can write your own project-specific rules and skills, or take them from libraries.
 
@@ -77,7 +77,7 @@ Because rules are files in Git, you can ask your agent to review a session and p
 Install the standalone binary (macOS and Linux; no Go, Node.js, or Bun required):
 
 ```sh
-curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
+curl -fsSL https://syllabus.fabricahq.com/install.sh | sh
 ```
 
 Or install with [Homebrew](https://brew.sh/):
@@ -152,7 +152,7 @@ Paths relative to .syllabus/generated:
 
 Commit `.syllabus/` and `AGENTS.md`, and you're done. Now ask your agent for a change as you normally would; you don't need to mention Syllabus in each request.
 
-➡️ The full walkthrough is in [Set up your first project](https://code-rules.fabricahq.com/start-here/set-up-project/).
+➡️ The full walkthrough is in [Set up your first project](https://syllabus.fabricahq.com/start-here/set-up-project/).
 
 ## Share rules across projects
 
@@ -184,22 +184,22 @@ sources:
 
 `syllabus project sync` imports each rule's newest version, snapshots them into `.syllabus/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `syllabus project update`, on its own schedule. Update previews every changed, new, and retired rule, and applies them only after you confirm.
 
-➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Include rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules and skills](https://code-rules.fabricahq.com/guides/update/)
+➡️ [Create your first library](https://syllabus.fabricahq.com/start-here/create-library/) · [Include rules](https://syllabus.fabricahq.com/guides/select-rules/) · [Update rules and skills](https://syllabus.fabricahq.com/guides/update/)
 
 ## What Syllabus doesn't do
 
 - **It doesn't enforce your rules.** Syllabus gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `syllabus project check` verifies your rule files, not your application code.
-- **It doesn't resolve contradictions automatically.** If two rules disagree, you decide which to exclude or replace. [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/) gives you a prompt that has your agent find the conflicts and propose fixes for you to review.
+- **It doesn't resolve contradictions automatically.** If two rules disagree, you decide which to exclude or replace. [Resolve conflicting rules](https://syllabus.fabricahq.com/guides/conflicting-guidance/) gives you a prompt that has your agent find the conflicts and propose fixes for you to review.
 - **It doesn't manage personal skills.** Syllabus installs skills into your repositories, not your home directory. It warns when a personal skill has the same name as one your project installs.
 - **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
 
 ## Learn more
 
-- → [**What is Syllabus?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how skills, rules, rule groups, projects, and libraries fit together
-- → [**Install**](https://code-rules.fabricahq.com/start-here/install/) Versions, custom directories, checksum verification, and upgrades
-- → [**Write a rule**](https://code-rules.fabricahq.com/guides/write-rules/) Write rules agents can actually follow
-- → [**Configuration**](https://code-rules.fabricahq.com/reference/configuration/) Every field in `config.yaml`
-- → [**CLI reference**](https://code-rules.fabricahq.com/reference/cli/) Every command and flag
+- → [**What is Syllabus?**](https://syllabus.fabricahq.com/start-here/overview/) The problem, and how skills, rules, rule groups, projects, and libraries fit together
+- → [**Install**](https://syllabus.fabricahq.com/start-here/install/) Versions, custom directories, checksum verification, and upgrades
+- → [**Write a rule**](https://syllabus.fabricahq.com/guides/write-rules/) Write rules agents can actually follow
+- → [**Configuration**](https://syllabus.fabricahq.com/reference/configuration/) Every field in `config.yaml`
+- → [**CLI reference**](https://syllabus.fabricahq.com/reference/cli/) Every command and flag
 
 ## Contributing
 

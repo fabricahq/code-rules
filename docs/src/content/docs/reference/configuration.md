@@ -490,7 +490,7 @@ Error: .syllabus/config.yaml uses schemaVersion 1, which this version of Syllabu
           - id: practices/testing/avoid-snapshot-tests
             reason: ...
 
-Move authored rules from local/ to rules/, and authored skills to skills/. See https://code-rules.fabricahq.com/reference/configuration/
+Move authored rules from local/ to rules/, and authored skills to skills/. See https://syllabus.fabricahq.com/reference/configuration/
 ```
 
 There's no upgrade command. Rewrite the file by hand:

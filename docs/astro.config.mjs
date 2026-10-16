@@ -8,7 +8,7 @@ import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
 import { cloudflareWebAnalytics } from './src/analytics.mjs';
 
 // Served at the domain root; page links are root-relative.
-const site = 'https://code-rules.fabricahq.com';
+const site = 'https://syllabus.fabricahq.com';
 
 export default defineConfig({
   site,

@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const documentationHelp = "\n\nLearn more: https://code-rules.fabricahq.com"
+const documentationHelp = "\n\nLearn more: https://syllabus.fabricahq.com"
 
 // commandUsage preserves command navigation while grouping only the options available at this scope.
 func commandUsage(cmd *cobra.Command) error {

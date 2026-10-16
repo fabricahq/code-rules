@@ -1,6 +1,6 @@
 # Rule library
 
-This repository contains a [Fabrica Syllabus](https://code-rules.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
+This repository contains a [Fabrica Syllabus](https://syllabus.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
 The library section of `.syllabus/config.yaml` makes the repository a library. Its groups and rules live in `.syllabus/rules/`, shared assets in `.syllabus/assets/`, and change notes in `.syllabus/changes/`.
 Use this README to author and maintain the library.
 
@@ -84,6 +84,6 @@ After the first library release, every change to a rule needs a change note in `
 - For a new rule, leave out `--bump`; it starts at version `1.0.0`.
 - To retire a rule, delete its Markdown file and asset directory, then pass `--retire`, and `--replaced-by` with the rule that replaces it, if any.
 
-Pass `--summary` with one line for project maintainers deciding whether to update. `syllabus library check` fails when a changed rule has no note, or a note doesn't match a change. [Version your rules](https://code-rules.fabricahq.com/guides/version-rules/) explains change levels and library releases.
+Pass `--summary` with one line for project maintainers deciding whether to update. `syllabus library check` fails when a changed rule has no note, or a note doesn't match a change. [Version your rules](https://syllabus.fabricahq.com/guides/version-rules/) explains change levels and library releases.
 
 You may customize this README for the library. Re-running `syllabus library init` preserves an existing README.
