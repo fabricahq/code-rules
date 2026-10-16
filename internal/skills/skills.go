@@ -183,8 +183,10 @@ func InstallName(id string, metadata Metadata, location string) (string, error) 
 // Rename returns the bytes of a SKILL.md file that names the skill name: data with its frontmatter's name field
 // replaced by one line, name: <name>, or with that line added as the frontmatter's first when it has no name field,
 // or with a frontmatter block holding only that line added when data has none. Every other byte is kept, so only the
-// name changes; mentions of the old name in the file are left as they are. data must be a SKILL.md file ReadMetadata
-// accepted, and name a valid name.
+// name changes; mentions of the old name in the file are left as they are. A frontmatter that is one flow mapping,
+// such as {name: review, description: Review changes.}, is the exception: it is written again as a flow mapping
+// with name first, keeping every other entry and its order but not the original spacing or comments. data must be a
+// SKILL.md file ReadMetadata accepted, and name a valid name.
 func Rename(data []byte, name string) []byte {
 	header, body, found, _ := split(data, "")
 	field := "name: " + name
@@ -192,28 +194,57 @@ func Rename(data []byte, name string) []byte {
 		return append([]byte("---\n"+field+"\n---\n"), data...)
 	}
 	opening := 4
+	ending := "\n"
 	if bytes.HasPrefix(data, []byte("---\r\n")) {
-		opening = 5
+		opening, ending = 5, "\r\n"
+	}
+	closing := data[opening+len(header) : len(data)-len(body)]
+	document, err := decode.Document(header, "")
+	if err != nil {
+		document = nil
+	}
+	if document != nil && document.Content[0].Style&yaml.FlowStyle != 0 {
+		return slices.Concat(data[:opening], renamedFlow(document.Content[0], name, ending), closing, body)
 	}
 	lines := bytes.SplitAfter(header, []byte("\n"))
-	first, last := nameLines(header)
+	first, last := nameLines(document, lines)
 	if first < 0 {
 		first, last = 0, -1
 	}
-	ending := "\n"
-	if first < len(lines) && bytes.HasSuffix(lines[first], []byte("\r\n")) {
-		ending = "\r\n"
+	if first < len(lines) && !bytes.HasSuffix(lines[first], []byte("\r\n")) {
+		ending = "\n"
 	}
 	replaced := slices.Concat(lines[:first], [][]byte{[]byte(field + ending)}, lines[last+1:])
-	closing := data[opening+len(header) : len(data)-len(body)]
 	return slices.Concat(data[:opening], bytes.Join(replaced, nil), closing, body)
 }
 
-// nameLines returns the zero-based indexes of the first and last lines of header that hold its top-level name field,
-// key and value, or -1 and -1 when header has no name field. A block scalar's value runs until the next key.
-func nameLines(header []byte) (first, last int) {
-	document, err := decode.Document(header, "")
+// renamedFlow returns mapping, a frontmatter written as one flow mapping, encoded again with its name entry set to
+// name, or with that entry added first when it has none, and its lines ended by ending.
+func renamedFlow(mapping *yaml.Node, name, ending string) []byte {
+	value := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: name}
+	fields := slices.Clone(mapping.Content)
+	renamed := false
+	for i := 0; i+1 < len(fields); i += 2 {
+		if fields[i].Value == "name" {
+			fields[i+1], renamed = value, true
+		}
+	}
+	if !renamed {
+		fields = append([]*yaml.Node{{Kind: yaml.ScalarNode, Tag: "!!str", Value: "name"}, value}, fields...)
+	}
+	encoded, err := yaml.Marshal(&yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Style: yaml.FlowStyle, Content: fields})
 	if err != nil {
+		// A mapping decoded from valid YAML, with one plain scalar changed, always encodes.
+		panic(err)
+	}
+	return bytes.ReplaceAll(encoded, []byte("\n"), []byte(ending))
+}
+
+// nameLines returns the zero-based indexes of the first and last of lines, the lines of the block mapping document
+// decodes, that hold its top-level name field, key and value, or -1 and -1 when document is nil or has no name
+// field. A value written over several lines runs until the next key, leaving out blank and comment lines before it.
+func nameLines(document *yaml.Node, lines [][]byte) (first, last int) {
+	if document == nil {
 		return -1, -1
 	}
 	fields := document.Content[0].Content
@@ -221,12 +252,15 @@ func nameLines(header []byte) (first, last int) {
 		if fields[i].Value != "name" {
 			continue
 		}
-		first, last = fields[i].Line-1, fields[i+1].Line-1
-		if fields[i+1].Style&(yaml.LiteralStyle|yaml.FoldedStyle) != 0 {
-			last = bytes.Count(header, []byte("\n")) - 1
-			if i+2 < len(fields) {
-				last = fields[i+2].Line - 2
+		first, last = fields[i].Line-1, len(lines)-1
+		if i+2 < len(fields) {
+			last = fields[i+2].Line - 2
+		}
+		for last > fields[i+1].Line-1 {
+			if trimmed := bytes.TrimSpace(lines[last]); len(trimmed) > 0 && trimmed[0] != '#' {
+				break
 			}
+			last--
 		}
 		return first, last
 	}

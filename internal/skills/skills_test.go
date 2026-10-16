@@ -133,6 +133,9 @@ func TestRenameChangesOnlyTheNameField(t *testing.T) {
 		"no name field":     {"---\ndescription: Review.\n---\nBody\n", "---\nname: team-review\ndescription: Review.\n---\nBody\n"},
 		"no frontmatter":    {"# Review\n", "---\nname: team-review\n---\n# Review\n"},
 		"no body":           {"---\nname: review\n---", "---\nname: team-review\n---"},
+		"multiline plain":   {"---\nname: re\n  view\n# kept\ndescription: Review.\n---\n", "---\nname: team-review\n# kept\ndescription: Review.\n---\n"},
+		"flow":              {"---\n{description: Review changes., name: review, metadata: {x: y}}\n---\nBody\n", "---\n{description: Review changes., name: team-review, metadata: {x: y}}\n---\nBody\n"},
+		"flow without name": {"---\n{description: Review changes.}\n---\nBody\n", "---\n{name: team-review, description: Review changes.}\n---\nBody\n"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
