@@ -1,0 +1,42 @@
+---
+/** @fileoverview Plays the narrated Trail Guide tour on the homepage at 1.1x by default, with buttons to change the speed. */
+const SPEEDS = [1, 1.1, 1.25, 1.5, 2] as const;
+const DEFAULT_SPEED = 1.1;
+---
+<figure class="mx-auto my-0 max-w-[60rem] py-6 max-md:py-4" aria-label="Trail Guide tour video" data-tour-video data-default-speed={DEFAULT_SPEED}>
+  <video class="block w-full aspect-video rounded-panel border border-border bg-[#151515]" controls preload="metadata" playsinline poster="/video/trailguide-tour-poster.jpg" width="1920" height="1080">
+    <source src="/video/trailguide-tour.mp4" type="video/mp4" />
+    <a href="/video/trailguide-tour.mp4">Download the Trail Guide tour</a>.
+  </video>
+  <figcaption class="flex flex-wrap items-center justify-center gap-2 mt-4">
+    <span class="cr-index mr-1" id="tour-speed-label">SPEED</span>
+    <div class="flex flex-wrap gap-2" role="group" aria-labelledby="tour-speed-label">
+      {SPEEDS.map(speed => (
+        <button type="button" class="min-h-8 px-3 py-1 border border-border rounded-full bg-transparent text-muted text-xs font-medium cursor-pointer hover:text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2 aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:border-ink" data-speed={speed} aria-pressed={speed === DEFAULT_SPEED ? 'true' : 'false'}>{speed}×</button>
+      ))}
+    </div>
+  </figcaption>
+</figure>
+<script>
+  for (const figure of document.querySelectorAll<HTMLElement>('[data-tour-video]')) {
+    const video = figure.querySelector('video');
+    const buttons = [...figure.querySelectorAll<HTMLButtonElement>('[data-speed]')];
+    if (video === null) continue;
+    const defaultSpeed = Number(figure.dataset.defaultSpeed);
+    // Browsers reset playbackRate when a source loads, so set the default rate too.
+    video.defaultPlaybackRate = defaultSpeed;
+    video.playbackRate = defaultSpeed;
+    const showSpeed = () => {
+      for (const button of buttons) {
+        button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === video.playbackRate));
+      }
+    };
+    video.addEventListener('ratechange', showSpeed);
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        video.playbackRate = Number(button.dataset.speed);
+        showSpeed();
+      });
+    }
+  }
+</script>
