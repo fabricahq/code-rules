@@ -149,7 +149,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 			case "local":
 				writeFixture(t, root, "rules/techs/go/bad.md", "invalid rule")
 			case "vendor":
-				writeFixture(t, root, "vendor/team/techs/go/errors.md", "modified imported rule")
+				writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "modified imported rule")
 			case "recovery":
 				writeFixture(t, root, ".syllabus-transaction"+"/journal.json", `{"formatVersion":99}`)
 			case "cancel":
@@ -181,7 +181,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 // TestOfflineRejectsSemanticCorruptionBeyondDigests validates catalog content even with self-consistent hashes.
 func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 	root, options := importedProject(t)
-	writeFixture(t, root, "vendor/team/techs/go/errors.md", "invalid but rehashed")
+	writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "invalid but rehashed")
 	data, err := root.ReadFile("vendor/team/_source.json")
 	if err != nil {
 		t.Fatal(err)
@@ -220,12 +220,12 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 			files := record["files"].(map[string]any)
 			if move[0] != "" {
 				delete(files, move[0])
-				if err := root.Remove("vendor/team/" + move[0]); err != nil {
+				if err := root.Remove("vendor/team/rules/" + move[0]); err != nil {
 					t.Fatal(err)
 				}
 			}
 			files[move[1]] = digest([]byte(projectRule))
-			writeFixture(t, root, "vendor/team/"+move[1], projectRule)
+			writeFixture(t, root, "vendor/team/rules/"+move[1], projectRule)
 			encoded, err := json.Marshal(record)
 			if err != nil {
 				t.Fatal(err)
@@ -331,6 +331,21 @@ func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	}
 	writeFixture(t, root, "rules/techs/go/errors.md", projectRule+"Later edit.\n")
 	projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
+}
+
+// TestProjectInputRecheckRejectsALaterLocalFolder refuses a local/ folder that appears after the project opened,
+// which the rechecked trees don't cover.
+func TestProjectInputRecheckRejectsALaterLocalFolder(t *testing.T) {
+	root, _ := localProject(t)
+	state, err := readProject(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
+	var validation *ValidationError
+	if err := requireUnchanged(context.Background(), root, state); !errors.As(err, &validation) || validation.Location != ".syllabus/local/" {
+		t.Fatalf("recheck error = %v, want the local/ refusal", err)
+	}
 }
 
 // TestOfflineRendersOnlyVerifiedSnapshotBytes loads the bytes whose digests were verified, so an edit made after

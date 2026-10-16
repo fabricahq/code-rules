@@ -168,15 +168,17 @@ func parseLicense(input json.RawMessage, location string) (*LicenseDeclaration, 
 // The file must be library-wide: outside .syllabus/, or in its assets/ or a group in its rules/. A rule's Markdown
 // file or a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a
 // library release replace a rule version's content. A path in .code-rules/, which a library declared before Code
-// Rules was renamed Syllabus, reads as the same path in .syllabus/, where tree upgrades and git mv put its file.
+// Rules was renamed Syllabus, reads as the same path in .syllabus/, where tree upgrades and git mv put its file. A file
+// outside .syllabus/ keeps its repository path in a project's snapshot of the library, so it can't start with a name
+// the snapshot keeps for the library's other files.
 func termsPath(input json.RawMessage, location string) (string, error) {
 	declared, err := decode.Path(input, location)
 	if err != nil {
 		return "", err
 	}
 	path, ok := librarytree.LibraryPath(librarytree.Upgrade(declared))
-	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") {
-		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, config.yaml and the assets/, changes/, practices/, and techs/ folders are reserved for the library's own files")
+	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") || (path == declared && librarytree.InSnapshotNames(path)) {
+		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
 	}
 	if librarytree.IsRuleContent(path) {
 		return "", invalid(location, decode.Quote(declared)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root")

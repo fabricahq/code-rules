@@ -1,15 +1,21 @@
 ---
-title: "Group"
-description: "How groups organize rules and help agents find relevant guidance."
+title: "Rule group"
+description: "How rule groups organize rules and help agents find relevant guidance."
 ---
+
+:::caution[Preview]
+The `.syllabus/rules/` path on this page is the version 2 layout, which isn't in a released version of Syllabus yet. The released CLI reads a library's rule groups at the repository root, and a project's own rule groups in `.syllabus/local/`.
+:::
 
 A **rule group** is a collection of related [rules](/concepts/rule/) and tells agents when to read them.
 
-Groups can live in a **library** for projects to import, or locally in a **project** for that project alone. Projects can combine imported groups with their own local rules.
+Rule groups can live in a **library** for projects to take, or in a **project** for that project alone. Projects can combine rule groups from libraries with their own rules.
 
-## Group types
+Rule groups hold rules only. [Skills](/concepts/skill/) don't belong to rule groups, and including a rule group's rules never installs a skill.
 
-Every group must be either a **technology group** under `techs/` or a **practice group** under `practices/`.
+## Rule group types
+
+There are two kinds of rule groups: **technology groups** under `techs/` and **practice groups** under `practices/`. Every rule group is one or the other. Both live in the `rules/` folder of the Syllabus directory, `.syllabus/rules/`.
 
 ### Technologies
 
@@ -23,52 +29,52 @@ For example, `techs/playwright` holds rules about writing browser tests with Pla
 
 For example, `practices/testing` holds rules about testing behavior, regardless of the language or test framework.
 
-## Group identities
+## Rule group identities
 
-A group's ID is its path starting with `techs/` or `practices/`. A group named "Automated Tests" might have the ID `practices/testing`.
+A rule group's ID is its path starting with `techs/` or `practices/`. A rule group named "Automated Tests" might have the ID `practices/testing`.
 
-When a project builds or syncs, local and imported rules with the same group ID appear together in the generated group.
+When a project builds or syncs, its own rules and the rules it includes from sources with the same rule group ID appear together in the generated rule group.
 
-Use `--name` when creating a group to give it a readable title; the title does not change its ID.
+Use `--name` when creating a rule group to give it a readable title; the title does not change its ID.
 
-## Canonical group IDs
+## Canonical rule group IDs
 
-Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical group list, `canonical-groups.yaml` at the root of the [Syllabus repository](https://github.com/fabricahq/syllabus), names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the group.
+Each library chooses its own rule group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical rule group list, `canonical-groups.yaml` at the root of the [Syllabus repository](https://github.com/fabricahq/syllabus), names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the rule group.
 
-When you create a group, use a canonical ID if one fits. Tools and catalogs can read the list to combine groups across libraries, for example to show every library's Go rules together. A group whose ID isn't on the list works the same way in projects, but those tools show it on its own. The list has no aliases: a group ID is part of every rule's ID, so another name for the same group is a different group.
+When you create a rule group, use a canonical ID if one fits. Tools and catalogs can read the list to combine rule groups across libraries, for example to show every library's Go rules together. A rule group whose ID isn't on the list works the same way in projects, but those tools show it on its own. The list has no aliases: a rule group ID is part of every rule's ID, so another name for the same rule group is a different rule group.
 
-The list on `main` changes as maintainers add groups. A tool should read the file at an explicit commit, such as `https://raw.githubusercontent.com/fabricahq/syllabus/<commit>/canonical-groups.yaml`, and update that commit deliberately, as it would a dependency.
+The list on `main` changes as maintainers add rule groups. A tool should read the file at an explicit commit, such as `https://raw.githubusercontent.com/fabricahq/syllabus/<commit>/canonical-groups.yaml`, and update that commit deliberately, as it would a dependency.
 
-To propose a canonical group, open a pull request that adds an entry to `canonical-groups.yaml`. Say which rules belong in the group and how it differs from the groups already on the list.
+To propose a canonical rule group, open a pull request that adds an entry to `canonical-groups.yaml`. Say which rules belong in it and how it differs from the rule groups already on the list.
 
-## What a group contains
+## What a rule group contains
 
-A group is a folder containing:
+A rule group is a folder containing:
 
 - **Metadata** in `_group.yaml`: its name, description, and when agents should read it.
 - **Rules**: one Markdown file per rule.
 
-For example, from a library repository's root:
+For example, relative to the repository root:
 
 ```text
-/practices/testing/
+/.syllabus/rules/practices/testing/
   _group.yaml
   verify-retry-limits.md
   test-changed-behavior.md
 ```
 
-For a group a project authors, the same files live in `/.syllabus/rules/practices/testing/`, relative to the project root.
+The layout is the same whether the rule group belongs to a library or only to a project.
 
-You maintain the metadata and rules you author. The CLI supplies group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
+You maintain the metadata and rules you author. The CLI supplies rule group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
 
-See [Rule and group format](/reference/rule-format/#group-metadata) for the fields and file layout.
+See [Rule and rule group format](/reference/rule-format/#rule-group-metadata) for the fields and file layout.
 
 ## Assets
 
 Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Syllabus includes them in the generated guidance. See [Supporting assets](/reference/rule-format/#supporting-assets) for the layout.
 
-## When to read a group
+## When to read a rule group
 
-Agents start at the generated `RULES.md`, choose groups using their `whenToRead` descriptions, then read those groups' rules. Each rule's conditions and exceptions determine whether it applies to the task.
+Agents start at the generated `RULES.md`, choose rule groups using their `whenToRead` descriptions, then read those rule groups' rules. Each rule's conditions and exceptions determine whether it applies to the task.
 
-For the complete reading process, see the [agent workflow](/for-agents/). To choose groups for your project, follow [Import rules](/guides/select-rules/).
+For the complete reading process, see the [agent workflow](/for-agents/). To choose rule groups for your project, follow [Include rules](/guides/select-rules/).

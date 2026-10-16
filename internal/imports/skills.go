@@ -174,42 +174,44 @@ func installedSkills(source rules.Source, plan sourcePlan, chosen []string, uses
 }
 
 // skillUses reads the SKILL.md of every skill chosen reaches in folders, the skills of the plan's commit, and returns
-// what each uses: its syllabus-skills-used lines, then the skills the source's skills.uses adds. A used skill folders
-// lacks is absent from the result, for installedSkills to report. It fails when a SKILL.md it reads has unreadable
-// frontmatter.
+// what each uses: its syllabus-skills-used lines, then the skills the source's skills.uses adds. It fetches the
+// SKILL.md files one level of uses at a time, so it never downloads those of skills nothing installed uses. A used
+// skill folders lacks is absent from the result, for installedSkills to report. It fails when a SKILL.md it reads
+// has unreadable frontmatter.
 func (r *repository) skillUses(ctx context.Context, source rules.Source, folders map[string]map[string]treeEntry, chosen []string) (map[string][]string, error) {
-	entries := map[string]treeEntry{}
-	prefetch := []treeEntry{}
-	for id, files := range folders {
-		if entry, ok := files[id+"/"+skills.File]; ok {
-			entries[entry.name] = entry
-			prefetch = append(prefetch, entry)
-		}
-	}
-	if err := r.prefetch(ctx, prefetch); err != nil {
-		return nil, err
-	}
-	input := newGitFiles(ctx, r, entries)
 	uses := map[string][]string{}
-	for pending := slices.Clone(chosen); len(pending) > 0; pending = pending[1:] {
-		id := pending[0]
-		if _, seen := uses[id]; seen {
-			continue
+	for pending := chosen; len(pending) > 0; {
+		entries := map[string]treeEntry{}
+		for _, id := range pending {
+			if _, seen := uses[id]; seen {
+				continue
+			}
+			if entry, ok := folders[id][id+"/"+skills.File]; ok {
+				entries[id] = entry
+			}
 		}
-		if _, ok := folders[id]; !ok {
-			continue
-		}
-		file := id + "/" + skills.File
-		data, err := input.ReadFile(file)
-		if err != nil {
+		if err := r.prefetch(ctx, slices.Collect(maps.Values(entries))); err != nil {
 			return nil, err
 		}
-		metadata, err := skills.ReadMetadata(data, "vendor/"+source.Name+"/"+file)
-		if err != nil {
-			return nil, err
+		files := map[string]treeEntry{}
+		for _, entry := range entries {
+			files[entry.name] = entry
 		}
-		uses[id] = slices.Concat(metadata.SkillsUsed, source.SkillUses[id])
-		pending = append(pending, uses[id]...)
+		input := newGitFiles(ctx, r, files)
+		pending = nil
+		for _, id := range slices.Sorted(maps.Keys(entries)) {
+			file := entries[id].name
+			data, err := input.ReadFile(file)
+			if err != nil {
+				return nil, err
+			}
+			metadata, err := skills.ReadMetadata(data, "vendor/"+source.Name+"/"+file)
+			if err != nil {
+				return nil, err
+			}
+			uses[id] = slices.Concat(metadata.SkillsUsed, source.SkillUses[id])
+			pending = append(pending, uses[id]...)
+		}
 	}
 	return uses, nil
 }
@@ -281,10 +283,11 @@ type importedSkills struct {
 }
 
 // readSkills reads the files of the skills the source installs at the plan's commit, a library's when isLibrary is
-// set: the skills chooseSkills chooses, and every skill they use, transitively, recording why each is installed. It
-// fails for a skill file that is a symbolic link or submodule, over the import byte limits, as installedSkills does
-// for the skills' uses, and as requireSkillBasedOn does for a replacement's basedOn.
-func (r *repository) readSkills(ctx context.Context, source rules.Source, plan sourcePlan, isLibrary bool) (importedSkills, error) {
+// set: the skills chooseSkills chooses, and every skill they use, transitively, recording why each is installed.
+// retained is the bytes the source's import already read, which count toward the same retained limit. It fails for a
+// skill file that is a symbolic link or submodule, over the import byte limits, as installedSkills does for the
+// skills' uses, and as requireSkillBasedOn does for a replacement's basedOn.
+func (r *repository) readSkills(ctx context.Context, source rules.Source, plan sourcePlan, isLibrary bool, retained int) (importedSkills, error) {
 	result := importedSkills{files: map[string][]byte{}, executable: []string{}, skills: map[string]library.ImportedSkill{}, available: map[string]library.ImportedSkill{}}
 	if err := r.requireSkillBasedOn(ctx, source); err != nil {
 		return importedSkills{}, err
@@ -337,6 +340,7 @@ func (r *repository) readSkills(ctx context.Context, source rules.Source, plan s
 		return importedSkills{}, err
 	}
 	input := newGitFiles(ctx, r, entries)
+	input.total = retained
 	for _, name := range slices.Sorted(maps.Keys(entries)) {
 		data, err := input.ReadFile(name)
 		if err != nil {

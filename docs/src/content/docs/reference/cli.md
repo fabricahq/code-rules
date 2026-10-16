@@ -3,15 +3,15 @@ title: "CLI commands"
 description: "Syntax, arguments, options, and results for every supported Syllabus command."
 ---
 
+:::caution[Preview]
+This page describes the commands as they work with version 2 configuration, skill levels, and branch refs, which aren't in a released version of Syllabus yet. The released CLI has no skill commands, adds a library with `syllabus project add library`, writes authored rules to `.syllabus/local/`, and doesn't move a source that uses `ref`.
+:::
+
 Find each command's syntax and options below. Every command also accepts `--json` and `-h` / `--help`; [shared behavior](#shared-options-and-prompts) and [output formats](#command-output) are documented at the end.
 
 ## Project commands
 
 `syllabus project` manages rules and skills for a **project**, the codebase whose rules and skills Syllabus manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
-
-:::note[Preview]
-Skills, skill levels, `skillTargets`, `project init --skill-targets`, `project add skill`, `project list skills`, and `project add source`, which replaces `project add library`, come in the next Syllabus release.
-:::
 
 Configuration lives in `.syllabus/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
@@ -21,16 +21,18 @@ Configuration lives in `.syllabus/config.yaml` at the project root. See [Working
 syllabus project init [options]
 ```
 
-Create project configuration, the authored rules directory, and the managed Syllabus guide. Rerunning init preserves valid configuration and authored rules and refreshes an unmodified guide.
+Create `.syllabus/config.yaml`, the authored `rules/` and `skills/` directories, and the managed Syllabus guide. Rerunning init preserves valid configuration and authored content and refreshes an unmodified guide.
 
 | Option | Meaning |
 | --- | --- |
 | `--skill-targets TARGET` | Where to install skills: `claude` for `.claude/skills/`, `agents` for `.agents/skills/`, or `none`. Repeat for both targets. `none` can't be combined with a target. |
 | `--non-interactive` | Accepted; init runs without prompts even when this flag is omitted. |
 
-A new configuration gets `skillTargets: [claude, agents]`, or `skillTargets: []` with `--skill-targets none`. Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. Init creates no skill target folders: build and sync write them when the project first installs a skill.
+A new configuration gets `schemaVersion: 2` and `skillTargets: [claude, agents]`, or `skillTargets: []` with `--skill-targets none`. Init creates no target folders: sync writes them when the repository first installs a skill.
 
-Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Syllabus guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. A version 1 configuration fails with a message that shows the version 2 shape; see [No backward compatibility](/reference/configuration/#no-backward-compatibility).
+
+Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Syllabus guide. For file locations and ownership, see [Project and rule group guides](/reference/files/#project-and-rule-group-guides).
 
 ### project add source
 
@@ -38,32 +40,32 @@ Init does not fetch sources or generate rule guidance. It refuses to overwrite a
 syllabus project add source NAME [options]
 ```
 
-Record a source in project configuration without fetching it. `NAME` is the source name, such as `team`. A source is a library, or any other Git repository with skill folders; you don't declare which, because sync detects whether the repository has a [library manifest](/reference/library-format/). Run `syllabus project sync` afterward to import the included rules and install the included skills.
+Record a source in configuration without fetching it. `NAME` is the source name, such as `team`. Run `syllabus project sync` afterward to take the included rules and install the included skills. The same command adds a library or any other Git repository with skill folders: you don't declare which it is, and sync detects whether the repository has a [manifest](/reference/library-format/#the-manifest).
 
 | Option | Meaning |
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
-| `--rules SELECTOR` | A [rule selector](/reference/configuration/#select-rules) for `rules.include`: a group prefix, such as `practices/testing/*`, a rule ID, such as `practices/testing/verify-retry-limits`, or a wildcard, `*`, `practices/*`, or `techs/*`. Repeat for several. |
-| `--skills SELECTOR` | A [skill selector](/reference/configuration/#select-skills) for `skills.include`: a skill ID, such as `skills/build-feature`, `recommended` for the skills a library recommends, or `*` for every skill the source offers. Repeat for several selectors. |
-| `--ref REF` | Take the source exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. Required for a repository without `release/<number>` tags, such as one that isn't a library. |
+| `--ref REF` | The branch, tag, commit, or library release to take the source from, recorded as the source's `ref`. Required for a source without `release/<number>` tags, such as a non-library source; see [Refs](/reference/configuration/#refs). |
+| `--rules SELECTOR` | A [rule selector](/reference/configuration/#rule-selectors) for `rules.include`: a rule ID, such as `practices/testing/verify-retry-limits`, a prefix, such as `practices/testing/*`, or `*`. Repeat for several. |
+| `--skills SELECTOR` | A [skill selector](/reference/configuration/#skill-selectors) for `skills.include`: `recommended`, `*`, or a skill ID, such as `skills/build-feature`. Repeat for several. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Without `--rules` or `--skills`, the source installs only the library's [required skills](/reference/configuration/#skill-levels). At a terminal, the command asks for the repository when `--repository` is missing, and for rule and skill selectors when neither option is given; both answers can be empty. Without `--ref`, the source follows the library's newest library release when the project updates. To pin individual rules, add `rules.pins` to the source in configuration, or use `syllabus project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
-
-Adding a source preserves existing source exceptions and authored files. Quote `*` and selectors that end in `/*` so your shell does not expand them, and pass each selector as a separate option, rather than a comma-separated flag value:
+Quote `*` and selectors that end in `/*` so your shell does not expand them. Pass each selector as a separate option, rather than a comma-separated flag value:
 
 ```sh
 syllabus project add source team \
   --repository https://github.com/example/rules.git \
   --rules 'practices/testing/*' \
   --rules 'techs/typescript/*' \
-  --skills skills/build-feature \
+  --skills recommended \
   --non-interactive
 ```
 
 The repository address and selectors are illustrative; replace them with a source you can access.
 
-Sync checks the source when it first reads it. A source without `release/<number>` tags and without `ref` fails with `ref-required`. `rules` on a source that isn't a library fails, because it has no rules. A skill ID the source doesn't have fails, and so does a source that isn't a library and includes no skills, since it requires none; see [Sync](/reference/sync/#skills).
+`--rules` and `--skills` are both optional: a source added with neither still installs the skills its library requires. Without `--ref`, the source follows the library's newest library release when the project updates. To hold individual rules, add `pins` to the source in configuration, or use `syllabus project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+
+Sync checks the source when it first reads it. A source without `release/<number>` tags and without `ref` fails with `ref-required`. `rules` on a non-library source fails, because it has no rules. A `--ref` that names no branch, tag, or commit fails with `version-not-found`, and a skill from a non-library source with no license terms fails with `license-not-found`; see [License rules](/guides/license-rules/#license-skills). An existing source name or repository fails before writing anything; declare each repository once.
 
 ### project add group
 
@@ -71,16 +73,16 @@ Sync checks the source when it first reads it. A source without `release/<number
 syllabus project add group ID [options]
 ```
 
-Create a local group with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create an authored rule group in `.syllabus/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
-| `--name TEXT` | Required. Group display name. |
-| `--description TEXT` | Required. What the group covers. |
-| `--when-to-read TEXT` | Required. When an agent should read the group. |
+| `--name TEXT` | Required. Rule group display name. |
+| `--description TEXT` | Required. What the rule group covers. |
+| `--when-to-read TEXT` | Required. When an agent should read the rule group. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-A group can exist before it has rules. Local groups do not need a library source declaration. Existing group files are preserved.
+A rule group can exist before it has rules. Authored rule groups need no source declaration. Existing rule group files are preserved.
 
 ### project add rule
 
@@ -88,7 +90,7 @@ A group can exist before it has rules. Local groups do not need a library source
 syllabus project add rule ID [options]
 ```
 
-Create a rule in an existing local group. `ID` includes the group path and rule name, such as `practices/testing/check-retries`, without `.md`.
+Create a rule in an existing authored rule group, at `.syllabus/rules/ID.md`. `ID` includes the rule group path and rule name, such as `practices/testing/check-retries`, without `.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -99,7 +101,7 @@ Create a rule in an existing local group. `ID` includes the group path and rule 
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `syllabus project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `syllabus:draft` marker before building. Existing rules are not overwritten.
+Create the rule group first with `syllabus project add group`. A missing rule group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `syllabus:draft` marker before building. Existing rules are not overwritten.
 
 #### Fork a library rule
 
@@ -107,47 +109,64 @@ Create the group first with `syllabus project add group`. A missing group fails 
 syllabus project add rule ID --from LIBRARY@VERSION [options]
 ```
 
-Copy one version of a library rule into `rules/` so the project controls its text. Use a fork to change what a rule says. To import one rule without the rest of its group, [select it individually](/reference/configuration/#select-individual-rules) instead, and to keep an imported rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `rules/practices/testing/verify-retry-limits.md`.
+Copy one version of a library rule into `.syllabus/rules/` so the project controls its text. Use a fork to change what a rule says. To take one rule without the rest of its rule group, [include it by ID](/reference/configuration/#rule-selectors) instead, and to keep a rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `.syllabus/rules/practices/testing/verify-retry-limits.md`.
 
 | Option | Meaning |
 | --- | --- |
 | `--from LIBRARY@VERSION` | Required for a fork. `LIBRARY` is a configured source name, such as `team`, or a [repository address](/reference/configuration/#repository-addresses). `VERSION` is one of the rule's versions, such as `1.3.0`. |
-| `--reason TEXT` | Why the project uses the fork instead of the imported rule. Required when the fork adds an exclusion, as in step 4 below, and refused otherwise. |
+| `--reason TEXT` | Why the project uses the fork instead of the library's rule. Required when the fork adds an exclusion, as in step 4 below, and refused otherwise. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 Metadata options and `--body-file` don't apply to a fork. The command:
 
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
-2. Writes them under `rules/`. When neither the project's own metadata nor a library the project imports supplies the rule's group, it also creates the group in `rules/` from the library's group metadata.
+2. Writes them under `.syllabus/rules/`. When neither authored rule group metadata nor a source the project includes supplies the rule's rule group, it also creates the authored rule group from the library's rule group metadata.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL, and the entry links to that address.
-4. When the configuration of the `LIBRARY` source selects the rule and its last sync imported it, adds a `rules.exclude` entry for it with your reason, the fork's rule ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned import, now decides what agents read. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
+4. When the `LIBRARY` source includes the rule and its last sync took it, adds an `exclude` entry for it with your reason, the fork's ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned copy, now decides what agents read. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
 
-If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `syllabus project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
+If the rule links to files in the library's shared `.syllabus/assets/` directory, the fork copies them into its own asset directory and updates the links, because authored rules can't depend on a source's files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing authored rules and exclusions are never overwritten. A forked rule has no version in your project; it changes only when you edit it. Run `syllabus project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
 ### project add skill
+
+```sh
+syllabus project add skill NAME [options]
+```
+
+Create an authored skill in `.syllabus/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `release-checklist`; the skill's ID is `skills/NAME`.
+
+| Option | Meaning |
+| --- | --- |
+| `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `syllabus-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+The command writes `SKILL.md` with the name, description, and type in its frontmatter, and a body with the `syllabus:draft` marker. Complete it and remove the marker before building; an authored skill that still has the marker fails sync and build. An authored skill cites your own rules by their IDs and rules from sources by project ID, such as `fabrica:practices/testing/verify-retry-limits`; see [Skills in a project](/reference/skill-format/#skills-in-a-project). In a library, use [library add skill](#library-add-skill) instead, whose skills cite only the library's own rules. Existing skills are not overwritten. When a skill the repository installs from a source already has the name, the command warns that sync will fail with `skill-name-clash` until you rename or exclude one of them.
+
+#### Fork a skill
 
 ```sh
 syllabus project add skill --from SOURCE:SKILL [options]
 ```
 
-Fork a skill the project installs: copy it into `.syllabus/skills/` so the project controls its steps, and install the copy in its place. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so the command takes no `NAME`. To write a new skill instead, create its folder in `.syllabus/skills/`; see [Write your own skill](/guides/install-skills/#write-your-own-skill).
+Copy a skill the project installs into `.syllabus/skills/` so the project controls its steps. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so leave out `NAME`.
 
 | Option | Meaning |
 | --- | --- |
-| `--from SOURCE:SKILL` | Required. A skill that the source's `skills.include` selects and its last sync installed. |
-| `--reason TEXT` | Required. Why the project uses the fork instead of the source's skill, recorded with the exclusion. A terminal asks for it when it's missing. |
+| `--from SOURCE:SKILL` | Required for a fork. A skill that the source's last sync installed, whether the project included it or another skill uses it. A [required skill](/reference/configuration/#skill-levels) is refused, naming the library that requires it. |
+| `--reason TEXT` | Required. Why the project uses the fork instead of the source's skill, recorded with the exclusion. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command:
+`--description` and `--type` don't apply to a fork. The command:
 
-1. Copies the skill's folder from `vendor/`, exactly as the source's last sync recorded it, with every file's executable bit, to `.syllabus/skills/<name>/`, where `<name>` is the skill's install name, the `name` in its `SKILL.md`, so agents know the fork by the name they already use. In the copy's `SKILL.md`, it adds the source's name to each skill ID in `syllabus-skills-used`, and, for a library's skill, each rule ID in `syllabus-rules-used`, such as `fabrica:skills/tdd` for `skills/tdd`, because in your project a bare ID names a skill or rule you author. It also adds to `syllabus-skills-used` each skill that the source's [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-uses) adds for the skill, which applies only to the source's own skill, and gives a `SKILL.md` without frontmatter, which a repository that isn't a library can supply, frontmatter with the skill's name. Each list it changes becomes a block string.
-2. Adds a `skills.exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the commit the source record locks as [`basedOn`](/reference/configuration/#exclude-or-replace-a-skill), so the fork installs in place of the skill, and updates list the source's later changes to it. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
+1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `.syllabus/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a non-library source, the recorded commit. A renamed skill's fork takes its install name, so the folder and `name` match what agents already see.
+2. Rewrites the fork's `syllabus-rules-used` and `syllabus-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `syllabus-skills-used`.
+3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
 
 :::note[Preview]
 Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
 :::
 
-It refuses a source that isn't configured, a skill the source's last sync didn't install, a skill the source's library [requires](/reference/configuration/#skill-levels), a skill the source already excludes, and a fork whose folder exists or that another exclusion already names as its `replacedBy`: existing authored skills and exclusions are never overwritten. It also refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/sync/#skills); fork such a skill by hand. When an update moves the source while the command waits for your reason, it writes nothing; run it again. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward to install it. The source's license still applies to the copied files.
+Links in a skill stay inside its folder, so the fork needs no link changes. A `SKILL.md` without frontmatter, which a repository that isn't a library can supply, gets frontmatter with the skill's name, and each list the fork changes becomes a block string. The command refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/skill-format/#validation); fork such a skill by hand. It also refuses a fork whose folder exists or that another exclusion already names as its `replacedBy`. When an update moves the source while the command waits for your reason, it writes nothing; run it again. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
 
 ### project sync
 
@@ -155,29 +174,35 @@ It refuses a source that isn't configured, a skill the source's last sync didn't
 syllabus project sync [options]
 ```
 
-Import the rule versions and skills recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Syllabus directory, and the installed skill folders in each skill target, with the complete result. Sync also refreshes an older, unedited managed Syllabus guide.
+Take the rule and skill versions recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Syllabus directory with the complete result. Sync also writes each installed skill's folder into the repository's skill targets, removes the folders of skills it no longer installs, and refreshes an older, unedited managed Syllabus guide.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: it restores the version recorded in `vendor/<source-name>/_source.json`. Sync chooses a rule's version only when configuration asks for something the record doesn't have:
+Sync needs access to every configured repository and uses your existing Git credentials. It never moves a source: it restores the library release or commit recorded in `vendor/<source-name>/_source.json`, and the rule versions recorded there. Sync chooses a version only when configuration asks for something the record doesn't have:
 
-| Situation | Version sync imports |
+| Situation | What sync takes |
 | --- | --- |
-| A new source, a changed repository, or a newly selected group or rule | Each new rule's newest version, and the library-wide files from the newest library release. |
-| A pin added or changed | The pinned version, up or down. |
+| A new source, or a changed repository | The source as `syllabus project update` would: the newest library release, or the commit the source's `ref` names now. |
+| A newly included rule or skill | The source's recorded library release or commit. Each new rule gets the newest version that library release or an earlier one published. A rule or skill that isn't in the recorded revision, such as one the library published later, fails with `skill-not-in-revision`, naming `syllabus project update SOURCE`. |
+| A pin added or changed | The pinned version, up or down, when the recorded library release or an earlier one published it. A later version fails, naming `syllabus project update SOURCE`. |
 | A pin removed | The recorded version, unchanged. The next update offers newer versions. |
-| `ref` added or changed | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
-| `ref` removed | The recorded version when it's a published version; otherwise the newest version. |
+| `ref` added, changed, or removed | Nothing new: the record is out of date, and sync fails, naming `syllabus project update SOURCE`, which takes the revision the configuration now names. A `ref` changed to another spelling of the recorded revision, such as `refs/tags/release/2` for `release/2`, is current. |
 
-When you change `rules.include`, a group is newly selected if the record didn't import it as a whole, even when the previous value matched it. For example, after a sync with `include: ["*"]`, a group that a later library release adds is newly selected once you change `rules.include` to name its selector instead.
+Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-vendor-snapshot) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .syllabus/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `syllabus project sync`, which applies any configuration changes; or delete `.syllabus/vendor/<source-name>/` and run `syllabus project sync`, which takes the source again as a new source. Before taking anything from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit it recorded, even after a tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
 
-Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-original-imported-files) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .syllabus/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `syllabus project sync`, which applies any configuration changes; or delete `.syllabus/vendor/<source-name>/` and run `syllabus project sync`, which imports the source again, with its unpinned rules at their newest versions. Before importing from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit its `ref` named when it was recorded, even after the tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
+Sync installs the skills each source's levels and `skills.include` bring in, every skill they use, transitively, and every rule an installed library skill cites; see [Skill selectors](/reference/configuration/#skill-selectors). A skill borrowed by a library comes from the commit the library's record holds for it. Sync writes a skill folder in a target only when `generated/installed-skills.json` records that Syllabus installed it there, or when no folder with that name exists. It fails, writing nothing, with `skill-folder-not-managed` when a folder with an installed skill's install name exists in a target that Syllabus didn't install, and with `skill-name-clash` when two skills would install under the same name, from any sources, authored skills, or both; rename or exclude one of them. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
 
-These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
+These changes come from edits you made to configuration, so sync applies them without a preview. To move sources to newer revisions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-Sync takes every skill of a source from the one revision its record locks, never moving the source for a skill: a skill ID that `skills.include` newly names and that revision lacks fails with `skill-not-in-revision`, which names the `syllabus project update SOURCE` that takes it from a newer library release. Sync installs each included skill, each skill the source's library requires, and each skill authored in `.syllabus/skills/`, into every [skill target](/reference/configuration/#skill-targets), and removes the folders of skills no longer included. It never replaces a folder in a skill target that Syllabus didn't install, and fails with `skill-folder-not-managed` instead; see [Skills](/reference/sync/#skills). With no skill targets, sync records and lists the skills and warns that it installed no copy.
+Sync warns:
 
-When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an entry in `rules.include` that another selector in the list already covers, such as a rule whose group's selector is listed, since the entry changes nothing. For each personal skill in your home directory with the same name as a skill the project installs, sync warns, naming both paths and what each agent does; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+- about a source that takes unreleased changes through `ref`, naming the source and its unreleased rules and skills;
+- when an exclusion, a rule included by ID, or a skill included by ID names a rule or skill the library retired, or a skill folder a non-library source no longer has, since the entry no longer does anything;
+- about a rule included by ID that a prefix in the same `include` already reaches, since the entry changes nothing;
+- for each place a skill from a non-library source breaks the [skill format](/reference/skill-format/), and installs the skill as it is;
+- for each rename it applies, with the fixed text in [Rename a skill](/reference/configuration/#rename-a-skill);
+- for each personal skill with the same name as an installed skill; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name);
+- when it installed no skill copies because `skillTargets` is empty, though the repository has skills to install.
 
 ### project update
 
@@ -185,14 +210,16 @@ When a source imports unreleased changes through `ref`, sync prints a warning na
 syllabus project update [SOURCE | SOURCE:RULE ...] [options]
 ```
 
-Preview newer rule versions, new rules, and retirements, then apply them after you confirm, and regenerate guidance like sync. With no arguments, every source is updated. `SOURCE`, such as `team`, limits the update to one library. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
+Preview each source's move along its `ref`, with newer rule and skill versions, new rules and skills, level changes, and retirements, then apply it after you confirm, and regenerate guidance and installed skills like sync. With no arguments, every source is updated. `SOURCE`, such as `team`, limits the update to one source. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
+
+A source's skills all come from one revision: the library release that supplies its library-wide files, or a non-library source's commit. They move together, with those library-wide files or that commit, and `syllabus project update SOURCE:SKILL`, such as `fabrica:skills/build-feature`, is refused with a message asking you to update the whole source. `--keep` is for rules only. `--exclude` and `--update-fork` take a skill as `SOURCE:SKILL` the same way they take a rule.
 
 | Option | Meaning |
 | --- | --- |
 | `--yes` | Apply the previewed changes without asking. Required to apply changes without a terminal, or with `--json`. |
-| `--keep SOURCE:RULE` | Pin this rule at its current version before applying the update, so it stays where it is. Repeat for several rules. Requires `--reason`. |
-| `--exclude SOURCE:RULE` | Exclude this new rule before applying the update, so it doesn't join. Repeat for several rules. Requires `--reason`. |
-| `--update-fork SOURCE:RULE` | Replace your local rule for this `replaced` rule with a fork of the library's newest version, overwriting your edits, and set its exclusion's `basedOn` to that version. Repeat for several rules. Takes no `--reason`. See [Replace a fork with the newest version](#replace-a-fork-with-the-newest-version). |
+| `--keep SOURCE:RULE` | Pin this rule at its current version before applying the update, so it stays where it is. Repeat for several. Requires `--reason`. Refused for a skill, which can't be pinned. |
+| `--exclude SOURCE:RULE` | Exclude this new rule or skill before applying the update, so it doesn't join. Repeat for several. Requires `--reason`. Refused for a skill that becomes required. |
+| `--update-fork SOURCE:RULE` | Replace your authored rule or skill for this `replaced` row with a fork of the source's newest version, overwriting your edits, and set its exclusion's `basedOn` to that version, or, for a non-library source, the newest commit. Repeat for several. Takes no `--reason`. See [Replace a fork with the newest version](#replace-a-fork-with-the-newest-version). |
 | `--reason TEXT` | The reason recorded with each pin that `--keep` writes and each exclusion that `--exclude` writes. |
 
 The preview lists, for each source:
@@ -200,18 +227,36 @@ The preview lists, for each source:
 | Change | Meaning |
 | --- | --- |
 | `major`, `minor`, or `patch` | The rule's old and new versions, and the summary of every version in between. |
-| `new` | A rule the library added to a selected group, at its newest version. |
-| `retired` | A rule the library retired, with its last version, its summary, and its replacement when there is one. When the library later retired the replacement too, the preview says so, and names the rule its replacements lead to, if any, instead of recommending the retired one. When your project already replaces the replacement with a local rule, the preview names your local rule instead of recommending the library's. Applying the update drops it. |
-| `replaced` | A rule you [replaced with a local rule](/reference/configuration/#exclude-or-replace-a-rule), with your local rule's path. When the exclusion records `basedOn`, the row appears whenever the library's newest version is newer than `basedOn`, and lists every change after it, labeled with its version when there are several, also when a pin keeps the imported copy where it is. Without `basedOn`, it compares with the version the project imports instead: it appears whenever the library's newest version is newer, also when a pin keeps the imported copy where it is, and lists the changes since, which your local rule may already have. Your local rule doesn't change unless you pass `--update-fork`; compare the two to decide whether it needs the same change. |
+| `new` | A rule the library added that your selectors reach, at its newest version. |
+| `retired` | A rule the library retired, with its last version, its summary, and its replacement when there is one. When the library later retired the replacement too, the preview says so, and names the rule its replacements lead to, if any, instead of recommending the retired one. When your project already replaces the replacement with an authored rule, the preview names your rule instead of recommending the library's. Applying the update drops it. |
+| `replaced` | A rule you [replaced with an authored rule](/reference/configuration/#exclude-or-replace-a-rule), with your rule's path. When the exclusion records `basedOn`, the row appears whenever the library's newest version is newer than `basedOn`, and lists every change after it, labeled with its version when there are several, also when a pin keeps the vendored copy where it is. Without `basedOn`, it compares with the version the project's lock records instead: it appears whenever the library's newest version is newer, also when a pin keeps the vendored copy where it is, and lists the changes since, which your rule may already have. Your rule doesn't change unless you pass `--update-fork`; compare the two to decide whether it needs the same change. |
 | `pinned` | A pinned rule that has a newer version. It doesn't move; the preview shows the pin's reason. |
 
-In a terminal, `syllabus project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. For each new rule, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose imported copy a pin keeps, it names the local files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the libraries, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule to move, add, or drop, and no shared files to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no rule updates are available and no files were written.
+Skills from a library appear in the same list, by their skill IDs, with the same changes except `pinned`. When the source's library-wide files move to a newer library release, every installed skill moves with them, and the preview lists each skill whose version changed. A skill that a moving skill newly uses appears as `new`, naming the skill that uses it, and a rule it newly cites appears as `new`, at its newest version, marked reference-only unless your selectors also reach it. A skill or cited rule that no installed skill needs any longer is dropped.
 
-A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementLocalRule` when your project already replaces that replacement with a local rule), `localRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. For an `update-fork` decision, a row's `overwrites` lists the local files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Syllabus directory; both are empty for other rows. A `replaced` row's `from` is the version the project imports and `to` the newest version, or `newest` instead when a pin keeps the imported copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `localRule` lacks. A source that uses `ref` has its `ref` and no rules. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
+A skill whose level changes shows the move on its row, such as `level: recommended -> required` or `level: offered -> recommended`, with the library that set it. A move that installs a skill, such as `offered -> required`, or `offered -> recommended` when you include `recommended`, appears as `new`; a move that stops installing one, such as `recommended -> offered` when you don't name it, appears as `dropped`. A skill whose version doesn't change and that the move neither installs nor drops appears as `level`, so you can decide whether to include it. A skill that becomes required while your configuration excludes or forks it fails the update, naming the library and the exclusion to remove: required skills can't be excluded.
 
-The preview doesn't list changes to rules you excluded without a replacement. `--keep` and pins in configuration never change which rules are imported. When a rule you exclude or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your local rules in a group with no metadata, such as a fork of a retired rule, it writes the group's metadata to `rules/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group). Like sync, update warns about each personal skill with the same name as a skill the project installs, in its preview as well; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+Under each skill's row, from a library or a non-library source, the preview flags every executable file that's new or changed, on its own line, such as `script added: scripts/setup.sh` or `script changed: scripts/verify.sh`: a file whose executable bit is set at the new revision and that the update adds or changes, or a file whose executable bit changed. When it flags any, it prints one warning that Syllabus never runs these scripts but agents may, so read them before confirming. The warning doesn't block the update.
 
-Sources that use `ref` don't move; change `ref` and run `syllabus project sync` instead. An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group metadata, shared assets, and the library's license files, to the newest library release, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A `SOURCE:RULE` update leaves them where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published.
+A source whose `ref` names a branch or a tag lists its commit move, such as `main: 3f9c2e1 -> 8a41d07`, and warns when a tag now names a different commit than at the last update. A [borrowed source](/reference/configuration/#borrowed-skills) lists its move the same way, under the library that borrows it, such as `fabrica borrows mattpocock: main: 3f9c2e1 -> 8a41d07`, since each project resolves a borrowed ref when it updates. For a non-library source, and for borrowed skills, the preview lists one row for each installed skill folder that differs between the recorded and new commits:
+
+| Change | Meaning |
+| --- | --- |
+| `changed` | A skill folder whose files differ, with the paths of the files that changed, including a file whose executable bit changed. |
+| `added` | A new skill folder that the source's selectors include, such as with `"*"`. |
+| `removed` | An installed skill whose folder no longer exists. Applying the update stops installing it. |
+
+See [Update rules and skills](/guides/update/) for examples.
+
+In a terminal, `syllabus project update` shows the preview and asks for confirmation. For each major change and retirement of a rule, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. It asks you to confirm each major change, retirement, and level change of a skill too, but can't keep a skill back on its own: to hold one, decline, then exclude or fork the skill, or set the source's `ref`. For each new rule or skill that isn't required, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose vendored copy a pin keeps, it names the authored files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the sources, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule or skill to move, add, or drop, and no shared files or commits to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no updates are available and no files were written.
+
+A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementAuthoredRule` when your project already replaces that replacement with an authored rule), `authoredRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. A row's `change` is one of the preview's changes: `major`, `minor`, `patch`, `new`, `retired`, `replaced`, or `pinned`. For an `update-fork` decision, a row's `overwrites` lists the authored files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Syllabus directory; both are empty for other rows. A `replaced` row's `from` is the version the project's lock records and `to` the newest version, or `newest` instead when a pin keeps the vendored copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `authoredRule` lacks. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
+
+In JSON output, each source in `value.sources` also has a `skills` list, whose rows have the same fields as its `rules`, plus `level`, with the levels `from` and `to` when the level changed, absent otherwise; and `scripts`, a list of the flagged scripts, each with its `path`, relative to the skill's folder, and its `change`, `added` or `changed`, empty when the row flags none. A skill row's `change` can also be `dropped` or `level`. A source whose `ref` names a branch or tag, and each entry in a source's `borrowed` list, has `commit`, with the commits `from` and `to`, absent when it doesn't move, and `tagMoved: true` when a tag now names a different commit. Rows for skills from a non-library source or a borrowed source have a `change` of `added`, `changed`, or `removed`, and `files`, the paths of the changed files relative to the skill's folder, empty for other rows.
+
+The preview doesn't list changes to rules or skills you excluded without a replacement. `--keep` and pins in configuration never change which rules are included. When a rule you exclude or include by ID is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your authored rules in a rule group with no metadata, such as a fork of a retired rule, it writes the rule group's metadata to `rules/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
+
+An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as the manifest, rule group metadata, shared assets, and the library's license files, to the newest library release, or the commit its `ref` names now, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A source whose `ref` names a library release or a commit doesn't move; change `ref` and run `syllabus project update SOURCE` to take the revision it names. A `SOURCE:RULE` update leaves the library-wide files where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published. The source's skills and skill levels always move with its library-wide files.
 
 #### Skills and their scripts
 
@@ -243,72 +288,17 @@ When your decisions keep a `SOURCE:RULE` update's library-wide files at an older
 
 #### Replace a fork with the newest version
 
-`--update-fork SOURCE:RULE` replaces the local rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the imported copy at an older one. The new fork is exactly what [`syllabus project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the `replacedBy` path, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
+For a skill, `--update-fork SOURCE:SKILL` replaces the whole authored skill folder that the exclusion's `replacedBy` names with what [`syllabus project add skill --from SOURCE:SKILL`](#fork-a-skill) writes for the source's newest version, or a non-library source's newest commit, and removes files you added to the folder. The rest of this section describes rules; it applies to skills the same way.
 
-Passing `--update-fork` is your consent to overwrite the local rule: your edits to it are lost, so commit them first if you want to compare. The preview, human and JSON, lists every file it replaces and, separately, every file it removes, reading the new fork from the library to tell them apart. The local rule's asset directory is replaced as a whole, including files you added to it, and the shared assets the new version links to are copied into it, as a fork copies them. Nothing outside the rule and its asset directory changes, because each rule owns its asset directory and no other rule may link into it. A pin stays: it governs only the imported copy.
+`--update-fork SOURCE:RULE` replaces the authored rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the vendored copy at an older one. The new fork is exactly what [`syllabus project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the path of the `replacedBy` rule, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
 
-`--update-fork` refuses, as an `invalid-arguments` usage error that exits `2`, a rule the source doesn't exclude with `replacedBy`, an unknown source, a `--reason`, and a rule that `--keep` or `--exclude` also names, before reading any library. It also refuses a rule the preview doesn't list as `replaced`, because the library has nothing newer than the version your rule is based on or the update doesn't include the rule, and a rule the library retired, which has no newest version to fork. Like the rest of the update, it fails with `invalid-release-tag`, writing nothing, when the library release tag that published the fork's version names another commit than when the update previewed it, also when a pin or a `SOURCE:RULE` update keeps the imported copy at an older version. Without `--update-fork`, `--yes` leaves every local rule as it is.
+Passing `--update-fork` is your consent to overwrite the authored rule: your edits to it are lost, so commit them first if you want to compare. The preview, human and JSON, lists every file it replaces and, separately, every file it removes, reading the new fork from the library to tell them apart. The authored rule's asset directory is replaced as a whole, including files you added to it, and the shared assets the new version links to are copied into it, as a fork copies them. Nothing outside the rule and its asset directory changes, because each rule owns its asset directory and no other rule may link into it. A pin stays: it governs only the vendored copy.
 
-If you merged the library's changes into your local rule by hand, record the version you merged by editing `basedOn` in `.syllabus/config.yaml`, so later updates list only newer changes.
+`--update-fork` refuses, as an `invalid-arguments` usage error that exits `2`, a rule the source doesn't exclude with `replacedBy`, an unknown source, a `--reason`, and a rule that `--keep` or `--exclude` also names, before reading any source. It also refuses a rule the preview doesn't list as `replaced`, because the library has nothing newer than the version your rule is based on or the update doesn't include the rule, and a rule the library retired, which has no newest version to fork. Like the rest of the update, it fails with `invalid-release-tag`, writing nothing, when the library release tag that published the fork's version names another commit than when the update previewed it, also when a pin or a `SOURCE:RULE` update keeps the vendored copy at an older version. Without `--update-fork`, `--yes` leaves every authored rule as it is.
 
-#### Replaced skills
+If you merged the library's changes into your authored rule by hand, record the version you merged by editing `basedOn` in `.syllabus/config.yaml`, so later updates list only newer changes.
 
-The preview also lists a skill you [replaced with an authored skill](/reference/configuration/#exclude-or-replace-a-skill) as `replaced`, with the commits it compares, when the source's copy of the skill at the revision the update takes differs from the copy your skill is based on: the skill at the exclusion's `basedOn`, or, without `basedOn`, at the commit the source record locks. Under the row, it names your skill and the files that differ, by their paths in the skill's folder, in contents, presence, or executable bit:
-
-```text
-team
-  replaced  skills/fix-bug  commit 3f9c2a7b1d4e -> 8a41d07c5e2f
-            Your skill: skills/fix-bug, based on commit 3f9c2a7b1d4e.
-            Changed since commit 3f9c2a7b1d4e, the copy your skill is based on:
-              SKILL.md
-              scripts/reproduce.sh
-            Compare them with your skill: the update doesn't change it.
-```
-
-The update never changes your skill or `basedOn`, and a replaced skill alone doesn't make the update ask for confirmation. In JSON output, each source's `replacedSkills` lists these rows, each with its `id`, `localSkill`, the authored skill that replaces it, `basedOn` when the exclusion records it, `from`, the commit the source record locks, `to`, the commit the update takes the skill from, and `files`. A source that uses `ref` compares the copy at the commit its record locks. The preview doesn't list changes to skills you excluded without a replacement.
-
-:::note[Preview]
-Replacing a forked skill with the source's newer copy during an update, as `--update-fork` does for a rule, isn't supported yet: compare the files and edit your skill, then edit `basedOn` to the commit you merged.
-:::
-
-#### Skill level changes
-
-When the library release the update moves a source to changes the [level](/reference/configuration/#skill-levels) of one of its skills, the preview lists the skill as `level`, with its levels before and after, and what that does to the project. It lists every change between two levels, and a required skill the library adds or removes, which installs or uninstalls whatever `skills.include` lists:
-
-```text
-team
-  level     skills/audit   none -> required
-            New required skill: it installs whatever skills.include says.
-  level     skills/review  recommended -> required
-            Now required: it installs whatever skills.include says, and the project can't exclude or fork it.
-  Shared files: release 3 -> 4
-```
-
-In JSON output, each source's `skillLevels` lists these rows, each with its `id`, and `from` and `to`, the levels at the commit the source record locks and at the commit the update takes skills from, empty when the library has no such skill there. A source that uses `ref` doesn't move, so it lists none. When a skill the project excludes becomes required, the update fails like sync does: remove the exclusion, or stop using the source.
-
-See [Update rules](/guides/update/) for the workflow.
-
-### project list skills
-
-```sh
-syllabus project list skills [options]
-```
-
-List each skill the project's sources offer, and the project's own skills, with what the project does with each. Reads the source records the last `syllabus project sync` wrote, so it works offline; run sync first after changing the configuration, or it fails as build does.
-
-```text
-SKILL                     LEVEL        SET BY             STATUS
-fabrica:skills/deploy     offered      fabrica, release 4 excluded
-fabrica:skills/review     recommended  fabrica, release 4 installed
-fabrica:skills/ship       required     fabrica, release 4 installed
-fabrica:skills/write-doc  offered      fabrica, release 4 available
-tools:tools/review        -            tools, not a library installed
-skills/release-checklist  -            this project       installed
-```
-
-`LEVEL` is the skill's [level](/reference/configuration/#skill-levels) in its library, and `SET BY` the source and the library release whose manifest set it, or the commit for a `ref` that isn't a library release. A skill from a repository that isn't a library has no level. `STATUS` is `installed`; `available`, for a skill the project could add to `skills.include`; `excluded`; or `replaced by` the authored skill that installs in its place.
-
-Accepts the [shared options](#shared-options-and-prompts) only. In JSON output, `value.skills` lists the same skills, in the same order, each with its `id`, `source`, unless the project authored it, `level`, and `setBy`, the `source`, `release`, and `commit` that set the level, when it has one, `status`, and `replacedBy` for a replaced skill.
+See [Update rules and skills](/guides/update/) for the workflow.
 
 ### project build
 
@@ -316,11 +306,11 @@ Accepts the [shared options](#shared-options-and-prompts) only. In JSON output, 
 syllabus project build [options]
 ```
 
-Regenerate `generated/` from project configuration, verified imported files, and local rules, and reinstall every skill into the skill targets, as sync does. Build works offline and does not change imported revisions, so it's how you install an authored skill you just wrote or changed, and how you restore installed copies that check reports. Like sync, it validates each authored skill's frontmatter, and warns when one cites a rule its library retired; see [Skills](/reference/sync/#skills). It also creates a missing managed Syllabus guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
+Regenerate `generated/` from configuration, verified vendor snapshots, and authored rules and skills, and rewrite the installed skill folders in the repository's skill targets. Build works offline and does not change recorded revisions. It also creates a missing managed Syllabus guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Run sync first if the imported repository, selection, pins, or `ref` no longer match configuration, or if the stored library files need repair.
+Run sync first if the recorded repository, selectors, pins, or `ref` no longer match configuration, or if the vendor snapshots need repair. Build validates authored skills, and fails on an unfinished draft, as sync does.
 
 ### project check
 
@@ -328,19 +318,53 @@ Run sync first if the imported repository, selection, pins, or `ref` no longer m
 syllabus project check [options]
 ```
 
-Check generated guidance, installed skills, and the managed Syllabus guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `syllabus project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files). It reports each installed skill folder that is missing, differs from the skill's source, or belongs to a skill the project no longer installs, naming the skill; see [Check installed skills](/reference/sync/#check-installed-skills). It fails, as a validation error at the skill's `SKILL.md`, when a skill you author cites a rule its library retired.
+Check generated guidance, installed skills, and the managed Syllabus guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including an installed skill folder that differs from what sync would write, a folder that `generated/installed-skills.json` records but that's missing, such as when `.gitignore` excludes the target folders so they were never committed, a stale `installed-skills.json`, an authored skill that cites a rule its library retired, and a source record in `vendor/` that was changed outside `syllabus project sync`, which no command trusts until you restore it or take the source again; see [the source record's checksum](/reference/provenance/#inspect-the-vendor-snapshot). It warns about personal skills with the same name as installed skills, as sync does, without failing.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Check also warns about each personal skill with the same name as a skill the project installs, as sync does, without failing; see [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name). The warnings are in `value.warnings` in JSON output.
+Use check in CI to detect files that need regeneration. It uses recorded commits and rule and skill versions, and does not check whether remote tags or branches moved, or newer library releases exist. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
 
-Use check in CI to detect files that need regeneration. It uses recorded commits and rule versions, and does not check whether remote tags moved or newer library releases exist. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
+### project list skills
+
+```sh
+syllabus project list skills [options]
+```
+
+List the skills the repository's sources offer, with their levels, so you can choose which to install. Lists never write files. The command reads each library source's newest library release, or the revision its `ref` names now, and each non-library and borrowed source at the newest commit its `ref` names, and needs access to every configured and borrowed repository.
+
+| Option | Meaning |
+| --- | --- |
+| `--type TYPE` | Only skills of this type: `playbook` or `review`. |
+| `--applies-rules-from GROUP` | Only skills whose `syllabus-rules-used` names a rule in this rule group, such as `practices/architecture`. |
+
+```text
+$ syllabus project list skills --applies-rules-from practices/architecture
+NAME                 ID                                  LEVEL        SET BY             VERSION  STATUS
+build-feature        fabrica:skills/build-feature        recommended  fabrica release 7  1.3.0    installed
+review-architecture  fabrica:skills/review-architecture  offered      fabrica release 7  2.0.1    available
+write-design-doc     fabrica:skills/write-design-doc     offered      fabrica release 7  1.1.0    available
+
+3 skills cite rules in practices/architecture. Skills that cite no rules, including those from non-library sources, show up only without --applies-rules-from.
+```
+
+Each row shows:
+
+- **NAME:** the install name, which is the skill's own `name` unless the repository renames it.
+- **ID:** the skill's project ID. A borrowed skill's ID names the library and the borrowed source, such as `fabrica:mattpocock:skills/engineering/to-spec`.
+- **LEVEL:** `required`, `recommended`, or `offered`. Every skill from a non-library source is `offered`.
+- **SET BY:** the library and library release whose manifest set the level, or `-` for a non-library source.
+- **VERSION:** the skill's newest version, or, for a skill without versions, the commit it would come from.
+- **STATUS:** `installed` for a skill the repository installs, whether included, required, or used by another installed skill, and `available` for one a source offers that the repository doesn't install.
+
+Authored skills aren't listed. Skills are sorted by project ID. To install one, add it to that source's `skills.include` and run `syllabus project sync`, or `syllabus project update SOURCE` when it isn't in the recorded revision yet.
+
+Skills don't belong to rule groups, so `--applies-rules-from` finds skills by the rules they cite: a skill that cites rules in several rule groups appears under each of them, and a skill that cites no rules, including every skill from a non-library source, appears only without the option. Both options can be combined.
+
+JSON output lists the skills in `value.skills`, each with its `name`, `id`, `level`, `status` (`installed` or `available`), and, where they apply, `setBy`, with the `library` and `release`, its `type`, and its `version` or `commit`.
 
 ## Library commands
 
-`syllabus library` manages a **library**, an independently maintained collection of rule groups that projects can import. A library keeps its manifest in the `library` section of `.syllabus/config.yaml`, its groups and rules in `.syllabus/rules/`, its shared assets in `.syllabus/assets/`, and its change notes in `.syllabus/changes/`; see [Library format](/reference/library-format/). Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
-
-Every library command fails, writing nothing, in a repository that still has `rule-library.yaml`, `techs`, or `practices` at its root, where earlier versions kept a library; its message shows where each file moves. See [Libraries in the earlier layout](/reference/library-format/#libraries-in-the-earlier-layout).
+`syllabus library` manages a **library**, a repository whose [manifest](/reference/library-format/#the-manifest) publishes its authored rule groups and skills for projects to take. Library commands use the same `.syllabus/` directory and `config.yaml` as project commands, so a repository can be both. Initialize from the repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
 
 ### library init
 
@@ -348,7 +372,7 @@ Every library command fails, writing nothing, in a repository that still has `ru
 syllabus library init [options]
 ```
 
-Create `.syllabus/config.yaml` with an empty `library` section, an authoring README at the repository root, and a GitHub Actions workflow without overwriting existing authored files. In a project, it adds the `library` section to the existing `.syllabus/config.yaml`, keeping its `sources`, so the repository is both; a configuration that already has a `library` section is left as it is. Optionally copy explicitly supplied license terms into the library.
+Add a `library` section, the [manifest](/reference/library-format/#the-manifest), to `.syllabus/config.yaml`, creating the configuration with `schemaVersion: 2` and `sources: {}` when it doesn't exist, and create the authored `rules/` and `skills/` directories, an authoring README, and a GitHub Actions workflow, without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library and declare them in `library.license`. A configuration that already has a `library` section keeps it.
 
 The workflow, `.github/workflows/syllabus.yml`, runs `syllabus library check` on every pull request, using the Syllabus version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`, and prints the version it installed in the job's log and summary. Rerunning `syllabus library init` never changes an existing workflow; to move it to the Syllabus version you run, delete the workflow and run `syllabus library init` again. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
 
@@ -360,7 +384,7 @@ The workflow, `.github/workflows/syllabus.yml`, runs `syllabus library check` on
 | `--notice-file PATH` | Optional UTF-8 notice text to copy to `NOTICE.md`. Requires both license options. Relative to your working directory. |
 | `--non-interactive` | Accepted; library init runs without prompts even when this flag is omitted. |
 
-If you omit the license options, the `library` section leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library.
+If you omit the license options, the manifest leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library. A repository with a `rule-library.yaml` fails with a message that shows the manifest's shape; see [No backward compatibility](/reference/configuration/#no-backward-compatibility).
 
 ### library add group
 
@@ -368,17 +392,17 @@ If you omit the license options, the `library` section leaves the license undecl
 syllabus library add group ID [options]
 ```
 
-Create a group with `_group.yaml` metadata and an authoring README in the library's `.syllabus/rules/`. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a rule group in `.syllabus/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`. It writes the same files as `syllabus project add group`.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--name TEXT` | Required. Group display name. |
-| `--description TEXT` | Required. What the group covers. |
-| `--when-to-read TEXT` | Required. When an agent should read the group. |
+| `--name TEXT` | Required. Rule group display name. |
+| `--description TEXT` | Required. What the rule group covers. |
+| `--when-to-read TEXT` | Required. When an agent should read the rule group. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Empty groups are valid. Existing group files are preserved.
+Empty rule groups are valid. Existing rule group files are preserved.
 
 ### library add rule
 
@@ -386,7 +410,7 @@ Empty groups are valid. Existing group files are preserved.
 syllabus library add rule ID [options]
 ```
 
-Create a rule in an existing library group. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`; the rule's file is `.syllabus/rules/<ID>.md`.
+Create a rule in an existing rule group, at `.syllabus/rules/ID.md`. `ID` includes the rule group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -398,7 +422,24 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `syllabus library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `syllabus:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `syllabus library change`. Like `syllabus library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
+Create the rule group first with `syllabus library add group`; rule creation does not create missing rule groups. Without `--body-file`, complete the draft and remove its `syllabus:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `syllabus library change`. Like `syllabus library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
+
+### library add skill
+
+```sh
+syllabus library add skill NAME [options]
+```
+
+Create a skill in `.syllabus/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `fix-bug`; the skill's ID is `skills/NAME`. A new skill that the manifest's levels don't list is offered; to require or recommend it, add it to `library.skills`. See [Skill levels](/reference/library-format/#skill-levels).
+
+| Option | Meaning |
+| --- | --- |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
+| `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `syllabus-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+The command writes `.syllabus/skills/NAME/SKILL.md` with the name, description, and type in its frontmatter, and a body with the `syllabus:draft` marker. Complete the draft and remove the marker before validation; see [Write a skill](/guides/write-skills/). An invalid name, or a description that's blank or too long, fails before prompts with exit code `2`. Existing skills are not overwritten, and the ID of a skill a library release retired can't be reused. After the first library release, the next steps include adding the new skill's change note with `syllabus library change`. Like `syllabus library add rule`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags.
 
 ### library change
 
@@ -406,19 +447,21 @@ Create the group first with `syllabus library add group`; rule creation does not
 syllabus library change ID... [options]
 ```
 
-Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`; name several rules to cover related changes in one note. Before the first library release, rules need no notes, so the command fails and says so.
+Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules and skills. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`, or a skill ID, such as `skills/build-feature`; name several to cover related changes in one note. Before the first library release, rules and skills need no notes, so the command fails and says so.
 
 | Option | Meaning |
 | --- | --- |
-| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for rules that have a version. Not accepted for new or retired rules. |
+| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for rules and skills that have a version. Not accepted for new or retired ones. |
 | `--summary TEXT` | Required. One line describing the change for project maintainers. |
-| `--retire` | Record that the rules are [retired](/reference/rule-versions/#retired-rules). Their Markdown files and asset directories must already be gone. |
-| `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. If it isn't a rule in the library yet, the command warns; add it before the next library release. |
+| `--retire` | Record that the rules or skills are retired; see [Retired rules](/reference/rule-versions/#retired-rules) and [Retired skills](/reference/rule-versions/#retired-skills). A rule's Markdown file and asset directory, or a skill's folder, must already be gone. |
+| `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces a retired rule, or the skill that replaces a retired skill. If it isn't a rule or skill in the library yet, the command warns; add it before the next library release. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes a new file in `.syllabus/changes/` with a unique name, such as `.syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
+The command writes a new file in `.syllabus/changes/` with a unique name, such as `.syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. Rule IDs go in the note's `rules` map and skill IDs in its `skills` map. A rule or skill without any version is recorded as `new`. It rejects an ID that isn't a rule or skill in the library, unless `--retire` is supplied for one that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release, and a skill whose folder's tracked files and their modes are unchanged: edit it first, then record the change. A rule or skill that was never published can't be retired: delete it, and remove it from any pending note.
 
-See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
+`--replaced-by` must be the same kind as the retired ID: a rule for a rule, a skill for a skill. Naming a rule to replace a skill, or the reverse, fails as a usage error with exit code `2`, such as `--replaced-by practices/testing/verify-retries is a rule, but skills/triage-bug is a skill. A skill can only be replaced by a skill.`
+
+See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL` for a rule, and [Choose a skill's version change](/reference/rule-versions/#choose-a-skills-version-change) for a skill.
 
 ### library check
 
@@ -426,33 +469,37 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 syllabus library check [options]
 ```
 
-Validate the `library` section of `.syllabus/config.yaml`, including that each skill its [`skills` levels](/reference/configuration/#library-section) name is a folder in `.syllabus/skills/` with a `SKILL.md`, all groups and rules, the skills in `.syllabus/skills/`, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
-
-Each folder in `.syllabus/skills/` must be named by the skill name grammar and hold a `SKILL.md` whose `name` equals the folder's name. Its `metadata.syllabus-skill-type` must be `playbook` or `review`, no other `syllabus-` key may appear, and each line of `syllabus-rules-used` must be a current rule in the library, by its ID without a source name, and of `syllabus-skills-used` the ID of another skill in `.syllabus/skills/`, such as `skills/tdd`. A cited rule that the library retired, in a published library release or a pending change note, fails, naming its replacement when there is one. Check lists every skill problem and fails with `invalid-skill`.
+Validate the manifest, all rule groups and rules, all skills and their levels, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule and skill has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--non-interactive` | Accepted; library check does not prompt. |
 
-Reports group and rule counts, `value.groupCount` and `value.ruleCount` in JSON, and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
+Reports rule group, rule, and skill counts, `value.groupCount`, `value.ruleCount`, and `value.skillCount` in JSON, such as `Library is valid: 3 group(s), 6 rule(s), 3 skill(s).`, and file-specific errors. The human output leaves out the skill count when the library has no skills. Empty rule groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when:
+Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `syllabus-skill-type`, `syllabus-rules-used`, and `syllabus-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message.
+
+Check also validates the manifest's skill levels. It fails when a level lists a skill the library doesn't have, a skill appears in two levels, or two listed skills, authored or borrowed, have the same name. To check borrowed skills, it reads each borrowed source at the `ref` the library's configuration names, so it needs access to those repositories; see [Name clashes](/reference/library-format/#name-clashes). Levels are library-wide settings, so changing one needs no change note.
+
+After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, and each skill's, meaning the tracked files in its folder and their modes, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when any of the following is true of a rule, and the same for a skill, with the message naming the skill:
 
 - A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `syllabus library change` command to run.
 - A new rule has no pending note.
 - A published rule was deleted without a pending note that retires it.
-- A retired rule's `replacedBy` isn't a rule in the library.
+- A retired rule's `replacedBy` isn't a rule in the library, or a retired skill's `replacedBy` isn't a skill in it.
 - A rule reuses the ID of a retired rule.
 - A pending note names a rule that's unchanged since the latest library release, so the note is stale.
 - A pending note names a rule that doesn't exist and isn't being retired.
-- A note is invalid, such as an unknown change or a blank summary.
+- A note is invalid, such as an unknown change, a blank summary, a skill ID under `rules`, or neither `rules` nor `skills`.
 
-Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it. When a pending note retires a rule that an earlier library release named as a retired rule's replacement, check warns about it: when the note names a replacement, that updates will point projects still importing the earlier rule on to it; otherwise, that they would be pointed at a retired rule, suggesting a replacement as `replacedBy`. A pending retirement whose `replacedBy` isn't a rule in the library fails.
+Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it. When a pending note retires a rule that an earlier library release named as a retired rule's replacement, check warns about it: when the note names a replacement, that updates will point projects that still include the earlier rule on to it; otherwise, that they would be pointed at a retired rule, suggesting a replacement as `replacedBy`. A pending retirement whose `replacedBy` isn't a rule in the library fails.
+
+A skill is compared with the newest library release whose release record has a `skills` field; when a later library release lacks it, because an older Syllabus published it, check warns, as [Skills in the release record](/reference/rule-versions/#skills-in-the-release-record) describes.
 
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `syllabus library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
-When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `syllabus library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, license files, or the `library` section of `config.yaml`, changed since the latest library release, the preview lists them too, by their paths in the library, such as `config.yaml` and `practices/testing/_group.yaml`, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `syllabus project update` name them. `syllabus library release` reports the rules it publishes in `value.rules` the same way.
+When checks pass, the result previews the pending library release: each rule and skill, its change, and its current and next version, in one list sorted by ID. When no rule or skill change is pending and no library-wide file changed, it says there is nothing to publish, as `syllabus library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as the manifest, rule group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `syllabus project update` name them. `value.pendingRelease.skills` lists pending skill changes in the same form. `syllabus library release` reports the rules and skills it publishes in `value.rules` and `value.skills` the same way.
 
 ### library release
 
@@ -460,7 +507,7 @@ When checks pass, the result previews the pending library release: each rule, it
 syllabus library release [options]
 ```
 
-Publish the pending change notes, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
+Publish the pending change notes for rules and skills, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). A library release that changes only skills publishes like any other. See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
 
 | Option | Meaning |
 | --- | --- |
@@ -475,11 +522,11 @@ Before publishing, the command fetches from the branch's upstream remote. It ref
 - the branch matches the remote exactly, so the library release contains no unpushed commits and misses none, and
 - `syllabus library check` passes.
 
-It then computes each changed rule's next version from the pending notes, using the largest change when several notes name the same rule. The first library release gives every rule version `1.0.0`. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
+It then computes each changed rule's and skill's next version from the pending notes, using the largest change when several notes name the same rule or skill. The first library release gives every rule and skill version `1.0.0`. The release record lists skills in its [`skills` field](/reference/rule-versions/#skills-in-the-release-record), and the release notes list skill changes in a section of their own. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
 
-`--dry-run` shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes.
+`--dry-run` shows the repository, branch, commit, release number, each rule's and skill's change and versions, and the complete release notes.
 
-If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Syllabus created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Syllabus and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `syllabus library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules` and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Syllabus created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Syllabus and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.skills`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `syllabus library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules`, `value.skills`, and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
@@ -522,8 +569,8 @@ If that push succeeds, delete the test tag from the remote with `git push origin
 | `invalid-release-tag` | A release tag reachable from the commit isn't a valid annotated tag with a release record. |
 | `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Syllabus. |
 | `uncommitted-changes` | Library files differ from the checked-out commit. |
-| `change-notes` | Change notes don't match the rule changes, as `syllabus library check` reports; other check failures keep their own codes. |
-| `version-limit` | A change would take a rule's version past the largest version number. |
+| `change-notes` | Change notes don't match the rule or skill changes, as `syllabus library check` reports; other check failures keep their own codes, such as `invalid-skill`. |
+| `version-limit` | A change would take a rule's or skill's version past the largest version number. |
 | `git-identity` | Git doesn't know your name and email for the tag's tagger. |
 | `github-cli-missing` | A GitHub Release page applies, but `gh` isn't installed. |
 | `github-cli-signed-out` | A GitHub Release page applies, but `gh` isn't signed in to GitHub.com. |
@@ -563,15 +610,15 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `sy
 | `--license` | At the root, print the full embedded MIT license and copyright notice. |
 | `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
-Running `syllabus` or a command group such as `syllabus library` without a subcommand displays help. The `syllabus project`, `syllabus project add`, `syllabus library`, and `syllabus library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
+Running `syllabus` or a command group such as `syllabus library` without a subcommand displays help. The `syllabus project`, `syllabus project add`, `syllabus project list`, `syllabus library`, and `syllabus library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
-The root `--version` flag prints the tool version. To choose which versions of a library's rules to import, see [Choose versions](/reference/configuration/#choose-versions).
+The root `--version` flag prints the tool version. To choose which versions of a library's rules and skills to take, see [Choose versions](/reference/configuration/#choose-versions).
 
 ## Working directories
 
 In Git repositories, run `syllabus project init` or `syllabus library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `syllabus library init --directory`.
 
-Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands use that root's `.syllabus/config.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.syllabus/` does not override the root's configuration.
+Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands both use that root's `.syllabus/config.yaml`; library commands also need its `library` section. They stop at that repository boundary, even if its configuration is missing. A nested `.syllabus/` does not override the root's configuration.
 
 Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
 
@@ -583,9 +630,9 @@ Every command accepts `--json`, which prints one JSON response and disables prom
 
 Authoring commands accept `--non-interactive`. Without it, commands can prompt for missing required metadata or source selections when running in a terminal. With `--non-interactive`, `--json`, or no terminal, missing required inputs cause an error. Positional arguments such as `ID` and `ALIAS` must always be supplied.
 
-Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
+Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing rule groups, rules, skills, and source names fail before prompts.
 
-Both init commands, both check commands, and `syllabus library release` run without prompts. Of these, `syllabus library check` and `syllabus library release` accept `--non-interactive`; `syllabus project check`, `syllabus project sync`, `syllabus project update`, and `syllabus project build` do not need or accept it.
+Both init commands, both check commands, `syllabus project list skills`, and `syllabus library release` run without prompts. Of these, `syllabus library check` and `syllabus library release` accept `--non-interactive`; `syllabus project check`, `syllabus project sync`, `syllabus project update`, `syllabus project build`, and `syllabus project list skills` do not need or accept it.
 
 String options accept one value and cannot be repeated, except `--rules`, `--skills`, `--skill-targets`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
@@ -610,11 +657,11 @@ JSON mode writes one response to stdout:
 
 Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 
-Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, `outdated-readme`, `missing-skill`, `modified-skill`, or `unexpected-skill`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Syllabus directory, so an installed skill folder's path starts with `../`, such as `../.claude/skills/build-feature`. A skill problem also has `skill`, the project ID of the skill installed there, such as `fabrica:skills/build-feature`. Both generated guidance and the managed Syllabus guide must be current for success.
+Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Syllabus directory, except paths in a skill target, which are relative to the project root. Generated guidance, installed skills, and the managed Syllabus guide must all be current for success.
 
-Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
+Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or rule group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Syllabus directory, or to `generated/` for build. The files of installed skill copies are listed by the same relative path, such as `../.claude/skills/build-feature/SKILL.md` for sync and `../../.claude/skills/build-feature/SKILL.md` for build. Authoring commands, such as init, add source, add group, add rule, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, skills installed nowhere because the project has no skill targets, an authored skill that cites a retired rule, a personal skill with the same name as an installed skill, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. Check lists its warnings there too. When they refresh the managed Syllabus guide, `value.guide` reports its path relative to the Syllabus directory and whether it was `created`. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Syllabus directory, or to `generated/` for build, except paths in a skill target, such as `.claude/skills/build-feature/SKILL.md`, which are relative to the project root. Authoring commands, such as init, add source, add group, add rule, add skill, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, a rename, a personal skill with the same name, or authored rule group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Syllabus guide, `value.guide` reports its path relative to the Syllabus directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/syllabus/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 
@@ -630,7 +677,7 @@ Syllabus shows as they are:
 
 - names you chose locally, such as branch and remote names,
 - the repository addresses in project configuration, which can't contain credentials, and
-- library content, such as rule files, change notes, group descriptions, and release records.
+- library content, such as rule files, change notes, rule group descriptions, and release records.
 
 Human output still shows control characters in that text as visible escapes, as [Command output](#command-output) describes.
 
@@ -654,11 +701,10 @@ Update existing scripts to use the scoped commands below. Use `-h` or `--help` f
 | --- | --- |
 | `syllabus init` | `syllabus project init` |
 | `syllabus add source` | `syllabus project add source` |
-| `syllabus project add library` | `syllabus project add source` |
 | `syllabus local add group` | `syllabus project add group` |
 | `syllabus local add rule` | `syllabus project add rule` |
 | `syllabus sync` | `syllabus project sync` |
 | `syllabus build` | `syllabus project build` |
 | `syllabus check` | `syllabus project check` |
 
-Library command paths are unchanged. For configuration fields that changed, see [Configuration](/reference/configuration/#fields).
+`syllabus project add library` and `syllabus project add repository` are replaced by `syllabus project add source`, which adds either kind of source. Library command paths are unchanged. For configuration fields that changed, see [No backward compatibility](/reference/configuration/#no-backward-compatibility).

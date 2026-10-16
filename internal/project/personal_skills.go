@@ -1,5 +1,5 @@
 // Find personal skills, in the known folders of a person's home directory, with the name of a skill the project
-// installs, and explain what each agent does with the pair. Nothing here writes to the home directory.
+// installs, and say which copy each agent that reads both uses. Nothing here writes to the home directory.
 
 package project
 
@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/syllabus/internal/build"
@@ -15,7 +16,23 @@ import (
 
 // personalSkillFolders are the folders, relative to a home directory, where agents load a person's own skills, in
 // the order warnings name them.
-var personalSkillFolders = []string{".claude/skills", ".agents/skills", ".codex/skills"}
+var personalSkillFolders = []string{".claude/skills", ".agents/skills", ".codex/skills", ".grok/skills", ".copilot/skills"}
+
+// personalSkillAgents are the agents a warning can name, in the order it names them, each with the personal folders,
+// relative to the home directory, and the skill target folders, relative to the repository, in which its docs say it
+// reads skills, and the line saying what it does with a skill in both. A warning names an agent only when it reads
+// both copies, so it never claims what an agent does with a copy it doesn't read. Claude Code and Codex document
+// what they do with the pair; Grok Build and VS Code don't, so their lines say so.
+var personalSkillAgents = []struct {
+	personal, project []string
+	line              string
+}{
+	{[]string{".claude/skills"}, []string{".claude/skills"}, "Claude Code uses your personal skill."},
+	{[]string{".agents/skills"}, []string{".agents/skills"}, "Codex shows both."},
+	// Grok Build reads Claude Code's skills as well as its own, but its docs list only .grok/skills in a repository.
+	{[]string{".grok/skills", ".agents/skills", ".claude/skills"}, []string{".claude/skills"}, "Grok Build reads both, and its docs don't say which it uses."},
+	{[]string{".copilot/skills", ".claude/skills", ".agents/skills"}, []string{".claude/skills", ".agents/skills"}, "VS Code reads both, and its docs don't say which it uses."},
+}
 
 // personalSkill is a personal skill with the name of a skill the project installs.
 type personalSkill struct {
@@ -28,7 +45,7 @@ type personalSkill struct {
 // record, an installed-skills.json, lists with at least one installed folder, in the record's order and then
 // personalSkillFolders order; repository is the repository root. It returns an empty list when home is empty or
 // isn't absolute, and skips every folder it can't read, so a missing or unreadable home warns about nothing. It
-// only reads home.
+// reads only home and the skills' installed folders in repository, and writes nothing.
 func personalSkillWarnings(home, repository string, record []byte) []string {
 	warnings := []string{}
 	if home == "" || !filepath.IsAbs(home) {
@@ -93,12 +110,23 @@ func sameAsAny(info os.FileInfo, others []os.FileInfo) bool {
 	return false
 }
 
-// personalSkillWarning names both of personal's paths, the personal one from ~, and what each agent does with them.
+// personalSkillWarning names both of personal's paths, the personal one from ~, and, in personalSkillAgents order,
+// what each agent does that reads both personal's folder and one of the skill's installed folders.
 func personalSkillWarning(personal personalSkill) string {
 	skill := personal.installed
-	return fmt.Sprintf("your personal skill ~/%s has the same name as this project's %s (%s, installed at %s).\n"+
-		"  Claude Code uses your personal skill.\n"+
-		"  Codex shows both.\n"+
-		"  VS Code uses this project's skill.\n"+
-		"Rename or remove your personal skill to use the project's.", personal.folder, skill.Name, skill.ID, strings.Join(skill.Targets, " and "))
+	var agents strings.Builder
+	for _, agent := range personalSkillAgents {
+		if readsFolder(agent.personal, personal.folder, skill.Name) && slices.ContainsFunc(skill.Targets, func(target string) bool {
+			return readsFolder(agent.project, target, skill.Name)
+		}) {
+			agents.WriteString("  " + agent.line + "\n")
+		}
+	}
+	return fmt.Sprintf("your personal skill ~/%s has the same name as this project's %s (%s, installed at %s).\n%s"+
+		"Rename or remove your personal skill to use the project's.", personal.folder, skill.Name, skill.ID, strings.Join(skill.Targets, " and "), agents.String())
+}
+
+// readsFolder reports whether folder, a skill named name's folder such as .claude/skills/review, is in one of parents.
+func readsFolder(parents []string, folder, name string) bool {
+	return slices.ContainsFunc(parents, func(parent string) bool { return folder == parent+"/"+name })
 }

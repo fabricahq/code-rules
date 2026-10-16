@@ -128,9 +128,10 @@ func recordChecksum(record sourceRecord) string {
 	return digest(encoded)
 }
 
-// encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files. Each snapshot
-// must satisfy the same checks offline builds apply. Inputs stay unchanged; returned maps and byte slices belong
-// to the caller. Errors return nil.
+// encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files. Each source's
+// record lists its files by library path, and each file is stored where librarytree.SnapshotPath places it, so the
+// snapshot mirrors the library's Syllabus directory. Each snapshot must satisfy the same checks offline builds
+// apply. Inputs stay unchanged; returned maps and byte slices belong to the caller. Errors return nil.
 func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) (map[string][]byte, error) {
 	output := map[string][]byte{}
 	if len(snapshots) != len(config.Sources) {
@@ -170,12 +171,18 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		if err := rules.ValidatePaths(snapshot.Files, nil); err != nil {
 			return nil, err
 		}
+		placed := map[string]string{}
 		for _, file := range slices.Sorted(maps.Keys(snapshot.Files)) {
 			if file == "_source.json" {
 				return nil, invalidSnapshot("vendor/"+source.Name, "_source.json is reserved for the source record")
 			}
+			stored := source.Name + "/" + librarytree.SnapshotPath(file)
+			if other, taken := placed[stored]; taken {
+				return nil, invalidSnapshot("vendor/"+stored, "the library files "+other+" and "+file+" would both be stored here")
+			}
+			placed[stored] = file
 			record.Files[file] = digest(snapshot.Files[file])
-			output[source.Name+"/"+file] = bytes.Clone(snapshot.Files[file])
+			output[stored] = bytes.Clone(snapshot.Files[file])
 		}
 		record.Checksum = recordChecksum(record)
 		var encoded bytes.Buffer
@@ -264,7 +271,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		expected[recordPath] = true
 		record.Files = map[string][]byte{}
 		for _, file := range slices.Sorted(maps.Keys(record.digests)) {
-			full := source.Name + "/" + file
+			full := source.Name + "/" + librarytree.SnapshotPath(file)
 			data, ok := vendor[full]
 			if !ok || digest(data) != record.digests[file] {
 				return nil, invalidSnapshot("vendor/"+full, "missing or modified imported content; run syllabus project sync")

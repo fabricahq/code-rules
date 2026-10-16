@@ -34,7 +34,7 @@ syllabus project build
 syllabus project check
 ```
 
-A library's check workflow installs the Syllabus version that created it. To move it to the version you just installed, delete `.github/workflows/syllabus.yml` from the library and run `syllabus library init` again; see [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+A library's check workflow installs the Syllabus version that created it. To move it to the version you just installed, delete `.github/workflows/syllabus.yml` from the library and run `syllabus library init` again; see [Check changes in CI](/guides/version-rules/#check-changes-in-ci). A library created with Code Rules has `.github/workflows/code-rules.yml` instead; follow [Upgrade from Code Rules](#upgrade-from-code-rules).
 
 ## Upgrade from Code Rules
 

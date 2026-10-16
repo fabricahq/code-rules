@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/syllabus/internal/librarytree"
 	"github.com/fabricahq/syllabus/internal/rules"
 	"github.com/fabricahq/syllabus/internal/skills"
 	"github.com/fabricahq/syllabus/syllabus"
@@ -224,12 +225,13 @@ type provenanceSkill struct {
 	Name   string                `json:"name"`
 	Type   *string               `json:"type"`
 	Origin provenanceSkillOrigin `json:"origin"`
-	// RequiredBy, RecommendedBy, and OfferedBy name the library that gave a source's skill its level, and its
-	// release; the one for the skill's level is set, and each is null for an authored skill or one from a repository
-	// that isn't a library.
-	RequiredBy    *provenanceLevel `json:"requiredBy"`
-	RecommendedBy *provenanceLevel `json:"recommendedBy"`
-	OfferedBy     *provenanceLevel `json:"offeredBy"`
+	// Level is the skill's level in its library, or null for an authored skill or one from a repository that isn't
+	// a library. RequiredBy, RecommendedBy, and OfferedBy name the library that set that level, and its release, and
+	// one of them is present only when the level brought the skill in.
+	Level         *string          `json:"level"`
+	RequiredBy    *provenanceLevel `json:"requiredBy,omitempty"`
+	RecommendedBy *provenanceLevel `json:"recommendedBy,omitempty"`
+	OfferedBy     *provenanceLevel `json:"offeredBy,omitempty"`
 	// Included is false for a skill installed only because other skills use it. UsedBy and Uses list, sorted, the
 	// project IDs of the installed skills that use it and that it uses.
 	Included bool     `json:"included"`
@@ -245,29 +247,32 @@ type provenanceSkill struct {
 	BasedOn  *string                `json:"basedOn"`
 }
 
-// provenanceLevel names the library, by source name, that set a skill's level, and the revision whose manifest set
-// it: its library release, or null for a revision other than a library release, and its commit.
+// provenanceLevel names the library, by source name, that set a skill's level, and the library release whose
+// manifest set it, or null for a revision other than a library release.
 type provenanceLevel struct {
-	Source  string `json:"source"`
+	Library string `json:"library"`
 	Release *int   `json:"release"`
-	Commit  string `json:"commit"`
 }
 
-// setLevel records which library set skill's level in record, when the skill has one.
-func setLevel(record *provenanceSkill, skill resolvedSkill) {
+// setLevel records skill's level in record, and which library set it when the level brought the skill in: a
+// required skill always, a recommended one when include, the source's skills.include, has recommended or "*", and
+// an offered one when it has "*". A skill the project names by ID and no level brings in records only its level.
+func setLevel(record *provenanceSkill, skill resolvedSkill, include []string) {
 	if skill.Level == "" {
 		return
 	}
-	by := &provenanceLevel{Source: skill.Source, Commit: skill.Commit}
+	record.Level = &skill.Level
+	by := &provenanceLevel{Library: skill.Source}
 	if skill.Release != 0 {
 		by.Release = &skill.Release
 	}
-	switch skill.Level {
-	case skills.LevelRequired:
+	every := slices.Contains(include, skills.Wildcard)
+	switch {
+	case skill.Level == skills.LevelRequired:
 		record.RequiredBy = by
-	case skills.LevelRecommended:
+	case skill.Level == skills.LevelRecommended && (every || slices.Contains(include, skills.Recommended)):
 		record.RecommendedBy = by
-	default:
+	case skill.Level == skills.LevelOffered && every:
 		record.OfferedBy = by
 	}
 }
@@ -315,14 +320,18 @@ type provenanceRule struct {
 	Attribution  []syllabus.Attribution `json:"attribution"`
 }
 
-// termProvenance maps declared source terms to retained workspace and generated paths.
-func termProvenance(source, originalPrefix string, license *rules.LicenseDeclaration) *provenanceLicense {
+// termProvenance maps declared source terms to retained workspace and generated paths. The original paths are
+// library paths, or, with a snapshot directory such as vendor/team/, where the snapshot stores the files.
+func termProvenance(source, snapshot string, license *rules.LicenseDeclaration) *provenanceLicense {
 	if license == nil {
 		return nil
 	}
 	record := &provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
 	for _, mapping := range licenseMappings(source, license) {
-		original := originalPrefix + mapping.Source
+		original := mapping.Source
+		if snapshot != "" {
+			original = snapshot + librarytree.SnapshotPath(mapping.Source)
+		}
 		if mapping.Kind == "license" {
 			record.Files = append(record.Files, original)
 			record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)
@@ -344,7 +353,9 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		Rules           []provenanceRule   `json:"rules"`
 		Skills          []provenanceSkill  `json:"skills"`
 	}{GeneratedNotice: generatedNotice + " " + strings.ReplaceAll(regenerationNotice, "`", ""), ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}, Skills: []provenanceSkill{}}
+	includes := map[string][]string{}
 	for _, source := range resolved.Sources {
+		includes[source.Name] = source.SkillSelection
 		kind := "library"
 		if source.NonLibrary {
 			kind = "non-library"
@@ -382,7 +393,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 	}
 	for _, skill := range resolved.Skills {
 		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Targets: skill.Targets}
-		setLevel(&record, skill)
+		setLevel(&record, skill, includes[skill.Source])
 		if replaced := skill.Replaces; replaced != nil {
 			upstream := skillOrigin(replaced.Upstream)
 			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())
