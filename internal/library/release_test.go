@@ -772,7 +772,7 @@ func planFixtureRelease(t *testing.T, options Options) (plannedRelease, string) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	checked, err := checkLibrary(ctx, root, git)
+	checked, err := checkLibrary(ctx, root, git, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

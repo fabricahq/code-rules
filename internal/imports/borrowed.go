@@ -145,6 +145,9 @@ type lendingSource struct {
 	// is nil when no source does.
 	override   *rules.Source
 	overridden library.Snapshot
+	// maintained reports that the library's own maintainer is reading the source, such as library check does, so
+	// advice names the library's configuration as theirs to fix rather than a project's.
+	maintained bool
 }
 
 // borrow fetches the lending source's revision and adds the files of chosen, its skills the project takes, to
@@ -290,7 +293,7 @@ func (l lendingSource) resolve(ctx context.Context, repo *repository) (library.B
 		}
 		newest := history.newest()
 		if newest == nil {
-			return library.BorrowedSource{}, fail("ref-required", fmt.Sprintf("Library %s borrows skills from its source %s, whose repository has no release/<number> tags, so the library must name a ref for it. Ask the library's maintainer to set sources.%s.ref in its .trailguide/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", l.library, l.name, l.name), nil)
+			return library.BorrowedSource{}, fail("ref-required", fmt.Sprintf("%s borrows skills from its source %s, whose repository has no release/<number> tags, so the library must name a ref for it. %s", l.subject(), l.name, l.fixRef("set")), nil)
 		}
 		revision.Release, revision.Commit = newest.number, newest.commit
 		if err := repo.fetchCommits(ctx, []string{revision.Commit}, l.vanished("the command")); err != nil {
@@ -313,7 +316,24 @@ func (l lendingSource) libraryRef(err error) error {
 	if !errors.As(err, &failure) || !strings.HasPrefix(failure.Problem, "sources."+l.name+".ref") {
 		return err
 	}
-	return fail(failure.Code, fmt.Sprintf("Library %s borrows skills from its source %s at ref %s, which the repository doesn't resolve: %s Ask the library's maintainer to fix sources.%s.ref in its .trailguide/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", l.library, l.name, l.declared.Ref, strings.TrimSpace(strings.TrimPrefix(failure.Problem, "sources."+l.name+".ref:")), l.name), nil)
+	return fail(failure.Code, fmt.Sprintf("%s borrows skills from its source %s at ref %s, which the repository doesn't resolve: %s %s", l.subject(), l.name, l.declared.Ref, strings.TrimSpace(strings.TrimPrefix(failure.Problem, "sources."+l.name+".ref:")), l.fixRef("fix")), nil)
+}
+
+// subject names the library in advice: by its source name in a project, and as the library to its maintainer.
+func (l lendingSource) subject() string {
+	if l.maintained {
+		return "The library"
+	}
+	return "Library " + l.library
+}
+
+// fixRef advises how to fix the ref the library declares for the lending source, with verb, such as set or fix:
+// the maintainer edits the library's configuration, and a project asks them to or overrides the ref.
+func (l lendingSource) fixRef(verb string) string {
+	if l.maintained {
+		return fmt.Sprintf("%s sources.%s.ref in .trailguide/config.yaml.", strings.ToUpper(verb[:1])+verb[1:], l.name)
+	}
+	return fmt.Sprintf("Ask the library's maintainer to %s sources.%s.ref in its .trailguide/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", verb, l.name)
 }
 
 // missing explains a borrowed skill, id, that the lending source's revision doesn't have: a revision a record or an
@@ -438,6 +458,41 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 		row.Changes[i].ID = l.name + ":" + row.Changes[i].ID
 	}
 	return revision, &row, nil
+}
+
+// BorrowedSkillIDs resolves the ref a library declares for its borrowed source name, or, without one, the
+// repository's newest library release, as a project that uses the library would when it updates, for the library's
+// maintainer. It returns, sorted, the IDs the repository's skills have there, which follow the source's name and a
+// colon in the library's lists, and the revision's name, such as main or release/3.
+func BorrowedSkillIDs(ctx context.Context, name string, declared rules.BorrowedSource, options Options) (_ []string, _ string, err error) {
+	ctx, cancel, err := withTimeout(ctx, options)
+	if err != nil {
+		return nil, "", err
+	}
+	defer cancel()
+	repo, err := openRepository(ctx, rules.Source{Name: name, Repository: declared.Repository}, options)
+	if err != nil {
+		return nil, "", err
+	}
+	defer func() {
+		if closeErr := repo.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+	lender := lendingSource{name: name, declared: declared, maintained: true}
+	revision, err := lender.resolve(ctx, repo)
+	if err != nil {
+		return nil, "", err
+	}
+	tree, err := repo.repositoryTree(ctx, revision.Commit)
+	if err != nil {
+		return nil, "", err
+	}
+	at := revisionName(revision.Release, revision.Commit)
+	if !declared.Ref.IsZero() {
+		at = declared.Ref.String()
+	}
+	return slices.Sorted(maps.Keys(skillFolders(tree, !revision.NonLibrary))), at, nil
 }
 
 // borrowedMove returns the preview row of the borrowed source name moving from the revision from, which the project

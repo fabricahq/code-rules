@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/imports"
 	"github.com/fabricahq/trailguide/internal/project"
 	"github.com/fabricahq/trailguide/internal/rules"
 	"github.com/fabricahq/trailguide/trailguide"
@@ -24,7 +25,9 @@ type authoringFlags struct {
 	prompts   map[string]string
 	directory string
 	// git runs Git in a library's own repository; project commands don't use it.
-	git          gitexec.Options
+	git gitexec.Options
+	// imports fetches the sources a library borrows skills from, for library check.
+	imports      imports.Options
 	introduction string
 	prompted     bool
 }

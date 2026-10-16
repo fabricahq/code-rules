@@ -7,14 +7,16 @@ import (
 	"fmt"
 
 	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/imports"
 	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 	"github.com/spf13/cobra"
 )
 
 // newLibraryCommand registers library-specific location and explicit-input flags.
 func newLibraryCommand(use, description string, args cobra.PositionalArgs, options Options) (*cobra.Command, *authoringFlags) {
 	cmd := &cobra.Command{Use: use, Short: description, Args: args}
-	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: options.Directory, git: gitexec.Options{GitPath: options.Git.GitPath, Environment: options.Git.Environment}}
+	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: options.Directory, git: gitexec.Options{GitPath: options.Git.GitPath, Environment: options.Git.Environment}, imports: options.Git}
 	cmd.PostRunE = flags.finishPrompts
 	flags.add(cmd, "directory", "Library directory (default Git root, or current directory outside Git)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
@@ -28,7 +30,12 @@ func (f *authoringFlags) libraryOptions(ctx context.Context, initialize bool) (l
 		directory = f.file("directory")
 	}
 	directory, err := commandDirectory(ctx, directory, "library", initialize)
-	return library.Options{Directory: directory, Git: f.git}, err
+	return library.Options{Directory: directory, Git: f.git, Borrowed: f.readBorrowed}, err
+}
+
+// readBorrowed reads a source the library borrows skills from, as a project that uses the library would.
+func (f *authoringFlags) readBorrowed(ctx context.Context, name string, source rules.BorrowedSource) ([]string, string, error) {
+	return imports.BorrowedSkillIDs(ctx, name, source, f.imports)
 }
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.
