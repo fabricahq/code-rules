@@ -50,7 +50,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 			"techs/go/naming.md":   []byte(projectRule),
 			"assets/image.bin":     {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
 		},
-		SkillSelection: []string{}, Skills: map[string]library.ImportedSkill{}, Executable: []string{}}}
+		SkillSelection: []string{}, Skills: map[string]library.ImportedSkill{}, AvailableSkills: map[string]library.ImportedSkill{}, Executable: []string{}}}
 }
 
 // requireSync checks that decoding fails with a validation error that tells the user to sync.
@@ -570,12 +570,13 @@ func skillSnapshots(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	team := snapshots["team"]
 	team.SkillSelection = []string{"skills/build"}
 	team.Skills = map[string]library.ImportedSkill{"skills/build": {Level: "offered", Included: true, UsedBy: []string{}}}
+	team.AvailableSkills = map[string]library.ImportedSkill{"skills/build": {Level: "offered"}, "skills/deploy": {Level: "recommended"}}
 	team.Files["skills/build/SKILL.md"] = []byte("---\nname: build\n---\n")
 	team.Files["skills/build/run.sh"] = []byte("#!/bin/sh\n")
 	team.Executable = []string{"skills/build/run.sh"}
 	return config, map[string]snapshot{"team": team, "tools": {Repository: "https://github.com/acme/tools", Ref: gitRef(t, releaseOne), Commit: releaseOne, NonLibrary: true, Selection: rules.GroupSelection{Groups: []string{}},
 		RetiredRules: []string{}, Groups: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, SkillSelection: []string{"*"},
-		Skills: map[string]library.ImportedSkill{"tools/review": {Included: true, UsedBy: []string{}}}, Executable: []string{}, Files: map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")}}}
+		Skills: map[string]library.ImportedSkill{"tools/review": {Included: true, UsedBy: []string{}}}, AvailableSkills: map[string]library.ImportedSkill{"tools/review": {}, "tools/.hidden": {}}, Executable: []string{}, Files: map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")}}}
 }
 
 func TestSnapshotsRoundTripSkillsAndSourcesThatAreNotLibraries(t *testing.T) {
@@ -608,17 +609,28 @@ func TestSnapshotRecordsRejectInvalidSkills(t *testing.T) {
 		edit   func(*sourceRecord)
 		want   string
 	}{
-		"library skill without a level": {"team", func(r *sourceRecord) { r.Skills["skills/build"] = recordSkill{} }, "with level offered"},
+		"library skill without a level": {"team", func(r *sourceRecord) { r.Skills["skills/build"] = recordSkill{} }, "with level required, recommended, or offered"},
+		"unknown level": {"team", func(r *sourceRecord) {
+			mandatory := "mandatory"
+			r.AvailableSkills["skills/deploy"] = availableSkill{Level: &mandatory}
+		}, "with level required, recommended, or offered"},
+		"skill that isn't available": {"team", func(r *sourceRecord) { delete(r.AvailableSkills, "skills/build") }, "expected one of availableSkills"},
+		"level that differs from the available skill's": {"team", func(r *sourceRecord) {
+			required := "required"
+			r.Skills["skills/build"] = recordSkill{Level: &required}
+		}, "with the same level"},
 		"library skill outside skills/": {"team", func(r *sourceRecord) {
 			r.Skills["tools/build"] = r.Skills["skills/build"]
 			r.Files["tools/build/SKILL.md"] = r.Files["skills/build/SKILL.md"]
-		}, "with level offered"},
+		}, "with level required, recommended, or offered"},
 		"other repository's skill with a level": {"tools", func(r *sourceRecord) { offered := "offered"; r.Skills["tools/review"] = recordSkill{Level: &offered} }, "with a null level"},
 		"nested skill": {"tools", func(r *sourceRecord) {
 			r.Skills["tools/review/inner"] = recordSkill{}
 			r.Files["tools/review/inner/SKILL.md"] = r.Files["tools/review/SKILL.md"]
 		}, "inside another skill's folder"},
-		"skill without SKILL.md":          {"tools", func(r *sourceRecord) { r.Skills["tools/other"] = recordSkill{} }, "missing the skill's SKILL.md"},
+		"skill without SKILL.md": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/other"], r.AvailableSkills["tools/other"] = recordSkill{Included: true, UsedBy: []string{}}, availableSkill{}
+		}, "missing the skill's SKILL.md"},
 		"executable file outside a skill": {"team", func(r *sourceRecord) { r.Executable = []string{"techs/go/errors.md"} }, "expected distinct skill files"},
 		"unknown kind":                    {"team", func(r *sourceRecord) { r.Kind = "plugin" }, "expected library or non-library"},
 		"non-library record with groups": {"tools", func(r *sourceRecord) {

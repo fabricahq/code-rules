@@ -36,8 +36,8 @@ func parseSkillExclusions(input json.RawMessage, location string) (map[string]Sk
 		switch id {
 		case skills.Wildcard:
 			return invalid(where, `an exclusion names one skill by ID, such as skills/build-feature, not "*"; to install none of the source's skills, remove skills.include`)
-		case "recommended":
-			return invalid(where, "skill levels aren't supported yet in this version of Syllabus; name the skill to exclude by ID, such as skills/build-feature")
+		case skills.Recommended:
+			return invalid(where, "an exclusion names one skill by ID, such as skills/build-feature, not recommended; to install none of the recommended skills, remove recommended from skills.include")
 		}
 		return skills.ValidateID(id, where)
 	})

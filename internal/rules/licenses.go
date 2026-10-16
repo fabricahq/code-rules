@@ -21,6 +21,8 @@ import (
 type Library struct {
 	// License is nil when the library declares no license.
 	License *LicenseDeclaration `json:"license"`
+	// Skills holds the levels the library gives its skills.
+	Skills SkillLevels `json:"skills"`
 }
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -32,9 +34,6 @@ type LicenseDeclaration struct {
 	Files            []string `json:"files"`
 	AttributionFiles []string `json:"attributionFiles"`
 }
-
-// skillLevelsProblem rejects library.skills, which a later version of Syllabus reads.
-const skillLevelsProblem = "skill levels aren't supported yet in this version of Syllabus; remove library.skills"
 
 // ParseLibraryManifest validates text, a library's whole .syllabus/config.yaml, and returns its library section,
 // or nil when the configuration has none, which means the repository isn't a library. Errors prefix their location
@@ -92,17 +91,13 @@ func PublishedManifestOf(section json.RawMessage) ([]byte, error) {
 	return append(encoded, '\n'), nil
 }
 
-// parseLibrary validates a configuration's library section. Its only field is license; skill levels are rejected
-// until Syllabus supports them.
+// parseLibrary validates a configuration's library section: its license and the levels of its skills.
 func parseLibrary(input json.RawMessage) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := fields["skills"]; ok {
-		return nil, invalid("library.skills", skillLevelsProblem)
-	}
-	if err := decode.KnownFields(fields, []string{"license"}, "library"); err != nil {
+	if err := decode.KnownFields(fields, []string{"license", "skills"}, "library"); err != nil {
 		return nil, err
 	}
 	result := &Library{}
@@ -110,6 +105,9 @@ func parseLibrary(input json.RawMessage) (*Library, error) {
 		if result.License, err = parseLicense(raw, "library.license"); err != nil {
 			return nil, err
 		}
+	}
+	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills"); err != nil {
+		return nil, err
 	}
 	return result, nil
 }

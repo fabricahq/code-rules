@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/fabricahq/syllabus/internal/imports"
 	"github.com/fabricahq/syllabus/internal/librarytree"
 	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/syllabus/internal/skills"
 	"github.com/fabricahq/syllabus/syllabus"
 	"github.com/spf13/cobra"
 )
@@ -376,7 +378,10 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.ReplacedSkills {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || source.Ref != "" || source.SharedFiles != nil
+		for _, row := range source.SkillLevels {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -403,10 +408,45 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
+		formatLevelRows(out, source.SkillLevels, idWidth)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
+}
+
+// formatLevelRows lists a source's skill level rows with the skill ID, in a column idWidth wide, and the levels it
+// moves between, each row's detail indented beneath it.
+func formatLevelRows(out *strings.Builder, rows []imports.SkillLevelUpdate, idWidth int) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "level", idWidth, row.ID, levelSpan(row))
+		fmt.Fprintf(out, "%s%s\n", indent, levelDetail(row))
+	}
+}
+
+// levelSpan shows the levels a skill's level row moves between, with "none" for a side where the library has no
+// such skill.
+func levelSpan(row imports.SkillLevelUpdate) string {
+	from, to := cmp.Or(row.From, "none"), cmp.Or(row.To, "none")
+	return from + " -> " + to
+}
+
+// levelDetail returns the line shown under a skill's level row: what the change does to the project.
+func levelDetail(row imports.SkillLevelUpdate) string {
+	switch {
+	case row.From == "":
+		return "New required skill: it installs whatever skills.include says."
+	case row.To == "":
+		return "The library removes this required skill, so it's no longer installed."
+	case row.To == skills.LevelRequired:
+		return "Now required: it installs whatever skills.include says, and the project can't exclude or fork it."
+	case row.From == skills.LevelRequired:
+		return "No longer required: it stays installed only when skills.include selects it."
+	case row.To == skills.LevelRecommended:
+		return "Now recommended: it installs when skills.include has recommended."
+	}
+	return `No longer recommended: it installs only when skills.include names it or has "*".`
 }
 
 // formatSkillRows lists a source's skill rows with the change and skill ID, each row's details indented beneath them.
@@ -420,27 +460,32 @@ func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
 	}
 }
 
-// answeredSkills lists the skill rows of each source whose rows in after, the preview with the answers, differ from
-// those in before, the preview shown before the questions, then after's scripts warning, or returns empty when no
-// source's skill rows differ.
+// answeredSkills lists the skill and level rows of each source whose rows in after, the preview with the answers,
+// differ from those in before, the preview shown before the questions, then after's scripts warning, or returns empty
+// when no source's skill or level rows differ.
 func answeredSkills(before, after project.UpdateResult) string {
-	shown := map[string][]imports.SkillUpdate{}
+	shown := map[string]imports.SourceUpdate{}
 	for _, source := range before.Sources {
-		shown[source.Name] = source.Skills
+		shown[source.Name] = source
 	}
 	var out strings.Builder
 	for _, source := range after.Sources {
-		if reflect.DeepEqual(shown[source.Name], source.Skills) {
+		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) {
 			continue
 		}
 		if out.Len() == 0 {
 			out.WriteString("\nYour answers change the update's skills:\n")
 		}
 		out.WriteString(source.Name + "\n")
-		if len(source.Skills) == 0 {
+		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 {
 			out.WriteString("  No skill changes.\n")
 		}
 		formatSkillRows(&out, source.Skills)
+		idWidth := 0
+		for _, row := range source.SkillLevels {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		formatLevelRows(&out, source.SkillLevels, idWidth)
 	}
 	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
 		fmt.Fprintf(&out, "\nWarning: %s\n", warning)

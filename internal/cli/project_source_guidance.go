@@ -10,9 +10,11 @@ const sourceSelectionGuidance = `Choose rules from a library with rule selectors
   *                           Every rule.
   practices/*, techs/*        Every practice or technology group.
 
-Choose skills with skill IDs, such as skills/build-feature, or * for every
-skill the source offers. A source can be a library, or any Git repository
-with skill folders; a repository without library releases needs --ref.
+Choose skills with skill IDs, such as skills/build-feature, recommended for
+the skills a library recommends, or * for every skill the source offers. A
+library's required skills install either way. A source can be a library, or
+any Git repository with skill folders; a repository without library releases
+needs --ref.
 See syllabus project add source --help.
 
 Example source:
@@ -67,13 +69,15 @@ to the group later, on update; a rule ID takes only that rule.
 
 Choosing skills:
   One skill:        --skills skills/build-feature
+  Recommended:      --skills recommended
   Every skill:      --skills '*'
 
-A library's skill IDs are its .syllabus/skills/ folders, such as
-skills/build-feature. In another repository, a skill is any folder with a
-SKILL.md, named by its path from the repository root, such as tools/review;
-* takes every one outside folders whose names start with a dot. Supply at
-least one --rules or --skills.
+A library marks each of its skills required, recommended, or offered. Its
+required skills install whatever you choose, so a source without --rules or
+--skills installs only those. A library's skill IDs are its .syllabus/skills/
+folders, such as skills/build-feature. In another repository, a skill is any
+folder with a SKILL.md, named by its path from the repository root, such as
+tools/review; * takes every one outside folders whose names start with a dot.
 
 Taking one revision:
   Without --ref, the source follows the library's newest library release when

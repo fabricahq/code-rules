@@ -216,6 +216,7 @@ func (r *repository) importNonLibrary(ctx context.Context, source rules.Source, 
 func addSkills(snapshot *library.Snapshot, source rules.Source, imported importedSkills) {
 	snapshot.SkillSelection = slices.Clone(source.Skills)
 	snapshot.Skills = imported.skills
+	snapshot.AvailableSkills = imported.available
 	snapshot.Executable = imported.executable
 	maps.Copy(snapshot.Files, imported.files)
 }

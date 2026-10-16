@@ -57,6 +57,7 @@ type skillPreview struct {
 	rows     []SkillUpdate
 	err      error
 	replaced []ReplacedSkillUpdate
+	levels   []SkillLevelUpdate
 }
 
 // previewSkills reads the skills source installs at each of plans' revisions and compares them with recorded, the
@@ -74,19 +75,23 @@ func (r *repository) previewSkills(ctx context.Context, source rules.Source, rec
 		if err != nil {
 			return nil, err
 		}
+		levels, err := r.skillLevelChanges(ctx, recorded, plan.commit)
+		if err != nil {
+			return nil, err
+		}
 		installed, err := r.readSkills(ctx, source, plan, !plan.nonLibrary, 0)
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, gitexec.ContextFailure(ctxErr)
 		}
 		if err != nil {
-			previews[plan.commit] = skillPreview{err: err, replaced: replaced}
+			previews[plan.commit] = skillPreview{err: err, replaced: replaced, levels: levels}
 			continue
 		}
 		rows := slices.DeleteFunc(skillChanges(recorded, installed), func(row SkillUpdate) bool {
 			_, excluded := source.SkillExclude[row.ID]
 			return excluded
 		})
-		previews[plan.commit] = skillPreview{rows: rows, replaced: replaced}
+		previews[plan.commit] = skillPreview{rows: rows, replaced: replaced, levels: levels}
 	}
 	return previews, nil
 }

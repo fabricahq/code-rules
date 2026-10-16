@@ -14,6 +14,7 @@ import (
 	"github.com/fabricahq/syllabus/internal/library"
 	"github.com/fabricahq/syllabus/internal/librarytree"
 	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/syllabus/internal/skills"
 	"github.com/fabricahq/syllabus/syllabus"
 )
 
@@ -224,7 +225,13 @@ type provenanceSkill struct {
 	Name   string                `json:"name"`
 	Type   *string               `json:"type"`
 	Origin provenanceSkillOrigin `json:"origin"`
-	Level  *string               `json:"level"`
+	// Level is the skill's level in its library, or null for an authored skill or one from a repository that isn't
+	// a library. RequiredBy, RecommendedBy, and OfferedBy name the library that set that level, and its release, and
+	// one of them is present only when the level brought the skill in.
+	Level         *string          `json:"level"`
+	RequiredBy    *provenanceLevel `json:"requiredBy,omitempty"`
+	RecommendedBy *provenanceLevel `json:"recommendedBy,omitempty"`
+	OfferedBy     *provenanceLevel `json:"offeredBy,omitempty"`
 	// Included is false for a skill installed only because other skills use it. UsedBy and Uses list, sorted, the
 	// project IDs of the installed skills that use it and that it uses.
 	Included bool     `json:"included"`
@@ -238,6 +245,36 @@ type provenanceSkill struct {
 	Upstream *provenanceSkillOrigin `json:"upstream"`
 	Reason   *string                `json:"replacementReason"`
 	BasedOn  *string                `json:"basedOn"`
+}
+
+// provenanceLevel names the library, by source name, that set a skill's level, and the library release whose
+// manifest set it, or null for a revision other than a library release.
+type provenanceLevel struct {
+	Library string `json:"library"`
+	Release *int   `json:"release"`
+}
+
+// setLevel records skill's level in record, and which library set it when the level brought the skill in: a
+// required skill always, a recommended one when include, the source's skills.include, has recommended or "*", and
+// an offered one when it has "*". A skill the project names by ID and no level brings in records only its level.
+func setLevel(record *provenanceSkill, skill resolvedSkill, include []string) {
+	if skill.Level == "" {
+		return
+	}
+	record.Level = &skill.Level
+	by := &provenanceLevel{Library: skill.Source}
+	if skill.Release != 0 {
+		by.Release = &skill.Release
+	}
+	every := slices.Contains(include, skills.Wildcard)
+	switch {
+	case skill.Level == skills.LevelRequired:
+		record.RequiredBy = by
+	case skill.Level == skills.LevelRecommended && (every || slices.Contains(include, skills.Recommended)):
+		record.RecommendedBy = by
+	case skill.Level == skills.LevelOffered && every:
+		record.OfferedBy = by
+	}
 }
 
 // provenanceSkillOrigin identifies the source, repository, and commit that supplied a skill, and its folder there:
@@ -316,7 +353,9 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		Rules           []provenanceRule   `json:"rules"`
 		Skills          []provenanceSkill  `json:"skills"`
 	}{GeneratedNotice: generatedNotice + " " + strings.ReplaceAll(regenerationNotice, "`", ""), ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}, Skills: []provenanceSkill{}}
+	includes := map[string][]string{}
 	for _, source := range resolved.Sources {
+		includes[source.Name] = source.SkillSelection
 		kind := "library"
 		if source.NonLibrary {
 			kind = "non-library"
@@ -353,7 +392,8 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		}
 	}
 	for _, skill := range resolved.Skills {
-		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Level: nullableText(skill.Level), Targets: skill.Targets}
+		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Targets: skill.Targets}
+		setLevel(&record, skill, includes[skill.Source])
 		if replaced := skill.Replaces; replaced != nil {
 			upstream := skillOrigin(replaced.Upstream)
 			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())
