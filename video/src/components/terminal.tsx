@@ -17,6 +17,8 @@ export type TerminalProps = {
   lines: ReadonlyArray<TerminalLine>;
   /** Text to emphasize inside commands once typed, such as a newly added flag. */
   highlight?: string;
+  /** Small uppercase label at the header's right, such as `YOUR PROJECT`. */
+  tag?: string;
 };
 
 /** Frames a command takes to type, so callers can cue its output. */
@@ -54,13 +56,13 @@ function OutputLine({ content, at }: { content: ReactNode; at: number }) {
 }
 
 /** Shows each line from its frame on: commands type out, output fades in. */
-export function Terminal({ lines, highlight }: TerminalProps) {
+export function Terminal({ lines, highlight, tag }: TerminalProps) {
   const frame = useCurrentFrame();
   // Bring the window in just before its first line, so it never sits empty.
   const firstAt = Math.min(...lines.map((line) => line.at));
   return (
     <Reveal at={Math.max(0, firstAt - 8)}>
-      <Panel title="Terminal · acme-checkout">
+      <Panel title="Terminal · acme-checkout" tag={tag}>
         <div style={{ fontFamily: FONTS.mono, fontSize: 30, lineHeight: 1.65, minHeight: 120 }}>
           {lines
             .filter((line) => frame >= line.at)

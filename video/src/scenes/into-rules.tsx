@@ -1,4 +1,4 @@
-/** @fileoverview Scene 8: the agent turns the article into one rule per recommendation. */
+/** @fileoverview Scene 10: the agent turns the article into one rule per recommendation. */
 import { AgentLine, AgentSession, UserMessage } from '../components/chat';
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';

@@ -7,7 +7,7 @@ export type PanelProps = {
   /** Header text, such as a file path or `Terminal`. */
   title: ReactNode;
   /** Small uppercase label at the header's right, such as `EXAMPLE SESSION`. */
-  tag?: string;
+  tag?: string | undefined;
   children: ReactNode;
   style?: CSSProperties;
 };

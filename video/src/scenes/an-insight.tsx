@@ -1,4 +1,4 @@
-/** @fileoverview Scene 7: because rules are small, every insight can become one, starting from an article. */
+/** @fileoverview Scene 9: because rules are small, every insight can become one, starting from an article. */
 import { Panel } from '../components/panel';
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';

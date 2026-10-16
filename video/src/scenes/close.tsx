@@ -1,4 +1,4 @@
-/** @fileoverview Scene 12: the Trail Guide name, tagline, and site. */
+/** @fileoverview Scene 14: the Trail Guide name, tagline, and site. */
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';
 import { Headline } from '../components/text';

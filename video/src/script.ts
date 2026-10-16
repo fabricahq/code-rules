@@ -18,6 +18,8 @@ export type SceneId =
   | 'guidance'
   | 'skills-today'
   | 'enter-trail-guide'
+  | 'libraries-and-projects'
+  | 'a-library'
   | 'package-manager'
   | 'what-a-rule-is'
   | 'mix-and-match'
@@ -48,9 +50,19 @@ export const SCENES = [
       'Enter Trail Guide. Trail Guide gives your agents better guidance in two ways: it’s a package manager for skills, and it introduces a more granular kind of guidance, called a rule.',
   },
   {
+    id: 'libraries-and-projects',
+    narration:
+      'Trail Guide has libraries and projects. A library is a repository of the skills and rules you want others to use, with its own library commands. A project is a codebase that uses them, with its own project commands.',
+  },
+  {
+    id: 'a-library',
+    narration:
+      'First, the package manager. Fill your library with skills you write yourself, or curate them from others, even from repositories that don’t use Trail Guide.',
+  },
+  {
     id: 'package-manager',
     narration:
-      'First, the package manager. Curate your skills, your own and the best from anywhere, in one library for your organization. Mark each one required or recommended. Then any project installs them with one command, into every agent’s folder, and updates only when you choose.',
+      'Mark each skill required or recommended, and a project installs them with one command, into every agent’s folder. When the library adds a skill, every project picks it up on its next trailguide project update.',
   },
   {
     id: 'what-a-rule-is',
@@ -80,7 +92,7 @@ export const SCENES = [
   {
     id: 'skills-as-playbooks',
     narration:
-      'Skills still matter. They become playbooks that cite the rules they apply, so one verification skill can walk your agent through the whole task, rule by rule.',
+      'Skills still matter. Trail Guide installs skills from any repository, library or not. But in a Trail Guide library, a skill can declare the rules it uses, so you can improve the playbook and each rule separately, and every skill that uses a rule gets the update.',
   },
   {
     id: 'get-started',

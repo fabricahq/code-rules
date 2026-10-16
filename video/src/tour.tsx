@@ -4,12 +4,14 @@ import { AbsoluteFill, Audio, Sequence, Series, staticFile } from 'remotion';
 import { getAudioDurationInSeconds } from '@remotion/media-utils';
 import type { CalculateMetadataFunction } from 'remotion';
 import { Caption } from './components/caption';
+import { ALibrary } from './scenes/a-library';
 import { AnInsight } from './scenes/an-insight';
 import { Close } from './scenes/close';
 import { EnterTrailGuide } from './scenes/enter-trail-guide';
 import { GetStarted } from './scenes/get-started';
 import { Guidance } from './scenes/guidance';
 import { IntoRules } from './scenes/into-rules';
+import { LibrariesAndProjects } from './scenes/libraries-and-projects';
 import { MixAndMatch } from './scenes/mix-and-match';
 import { PackageManager } from './scenes/package-manager';
 import type { SceneProps } from './scenes/scene-props';
@@ -38,6 +40,8 @@ const SCENE_COMPONENTS = {
   guidance: Guidance,
   'skills-today': SkillsToday,
   'enter-trail-guide': EnterTrailGuide,
+  'libraries-and-projects': LibrariesAndProjects,
+  'a-library': ALibrary,
   'package-manager': PackageManager,
   'what-a-rule-is': WhatARuleIs,
   'mix-and-match': MixAndMatch,

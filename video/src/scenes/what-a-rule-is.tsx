@@ -1,4 +1,4 @@
-/** @fileoverview Scene 5: a rule is one best practice in one versioned Markdown file. */
+/** @fileoverview Scene 7: a rule is one best practice in one versioned Markdown file, shown with a real rule from Fabrica's public library. */
 import { Panel } from '../components/panel';
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';
@@ -6,7 +6,7 @@ import { Headline, Muted, Provenance } from '../components/text';
 import { COLORS, FONTS } from '../theme';
 import { cue, type SceneProps } from './scene-props';
 
-/** Shows a rule file: its front matter, the practice, and incorrect and correct examples. */
+/** Shows the rule's title, when to read it, and its incorrect and correct examples. */
 export function WhatARuleIs(props: SceneProps) {
   return (
     <SceneFrame durationInFrames={props.durationInFrames}>
@@ -19,29 +19,29 @@ export function WhatARuleIs(props: SceneProps) {
         <Panel
           title={
             <span style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>practices/verification/test-real-user-flows.md</span>
+              <span>techs/react/rendering-conditional-render.md</span>
               <Reveal at={cue(props, 0.8)}>
-                <Provenance>1.2.0</Provenance>
+                <Provenance>1.0.0</Provenance>
               </Reveal>
             </span>
           }
         >
-          <div style={{ fontFamily: FONTS.mono, fontSize: 29, lineHeight: 1.6, whiteSpace: 'pre' }}>
-            <Muted>---</Muted>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 28, lineHeight: 1.6, whiteSpace: 'pre' }}>
             <div>
-              <span style={{ color: COLORS.action }}>title</span>: Test real user flows end to end
+              <span style={{ color: COLORS.action }}>title</span>: Use a boolean condition for conditional rendering
             </div>
             <Reveal at={cue(props, 0.45)}>
-              <span style={{ color: COLORS.action }}>whenToRead</span>: When adding or changing a user-facing flow.
+              <span style={{ color: COLORS.action }}>whenToRead</span>: Before writing JSX that renders with && on a
+              non-boolean.
             </Reveal>
-            <Muted>---</Muted>
-            <Reveal at={cue(props, 0.3)}>Cover each flow with a test that drives it the way a user would.</Reveal>
-            <Reveal at={cue(props, 0.6)}>
-              <span style={{ color: COLORS.error }}>Incorrect:</span> only unit tests for the checkout handler
+            <Reveal at={cue(props, 0.55)} style={{ marginTop: 18 }}>
+              <span style={{ color: COLORS.error }}>Incorrect:</span>
+              {' {count && <Badge count={count} />}   '}
+              <Muted>renders a stray “0”</Muted>
             </Reveal>
-            <Reveal at={cue(props, 0.66)}>
+            <Reveal at={cue(props, 0.65)}>
               <span style={{ color: COLORS.success }}>Correct:</span>
-              {'   a browser test that completes checkout'}
+              {'   {count > 0 ? <Badge count={count} /> : null}'}
             </Reveal>
           </div>
         </Panel>

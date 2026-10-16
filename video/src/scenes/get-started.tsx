@@ -1,4 +1,4 @@
-/** @fileoverview Scene 11: tell your agent to install Trail Guide, and where the getting-started guide is. */
+/** @fileoverview Scene 13: tell your agent to install Trail Guide, and where the getting-started guide is. */
 import { AgentLine, AgentSession, UserMessage } from '../components/chat';
 import { Reveal } from '../components/reveal';
 import { SceneFrame } from '../components/scene-frame';
