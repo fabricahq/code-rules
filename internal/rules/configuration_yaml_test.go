@@ -215,6 +215,9 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			if want.Skills == nil {
 				want.Skills = []string{}
 			}
+			if want.SkillUses == nil {
+				want.SkillUses = map[string][]string{}
+			}
 			if len(got.Sources) != 1 || !reflect.DeepEqual(got.Sources[0], want) {
 				t.Fatalf("got %+v; want %+v\n%s", got.Sources, want, out)
 			}

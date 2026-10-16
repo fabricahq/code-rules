@@ -62,8 +62,12 @@ type sourceRecord struct {
 }
 
 // recordSkill is one installed skill's record. Level is null for a skill from a source that isn't a library.
+// Included reports that skills.include selects the skill, and UsedBy lists, sorted, the source's installed skills
+// that use it; a skill that isn't included has at least one.
 type recordSkill struct {
-	Level *string `json:"level"`
+	Level    *string  `json:"level"`
+	Included bool     `json:"included"`
+	UsedBy   []string `json:"usedBy"`
 }
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
@@ -136,7 +140,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		record.Executable = nonNil(snapshot.Executable)
 		record.Skills = map[string]recordSkill{}
 		for id, skill := range snapshot.Skills {
-			entry := recordSkill{}
+			entry := recordSkill{Included: skill.Included, UsedBy: nonNil(skill.UsedBy)}
 			if skill.Level != "" {
 				entry.Level = &skill.Level
 			}
@@ -259,6 +263,9 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 			}
 			record.Files[file] = bytes.Clone(data)
 			expected[full] = true
+		}
+		if err := matchSkillUses(source, record.Snapshot); err != nil {
+			return nil, err
 		}
 		result[source.Name] = record.Snapshot
 	}
@@ -474,7 +481,16 @@ func readRecordSkills(record sourceRecord, where string, paths map[string][]byte
 		if _, ok := paths[id+"/"+skills.File]; !ok {
 			return invalidSnapshot(location, "missing the skill's SKILL.md from inventory")
 		}
-		imported := library.ImportedSkill{}
+		usedBy := record.Skills[id].UsedBy
+		for i, user := range usedBy {
+			if _, recorded := record.Skills[user]; !recorded || user == id || i > 0 && usedBy[i-1] >= user {
+				return invalidSnapshot(location+".usedBy", "expected distinct other recorded skills in sorted order")
+			}
+		}
+		if usedBy == nil || !record.Skills[id].Included && len(usedBy) == 0 {
+			return invalidSnapshot(location, "a skill that skills.include doesn't select is recorded only because other skills use it")
+		}
+		imported := library.ImportedSkill{Included: record.Skills[id].Included, UsedBy: slices.Clone(usedBy)}
 		if level != nil {
 			imported.Level = *level
 		}
@@ -497,7 +513,14 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || !source.Groups.Equal(record.Selection) || !slices.Equal(source.Rules, record.RuleSelection) || !slices.Equal(source.Skills, record.SkillSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
-	if !slices.Equal(source.Skills, []string{skills.Wildcard}) && !slices.Equal(source.Skills, slices.Sorted(maps.Keys(record.Skills))) {
+	included := []string{}
+	for id, skill := range record.Skills {
+		if skill.Included {
+			included = append(included, id)
+		}
+	}
+	slices.Sort(included)
+	if !slices.Equal(source.Skills, []string{skills.Wildcard}) && !slices.Equal(source.Skills, included) {
 		return invalidSnapshot(where, "recorded skills differ from sources."+source.Name+".skills.include; run code-rules project sync")
 	}
 	if record.NonLibrary && source.Ref.IsZero() {
@@ -553,6 +576,45 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	}
 	if source.Ref.IsZero() && record.Release < newest {
 		return invalidSnapshot(where+".release", "expected the library release that supplies the shared files to be at least as new as every imported rule version's library release")
+	}
+	return nil
+}
+
+// matchSkillUses checks, without fetching Git, that snapshot records exactly the skills its included skills bring in
+// and why: the skills they use, transitively, by the syllabus-skills-used of the vendored SKILL.md files and the source's
+// skills.uses. A difference means configuration changed since sync, such as a new skills.uses entry, so it fails
+// asking for sync, which checks the change against the source.
+func matchSkillUses(source rules.Source, snapshot library.Snapshot) error {
+	where := "vendor/" + source.Name + "/_source.json"
+	uses := map[string][]string{}
+	included := []string{}
+	for _, id := range slices.Sorted(maps.Keys(snapshot.Skills)) {
+		file := id + "/" + skills.File
+		metadata, err := skills.ReadMetadata(snapshot.Files[file], "vendor/"+source.Name+"/"+file)
+		if err != nil {
+			return err
+		}
+		uses[id] = slices.Concat(metadata.SkillsUsed, source.SkillUses[id])
+		if snapshot.Skills[id].Included {
+			included = append(included, id)
+		}
+	}
+	for _, id := range slices.Sorted(maps.Keys(source.SkillUses)) {
+		if _, ok := snapshot.Skills[id]; !ok {
+			return invalidSnapshot("sources."+source.Name+".skills.uses."+id, "names a skill the snapshot doesn't install; run code-rules project sync to check it against the source")
+		}
+	}
+	installed, err := skills.ResolveUses(included, uses)
+	if err != nil {
+		return invalidSnapshot(where, "the recorded skills don't install every skill they use, by syllabus-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
+	}
+	if len(installed) != len(snapshot.Skills) {
+		return invalidSnapshot(where, "the recorded skills differ from those sources."+source.Name+".skills.include selects and the skills they use; run code-rules project sync")
+	}
+	for id, why := range installed {
+		if !slices.Equal(why.UsedBy, snapshot.Skills[id].UsedBy) {
+			return invalidSnapshot(where+".skills."+id, "the skills recorded as using it differ from syllabus-skills-used and sources."+source.Name+".skills.uses; run code-rules project sync")
+		}
 	}
 	return nil
 }

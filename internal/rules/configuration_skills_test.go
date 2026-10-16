@@ -40,6 +40,34 @@ sources:
 	}
 }
 
+func TestParseConfigurationReadsTheSkillsEachSkillUses(t *testing.T) {
+	config, err := rules.ParseConfigurationYAML([]byte(`schemaVersion: 2
+sources:
+  pstack:
+    repository: https://example.invalid/pstack.git
+    ref: v1.0.0
+    skills:
+      include: [skills/architect]
+      uses:
+        skills/architect: [skills/how, skills/engineering/to-spec]
+        skills/how: [skills/tdd]
+  team:
+    repository: https://example.invalid/team.git
+    skills:
+      include: ["*"]
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][]string{"skills/architect": {"skills/engineering/to-spec", "skills/how"}, "skills/how": {"skills/tdd"}}
+	if got := config.Sources[0].SkillUses; !reflect.DeepEqual(got, want) {
+		t.Fatalf("pstack uses = %v, want %v", got, want)
+	}
+	if got := config.Sources[1].SkillUses; got == nil || len(got) != 0 {
+		t.Fatalf("team uses = %#v, want empty", got)
+	}
+}
+
 func TestParseConfigurationTreatsMissingSkillTargetsAsNone(t *testing.T) {
 	for name, input := range map[string]string{
 		"missing": "schemaVersion: 2\nsources: {}\n",
@@ -69,6 +97,13 @@ func TestParseConfigurationRejectsInvalidSkillFields(t *testing.T) {
 		"wildcard and IDs":   {source + "    skills:\n      include: [\"*\", skills/x]\n", "sources.team.skills.include", "already includes every skill"},
 		"repeated ID":        {source + "    skills:\n      include: [skills/x, skills/x]\n", "sources.team.skills.include[1]", "more than once"},
 		"invalid ID":         {source + "    skills:\n      include: [skills/../x]\n", "sources.team.skills.include[0]", "expected a skill ID"},
+		"uses not a map":     {source + "    skills:\n      include: [skills/x]\n      uses: [skills/y]\n", "sources.team.skills.uses", "object"},
+		"uses invalid key":   {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x/: [skills/y]\n", "sources.team.skills.uses.skills/x/", "expected a skill ID"},
+		"uses empty list":    {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: []\n", "sources.team.skills.uses.skills/x", "list the skills skills/x uses"},
+		"uses not a list":    {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: skills/y\n", "sources.team.skills.uses.skills/x", "list the skills skills/x uses"},
+		"uses invalid value": {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: [\"*\"]\n", "sources.team.skills.uses.skills/x[0]", "expected a skill ID"},
+		"uses itself":        {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: [skills/x]\n", "sources.team.skills.uses.skills/x[0]", "can't use itself"},
+		"uses repeated":      {source + "    skills:\n      include: [skills/x]\n      uses:\n        skills/x: [skills/y, skills/y]\n", "sources.team.skills.uses.skills/x[1]", "more than once"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -91,6 +126,21 @@ func TestAppendConfigurationSourceWritesSkillSelectors(t *testing.T) {
 	}
 	config, err := rules.ParseConfigurationYAML(out)
 	if err != nil || !reflect.DeepEqual(config.Sources[0].Skills, []string{"*"}) {
+		t.Fatalf("parsed %+v, %v", config, err)
+	}
+}
+
+func TestAppendConfigurationSourceWritesTheSkillsEachSkillUses(t *testing.T) {
+	uses := map[string][]string{"skills/review": {"skills/tdd"}, "skills/architect": {"skills/how", "skills/tdd"}}
+	out, err := rules.AppendConfigurationSource([]byte("schemaVersion: 2\nsources: {}\n"), "pstack", rules.Source{Repository: "https://example.invalid/pstack.git", Skills: []string{"skills/architect", "skills/review"}, SkillUses: uses})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "      uses:\n        skills/architect:\n          - skills/how\n          - skills/tdd\n        skills/review:\n          - skills/tdd\n") {
+		t.Fatalf("configuration:\n%s", out)
+	}
+	config, err := rules.ParseConfigurationYAML(out)
+	if err != nil || !reflect.DeepEqual(config.Sources[0].SkillUses, uses) {
 		t.Fatalf("parsed %+v, %v", config, err)
 	}
 }

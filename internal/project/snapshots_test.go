@@ -569,13 +569,13 @@ func skillSnapshots(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	}
 	team := snapshots["team"]
 	team.SkillSelection = []string{"skills/build"}
-	team.Skills = map[string]library.ImportedSkill{"skills/build": {Level: "offered"}}
+	team.Skills = map[string]library.ImportedSkill{"skills/build": {Level: "offered", Included: true, UsedBy: []string{}}}
 	team.Files["skills/build/SKILL.md"] = []byte("---\nname: build\n---\n")
 	team.Files["skills/build/run.sh"] = []byte("#!/bin/sh\n")
 	team.Executable = []string{"skills/build/run.sh"}
 	return config, map[string]snapshot{"team": team, "tools": {Repository: "https://github.com/acme/tools", Ref: gitRef(t, releaseOne), Commit: releaseOne, NonLibrary: true, Selection: rules.GroupSelection{Groups: []string{}},
 		RetiredRules: []string{}, Groups: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, SkillSelection: []string{"*"},
-		Skills: map[string]library.ImportedSkill{"tools/review": {}}, Executable: []string{}, Files: map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")}}}
+		Skills: map[string]library.ImportedSkill{"tools/review": {Included: true, UsedBy: []string{}}}, Executable: []string{}, Files: map[string][]byte{"tools/review/SKILL.md": []byte("# Review\n")}}}
 }
 
 func TestSnapshotsRoundTripSkillsAndSourcesThatAreNotLibraries(t *testing.T) {
@@ -625,6 +625,13 @@ func TestSnapshotRecordsRejectInvalidSkills(t *testing.T) {
 			r.Groups = []string{"techs/go"}
 		}, "has no library release, groups, or rules"},
 		"non-library file outside its skills": {"tools", func(r *sourceRecord) { r.Files["README.md"] = r.Files["tools/review/SKILL.md"] }, "belongs to no recorded skill"},
+		"skill neither included nor used":     {"tools", func(r *sourceRecord) { r.Skills["tools/review"] = recordSkill{UsedBy: []string{}} }, "recorded only because other skills use it"},
+		"used by an unrecorded skill": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/review"] = recordSkill{Included: true, UsedBy: []string{"tools/gone"}}
+		}, "expected distinct other recorded skills"},
+		"used by itself": {"tools", func(r *sourceRecord) {
+			r.Skills["tools/review"] = recordSkill{Included: true, UsedBy: []string{"tools/review"}}
+		}, "expected distinct other recorded skills"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

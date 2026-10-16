@@ -202,3 +202,34 @@ func TestBuildReportsAnInvalidSkillTypeAtTheSkill(t *testing.T) {
 		t.Fatal("build installed an invalid skill")
 	}
 }
+
+func TestSync_NamesTheSkillAndTheUsedSkillItCannotFind(t *testing.T) {
+	binary := buildCLI(t)
+	f, err := gitfixture.New(context.Background(), map[string][]byte{"skills/architect/SKILL.md": []byte("---\nname: architect\nmetadata:\n  syllabus-skills-used: |\n    skills/how\n---\n# Architect\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	directory := t.TempDir()
+	for _, args := range [][]string{{"project", "init", "--skill-targets", "claude"}, {"project", "add", "source", "pstack", "--repository", f.Repository, "--ref", "v1.0.0", "--skills", "skills/architect", "--non-interactive"}} {
+		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
+			t.Fatal(args, code, out, diagnostic)
+		}
+	}
+	problem := "skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in syllabus-skills-used."
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, f.Environment, "project", "sync", "--json")
+	var result struct {
+		OK    bool
+		Error responseError
+	}
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "validation" || result.Error.Location != "sources.pstack.skills" || !strings.Contains(result.Error.Message, problem) {
+		t.Fatal(code, out, diagnostic)
+	}
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, directory, f.Environment, "project", "sync")
+	if code != 1 || !strings.Contains(diagnostic, "Error: "+problem) || !strings.Contains(diagnostic, "Location: sources.pstack.skills\n") {
+		t.Fatal(code, out, diagnostic)
+	}
+	if _, err := os.Stat(filepath.Join(directory, ".claude")); err == nil {
+		t.Fatal("failed sync installed skills")
+	}
+}
