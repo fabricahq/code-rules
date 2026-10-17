@@ -346,6 +346,70 @@ func TestSync_RecordsSkillsWithoutSkillTargetsAndWarns(t *testing.T) {
 	}
 }
 
+// TestSync_RenamesAClashingSkillAndWarnsThatMentionsKeepTheOldName starts with a source's skill and an authored
+// skill that share a name, which fails, then renames the source's skill.
+func TestSync_RenamesAClashingSkillAndWarnsThatMentionsKeepTheOldName(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"]}}}}`)
+	root, err := openProject(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, "skills/review/SKILL.md", "---\nname: review\ndescription: Our review.\n---\n# Our review\n")
+	_, err = Sync(ctx, options, git)
+	projectCode(t, err, "skill-name-clash")
+	if !strings.Contains(err.Error(), "skills/review and team:skills/review both install as review. Rename one with skills.rename, or exclude one.") {
+		t.Fatalf("clash error = %v", err)
+	}
+	writeFixture(t, root, configurationFile, strings.ReplaceAll(`{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"],"rename":{"skills/review":"team-review"}}}}}`, "REPOSITORY", quoteJSON(f.Repository)))
+	const warning = "team:skills/review is installed as team-review. Mentions of review in skill text aren't rewritten; check the skills that call it by that name."
+	changes, err := Sync(ctx, options, git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(changes.Warnings, []string{warning}) {
+		t.Fatalf("warnings = %q", changes.Warnings)
+	}
+	renamed := readRepositoryFile(t, options, ".claude/skills/team-review/SKILL.md")
+	if !strings.HasPrefix(renamed, "---\nname: team-review\ndescription: Review a change.\n---\n<!-- trailguide:installed team:skills/review ") || !strings.HasSuffix(renamed, "# Review\n") {
+		t.Fatalf("renamed copy:\n%s", renamed)
+	}
+	if !strings.Contains(readRepositoryFile(t, options, ".claude/skills/review/SKILL.md"), "# Our review") {
+		t.Fatal("the authored skill isn't installed under its own name")
+	}
+	if !strings.Contains(readRepositoryFile(t, options, ".trailguide/vendor/team/skills/review/SKILL.md"), "name: review\n") {
+		t.Fatal("the rename changed the vendored copy")
+	}
+	if index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md"); !strings.Contains(index, "### team-review\n\nReview a change.\n\n- **Skill:** `team:skills/review`, from release/1") || !strings.Contains(index, "- **Renamed from:** `review`, by the project's configuration. Its own text and other skills from `team` may still call it `review`; they mean this skill.") {
+		t.Fatalf("SKILLS.md:\n%s", index)
+	}
+	if provenance := readRepositoryFile(t, options, ".trailguide/generated/provenance.json"); !strings.Contains(provenance, `"renamedFrom": "review"`) {
+		t.Fatalf("provenance.json:\n%s", provenance)
+	}
+	if result, err := Check(ctx, options); err != nil || !result.Current() {
+		t.Fatalf("check = %+v, %v", result, err)
+	}
+	if changes, err := Build(ctx, options); err != nil || !slices.Equal(changes.Warnings, []string{warning}) {
+		t.Fatalf("build = %+v, %v; want the rename warning", changes, err)
+	}
+}
+
+func TestSync_RejectsARenameOfASkillTheSourceDoesNotInstall(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"],"rename":{"skills/build-feature":"build"}}}}}`)
+	_, err := Sync(ctx, options, git)
+	var validation errs.ValidationError
+	if !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.skills.rename.skills/build-feature" || !strings.Contains(validation.ValidationProblem(), "the source doesn't install skill skills/build-feature") {
+		t.Fatalf("got %v; want the rename rejected", err)
+	}
+	if exists(t, options, ".claude/skills") {
+		t.Fatal("refused sync installed skills")
+	}
+}
+
 func TestBuild_InstallsAuthoredSkillsOffline(t *testing.T) {
 	ctx := context.Background()
 	root := openTestProject(t)

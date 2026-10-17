@@ -158,7 +158,7 @@ Copy a skill the project installs into `.trailguide/skills/` so the project cont
 
 `--description` and `--type` don't apply to a fork. The command:
 
-1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `.trailguide/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a non-library source, the recorded commit. A renamed skill's fork takes its install name, so the folder and `name` match what agents already see.
+1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `.trailguide/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a non-library source, the recorded commit. A renamed skill's fork takes its install name, so the folder and `name` match what agents already see, and the exclusion in step 3 replaces the skill's `skills.rename` entry.
 2. Rewrites the fork's `trailguide-rules-used` and `trailguide-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `trailguide-skills-used`.
 3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `trailguide project sync` first.
 

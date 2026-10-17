@@ -348,3 +348,18 @@ func TestUpdate_TakesLevelChangesFromTheRevisionTheDecisionsChoose(t *testing.T)
 		t.Fatalf("level rows with errors kept = %#v; want none, since the skills stay at release/1", got)
 	}
 }
+
+func TestSync_RenamesARequiredSkill(t *testing.T) {
+	f := leveledLibrary(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"rename":{"skills/ship":"team-ship"}}}}}`)
+	changes, err := Sync(context.Background(), options, git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := installedSkills(t, options); !slices.Equal(got, []string{"team-ship"}) {
+		t.Fatalf("installed %v; want the required skill under its new name", got)
+	}
+	if len(changes.Warnings) != 1 || !strings.HasPrefix(changes.Warnings[0], "team:skills/ship is installed as team-ship.") {
+		t.Fatalf("warnings = %q", changes.Warnings)
+	}
+}

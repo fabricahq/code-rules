@@ -66,7 +66,7 @@ When the target folders are linked, as [Linked target folders](#linked-target-fo
 
 `trailguide project update` also reports each rule's and skill's change, versions, level, and summary. There is no separate structured summary of added or removed rule groups. To see which revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Sync, update, and check also print the [rename warning](/reference/configuration/#rename-a-skill) for each renamed skill, and the [personal skill warning](#personal-skills-with-the-same-name) for each personal skill with the name of a skill the repository installs. In JSON output they're in `value.warnings`.
+Sync, update, and build also print the [rename warning](/reference/configuration/#rename-a-skill) for each renamed skill, and sync, update, and check print the [personal skill warning](#personal-skills-with-the-same-name) for each personal skill with the name of a skill the repository installs. In JSON output they're in `value.warnings`.
 
 Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, installed skills, the managed Trail Guide guide, and the `AGENTS.md` section without writing any of them. A problem in a target folder has a path relative to the repository root, starting with `.claude/skills/` or `.agents/skills/`.
 

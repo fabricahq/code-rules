@@ -52,17 +52,20 @@ type SkillForkPlan struct {
 	// name is the skill's install name, which names the fork's folder, and commit the commit of the source's
 	// repository that the source record locks, which the exclusion records as basedOn.
 	name, commit string
+	// renamed reports whether the source's skills.rename gave the skill its install name; Commit then removes that
+	// entry, since the exclusion replaces it.
+	renamed bool
 	// files holds the fork's files, by path relative to the Trail Guide directory, with their executable bits.
 	files []filetxn.File
 }
 
 // PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ as the source's
 // last sync recorded it, with its SKILL.md rewritten as forkedSkillFile rewrites it, into skills/<name>/, where name
-// is the skill's install name, without writing. It fails when the source isn't configured, when its record doesn't
-// match its configuration, when its last sync didn't install the skill, when the source's library requires the
-// skill, when the source already excludes the skill, when the project already has an authored skill with that name or
-// another exclusion names it as a replacement, since existing authored skills and exclusions are never replaced, or
-// when forkedSkillFile fails.
+// is the skill's install name, the one the source's skills.rename gives it when it has one, without writing. It fails
+// when the source isn't configured, when its record doesn't match its configuration, when its last sync didn't
+// install the skill, when the source's library requires the skill, when the source already excludes the skill, when
+// the project already has an authored skill with that name or another exclusion names it as a replacement, since
+// existing authored skills and exclusions are never replaced, or when forkedSkillFile fails.
 func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (*SkillForkPlan, error) {
 	plan := &SkillForkPlan{from: from}
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
@@ -107,7 +110,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		if err != nil {
 			return err
 		}
-		if plan.name, err = skills.InstallName(from.Skill, metadata, location); err != nil {
+		if name, renamed := source.SkillRename[from.Skill]; renamed {
+			plan.name, plan.renamed = name, true
+		} else if plan.name, err = skills.InstallName(from.Skill, metadata, location); err != nil {
 			return err
 		}
 		plan.commit = snapshot.Commit
@@ -119,6 +124,12 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		for _, name := range slices.Sorted(maps.Keys(files)) {
 			content := files[name]
 			if name == skills.File {
+				if plan.renamed {
+					content = skills.Rename(content, plan.name)
+					if metadata, err = skills.ReadMetadata(content, location); err != nil {
+						return err
+					}
+				}
 				if content, err = forkedSkillFile(content, metadata, plan.name, source.Name, !snapshot.NonLibrary, source.SkillUses[from.Skill], location); err != nil {
 					return err
 				}
@@ -154,7 +165,7 @@ func (p *SkillForkPlan) Name() string { return p.name }
 func (p *SkillForkPlan) BasedOn() string { return p.commit }
 
 // Commit writes the fork under writer ownership, and, in the same edit, adds the source's exclusion of the skill
-// with reason, the fork as replacedBy, and the commit it copied as basedOn, so the fork installs in place of the
+// with reason, the fork as replacedBy, and the commit it copied as basedOn, removing the skill's skills.rename entry, so the fork installs in place of the
 // source's skill and updates list the source's later changes to it. It writes nothing when reason is blank, when the
 // configuration or the source record changed after planning, such as when an update moved the source to another
 // commit, or when any of the fork's files exists.
@@ -185,6 +196,9 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 			return nil, err
 		}
 		edit := rules.SourceEdit{SkillExclude: map[string]rules.SkillExclusion{p.from.Skill: {Reason: reason, ReplacedBy: folder, BasedOn: basedOn}}}
+		if p.renamed {
+			edit.SkillUnrename = []string{p.from.Skill}
+		}
 		edited, err := rules.EditConfigurationSource(original, p.from.Source, edit)
 		if err != nil {
 			return nil, err

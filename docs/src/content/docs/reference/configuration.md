@@ -208,6 +208,10 @@ Trail Guide doesn't rewrite the old name where skill text mentions it, such as i
 Warning: fabrica:skills/review-change is installed as fabrica-review. Mentions of review-change in skill text aren't rewritten; check the skills that call it by that name.
 ```
 
+The renamed skill's own text and other skills from its source may still say `review-change`, such as a step that says to use the `review-change` skill or runs `/review-change`. After a clash, that name usually belongs to the other skill, so an agent following the old mention can run the wrong one. Check those skills, and [fork](/reference/cli/#project-add-skill) any you need to change; a fork of a renamed skill takes its new name, and the fork's exclusion replaces the rename. Trail Guide doesn't rewrite mentions for you, because a bare word, `/review-change`, and ordinary prose look alike, and a wrong match would corrupt the skill.
+
+A required skill can be renamed too, because it stays installed, and a source can rename one without `include`.
+
 When two installed skills still have the same install name, from any sources or your authored skills, sync fails with `skill-name-clash`, naming both, and writes nothing. Rename or exclude one of them. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
 
 ## Declare the skills a skill calls

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -200,6 +201,40 @@ func TestPlanSkillFork_RefusesWhatItCannotFork(t *testing.T) {
 	projectCode(t, err, "already-exists")
 	if _, err := ParseSkillForkSource("skills/review"); err == nil || !strings.Contains(err.Error(), "expected SOURCE:SKILL") {
 		t.Fatalf("parse without a source = %v", err)
+	}
+}
+
+// TestPlanSkillFork_ForksARenamedSkillUnderItsInstallName names the fork and its SKILL.md by the rename, and swaps the
+// rename entry for the exclusion, so build installs the fork where agents already found the skill.
+func TestPlanSkillFork_ForksARenamedSkillUnderItsInstallName(t *testing.T) {
+	ctx := context.Background()
+	f, _ := skillLibrary(t)
+	options, git := skillProject(t, f, skillConfig("      rename:\n        skills/review: team-review\n"))
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	plan, _ := forkSkill(t, options, "team:skills/review", "Ours.")
+	if plan.Name() != "team-review" {
+		t.Fatalf("fork name = %s; want team-review", plan.Name())
+	}
+	if fork := readRepositoryFile(t, options, ".trailguide/skills/team-review/SKILL.md"); !strings.Contains(fork, "\nname: team-review\n") || strings.Contains(fork, "name: review\n") {
+		t.Fatalf("fork's SKILL.md:\n%s", fork)
+	}
+	config := readRepositoryFile(t, options, ".trailguide/config.yaml")
+	if strings.Contains(config, "rename") || !strings.Contains(config, "replacedBy: skills/team-review") {
+		t.Fatalf("config.yaml:\n%s", config)
+	}
+	changes, err := Build(ctx, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := installedSkills(t, options); !slices.Contains(got, "team-review") || slices.Contains(got, "review") {
+		t.Fatalf("installed %v; want the fork as team-review", got)
+	}
+	for _, warning := range changes.Warnings {
+		if strings.Contains(warning, "is installed as") {
+			t.Fatalf("build still warns about a rename: %q", warning)
+		}
 	}
 }
 
