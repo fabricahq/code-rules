@@ -158,17 +158,16 @@ A skill that becomes required while your project excludes or forks it stops the 
 
 ## Update a non-library source
 
-A [non-library source](/reference/imports/#non-library-sources) has no versions. When its `ref` names a branch, the update moves it to the newest commit on the branch, and the preview lists each installed skill folder that changed between the recorded commit and that one, with the files that changed:
+A [non-library source](/reference/imports/#non-library-sources) has no versions. When its `ref` names a branch, the update moves it to the newest commit on the branch, and the preview shows the commit it moves from and to, then lists each installed skill folder that changed between the two, with the files that changed:
 
 ```text
-pstack  main: 3f9c2e1 -> 8a41d07
+pstack
+  main: 3f9c2e1a5b7d -> 8a41d07c2e9f
   changed   skills/architect
             Changed: SKILL.md, scripts/diagram.sh
             script changed: scripts/diagram.sh
   added     skills/review
-            Included by "*".
   removed   skills/sketch
-            The folder no longer exists on main.
 
 Warning: some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm.
 ```
@@ -177,7 +176,7 @@ Warning: some skills in this update add or change scripts. Trail Guide never run
 - `added` lists a new skill folder that the source's `"*"` includes. New folders you haven't included aren't listed; run `trailguide project list skills` to see them.
 - `removed` lists an installed skill whose folder is gone. Applying the update stops installing it. When the skill is in your `skills.include`, the entry no longer does anything, and sync and update warn about it so you can delete it.
 
-Scripts are flagged and warned about as they are for [library skills](#update-skills). Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A tag that now names a different commit than at your last update moves too, and the preview warns that the tag moved. A non-library source whose `ref` is a commit never moves; to take another commit, change `ref` and run `trailguide project update SOURCE`. `--keep` and pins don't apply to non-library sources; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
+Scripts are flagged and warned about as they are for [library skills](#update-skills). Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. When the branch has no new commit, the preview says `main: no new commit.` A tag that now names a different commit than at your last update moves too, and the preview warns that the tag moved; only a non-library source follows a tag this way, since a library source with a tag `ref` [holds one revision](#take-one-library-release). A non-library source whose `ref` is a commit never moves; to take another commit, change `ref` and run `trailguide project update SOURCE`. `--keep` and pins don't apply to non-library sources; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
 
 ### Curated skills
 
@@ -278,7 +277,7 @@ sources:
 
 `trailguide project update` doesn't move this source past release 5. To take another library release, change the tag and run `trailguide project update vendor-rules`; sync never moves a source, so it reports that the record is out of date. To go back to following library releases, remove `ref` and update the source.
 
-`ref` also accepts a branch, any other tag, or a full commit SHA, which library authors use to test unreleased changes. Rules and skills with unreleased changes have no version, so Trail Guide warns about them every time you sync or update. See [Take one revision](/reference/configuration/#take-one-revision).
+`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. A library source can't take a branch: its `ref` fails with `ref-is-branch`, so set it to a commit on the branch instead. Rules and skills with unreleased changes have no version, so Trail Guide warns about them every time you sync or update. See [Take one revision](/reference/configuration/#take-one-revision).
 
 ## Review and commit the update
 
