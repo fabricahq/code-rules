@@ -75,14 +75,40 @@ func skillProblems(tree *filetxn.Tree, current, curated []string, changes librar
 			}
 			if citation := skills.ParseCitation(id); citation.Source != "" && !slices.Contains(curated, id) {
 				missing = append(missing, id)
-				problems = append(problems, fmt.Sprintf("%s: %s names %s, which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too", location, skills.SkillsUsedKey, id))
+				problems = append(problems, fmt.Sprintf("%s: %s names %s, %s", location, skills.SkillsUsedKey, id, uncuratedProblem(citation, curated)))
 			} else if name, _ := strings.CutPrefix(id, skills.Directory+"/"); citation.Source == "" && !folders[name] {
 				missing = append(missing, id)
-				problems = append(problems, fmt.Sprintf("%s: %s names %s, which isn't a skill in this library", location, skills.SkillsUsedKey, id))
+				problem := fmt.Sprintf("%s: %s names %s, which isn't a skill in this library", location, skills.SkillsUsedKey, id)
+				for _, listed := range curated {
+					if _, skill, _ := SplitCurated(listed); skill == id {
+						problem += fmt.Sprintf("; the library curates %s, so name it that way", listed)
+						break
+					}
+				}
+				problems = append(problems, problem)
 			}
 		}
 	}
 	return problems
+}
+
+// uncuratedProblem explains why citation, a line of trailguide-skills-used that names a source, isn't one of curated,
+// the curated skills the library's levels list: no listed skill comes from its source, which is then misspelled or
+// curates nothing, or the library hasn't listed the skill.
+func uncuratedProblem(citation skills.Citation, curated []string) string {
+	sources := []string{}
+	for _, id := range curated {
+		if source, _, _ := SplitCurated(id); !slices.Contains(sources, source) {
+			sources = append(sources, source)
+		}
+	}
+	switch {
+	case slices.Contains(sources, citation.Source):
+		return "which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too"
+	case len(sources) == 0:
+		return "but library.skills lists no curated skills; name a skill of this library as skills/<name>, or list the curated skill in library.skills"
+	}
+	return fmt.Sprintf("but library.skills lists no skill from a source named %s; the library curates skills from %s. Correct the source name, or name a skill of this library as skills/<name>", citation.Source, strings.Join(sources, ", "))
 }
 
 // citedRuleProblem returns why id, a line of trailguide-rules-used, doesn't name a current rule of the library, or empty when

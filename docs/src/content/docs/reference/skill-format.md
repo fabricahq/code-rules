@@ -212,6 +212,8 @@ Check fails with these problems:
 | An ID listed twice | `skills/build-feature/SKILL.md: trailguide-rules-used names practices/testing/verify-retries twice` |
 | A used skill that doesn't exist | `skills/build-feature/SKILL.md: trailguide-skills-used names skills/tdd-loop, which isn't a skill in this library` |
 | A used curated skill that `library.skills` doesn't list | `skills/add-skill/SKILL.md: trailguide-skills-used names anthropic:skills/skill-creator, which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too` |
+| A used curated skill whose source name `library.skills` doesn't use | `skills/add-skill/SKILL.md: trailguide-skills-used names anthropik:skills/skill-creator, but library.skills lists no skill from a source named anthropik; the library curates skills from anthropic. Correct the source name, or name a skill of this library as skills/<name>` |
+| A curated skill named without its source name | `skills/add-skill/SKILL.md: trailguide-skills-used names skills/skill-creator, which isn't a skill in this library; the library curates anthropic:skills/skill-creator, so name it that way` |
 | A used skill that is retired | `skills/build-feature/SKILL.md: trailguide-skills-used names skills/triage-bug, which is retired and replaced by skills/fix-bug; use the replacement`, or `which is retired; remove it` when nothing replaces it |
 | A skill that uses itself | `skills/build-feature/SKILL.md: trailguide-skills-used names the skill itself` |
 | Skills that use each other in a cycle | `skills/build-feature/SKILL.md: trailguide-skills-used forms a cycle: skills/build-feature -> skills/tdd -> skills/build-feature` |

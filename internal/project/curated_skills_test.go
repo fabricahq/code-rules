@@ -243,6 +243,23 @@ func TestSync_InstallsTheCuratedSkillsALibrarysSkillUses(t *testing.T) {
 	}
 }
 
+func TestSync_WarnsWhenTheProjectExcludesACuratedSkillALibrarysSkillUses(t *testing.T) {
+	ctx := context.Background()
+	authored := map[string][]byte{".trailguide/skills/add-skill/SKILL.md": usingSkill("add-skill", "pocock:skills/productivity/grilling")}
+	b := newCuratingWith(t, teamSkills, authored, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"skills":{"include":["skills/add-skill"],"exclude":[{"id":"pocock:skills/productivity/grilling","reason":"Not wanted."}]}}}}`)
+	changes, err := Sync(ctx, b.options, b.git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists(t, b.options, ".claude/skills/grilling") {
+		t.Error("installed a curated skill the project excludes")
+	}
+	want := "team:skills/add-skill uses team:pocock:skills/productivity/grilling, which the project excludes without a replacement, so the skill it uses isn't installed. Stop excluding the skill, or remove the use from the skill that uses it, which you can fork. A curated skill can't be replaced."
+	if !slices.Contains(changes.Warnings, want) {
+		t.Errorf("warnings = %q; want %q", changes.Warnings, want)
+	}
+}
+
 func TestSync_RefusesACuratedSkillALibrarysSkillUsesButTheLibraryDoesNotList(t *testing.T) {
 	ctx := context.Background()
 	authored := map[string][]byte{".trailguide/skills/add-skill/SKILL.md": usingSkill("add-skill", "pocock:skills/engineering/interview")}

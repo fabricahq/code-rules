@@ -10,6 +10,7 @@ import (
 
 	"github.com/fabricahq/trailguide/internal/filetxn"
 	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 	"github.com/fabricahq/trailguide/trailguide"
 )
@@ -48,9 +49,11 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 			"skills/fix/SKILL.md: trailguide-rules-used names practices/testing/old, which is retired; remove it",
 			"skills/fix/SKILL.md: trailguide-rules-used names practices/testing/d, which is retired and replaced by practices/testing/c; cite the replacement",
 		}},
-		"skills it uses": {map[string]string{"fix/SKILL.md": skill("  trailguide-skills-used: |\n    skills/fix\n    mattpocock:skills/tdd\n    anthropic:skills/skill-creator\n")}, nil, []string{
+		"skills it uses": {map[string]string{"fix/SKILL.md": skill("  trailguide-skills-used: |\n    skills/fix\n    anthropic:skills/tdd\n    mattpocock:skills/tdd\n    anthropic:skills/skill-creator\n    skills/skill-creator\n")}, nil, []string{
 			"skills/fix/SKILL.md: trailguide-skills-used names the skill itself",
-			"skills/fix/SKILL.md: trailguide-skills-used names mattpocock:skills/tdd, which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too",
+			"skills/fix/SKILL.md: trailguide-skills-used names anthropic:skills/tdd, which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too",
+			"skills/fix/SKILL.md: trailguide-skills-used names mattpocock:skills/tdd, but library.skills lists no skill from a source named mattpocock; the library curates skills from anthropic. Correct the source name, or name a skill of this library as skills/<name>",
+			"skills/fix/SKILL.md: trailguide-skills-used names skills/skill-creator, which isn't a skill in this library; the library curates anthropic:skills/skill-creator, so name it that way",
 		}},
 		"skills it uses that the library doesn't have": {map[string]string{
 			"fix/SKILL.md":      skill("  trailguide-skills-used: |\n    skills/review\n    skills/tdd\n    skills/notes\n"),
@@ -110,5 +113,12 @@ func TestCheck_RejectsASkillThatUsesASkillTheLibraryDoesntHave(t *testing.T) {
 	edit(t, options.Directory, map[string]string{".trailguide/skills/tdd/SKILL.md": "---\nname: tdd\n---\n# TDD\n"})
 	if _, err := Check(ctx, options); err != nil {
 		t.Fatalf("check rejected a skill that uses skills the library has: %v", err)
+	}
+}
+
+func TestUncuratedProblemWithoutCuratedSkills(t *testing.T) {
+	got := uncuratedProblem(skills.ParseCitation("anthropic:skills/skill-creator"), nil)
+	if want := "but library.skills lists no curated skills; name a skill of this library as skills/<name>, or list the curated skill in library.skills"; got != want {
+		t.Fatalf("uncuratedProblem = %q; want %q", got, want)
 	}
 }
