@@ -13,10 +13,10 @@ import (
 )
 
 // SkillLevels lists, sorted, the IDs of the skills at each level the manifest names: the library's own skills,
-// skills/<name>, and the skills it borrows, the name of a source in its sources, a colon, and the skill's ID in that
+// skills/<name>, and the skills it curates, the name of a source in its sources, a colon, and the skill's ID in that
 // source's repository, such as mattpocock:skills/to-spec. Each list is empty, never nil, when the manifest names
 // none, and a skill is in at most one list. Whether each own skill exists is checked against the library's skills/
-// folder, and whether each borrowed one exists when a project imports it.
+// folder, and whether each curated one exists when a project imports it.
 type SkillLevels struct {
 	Required    []string `json:"required"`
 	Recommended []string `json:"recommended"`
@@ -24,7 +24,7 @@ type SkillLevels struct {
 }
 
 // Level returns the level of the library's skill id: the level whose list names it, or offered, the level of every
-// own skill no list names. A borrowed skill no list names doesn't reach projects; see Borrowed.
+// own skill no list names. A curated skill no list names doesn't reach projects; see Curated.
 func (l SkillLevels) Level(id string) string {
 	switch {
 	case slices.Contains(l.Required, id):
@@ -43,7 +43,7 @@ func (l SkillLevels) Listed() []string {
 }
 
 // parseSkillLevels validates library.skills at location: an object of required, recommended, and offered lists of
-// skill IDs, each listed once, each borrowed one from one of sources, the names the configuration's sources declare.
+// skill IDs, each listed once, each curated one from one of sources, the names the configuration's sources declare.
 // A missing object lists none.
 func parseSkillLevels(input json.RawMessage, location string, sources []string) (SkillLevels, error) {
 	result := SkillLevels{Required: []string{}, Recommended: []string{}, Offered: []string{}}
@@ -75,8 +75,8 @@ func parseSkillLevels(input json.RawMessage, location string, sources []string) 
 			if err != nil {
 				return SkillLevels{}, err
 			}
-			if _, _, borrowed := strings.Cut(id, ":"); borrowed {
-				if err := validateBorrowedSkill(id, at, sources); err != nil {
+			if _, _, curated := strings.Cut(id, ":"); curated {
+				if err := validateCuratedSkill(id, at, sources); err != nil {
 					return SkillLevels{}, err
 				}
 			} else if name, authored := strings.CutPrefix(id, skills.Directory+"/"); !authored || !skills.ValidName(name) {

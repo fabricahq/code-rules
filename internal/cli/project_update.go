@@ -381,10 +381,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.SkillLevels {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		for _, row := range source.Borrowed {
-			idWidth = max(idWidth, len(row.Name))
-		}
-		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || len(source.Borrowed) > 0 || source.Ref != "" || source.SharedFiles != nil
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || len(source.Curated) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -395,7 +392,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		switch {
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
-		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil && len(source.Borrowed) == 0:
+		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil && len(source.Curated) == 0:
 			out.WriteString("  No rule updates.\n")
 		}
 		for _, row := range source.Rules {
@@ -412,25 +409,21 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 			}
 		}
 		formatLevelRows(out, source.SkillLevels, idWidth)
-		formatBorrowedRows(out, source.Borrowed, idWidth)
+		formatCuratedRows(out, source.Name, source.Curated)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
 }
 
-// formatBorrowedRows lists the rows of the sources a library borrows skills from, with the source name in a column
-// idWidth wide and the commits it moves between, each row's details and skill rows beneath it.
-func formatBorrowedRows(out *strings.Builder, rows []imports.BorrowedUpdate, idWidth int) {
+// formatCuratedRows lists the sources library curates skills from, each on a line naming the library, the curated
+// source, and how its revision moves, with the rows of its skills beneath it.
+func formatCuratedRows(out *strings.Builder, library string, rows []imports.CuratedUpdate) {
 	indent := strings.Repeat(" ", 2+updateKindWidth+2)
 	for _, row := range rows {
-		span := commitSpan(row.From, row.To)
-		if row.To == "" {
-			span = "commit " + shortCommit(row.From) + " -> none"
-		}
-		fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "borrowed", idWidth, row.Name, span)
-		for _, line := range borrowedDetails(row) {
-			fmt.Fprintf(out, "%s%s\n", indent, line)
+		fmt.Fprintf(out, "  %s curates %s  %s\n", library, row.Name, curatedSpan(row))
+		if row.TagMoved {
+			fmt.Fprintf(out, "%sThe tag %s now names a different commit than at the last update.\n", indent, row.Ref)
 		}
 		formatSkillRows(out, row.Changes)
 	}
@@ -481,7 +474,7 @@ func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
 	}
 }
 
-// answeredSkills lists the skill, level, and borrowed rows of each source whose rows in after, the preview with the
+// answeredSkills lists the skill, level, and curated rows of each source whose rows in after, the preview with the
 // answers, differ from those in before, the preview shown before the questions, then after's scripts warning, or
 // returns empty when no source's rows differ.
 func answeredSkills(before, after project.UpdateResult) string {
@@ -491,14 +484,14 @@ func answeredSkills(before, after project.UpdateResult) string {
 	}
 	var out strings.Builder
 	for _, source := range after.Sources {
-		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) && reflect.DeepEqual(shown[source.Name].Borrowed, source.Borrowed) {
+		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) && reflect.DeepEqual(shown[source.Name].Curated, source.Curated) {
 			continue
 		}
 		if out.Len() == 0 {
 			out.WriteString("\nYour answers change the update's skills:\n")
 		}
 		out.WriteString(source.Name + "\n")
-		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 && len(source.Borrowed) == 0 {
+		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 && len(source.Curated) == 0 {
 			out.WriteString("  No skill changes.\n")
 		}
 		formatSkillRows(&out, source.Skills)
@@ -506,11 +499,8 @@ func answeredSkills(before, after project.UpdateResult) string {
 		for _, row := range source.SkillLevels {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		for _, row := range source.Borrowed {
-			idWidth = max(idWidth, len(row.Name))
-		}
 		formatLevelRows(&out, source.SkillLevels, idWidth)
-		formatBorrowedRows(&out, source.Borrowed, idWidth)
+		formatCuratedRows(&out, source.Name, source.Curated)
 	}
 	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
 		fmt.Fprintf(&out, "\nWarning: %s\n", warning)
@@ -542,18 +532,25 @@ func commitSpan(from, to string) string {
 	return "commit " + shortCommit(from) + " -> " + shortCommit(to)
 }
 
-// borrowedDetails returns the lines shown under the row of a source the library borrows skills from: the repository
-// and ref the commit was resolved from, and the borrowed skills that move with it, or, for a source the project no
-// longer takes skills from, why.
-func borrowedDetails(row imports.BorrowedUpdate) []string {
-	if row.To == "" {
-		return []string{"No longer borrowed from " + row.Repository + ": the library no longer lists the skills the project takes from it."}
+// curatedSpan shows how a curated source's revision moves: between library releases, such as release 3 -> 4, or
+// between commits after the ref they were resolved from, such as main: 3f9c2e1a5b7d -> 8a41d07c2e9f, with "none" for
+// a side where the project takes no skills from the source; or only the ref when the commit doesn't move.
+func curatedSpan(row imports.CuratedUpdate) string {
+	ref := cmp.Or(row.Ref, "newest release")
+	switch {
+	case row.Release != nil:
+		return fmt.Sprintf("release %d -> %d", row.Release.From, row.Release.To)
+	case row.Commit == nil:
+		return ref
 	}
-	resolved := "the newest library release"
-	if row.Ref != "" {
-		resolved = "ref " + row.Ref
+	from, to := "none", "none"
+	if row.Commit.From != "" {
+		from = shortCommit(row.Commit.From)
 	}
-	return []string{"Borrowed from " + row.Repository + ", resolved from " + resolved + ".", "Skills: " + strings.Join(row.Skills, ", ")}
+	if row.Commit.To != "" {
+		to = shortCommit(row.Commit.To)
+	}
+	return ref + ": " + from + " -> " + to
 }
 
 // replacedSkillDetails returns the lines shown under a replaced skill's row: the authored skill that replaces it,

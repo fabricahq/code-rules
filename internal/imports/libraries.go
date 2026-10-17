@@ -39,7 +39,7 @@ type Library struct {
 // chosen only where configuration asks for something a snapshot doesn't have. It never installs files in a
 // consuming project. Source temporary state is closed on every path.
 func ImportLibraries(ctx context.Context, configuration rules.Configuration, recorded map[string]library.Snapshot, options Options) (map[string]Library, error) {
-	return importSources(ctx, configuration, options, borrowing{recorded: recorded}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+	return importSources(ctx, configuration, options, curating{recorded: recorded}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		return planSource(ctx, repo, source, recordedSnapshot(recorded, source.Name))
 	})
 }
@@ -48,8 +48,8 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, rec
 type resolver func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error)
 
 // importSources imports every source of configuration as resolve plans it, then the skills each library source
-// borrows, at the revisions borrow chooses, or returns no partial result.
-func importSources(ctx context.Context, configuration rules.Configuration, options Options, borrow borrowing, resolve resolver) (map[string]Library, error) {
+// curates, at the revisions curate chooses, or returns no partial result.
+func importSources(ctx context.Context, configuration rules.Configuration, options Options, curate curating, resolve resolver) (map[string]Library, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, gitexec.ContextFailure(err)
 	}
@@ -64,10 +64,10 @@ func importSources(ctx context.Context, configuration rules.Configuration, optio
 		}
 		result[source.Name] = imported
 	}
-	// Borrowing comes second, so a project source that declares a borrowed repository has its revision chosen.
+	// Curating comes second, so a project source that declares a curated repository has its revision chosen.
 	for _, source := range configuration.Sources {
 		imported := result[source.Name]
-		if err := borrowSkills(ctx, configuration, source, &imported, result, borrow, options); err != nil {
+		if err := curateSkills(ctx, configuration, source, &imported, result, curate, options); err != nil {
 			return nil, sourceError(source.Name, err)
 		}
 		result[source.Name] = imported

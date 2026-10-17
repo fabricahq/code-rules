@@ -99,7 +99,7 @@ Installed skills are in the top-level `skills` array, one entry per skill the pr
   "type": "playbook",
   "origin": {
     "source": "fabrica",
-    "borrowedFrom": null,
+    "curatedFrom": null,
     "repository": "https://github.com/fabricahq/public-rules.git",
     "resolvedCommit": "4f1c2a95…",
     "folder": "skills/tdd",
@@ -126,9 +126,9 @@ Installed skills are in the top-level `skills` array, one entry per skill the pr
 | `id` and `name` | The skill's project ID and its install name, which names its installed folders. |
 | `renamedFrom` | The skill's own `name` when your configuration [renames](/reference/configuration/#rename-a-skill) it; otherwise `null`. |
 | `type` | Its `trailguide-skill-type`, `playbook` or `review`, or `null`. |
-| `origin` | The source and folder supplying the installed skill, with the repository and exact commit. `version` and `release` record the skill's version and the library release that published it; both are `null` for an authored skill, a skill from a non-library source, or one with unreleased changes. An authored skill's origin has `source: null` and `null` for `repository` and `resolvedCommit`. For a [borrowed skill](/reference/configuration/#borrowed-skills), `source` is the library that listed it, `borrowedFrom` the borrowed source's name in that library's manifest, and `repository` and `resolvedCommit` the original repository and the commit your project resolved; otherwise `borrowedFrom` is `null`. |
+| `origin` | The source and folder supplying the installed skill, with the repository and exact commit. `version` and `release` record the skill's version and the library release that published it; both are `null` for an authored skill, a skill from a non-library source, or one with unreleased changes. An authored skill's origin has `source: null` and `null` for `repository` and `resolvedCommit`. For a [curated skill](/reference/configuration/#curated-skills), `source` is the library that listed it, `curatedFrom` the curated source's name in that library's manifest, and `repository` and `resolvedCommit` the original repository and the commit your project resolved; otherwise `curatedFrom` is `null`. |
 | `level` | The skill's [level](/reference/configuration/#skill-levels), `required`, `recommended`, or `offered`, as the library that listed it sets it; `null` for an authored skill or one from a non-library source. |
-| `requiredBy`, `recommendedBy`, or `offeredBy` | The library that set that level and the library release whose manifest set it, as `library` and `release`. Present when a level brought the skill in, including a borrowed skill; omitted when your project named the skill by ID in the source that holds it, or the skill is authored or from a non-library source. |
+| `requiredBy`, `recommendedBy`, or `offeredBy` | The library that set that level and the library release whose manifest set it, as `library` and `release`. Present when a level brought the skill in, including a curated skill; omitted when your project named the skill by ID in the source that holds it, or the skill is authored or from a non-library source. |
 | `included` | `true` when your configuration or a level includes the skill; `false` when it's installed only because other skills use it. |
 | `usedBy` | The project IDs of the installed skills that use this one, sorted, and empty when none does. |
 | `uses` | The project IDs of the skills this one uses, from its `trailguide-skills-used` list and your configuration's `skills.uses`. When your project replaces one, the replacement's ID is listed. |
@@ -145,7 +145,7 @@ Besides `rules` and `skills`, the same `generated/provenance.json` file contains
 | --- | --- |
 | `generatedNotice` | A reminder that Trail Guide generates the file, and how to regenerate it. |
 | `toolVersion` | The Trail Guide version that generated the files. |
-| `sources` | Each named source, its `kind`, `library` or `non-library`, its repository, its `ref` and `pins`, the library release or commit that supplied its rule group metadata and terms, its rule and skill `include` selectors, the rule groups and skills they reached, its borrowed sources, and declared terms. |
+| `sources` | Each named source, its `kind`, `library` or `non-library`, its repository, its `ref` and `pins`, the library release or commit that supplied its rule group metadata and terms, its rule and skill `include` selectors, the rule groups and skills they reached, its curated sources, and declared terms. |
 | `groups` | Each rule group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 
 For each source, `ruleInclude` and `skillInclude` record the selectors you wrote, while `groups` and `skills` list what they reached. For example, `"practices/*"` asks for every practice rule; `groups` records which practice groups existed in the library release taken.
@@ -310,13 +310,13 @@ A non-library source's record has no `release`, `ruleInclude`, `groups`, `rules`
 
 `ref` records the configured value, and `resolvedCommit` the exact commit every skill came from. `trailguide project sync` keeps that commit; only `trailguide project update` moves a source whose `ref` names a branch, or a tag that moved.
 
-### Borrowed sources in the source record
+### Curated sources in the source record
 
-When a library's manifest lists [borrowed skills](/reference/configuration/#borrowed-skills), the library's record holds a `borrowed` object with one entry per borrowed source the project installs skills from. The files are stored under `vendor/<source-name>/borrowed/<borrowed-source>/`, at their paths in the borrowed repository:
+When a library's manifest lists [curated skills](/reference/configuration/#curated-skills), the library's record holds a `curated` object with one entry per curated source the project installs skills from. The files are stored under `vendor/<source-name>/curated/<curated-source>/`, at their paths in the curated repository:
 
 ```json
 {
-  "borrowed": {
+  "curated": {
     "mattpocock": {
       "kind": "non-library",
       "repository": "https://github.com/mattpocock/skills.git",
@@ -340,7 +340,7 @@ When a library's manifest lists [borrowed skills](/reference/configuration/#borr
 }
 ```
 
-`ref` is the ref the library's manifest names, from the library release your project recorded, and `resolvedCommit` the commit your project resolved it to at its last update; `level` is the level the library sets. A borrowed library's skills also record `version`, `release`, and `commit`. When your project declares the borrowed repository as its own source, its skills are recorded in that source's record instead, at your `ref`, and the library's `borrowed` object omits them. The library record's `checksum` covers `borrowed`.
+`ref` is the ref the library's manifest names, from the library release your project recorded, and `resolvedCommit` the commit your project resolved it to at its last update; `level` is the level the library sets. A curated library's skills also record `version`, `release`, and `commit`. When your project declares the curated repository as its own source, the entry still records the library's curated skills, from your source's commit: `source` names your source, and `ref` and `resolvedCommit` are your source's. The library record's `checksum` covers `curated`.
 
 ### What offline checks can verify
 
@@ -374,7 +374,7 @@ For example, a rule's `files` entry might be `vendor/team/LICENSE.md`, with `lib
 
 The source record also has a `licenseFiles` list of the files belonging to its declaration, relative to the repository root. These lists describe files for one library-wide license declaration.
 
-A skill from a [non-library source](/reference/imports/#non-library-sources), including a borrowed skill from one, records the terms Trail Guide found for it. `licenseBasis` says where they came from: `"skill"` for the `license` field in its `SKILL.md`, `"skill-folder"` for a `LICENSE*` file in its folder, or `"repository"` for `LICENSE*` and `NOTICE*` files at the repository root. `spdxExpression` holds the `license` field when that's a valid SPDX expression, and is otherwise `null`; `files` and `attributionFiles` list the license and notice files found, and the root files' retained copies are in `generatedFiles` and `generatedAttributionFiles`. A borrowed skill keeps its own repository's terms, never the borrowing library's.
+A skill from a [non-library source](/reference/imports/#non-library-sources), including a curated skill from one, records the terms Trail Guide found for it. `licenseBasis` says where they came from: `"skill"` for the `license` field in its `SKILL.md`, `"skill-folder"` for a `LICENSE*` file in its folder, or `"repository"` for `LICENSE*` and `NOTICE*` files at the repository root. `spdxExpression` holds the `license` field when that's a valid SPDX expression, and is otherwise `null`; `files` and `attributionFiles` list the license and notice files found, and the root files' retained copies are in `generatedFiles` and `generatedAttributionFiles`. A curated skill keeps its own repository's terms, never the curating library's.
 
 Authored rules and skills, including replacements, have `license: null` and `licenseBasis: "undeclared"`. Replacing a library rule does not automatically assign its library's license to your replacement. The library's declaration remains in its source record.
 

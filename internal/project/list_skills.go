@@ -52,8 +52,8 @@ type LevelSetter struct {
 	Commit  string `json:"commit"`
 }
 
-// ListSkills lists the skills of the project's sources, as their records list them, including borrowed skills
-// installed only because other borrowed skills use them, with no level, and its authored skills, without fetching
+// ListSkills lists the skills of the project's sources, as their records list them, including curated skills
+// installed only because other curated skills use them, with no level, and its authored skills, without fetching
 // sources or writing files. It fails, as build does, when a source record doesn't match the configuration, so the
 // listing never describes a configuration sync hasn't applied.
 func ListSkills(ctx context.Context, options Options) (SkillListing, error) {
@@ -80,11 +80,11 @@ func ListSkills(ctx context.Context, options Options) (SkillListing, error) {
 	listing := SkillListing{Skills: []ListedSkill{}}
 	for _, source := range state.config.Sources {
 		snapshot := snapshots[source.Name]
-		// A borrowed skill installed only because other borrowed skills use it isn't one the library lists, so the
+		// A curated skill installed only because other curated skills use it isn't one the library lists, so the
 		// library sets no level for it.
 		levels := maps.Clone(snapshot.AvailableSkills)
 		for id := range snapshot.Skills {
-			if _, listed := levels[id]; !listed && isBorrowedSkill(id) {
+			if _, listed := levels[id]; !listed && isCuratedSkill(id) {
 				levels[id] = library.ImportedSkill{}
 			}
 		}

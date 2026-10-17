@@ -57,14 +57,14 @@ type resolvedSkill struct {
 	NonLibrary              bool
 	// Level is the skill's level in its library, or empty for an authored skill or one from another repository.
 	// LevelRelease is the library release whose manifest set it, or 0 when the library source's revision isn't one;
-	// it differs from Release for a borrowed skill.
+	// it differs from Release for a curated skill.
 	Level        string
 	LevelRelease int
-	// Borrowed names the source in the library's manifest that a borrowed skill comes from, whose repository and
+	// Curated names the source in the library's manifest that a curated skill comes from, whose repository and
 	// revision Repository, Ref, Commit, and Release then identify, and whose files are in Vendored, the skill's
 	// folder in the library source's vendor snapshot; both are empty for any other skill. Override names the
-	// project's own source that supplied the borrowed revision, when one declares the same repository.
-	Borrowed, Vendored, Override string
+	// project's own source that supplied the curated revision, when one declares the same repository.
+	Curated, Vendored, Override string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
 	// RulesUsed lists the lines of the skill's trailguide-rules-used, and Cited how the project resolves each of them, in
@@ -115,7 +115,7 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			}
 		}
 	}
-	result, aliases := withoutBorrowedCopies(result)
+	result, aliases := withoutCuratedCopies(result)
 	for _, id := range slices.Sorted(maps.Keys(local)) {
 		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
 		if replacement, replaces := replacements[id]; replaces {
@@ -146,32 +146,32 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 }
 
 // sourceSkill returns the origin of skill id of source, whose snapshot is snapshot: the source's repository and
-// revision for a skill it publishes, and, for a borrowed one, the repository and revision it was borrowed from.
+// revision for a skill it publishes, and, for a curated one, the repository and revision it was curated from.
 func sourceSkill(source rules.Source, snapshot library.Snapshot, id string) resolvedSkill {
 	skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Vendored: id, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
 	if skill.Level != "" {
 		skill.LevelRelease = snapshot.Release
 	}
-	if name, folder, borrowed := library.SplitBorrowed(id); borrowed {
-		origin := snapshot.Borrowed[name]
-		skill.Folder, skill.Vendored, skill.Borrowed, skill.Override = folder, library.SkillFolder(id), name, origin.Source
+	if name, folder, curated := library.SplitCurated(id); curated {
+		origin := snapshot.Curated[name]
+		skill.Folder, skill.Vendored, skill.Curated, skill.Override = folder, library.SkillFolder(id), name, origin.Source
 		skill.Repository, skill.Ref, skill.Commit, skill.Release, skill.NonLibrary = origin.Repository, origin.Ref.String(), origin.Commit, origin.Release, origin.NonLibrary
 	}
 	return skill
 }
 
-// withoutBorrowedCopies drops from resolved each skill a project source installs that is also a borrowed skill
+// withoutCuratedCopies drops from resolved each skill a project source installs that is also a curated skill
 // resolved, from the same repository, folder, and commit, as an overriding source supplies it: a skill's identity is
-// its repository and folder, so the borrowed one, which carries its library's level, is the one installed. It also
-// returns, by the project ID of each dropped skill, the borrowed skill's, which uses of the dropped one reach instead.
-func withoutBorrowedCopies(resolved []resolvedSkill) ([]resolvedSkill, map[string]string) {
+// its repository and folder, so the curated one, which carries its library's level, is the one installed. It also
+// returns, by the project ID of each dropped skill, the curated skill's, which uses of the dropped one reach instead.
+func withoutCuratedCopies(resolved []resolvedSkill) ([]resolvedSkill, map[string]string) {
 	aliases := map[string]string{}
 	kept := slices.DeleteFunc(resolved, func(skill resolvedSkill) bool {
-		if skill.Borrowed != "" {
+		if skill.Curated != "" {
 			return false
 		}
-		i := slices.IndexFunc(resolved, func(borrowed resolvedSkill) bool {
-			return borrowed.Override == skill.Source && borrowed.Borrowed != "" && borrowed.Folder == skill.Folder && borrowed.Commit == skill.Commit
+		i := slices.IndexFunc(resolved, func(curated resolvedSkill) bool {
+			return curated.Override == skill.Source && curated.Curated != "" && curated.Folder == skill.Folder && curated.Commit == skill.Commit
 		})
 		if i >= 0 {
 			aliases[skill.ID] = resolved[i].ID
@@ -267,7 +267,7 @@ func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[strin
 			folders[target] = installed
 		}
 		entry := record{Name: skill.Name, ID: skill.ID, Targets: skill.Targets, Digest: folderDigest(installed)}
-		if skill.NonLibrary || skill.Borrowed != "" {
+		if skill.NonLibrary || skill.Curated != "" {
 			entry.Commit = &skill.Commit
 		}
 		records = append(records, entry)
@@ -381,8 +381,8 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		switch {
 		case skill.Source == "":
 			facts = append(facts, "- **Skill:** `"+skill.ID+"`, authored in this project")
-		case skill.Borrowed != "":
-			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, borrowed by `%s` from %s, commit `%s`", skill.ID, skill.Source, escapeText(skill.Repository), skill.Commit))
+		case skill.Curated != "":
+			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, curated by `%s` from %s, commit `%s`", skill.ID, skill.Source, escapeText(skill.Repository), skill.Commit))
 		case skill.Release != 0:
 			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, from release/%d, commit `%s`", skill.ID, skill.Release, skill.Commit))
 		default:

@@ -229,7 +229,7 @@ library:
 - **Recommended** skills install in projects that include `recommended`.
 - **Offered** skills install only when a project names them or includes `"*"`. A skill you don't list is offered, so list only the skills you have an opinion about.
 
-Levels are library-wide settings, like rule group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `trailguide library check` fails when two skills you list, including skills you [borrow](/reference/configuration/#borrowed-skills) from other repositories, have the same name, so your projects never inherit a clash.
+Levels are library-wide settings, like rule group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `trailguide library check` fails when two skills you list, including skills you [curate](/reference/configuration/#curated-skills) from other repositories, have the same name, so your projects never inherit a clash.
 
 ## Record a change note
 

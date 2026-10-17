@@ -127,7 +127,7 @@ Make the field match the library's expression, or leave it out. A skill whose ma
 
 Sync retains the library's license and notice files for skills exactly as it does for rules, at the same generated paths, and `generated/libraries/<source-name>/README.md` lists the source's installed skills with its declared terms. Forking a skill with `trailguide project add skill --from` copies its text into `.trailguide/skills/`, where the library's license still applies to it.
 
-A skill a library [borrows](/reference/configuration/#borrowed-skills) from another repository keeps that repository's terms, not the borrowing library's: Trail Guide finds them from that repository's own declaration when it's a library, and otherwise as it does for a non-library source, below.
+A skill a library [curates](/reference/configuration/#curated-skills) from another repository keeps that repository's terms, not the curating library's: Trail Guide finds them from that repository's own declaration when it's a library, and otherwise as it does for a non-library source, below.
 
 ### Skills from a non-library source
 

@@ -76,12 +76,14 @@ type resolvedSource struct {
 	Retired []string `json:"-"`
 	// NonLibrary marks a source whose repository isn't a library; SkillSelection is its skills.include, and Skills
 	// lists the IDs of the skills it installs, sorted.
-	NonLibrary     bool                      `json:"-"`
-	SkillSelection []string                  `json:"-"`
-	Skills         []string                  `json:"-"`
-	License        *rules.LicenseDeclaration `json:"license"`
-	Paths          []string                  `json:"paths"`
-	Files          map[string][]byte         `json:"retainedFiles"`
+	NonLibrary     bool     `json:"-"`
+	SkillSelection []string `json:"-"`
+	Skills         []string `json:"-"`
+	// Curated is the snapshot's record of the revisions its curated skills come from.
+	Curated map[string]library.CuratedSource `json:"-"`
+	License *rules.LicenseDeclaration        `json:"license"`
+	Paths   []string                         `json:"paths"`
+	Files   map[string][]byte                `json:"retainedFiles"`
 }
 
 // resolution owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -218,7 +220,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Configured: source, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained, NonLibrary: snapshot.NonLibrary, SkillSelection: source.Skills, Skills: slices.Sorted(maps.Keys(snapshot.Skills))})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Configured: source, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained, NonLibrary: snapshot.NonLibrary, SkillSelection: source.Skills, Skills: slices.Sorted(maps.Keys(snapshot.Skills)), Curated: snapshot.Curated})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
