@@ -477,10 +477,11 @@ func (l curatedSource) plan(ctx context.Context, chosen []curatedSkill, was libr
 
 // CuratedSkillNames resolves the ref a library declares for its curated source name, or, without one, the
 // repository's newest library release, as a project that uses the library would when it updates, for the library's
-// maintainer. It returns the name each skill of ids installs under, as project sync names it, by the skill's ID in
-// the repository, leaving out the IDs the repository has no skill for there, and the revision's name, such as main
-// or release/3.
-func CuratedSkillNames(ctx context.Context, name string, declared rules.CuratedSource, ids []string, options Options) (_ map[string]string, _ string, err error) {
+// maintainer. It returns, by the skill's ID in the repository, the name each skill of ids installs under, as project
+// sync names it, and the skills of the repository it uses, and the same for each skill those use, which a project
+// installs with them, leaving out the IDs the repository has no skill for there. It also returns the revision's name,
+// such as main or release/3.
+func CuratedSkillNames(ctx context.Context, name string, declared rules.CuratedSource, ids []string, options Options) (_ map[string]library.CuratedSkill, _ string, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return nil, "", err
@@ -509,33 +510,47 @@ func CuratedSkillNames(ctx context.Context, name string, declared rules.CuratedS
 		at = declared.Ref.String()
 	}
 	folders := skillFolders(tree, !revision.NonLibrary)
-	entries := map[string]treeEntry{}
-	for _, id := range ids {
-		if folder, ok := folders[id]; ok {
-			file := library.SkillFolder(id) + "/" + skills.File
-			entries[file] = folder[file]
+	result := map[string]library.CuratedSkill{}
+	for pending := ids; len(pending) > 0; {
+		entries := map[string]treeEntry{}
+		for _, id := range pending {
+			if folder, ok := folders[id]; ok {
+				file := library.SkillFolder(id) + "/" + skills.File
+				entries[file] = folder[file]
+			}
 		}
-	}
-	files, _, err := repo.readFiles(ctx, name, entries, 0)
-	if err != nil {
-		return nil, "", err
-	}
-	names := map[string]string{}
-	for _, id := range ids {
-		data, ok := files[library.SkillFolder(id)+"/"+skills.File]
-		if !ok {
-			continue
-		}
-		location := name + ":" + id + "/" + skills.File
-		metadata, err := skills.ReadMetadata(data, location)
+		files, _, err := repo.readFiles(ctx, name, entries, 0)
 		if err != nil {
 			return nil, "", err
 		}
-		if names[id], err = skills.InstallName(id, metadata, location); err != nil {
-			return nil, "", err
+		next := []string{}
+		for _, id := range pending {
+			data, ok := files[library.SkillFolder(id)+"/"+skills.File]
+			if _, seen := result[id]; !ok || seen {
+				continue
+			}
+			location := name + ":" + id + "/" + skills.File
+			metadata, err := skills.ReadMetadata(data, location)
+			if err != nil {
+				return nil, "", err
+			}
+			installName, err := skills.InstallName(id, metadata, location)
+			if err != nil {
+				return nil, "", err
+			}
+			// A skill of the repository it uses has no source name; one with a source name comes from elsewhere.
+			uses := []string{}
+			for _, used := range metadata.SkillsUsed {
+				if !strings.Contains(used, ":") {
+					uses = append(uses, used)
+					next = append(next, used)
+				}
+			}
+			result[id] = library.CuratedSkill{Name: installName, Uses: uses}
 		}
+		pending = next
 	}
-	return names, at, nil
+	return result, at, nil
 }
 
 // curatedMove returns the preview row of the curated source name moving from the revision from, which the project

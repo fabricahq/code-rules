@@ -75,8 +75,11 @@ func librarySkillForkedReport(result library.AuthoringResult, from project.Skill
 		instruction += "\nThe fork is offered. To require or recommend it, add " + id + " to library.skills."
 	}
 	steps := []nextStep{{Instruction: instruction}}
-	if plan.NeedsChangeNote() {
-		steps = append(steps, nextStep{Instruction: "After the first library release, every new skill needs a change note. Record it with a summary for project maintainers:", Commands: []string{scope.command("change " + id + " --summary '<what the skill adds>'")}})
+	// This repository is a project too, which installs the fork once it takes the revision the fork copied.
+	if plan.FollowsReleases() {
+		steps = append(steps, nextStep{Instruction: "To install the fork in this repository, update the source to the release the fork copied:", Commands: []string{"trailguide project update " + from.Source}})
+	} else {
+		steps = append(steps, nextStep{Instruction: "To install the fork in this repository, sync it:", Commands: []string{"trailguide project sync"}})
 	}
 	steps = append(steps, nextStep{Instruction: "Then validate the library:", Commands: []string{scope.command("check")}})
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)

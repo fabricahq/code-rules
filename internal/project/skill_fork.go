@@ -121,6 +121,15 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		plan.commit = snapshot.Commit
 		if curatedFrom, curatedID, curated := library.SplitCurated(from.Skill); curated {
 			origin := snapshot.Curated[curatedFrom]
+			// A curated skill the library doesn't list reaches the project only with a listed skill that uses it, and
+			// sync accepts exclusions only of skills the library lists.
+			if _, listed := snapshot.AvailableSkills[from.Skill]; !listed {
+				users := []string{}
+				for _, user := range snapshot.Skills[from.Skill].UsedBy {
+					users = append(users, source.Name+":"+user)
+				}
+				return &ValidationError{Location: "--from", Problem: fmt.Sprintf("%s's library doesn't list %s, so the project installs it only because %s uses it, and can't fork it on its own; fork the skill that uses it instead, or ask the library's maintainer to list it", source.Name, from.Skill, strings.Join(users, " and "))}
+			}
 			id, prefix, qualifyRules, uses = curatedID, source.Name+":"+curatedFrom, false, nil
 			plan.commit = origin.Commit
 			if !origin.NonLibrary && len(metadata.RulesUsed) > 0 {

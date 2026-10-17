@@ -10,14 +10,15 @@ import (
 	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
-// forkingLibrary returns a library that curates pocock's deploy skill at tag stable, the pocock fixture, and the
-// environment that routes to it.
-func forkingLibrary(t *testing.T) (string, *gitfixture.Fixture, []string) {
+// forkingLibrary returns a library whose library.skills lists listed, YAML indented under it, from pocock at tag
+// stable, whose release skill uses deploy, with the pocock fixture and the environment that routes to it.
+func forkingLibrary(t *testing.T, listed string) (string, *gitfixture.Fixture, []string) {
 	t.Helper()
 	ctx := context.Background()
 	pocock, err := gitfixture.New(ctx, map[string][]byte{
 		"skills/ops/deploy/SKILL.md":          []byte("---\nname: deploy\ndescription: Deploy a service.\n---\n# Deploy\n"),
 		"skills/ops/deploy/scripts/deploy.sh": []byte("#!/bin/sh\necho deploy\n"),
+		"skills/ops/release/SKILL.md":         []byte("---\nname: release\ndescription: Release a service.\nmetadata:\n  trailguide-skills-used: |\n    skills/ops/deploy\n---\n# Release\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -31,7 +32,7 @@ func forkingLibrary(t *testing.T) (string, *gitfixture.Fixture, []string) {
 		t.Fatal(err)
 	}
 	directory := t.TempDir()
-	config := "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    required: [pocock:skills/ops/deploy]\n"
+	config := "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n" + listed
 	file := filepath.Join(directory, ".trailguide", "config.yaml")
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatal(err)
@@ -44,7 +45,7 @@ func forkingLibrary(t *testing.T) (string, *gitfixture.Fixture, []string) {
 
 func TestLibraryAddSkill_ForksACuratedSkillAndCheckListsTheSourcesChanges(t *testing.T) {
 	ctx := context.Background()
-	directory, pocock, environment := forkingLibrary(t)
+	directory, pocock, environment := forkingLibrary(t, "    required: [pocock:skills/ops/deploy]\n")
 	binary := buildCLI(t)
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, environment, "library", "add", "skill", "--from", "pocock:skills/ops/deploy", "--reason", "Deploy with our pipeline.")
 	if code != 0 {
@@ -92,9 +93,31 @@ func TestLibraryAddSkill_ForksACuratedSkillAndCheckListsTheSourcesChanges(t *tes
 }
 
 func TestLibraryAddSkill_RefusesASkillTheSourceLacks(t *testing.T) {
-	directory, _, environment := forkingLibrary(t)
+	directory, _, environment := forkingLibrary(t, "    required: [pocock:skills/ops/deploy]\n")
 	out, diagnostic, code := runCLIWithEnvironment(t, buildCLI(t), directory, environment, "library", "add", "skill", "--from", "pocock:skills/ops/grill", "--reason", "Ours.")
 	if code == 0 || !strings.Contains(out+diagnostic, "source pocock has no skill skills/ops/grill at stable") {
+		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+}
+
+func TestLibraryCheck_AsksToForkTheCuratedSkillThatUsesAFork(t *testing.T) {
+	directory, _, environment := forkingLibrary(t, "    recommended: [pocock:skills/ops/deploy, pocock:skills/ops/release]\n")
+	binary := buildCLI(t)
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, environment, "library", "add", "skill", "--from", "pocock:skills/ops/deploy", "--reason", "Ours."); code != 0 {
+		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, environment, "library", "check")
+	want := "pocock:skills/ops/release uses pocock:skills/ops/deploy, which projects install with it as deploy beside your fork skills/deploy; fork pocock:skills/ops/release too"
+	if code == 0 || !strings.Contains(out+diagnostic, want) {
+		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
+	}
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, environment, "library", "add", "skill", "--from", "pocock:skills/ops/release", "--reason", "Ours."); code != 0 {
+		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+	if skill, err := os.ReadFile(filepath.Join(directory, ".trailguide", "skills", "release", "SKILL.md")); err != nil || !strings.Contains(string(skill), "trailguide-skills-used: |\n    skills/deploy\n") {
+		t.Fatalf("forked release:\n%s, %v; want it to use the library's fork of deploy", skill, err)
+	}
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, environment, "library", "check"); code != 0 {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
 }

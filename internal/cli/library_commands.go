@@ -44,7 +44,7 @@ func (f *authoringFlags) readForks(ctx context.Context, name string, source rule
 }
 
 // readCurated reads a source the library curates skills from, as a project that uses the library would.
-func (f *authoringFlags) readCurated(ctx context.Context, name string, source rules.CuratedSource, ids []string) (map[string]string, string, error) {
+func (f *authoringFlags) readCurated(ctx context.Context, name string, source rules.CuratedSource, ids []string) (map[string]library.CuratedSkill, string, error) {
 	return imports.CuratedSkillNames(ctx, name, source, ids, f.imports)
 }
 

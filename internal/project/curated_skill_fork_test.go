@@ -5,10 +5,12 @@ package project
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/trailguide/internal/errs"
 	"github.com/fabricahq/trailguide/internal/imports"
 )
 
@@ -50,5 +52,22 @@ func TestPlanSkillFork_ForksACuratedSkillAndUpdateListsItsSourcesChanges(t *test
 	replaced := curated[0].Replaced[0]
 	if replaced.ID != "pocock:skills/ops/deploy" || replaced.LocalSkill != "skills/deploy" || replaced.BasedOn != b.pocock.FirstCommit || replaced.To != moved || !slices.Equal(replaced.Files, []string{"scripts/deploy.sh"}) {
 		t.Fatalf("replaced row = %+v", replaced)
+	}
+}
+
+func TestPlanSkillFork_RefusesACuratedSkillTheLibraryDoesNotList(t *testing.T) {
+	ctx := context.Background()
+	b := newCurating(t, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]},"skills":{"include":["pocock:skills/engineering/to-spec"]}}}}`)
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	source, err := ParseSkillForkSource("team:pocock:skills/engineering/interview")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = PlanSkillFork(ctx, source, b.options)
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "--from" || !strings.Contains(invalid.ValidationProblem(), "only because team:pocock:skills/engineering/to-spec uses it") {
+		t.Fatalf("got %v; want a refusal naming the skill that uses it", err)
 	}
 }

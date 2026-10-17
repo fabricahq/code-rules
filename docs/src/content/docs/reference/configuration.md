@@ -175,10 +175,10 @@ skills:
     - id: skills/fix-bug
       reason: We use our own bug workflow.
       replacedBy: skills/fix-bug
-      basedOn: "1.0.0"
+      basedOn: "9f2c4e1a7b3d5f60817a2b4c6d8e0f1a3b5c7d9e"
 ```
 
-An excluded skill isn't installed into the target folders or listed in `generated/SKILLS.md`. A replacement is an authored skill in `skills/`, named by its skill ID and installed in place of the excluded skill under its own name. Each authored skill can replace only one skill, and a rule can't replace a skill or the reverse. [Forking a skill](/reference/cli/#fork-a-skill) writes the exclusion for you, with the forked version as `basedOn`. For a skill from a non-library source, which has no versions, `basedOn` is the full 40-character commit SHA the fork copied. A skill the source's library [curates](#curated-skills), such as `mattpocock:skills/to-spec`, can be replaced too; its `basedOn` is a commit of the repository the library curates it from.
+An excluded skill isn't installed into the target folders or listed in `generated/SKILLS.md`. A replacement is an authored skill in `skills/`, named by its skill ID and installed in place of the excluded skill under its own name. Each authored skill can replace only one skill, and a rule can't replace a skill or the reverse. [Forking a skill](/reference/cli/#fork-a-skill) writes the exclusion for you, with the full 40-character commit SHA the fork copied as `basedOn`. A skill the source's library [curates](#curated-skills), such as `mattpocock:skills/to-spec`, can be replaced too; its `basedOn` is a commit of the repository the library curates it from.
 
 In a library repository, the same entry records where a skill the library [forked](/reference/cli/#fork-a-skill-into-the-library) came from: the source's skill is in its `skills.include`, the library's own skill replaces it, and `basedOn` is the commit the fork copied. [`trailguide library check`](/reference/cli/#library-check) lists the source's changes to the skill whenever its `ref` moves past that commit. To record that your fork has taken them in, set `basedOn` to the commit you compared.
 
