@@ -66,16 +66,21 @@ type sourceRecord struct {
 	Borrowed map[string]recordBorrowed `json:"borrowed,omitempty"`
 }
 
-// recordBorrowed is the revision a project resolved for one source a library borrows skills from. Kind is that
-// repository's kind at the commit, and Source names the project's own source that supplied the revision, when one
-// declares the same repository.
+// recordBorrowed is the revision a project resolved for one source a library borrows skills from, and what the
+// project installs from it. Kind is that repository's kind at the commit, and Source names the project's own source
+// that supplied the revision, when one declares the same repository. Skills, Files, and Executable record the
+// borrowed skills the project installs and their files as the source record's own fields do, by their IDs and paths
+// in the borrowed repository; the files are stored in the borrowed source's folder of the library's snapshot.
 type recordBorrowed struct {
-	Kind       string `json:"kind"`
-	Repository string `json:"repository"`
-	Ref        string `json:"ref,omitempty"`
-	Release    int    `json:"release,omitempty"`
-	Commit     string `json:"resolvedCommit"`
-	Source     string `json:"source,omitempty"`
+	Kind       string                 `json:"kind"`
+	Repository string                 `json:"repository"`
+	Ref        string                 `json:"ref,omitempty"`
+	Release    int                    `json:"release,omitempty"`
+	Commit     string                 `json:"resolvedCommit"`
+	Source     string                 `json:"source,omitempty"`
+	Skills     map[string]recordSkill `json:"skills"`
+	Files      map[string]string      `json:"files"`
+	Executable []string               `json:"executable"`
 }
 
 // recordSkill is one installed skill's record. Level is null for a skill from a source that isn't a library.
@@ -168,14 +173,8 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		record := sourceRecord{FormatVersion: sourceRecordFormat, Kind: kind, Repository: snapshot.Repository, Ref: snapshot.Ref.String(), Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: nonNil(snapshot.Groups), Rules: map[string]recordRule{}, Files: map[string]string{}}
 		record.RetiredRules = nonNil(snapshot.RetiredRules)
 		record.SkillInclude = nonNil(snapshot.SkillSelection)
-		record.Executable = nonNil(snapshot.Executable)
+		record.Executable = []string{}
 		record.Skills, record.AvailableSkills = map[string]recordSkill{}, map[string]availableSkill{}
-		for id, skill := range snapshot.Skills {
-			record.Skills[id] = recordSkill{Level: nullableLevel(skill.Level), Included: skill.Included, UsedBy: nonNil(skill.UsedBy)}
-		}
-		for id, skill := range snapshot.AvailableSkills {
-			record.AvailableSkills[id] = availableSkill{Level: nullableLevel(skill.Level)}
-		}
 		for name, borrowed := range snapshot.Borrowed {
 			if record.Borrowed == nil {
 				record.Borrowed = map[string]recordBorrowed{}
@@ -184,7 +183,36 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 			if borrowed.NonLibrary {
 				kind = nonLibraryKind
 			}
-			record.Borrowed[name] = recordBorrowed{Kind: kind, Repository: borrowed.Repository, Ref: borrowed.Ref.String(), Release: borrowed.Release, Commit: borrowed.Commit, Source: borrowed.Source}
+			record.Borrowed[name] = recordBorrowed{Kind: kind, Repository: borrowed.Repository, Ref: borrowed.Ref.String(), Release: borrowed.Release, Commit: borrowed.Commit, Source: borrowed.Source, Skills: map[string]recordSkill{}, Files: map[string]string{}, Executable: []string{}}
+		}
+		for id, skill := range snapshot.Skills {
+			entry := recordSkill{Level: nullableLevel(skill.Level), Included: skill.Included, UsedBy: nonNil(skill.UsedBy)}
+			name, folder, borrowed := library.SplitBorrowed(id)
+			if !borrowed {
+				record.Skills[id] = entry
+				continue
+			}
+			lender, ok := record.Borrowed[name]
+			if !ok {
+				return nil, invalidSnapshot("vendor/"+source.Name, "the borrowed skill "+id+" has no recorded borrowed source")
+			}
+			entry.UsedBy = []string{}
+			for _, user := range skill.UsedBy {
+				entry.UsedBy = append(entry.UsedBy, strings.TrimPrefix(user, name+":"))
+			}
+			lender.Skills[folder] = entry
+		}
+		for id, skill := range snapshot.AvailableSkills {
+			record.AvailableSkills[id] = availableSkill{Level: nullableLevel(skill.Level)}
+		}
+		for _, file := range snapshot.Executable {
+			if name, relative, borrowed := borrowedFile(file); borrowed && record.Borrowed[name].Files != nil {
+				lender := record.Borrowed[name]
+				lender.Executable = append(lender.Executable, relative)
+				record.Borrowed[name] = lender
+			} else {
+				record.Executable = append(record.Executable, file)
+			}
 		}
 		for id, rule := range snapshot.Rules {
 			entry := recordRule{Version: rule.Version, Commit: rule.Commit, LegacyLayout: rule.LegacyLayout}
@@ -206,7 +234,11 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 				return nil, invalidSnapshot("vendor/"+stored, "the library files "+other+" and "+file+" would both be stored here")
 			}
 			placed[stored] = file
-			record.Files[file] = digest(snapshot.Files[file])
+			if name, relative, borrowed := borrowedFile(file); borrowed && record.Borrowed[name].Files != nil {
+				record.Borrowed[name].Files[relative] = digest(snapshot.Files[file])
+			} else {
+				record.Files[file] = digest(snapshot.Files[file])
+			}
 			output[stored] = bytes.Clone(snapshot.Files[file])
 		}
 		record.Checksum = recordChecksum(record)
@@ -231,6 +263,17 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		return nil, err
 	}
 	return output, nil
+}
+
+// borrowedFile returns the borrowed source's name and the path in its repository of file, a path in a library
+// source's snapshot, when file is in the folder of the skills it borrows from that source, and reports false
+// otherwise.
+func borrowedFile(file string) (name, relative string, borrowed bool) {
+	rest, ok := strings.CutPrefix(file, library.BorrowedDirectory+"/")
+	if !ok {
+		return "", "", false
+	}
+	return strings.Cut(rest, "/")
 }
 
 // isBorrowedSkill reports whether id names a skill a library borrows.
@@ -405,6 +448,9 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if record.Kind != libraryKind && record.Kind != nonLibraryKind {
 		return parsedRecord{}, invalidSnapshot(where+".kind", "expected library or non-library")
 	}
+	if err := foldBorrowed(&record, where); err != nil {
+		return parsedRecord{}, err
+	}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}
@@ -494,6 +540,53 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 		}
 	}
 	return result, nil
+}
+
+// foldBorrowed moves what record's borrowed sources install into the record's own skills, files, and executable
+// files, as a snapshot holds them: a borrowed skill's ID becomes its source's name, a colon, and its ID in the
+// source's repository, and a file's path is in the source's folder of borrowed skills. It fails when the record's
+// own fields hold a borrowed skill or file, or a borrowed source records no skills or lists its executable files out
+// of order.
+func foldBorrowed(record *sourceRecord, where string) error {
+	for id := range record.Skills {
+		if isBorrowedSkill(id) {
+			return invalidSnapshot(where+".skills."+id, "a borrowed skill is recorded in its borrowed source's skills")
+		}
+	}
+	for _, file := range slices.Concat(slices.Collect(maps.Keys(record.Files)), record.Executable) {
+		if _, _, borrowed := borrowedFile(file); borrowed {
+			return invalidSnapshot(where+".files", file+" is in the folder of borrowed skills, whose files are recorded in their borrowed source's files")
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(record.Borrowed)) {
+		location := where + ".borrowed." + name
+		entry := record.Borrowed[name]
+		if len(entry.Skills) == 0 || entry.Files == nil || entry.Executable == nil || !slices.IsSorted(entry.Executable) || len(slices.Compact(slices.Clone(entry.Executable))) != len(entry.Executable) {
+			return invalidSnapshot(location, "expected the skills the project installs from the borrowed source, their files, and their executable files in sorted order")
+		}
+		for id, skill := range entry.Skills {
+			if isBorrowedSkill(id) {
+				return invalidSnapshot(location+".skills."+id, "expected the skill's ID in the borrowed repository")
+			}
+			usedBy := []string{}
+			for _, user := range skill.UsedBy {
+				usedBy = append(usedBy, name+":"+user)
+			}
+			if skill.UsedBy == nil {
+				usedBy = nil
+			}
+			record.Skills[name+":"+id] = recordSkill{Level: skill.Level, Included: skill.Included, UsedBy: usedBy}
+		}
+		prefix := library.BorrowedDirectory + "/" + name + "/"
+		for file, hash := range entry.Files {
+			record.Files[prefix+file] = hash
+		}
+		for _, file := range entry.Executable {
+			record.Executable = append(record.Executable, prefix+file)
+		}
+	}
+	slices.Sort(record.Executable)
+	return nil
 }
 
 // readRecordBorrowed validates the record's borrowed sources and returns them by name, or nil when there are none.

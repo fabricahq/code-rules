@@ -131,6 +131,22 @@ func TestSync_InstallsBorrowedSkillsFromTheRepositoryTheyComeFrom(t *testing.T) 
 	if pocock["resolvedCommit"] != b.pocock.FirstCommit || pocock["ref"] != "stable" || pocock["kind"] != "non-library" || pocock["repository"] != "git@fixture.invalid:pocock" {
 		t.Fatalf("borrowed record: %v", borrowed)
 	}
+	// The borrowed source's entry records its skills and files by their IDs and paths in its repository, and the
+	// library's own lists leave them out.
+	record := b.teamRecord(t)
+	pocockSkills, _ := pocock["skills"].(map[string]any)
+	pocockFiles, _ := pocock["files"].(map[string]any)
+	if _, ok := pocockSkills["skills/ops/deploy"]; !ok || pocockFiles["skills/ops/deploy/SKILL.md"] == nil || pocock["executable"] == nil {
+		t.Errorf("borrowed entry doesn't record deploy and its files: %v", pocock)
+	}
+	if _, ok := record["skills"].(map[string]any)["pocock:skills/ops/deploy"]; ok {
+		t.Error("the library's own skills record a borrowed skill")
+	}
+	for file := range record["files"].(map[string]any) {
+		if strings.HasPrefix(file, "borrowed/") {
+			t.Errorf("the library's own files record the borrowed file %s", file)
+		}
+	}
 	skillsIndex := readRepositoryFile(t, b.options, ".trailguide/generated/SKILLS.md")
 	for _, want := range []string{"`team:pocock:skills/ops/deploy`, borrowed by `team` from git@fixture.invalid:pocock, commit `" + b.pocock.FirstCommit + "`", "**Level:** required by `team`, release 1", "**Level:** offered by `team`, release 1"} {
 		if !strings.Contains(skillsIndex, want) {
@@ -160,9 +176,11 @@ func TestSync_IncludesRecommendedBorrowedSkillsWithTheSkillsTheyUse(t *testing.T
 	if exists(t, b.options, ".claude/skills/grilling") {
 		t.Error("installed an offered skill the project doesn't include")
 	}
-	skills, _ := b.teamRecord(t)["skills"].(map[string]any)
-	interview, _ := skills["pocock:skills/engineering/interview"].(map[string]any)
-	if interview["level"] != "offered" || interview["included"] != false || len(interview["usedBy"].([]any)) != 1 || interview["usedBy"].([]any)[0] != "pocock:skills/engineering/to-spec" {
+	borrowed, _ := b.teamRecord(t)["borrowed"].(map[string]any)
+	pocock, _ := borrowed["pocock"].(map[string]any)
+	skills, _ := pocock["skills"].(map[string]any)
+	interview, _ := skills["skills/engineering/interview"].(map[string]any)
+	if interview["level"] != "offered" || interview["included"] != false || len(interview["usedBy"].([]any)) != 1 || interview["usedBy"].([]any)[0] != "skills/engineering/to-spec" {
 		t.Fatalf("interview's record = %v; want a skill installed because to-spec uses it", interview)
 	}
 	if _, err := Check(ctx, b.options); err != nil {
@@ -515,5 +533,31 @@ func TestSync_ALibraryRepositoryCannotExcludeASkillItRequires(t *testing.T) {
 	var validation errs.ValidationError
 	if !errors.As(err, &validation) || validation.ValidationLocation() != "sources.pocock.skills.exclude.skills/ops/deploy" || !strings.Contains(validation.ValidationProblem(), "library.skills.required lists pocock:skills/ops/deploy") {
 		t.Fatalf("got %v; want excluding a skill the library requires refused", err)
+	}
+}
+
+func TestCheck_RejectsABorrowedSkillInTheLibrarysOwnRecord(t *testing.T) {
+	ctx := context.Background()
+	b := newBorrowing(t, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	var record sourceRecord
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, b.options, ".trailguide/vendor/team/_source.json")), &record); err != nil {
+		t.Fatal(err)
+	}
+	// Move deploy into the library's own skills, under its ID in the library, with a checksum that matches.
+	pocock := record.Borrowed["pocock"]
+	record.Skills["pocock:skills/ops/deploy"] = pocock.Skills["skills/ops/deploy"]
+	delete(pocock.Skills, "skills/ops/deploy")
+	pocock.Skills["skills/ops/other"] = recordSkill{Level: nullableLevel("offered"), Included: true, UsedBy: []string{}}
+	record.Checksum = recordChecksum(record)
+	data, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, b.root, "vendor/team/_source.json", string(data))
+	if _, err := Check(ctx, b.options); err == nil || !strings.Contains(err.Error(), "a borrowed skill is recorded in its borrowed source's skills") {
+		t.Fatalf("check = %v; want the borrowed skill in the library's own skills refused", err)
 	}
 }

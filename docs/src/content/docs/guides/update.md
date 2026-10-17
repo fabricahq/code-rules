@@ -185,7 +185,7 @@ A library can list skills it [borrows](/reference/configuration/#borrowed-skills
 
 ```text
 fabrica  release 7 -> 7
-  fabrica borrows mattpocock  main: 3f9c2e1 -> 8a41d07
+  fabrica borrows mattpocock  main: 3f9c2e1a5b7d -> 8a41d07c2e9f
   changed   mattpocock:skills/engineering/to-spec
             Changed: SKILL.md
 ```
