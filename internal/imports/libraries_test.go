@@ -319,16 +319,18 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 
 }
 
-// TestImportBranchRefDiagnostic says a ref that names one of the library's branches isn't supported, rather than
-// that the library has no such revision.
-func TestImportBranchRefDiagnostic(t *testing.T) {
+// TestImport_ABranchOfALibraryFails refuses a ref that names a branch of a library, written bare or with
+// refs/heads/, since a library's rules and skills come from library releases, tags, or commits.
+func TestImport_ABranchOfALibraryFails(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
-	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Ref = gitRef(t, "main")
-	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
-	requireCode(t, err, "ref-is-branch")
-	if want := "sources.team.ref: main is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced."; !strings.HasSuffix(err.Error(), want) {
-		t.Fatalf("unexpected diagnostic: %s", err)
+	for _, ref := range []string{"main", "refs/heads/main"} {
+		config := libraryConfig(t, f.Repository)
+		config.Sources[0].Ref = gitRef(t, ref)
+		_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
+		requireCode(t, err, "ref-is-branch")
+		if want := "sources.team.ref: " + ref + " is a branch, and the repository is a library"; !strings.HasPrefix(err.Error(), want) {
+			t.Fatalf("unexpected diagnostic: %s", err)
+		}
 	}
 }
 
@@ -343,7 +345,7 @@ func TestImportMissingRefDiagnostic(t *testing.T) {
 		t.Fatal("failed import returned partial libraries")
 	}
 	// The message names the source already, so it isn't named again.
-	want := `sources.team.ref: the library has no tag or commit missing; check the ref.`
+	want := `sources.team.ref: the repository has no branch or tag missing; check the ref, and whether a branch of that name was renamed or deleted.`
 	if err.Error() != want {
 		t.Fatalf("unexpected diagnostic: %s", err)
 	}

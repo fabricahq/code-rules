@@ -47,6 +47,12 @@ func newCurating(t *testing.T, config string) *curating {
 // under library.skills.
 func newCuratingFrom(t *testing.T, listed, config string) *curating {
 	t.Helper()
+	return newCuratingAt(t, "stable", listed, config)
+}
+
+// newCuratingAt returns a curating as newCuratingFrom does, except that team curates from pocock at ref.
+func newCuratingAt(t *testing.T, ref, listed, config string) *curating {
+	t.Helper()
 	ctx := context.Background()
 	pocock, err := gitfixture.New(ctx, map[string][]byte{
 		"skills/engineering/to-spec/SKILL.md":   usingSkill("to-spec", "skills/engineering/interview"),
@@ -63,7 +69,7 @@ func newCuratingFrom(t *testing.T, listed, config string) *curating {
 		t.Fatal(err)
 	}
 	team, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":          []byte("schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n" + listed),
+		"config.yaml":          []byte("schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: " + ref + "\nlibrary:\n  skills:\n" + listed),
 		"techs/go/_group.yaml": []byte(projectMetadata),
 		"techs/go/errors.md":   []byte(projectRule),
 	}))
@@ -273,6 +279,44 @@ func TestSync_KeepsTheCuratedRevisionAndUpdateResolvesTheLibrarysRefAgain(t *tes
 	}
 	if curated, _ := b.teamRecord(t)["curated"].(map[string]any); curated["pocock"].(map[string]any)["resolvedCommit"] != moved {
 		t.Fatalf("curated record: %v", curated)
+	}
+}
+
+func TestSync_KeepsACuratedBranchsCommitAndUpdateTakesItsNewest(t *testing.T) {
+	ctx := context.Background()
+	b := newCuratingAt(t, "main", teamSkills, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	moved, err := b.pocock.Commit(ctx, b.pocock.Worktree(), "Improve deploy", map[string][]byte{"skills/ops/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	if installed := readRepositoryFile(t, b.options, ".claude/skills/deploy/SKILL.md"); strings.Contains(installed, "Deploy safely") || !strings.Contains(installed, b.pocock.LatestCommit) {
+		t.Fatalf("sync moved the curated branch's commit:\n%s", installed)
+	}
+	plan, err := PlanUpdate(ctx, b.options, b.git, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := plan.Preview(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(preview.Sources) != 1 || len(preview.Sources[0].Curated) != 1 {
+		t.Fatalf("preview = %+v; want one curated row", preview.Sources)
+	}
+	if row := preview.Sources[0].Curated[0]; row.Ref != "main" || row.Commit == nil || row.Commit.From != b.pocock.LatestCommit || row.Commit.To != moved || row.TagMoved {
+		t.Fatalf("curated row = %+v; want main moving from %s to %s, which isn't a tag moving", row, b.pocock.LatestCommit, moved)
+	}
+	if _, err := plan.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if installed := readRepositoryFile(t, b.options, ".claude/skills/deploy/SKILL.md"); !strings.Contains(installed, "Deploy safely") || !strings.Contains(installed, moved) {
+		t.Fatalf("update didn't take the curated skill from the branch's newest commit:\n%s", installed)
 	}
 }
 
