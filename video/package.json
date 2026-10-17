@@ -1,0 +1,31 @@
+{
+  "name": "@trailguide/video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "voiceover": "bun scripts/generate-voiceover.ts",
+    "render": "remotion render src/index.ts TrailGuideTour out/trailguide-tour.mp4",
+    "render:silent": "remotion render src/index.ts TrailGuideTour out/trailguide-tour-silent.mp4 --muted",
+    "still": "remotion still src/index.ts TrailGuideTour out/poster.png --frame=60",
+    "typecheck": "tsc --project tsconfig.json",
+    "format": "prettier --single-quote --print-width 120 --write src scripts",
+    "format:check": "prettier --single-quote --print-width 120 --check src scripts",
+    "check": "bun run format:check && bun run typecheck"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "@remotion/cli": "4.0.531",
+    "@remotion/media-utils": "4.0.531",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.531"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/react": "19.3.0",
+    "prettier": "3.9.8",
+    "typescript": "6.0.3"
+  }
+}
