@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -22,6 +22,9 @@ type Configuration struct {
 	// SkillTargets lists, as configured, where installed copies of skills go, each a key of SkillTargetFolders; it
 	// is empty, never nil, when the configuration has none, which records skills without installing them.
 	SkillTargets []string `json:"skillTargets"`
+	// SkipAgentsFile is true when manageAgentsFile is false, so project commands leave the repository's AGENTS.md
+	// alone; by default they maintain a Trail Guide section in it.
+	SkipAgentsFile bool `json:"skipAgentsFile,omitempty"`
 	// Library is the library section, the manifest, or nil when the repository isn't a library.
 	Library *Library `json:"library,omitempty"`
 }
@@ -47,12 +50,28 @@ type Source struct {
 	// with Exclusion, which also finds the selectors that match it.
 	Exclude map[string]Exclusion `json:"exclude"`
 	// Skills lists the skills.include selectors, sorted: skill IDs, each a folder path in the source's repository,
-	// such as skills/build-feature, or only skills.Wildcard. It is empty, never nil, when the source includes no
-	// skills. Whether each ID names a skill the source has is checked when sync reads the source.
+	// such as skills/build-feature, and skills.Recommended, or only skills.Wildcard. It is empty, never nil, when the
+	// source includes no skills, though it still installs its library's required skills. Whether each ID names a
+	// skill the source has is checked when sync reads the source.
 	Skills []string `json:"skills"`
+	// SkillUses maps a skill ID to the IDs of the skills it uses that its own trailguide-skills-used doesn't declare, each a
+	// folder path in the source's repository, sorted; it is empty, never nil, when skills.uses declares none. Whether
+	// each key is a skill the source installs, and each value a skill it has, is checked when sync reads the source.
+	SkillUses map[string][]string `json:"skillUses,omitempty"`
 	// SkillExclude maps the ID of each skill that skills.exclude leaves out to its exclusion; it is empty, never nil,
 	// when there are none. An excluded skill is still imported, so updates can compare it with its replacement.
 	SkillExclude map[string]SkillExclusion `json:"skillExclude,omitempty"`
+	// SkillRename maps the ID of each skill that skills.rename installs under another name to that name; it is nil when
+	// there are none, and never names an excluded skill. Whether the source installs each skill is
+	// checked when skills resolve.
+	SkillRename map[string]string `json:"skillRename,omitempty"`
+	// LibraryRequires lists, sorted, the IDs of the source's skills that the configuration's own library section
+	// requires, borrowing them, which the repository installs as a project too, so its maintainers work with the
+	// skills it asks projects to use. It is nil when there are none.
+	LibraryRequires []string `json:"libraryRequires,omitempty"`
+	// Lends reports that the configuration's own library section borrows skills from the source, which then needs
+	// to install nothing itself.
+	Lends bool `json:"lends,omitempty"`
 }
 
 // HasRules reports whether the source includes rules.
@@ -74,8 +93,8 @@ func (c Configuration) SkillFolders() []string {
 
 // Pin keeps one rule at an exact published version, with the project's reason.
 type Pin struct {
-	Version coderules.RuleVersion `json:"version" yaml:"version"`
-	Reason  string                `json:"reason" yaml:"reason"`
+	Version trailguide.RuleVersion `json:"version" yaml:"version"`
+	Reason  string                 `json:"reason" yaml:"reason"`
 }
 
 // Exclusion leaves one rule, or every rule a selector matches, out of generated guidance, with the project's reason.
@@ -86,7 +105,7 @@ type Exclusion struct {
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
 	// one. Configuration alone owns it.
-	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
+	BasedOn *trailguide.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 // Exclusion returns the exclusion that leaves rule id out of generated guidance: the entry for id itself, or else
@@ -108,7 +127,7 @@ func (s Source) Exclusion(id string) (Exclusion, bool) {
 	return Exclusion{}, false
 }
 
-// ReplacementFile returns the path, relative to the Syllabus directory, of the authored rule that replaces the
+// ReplacementFile returns the path, relative to the Trail Guide directory, of the authored rule that replaces the
 // excluded rule, such as rules/techs/go/wrap-errors.md for ReplacedBy techs/go/wrap-errors, or "" when nothing
 // replaces it.
 func (e Exclusion) ReplacementFile() string {
@@ -120,8 +139,8 @@ func (e Exclusion) ReplacementFile() string {
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// versionOneProblem explains how to rewrite a version 1 configuration, which Syllabus no longer reads, as version 2.
-const versionOneProblem = `version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.
+// versionOneProblem explains how to rewrite a version 1 configuration, which Trail Guide no longer reads, as version 2.
+const versionOneProblem = `version 1 configuration is no longer supported, and Trail Guide doesn't convert it. Rewrite .trailguide/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .trailguide/local/ to .trailguide/rules/, and shared assets from .trailguide/local/assets/ to .trailguide/assets/.
 
 schemaVersion: 2
 sources:
@@ -137,7 +156,7 @@ sources:
           version: "1.3.0"
           reason: Waiting on the author's answer.
 
-After rewriting it, run syllabus project check.`
+After rewriting it, run trailguide project check.`
 
 // ParseConfiguration validates schema version 2, rejecting unknown fields and contradictory source declarations,
 // and a version 1 configuration with an example of the version 2 shape. A library section is the manifest, which
@@ -156,7 +175,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if versioned && schema == 1 {
 		return Configuration{}, invalid("schemaVersion", versionOneProblem)
 	}
-	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "sources", "library"}, "configuration"); err != nil {
+	if err := decode.KnownFields(fields, []string{"schemaVersion", "skillTargets", "manageAgentsFile", "sources", "library"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
 	if !versioned || schema != 2 {
@@ -171,6 +190,14 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		return Configuration{}, err
 	}
 	result := Configuration{Sources: make([]Source, 0, len(sources)), SkillTargets: targets}
+	if raw, ok := fields["manageAgentsFile"]; ok {
+		// A pointer tells null, which would otherwise leave manage false, from a boolean.
+		var manage *bool
+		if json.Unmarshal(raw, &manage) != nil || manage == nil {
+			return Configuration{}, invalid("manageAgentsFile", "expected true or false")
+		}
+		result.SkipAgentsFile = !*manage
+	}
 	// repositories maps each repository identity to the first source, in name order, that imports it.
 	repositories := make(map[string]string)
 	for _, name := range slices.Sorted(maps.Keys(sources)) {
@@ -181,9 +208,22 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		result.Sources = append(result.Sources, source)
 	}
 	if raw, ok := fields["library"]; ok {
-		if result.Library, err = parseLibrary(raw); err != nil {
+		if result.Library, err = parseLibrary(raw, result.Sources); err != nil {
 			return Configuration{}, err
 		}
+		for name := range result.Library.Borrowed {
+			index := slices.IndexFunc(result.Sources, func(source Source) bool { return source.Name == name })
+			result.Sources[index].Lends = true
+		}
+		for _, id := range result.Library.Skills.Required {
+			if name, skill, borrowed := strings.Cut(id, ":"); borrowed {
+				index := slices.IndexFunc(result.Sources, func(source Source) bool { return source.Name == name })
+				result.Sources[index].LibraryRequires = append(result.Sources[index].LibraryRequires, skill)
+			}
+		}
+	}
+	for i := range result.Sources {
+		slices.Sort(result.Sources[i].LibraryRequires)
 	}
 	return result, nil
 }
@@ -266,54 +306,110 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
+	// A source that includes nothing still installs its library's required skills.
 	_, hasRules := fields["rules"]
-	_, hasSkills := fields["skills"]
-	if !hasRules && !hasSkills {
-		return Source{}, invalid(where, "include rules or skills from the source, such as rules: {include: [techs/go/*]} or skills: {include: [skills/build-feature]}")
-	}
 	result.Groups, result.Rules, result.Pins, result.Exclude = GroupSelection{}, []string{}, map[string]Pin{}, map[string]Exclusion{}
 	if hasRules {
 		if err := parseRuleFields(fields["rules"], where, &result); err != nil {
 			return Source{}, err
 		}
 	}
-	if result.Skills, result.SkillExclude, err = parseSkillFields(fields["skills"], where+".skills"); err != nil {
+	if err := parseSkillFields(fields["skills"], where+".skills", &result); err != nil {
 		return Source{}, err
 	}
 	return result, nil
 }
 
-// parseSkillFields reads a source's skills object: include, a list of skill IDs or only "*", and exclude, as
-// parseSkillExclusions reads it. A missing object includes no skills and excludes none.
-func parseSkillFields(input json.RawMessage, location string) ([]string, map[string]SkillExclusion, error) {
+// parseSkillFields reads a source's skills object into source: include, a list of skill IDs or only "*"; uses, the
+// skills each skill uses beyond what it declares; exclude, as parseSkillExclusions reads it; and rename, as
+// parseSkillRenames reads it. A missing object includes no skills, declares no uses, excludes none, and renames
+// none. include may be left out only beside rename. A skill can't be both excluded and renamed.
+func parseSkillFields(input json.RawMessage, location string, source *Source) error {
+	source.Skills, source.SkillUses, source.SkillExclude = []string{}, map[string][]string{}, map[string]SkillExclusion{}
 	if input == nil {
-		return []string{}, map[string]SkillExclusion{}, nil
+		return nil
 	}
 	fields, err := decode.Object(input, location)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	if err := decode.KnownFields(fields, []string{"include", "exclude"}, location); err != nil {
-		return nil, nil, err
+	if err := decode.KnownFields(fields, []string{"include", "uses", "exclude", "rename"}, location); err != nil {
+		return err
 	}
-	selected, err := ParseSkillSelection(fields["include"], location+".include")
+	// A source installs its library's required skills without include, so renaming one needs no include.
+	if _, renames := fields["rename"]; fields["include"] != nil || !renames {
+		if source.Skills, err = ParseSkillSelection(fields["include"], location+".include"); err != nil {
+			return err
+		}
+	}
+	if source.SkillUses, err = parseSkillUses(fields["uses"], location+".uses"); err != nil {
+		return err
+	}
+	if source.SkillExclude, err = parseSkillExclusions(fields["exclude"], location+".exclude"); err != nil {
+		return err
+	}
+	if source.SkillRename, err = parseSkillRenames(fields["rename"], location+".rename"); err != nil {
+		return err
+	}
+	for _, id := range slices.Sorted(maps.Keys(source.SkillRename)) {
+		if _, excluded := source.SkillExclude[id]; excluded {
+			return invalid(location+".rename."+id, "the source excludes this skill, so it isn't installed and has no name to change; remove the rename or the exclusion")
+		}
+	}
+	return nil
+}
+
+// parseSkillUses validates skills.uses, a mapping of skill IDs to lists of the skill IDs each uses, each list
+// non-empty, without repeats or the skill itself, and returns each list sorted. A missing field declares none.
+func parseSkillUses(input json.RawMessage, location string) (map[string][]string, error) {
+	uses := map[string][]string{}
+	if input == nil {
+		return uses, nil
+	}
+	fields, err := decode.Object(input, location)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	exclude, err := parseSkillExclusions(fields["exclude"], location+".exclude")
-	if err != nil {
-		return nil, nil, err
+	for _, id := range slices.Sorted(maps.Keys(fields)) {
+		where := location + "." + id
+		if err := skills.ValidateID(id, where); err != nil {
+			return nil, err
+		}
+		var items []json.RawMessage
+		if json.Unmarshal(fields[id], &items) != nil || len(items) == 0 {
+			return nil, invalid(where, "list the skills "+id+" uses, such as [skills/tdd]")
+		}
+		used := []string{}
+		for i, item := range items {
+			at := fmt.Sprintf("%s[%d]", where, i)
+			other, err := decode.Text(item, at)
+			if err != nil {
+				return nil, err
+			}
+			if err := skills.ValidateID(other, at); err != nil {
+				return nil, err
+			}
+			switch {
+			case other == id:
+				return nil, invalid(at, "a skill can't use itself")
+			case slices.Contains(used, other):
+				return nil, invalid(at, other+" is listed more than once; list each skill once")
+			}
+			used = append(used, other)
+		}
+		slices.Sort(used)
+		uses[id] = used
 	}
-	return selected, exclude, nil
+	return uses, nil
 }
 
 // ParseSkillSelection validates a source's skill selectors, a JSON list at location of distinct skill IDs, such as
-// skills/build-feature, or only "*", and returns them sorted. An empty or missing list fails.
+// skills/build-feature, and recommended, or only "*", and returns them sorted. An empty or missing list fails.
 func ParseSkillSelection(input json.RawMessage, location string) ([]string, error) {
 	selected := []string{}
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || len(items) == 0 {
-		return nil, invalid(location, `select skills in include, a list of skill IDs such as skills/build-feature, or "*" for every skill the source offers`)
+		return nil, invalid(location, `select skills in include, a list of skill IDs such as skills/build-feature, recommended for the skills the source's library recommends, or "*" for every skill the source offers`)
 	}
 	for i, item := range items {
 		where := fmt.Sprintf("%s[%d]", location, i)
@@ -322,11 +418,11 @@ func ParseSkillSelection(input json.RawMessage, location string) ([]string, erro
 			return nil, err
 		}
 		switch {
-		case id == "recommended":
-			return nil, invalid(where, `skill levels aren't supported yet in this version of Syllabus; name skills by ID, such as skills/build-feature, or include "*"`)
+		case id == skills.Recommended+"/*":
+			return nil, invalid(where, `recommended is one selector, without /*; it includes the skills the source's library recommends, so write recommended`)
 		case id != skills.Wildcard && strings.HasSuffix(id, "/*"):
 			return nil, invalid(where, `skill selectors have no prefixes; name each skill by ID, such as skills/build-feature, or include "*" for every skill the source offers`)
-		case id != skills.Wildcard:
+		case id != skills.Wildcard && id != skills.Recommended:
 			if err := skills.ValidateID(id, where); err != nil {
 				return nil, err
 			}
@@ -444,12 +540,12 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 }
 
 // quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
-func quotedVersion(raw json.RawMessage, location string) (coderules.RuleVersion, error) {
+func quotedVersion(raw json.RawMessage, location string) (trailguide.RuleVersion, error) {
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
-		return coderules.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+		return trailguide.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
 	}
-	return coderules.ParseRuleVersion(text, location)
+	return trailguide.ParseRuleVersion(text, location)
 }
 
 // parseExclusions validates each exclusion's selector, reason, and, for a rule ID, the optional ID of the local rule

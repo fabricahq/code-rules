@@ -16,8 +16,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // Step records an actual command or a deliberate fixture edit and its observable outcome.
@@ -58,7 +58,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if !slices.Contains([]string{"lifecycle", "stale-output", "versions", "changed-vendor", "failed-sync"}, scenario) {
 		return report, fmt.Errorf("unknown acceptance scenario")
 	}
-	directory, err := os.MkdirTemp("", "syllabus-acceptance-")
+	directory, err := os.MkdirTemp("", "trailguide-acceptance-")
 	if err != nil {
 		return report, err
 	}
@@ -151,7 +151,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		}
 	}
 	asset := []byte{0, 255, 13, 10, 42}
-	assetPath := filepath.Join(libraryDir, ".syllabus/rules/techs/go/assets/errors")
+	assetPath := filepath.Join(libraryDir, ".trailguide/rules/techs/go/assets/errors")
 	if err := os.MkdirAll(assetPath, 0700); err != nil {
 		return report, err
 	}
@@ -195,7 +195,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if err := contains("first library release output", report.Steps[len(report.Steps)-1].Stdout, "Published library release 1.", "Tag:                 release/1 (created and pushed to origin)", "  techs/go/errors  new  1.0.0\n", "  techs/go/naming  new  1.0.0\n"); err != nil {
 		return report, err
 	}
-	report.Verified = append(report.Verified, "syllabus library release publishes the first library release, giving every rule 1.0.0")
+	report.Verified = append(report.Verified, "trailguide library release publishes the first library release, giving every rule 1.0.0")
 	for _, args := range [][]string{{"project", "init"}, {"project", "add", "source", "team", "--repository", fixture.Repository, "--rules", "techs/go/*"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
@@ -211,16 +211,16 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if err != nil {
 		return report, err
 	}
-	for name, want := range map[string][]byte{".syllabus/vendor/team/LICENSE.md": terms, ".syllabus/vendor/team/NOTICE.md": notice, ".syllabus/vendor/team/techs/go/assets/errors/diagram.bin": asset} {
+	for name, want := range map[string][]byte{".trailguide/vendor/team/LICENSE.md": terms, ".trailguide/vendor/team/NOTICE.md": notice, ".trailguide/vendor/team/rules/techs/go/assets/errors/diagram.bin": asset} {
 		if !bytes.Equal(files.Files[name], want) {
 			return report, fmt.Errorf("original bytes not preserved: %s", name)
 		}
 	}
-	provenance := string(files.Files[".syllabus/generated/provenance.json"])
+	provenance := string(files.Files[".trailguide/generated/provenance.json"])
 	if !strings.Contains(provenance, fixture.LatestCommit) || !strings.Contains(provenance, `"release": 1,`) || !strings.Contains(provenance, `"version": "1.0.0"`) {
 		return report, fmt.Errorf("library release or rule versions missing from provenance")
 	}
-	if !strings.Contains(string(files.Files[".syllabus/generated/rules/team/techs/go/errors.md"]), "Version: 1.0.0") {
+	if !strings.Contains(string(files.Files[".trailguide/generated/rules/team/techs/go/errors.md"]), "Version: 1.0.0") {
 		return report, fmt.Errorf("rule version missing from generated guidance")
 	}
 	report.Verified = append(report.Verified, "Library release release/1 imported at its commit, with each rule's version in provenance and guidance", "License, notice, and binary asset bytes preserved exactly")
@@ -237,7 +237,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if err != nil {
 		return report, err
 	}
-	if !strings.Contains(string(before.Files[".syllabus/generated/RULES.md"]), "Project-specific Go guidance.") {
+	if !strings.Contains(string(before.Files[".trailguide/generated/RULES.md"]), "Project-specific Go guidance.") {
 		return report, fmt.Errorf("local group guidance missing")
 	}
 	if err := invoke("Repeat build", consumer, offline, 0, "project", "build"); err != nil {
@@ -253,7 +253,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	report.Verified = append(report.Verified, "Local group guidance wins", "Offline build/check work with no runtimes on PATH", "Repeated build is byte-for-byte stable")
 	switch scenario {
 	case "stale-output":
-		name := ".syllabus/generated/RULES.md"
+		name := ".trailguide/generated/RULES.md"
 		if err := os.WriteFile(filepath.Join(consumer, name), []byte("Stale output"), 0600); err != nil {
 			return report, err
 		}
@@ -269,7 +269,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		}
 		report.Verified = append(report.Verified, "Check reports stale output without changing it; rebuild repairs it")
 	case "changed-vendor":
-		name := filepath.Join(consumer, ".syllabus/vendor/team/LICENSE.md")
+		name := filepath.Join(consumer, ".trailguide/vendor/team/LICENSE.md")
 		if err := os.WriteFile(name, []byte("Manual edit"), 0600); err != nil {
 			return report, err
 		}
@@ -294,7 +294,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, err
 		}
 	case "versions", "failed-sync":
-		document := libraryTree.Files[".syllabus/rules/techs/go/errors.md"]
+		document := libraryTree.Files[".trailguide/rules/techs/go/errors.md"]
 		if scenario == "versions" {
 			document = bytes.ReplaceAll(document, []byte("Return every failure."), []byte("Return updated failures."))
 		} else {
@@ -325,7 +325,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		report.Verified = append(report.Verified, "Sync restores the recorded versions after a new library release")
 		configure := func(label, fields string) error {
 			config := "schemaVersion: 2\nsources:\n  team:\n    repository: " + fixture.Repository + "\n    rules:\n      include:\n        - techs/go/*\n" + fields
-			if err := os.WriteFile(filepath.Join(consumer, ".syllabus/config.yaml"), []byte(config), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(consumer, ".trailguide/config.yaml"), []byte(config), 0600); err != nil {
 				return err
 			}
 			report.Steps = append(report.Steps, Step{Label: "Configuration edit: " + label})
@@ -359,10 +359,10 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !bytes.Equal(after.Files[".syllabus/vendor/team/techs/go/errors.md"], document) || !bytes.Equal(after.Files[".syllabus/vendor/team/techs/go/naming.md"], libraryTree.Files[".syllabus/rules/techs/go/naming.md"]) {
+		if !bytes.Equal(after.Files[".trailguide/vendor/team/rules/techs/go/errors.md"], document) || !bytes.Equal(after.Files[".trailguide/vendor/team/rules/techs/go/naming.md"], libraryTree.Files[".trailguide/rules/techs/go/naming.md"]) {
 			return report, fmt.Errorf("sync did not import the pinned version beside the other rule's recorded version")
 		}
-		if !strings.Contains(string(after.Files[".syllabus/generated/rules/team/techs/go/errors.md"]), "Version: 1.1.0") {
+		if !strings.Contains(string(after.Files[".trailguide/generated/rules/team/techs/go/errors.md"]), "Version: 1.1.0") {
 			return report, fmt.Errorf("pinned version missing from generated guidance")
 		}
 		if err := invoke("Check the pinned version offline", consumer, offline, 0, "project", "check"); err != nil {
@@ -379,11 +379,11 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !bytes.Equal(after.Files[".syllabus/vendor/team/techs/go/errors.md"], libraryTree.Files[".syllabus/rules/techs/go/errors.md"]) {
+		if !bytes.Equal(after.Files[".trailguide/vendor/team/rules/techs/go/errors.md"], libraryTree.Files[".trailguide/rules/techs/go/errors.md"]) {
 			return report, fmt.Errorf("sync did not return the pinned rule to version 1.0.0")
 		}
 		report.Verified = append(report.Verified, "A pin moves one rule back down")
-		unreleased, err := fixture.Commit(ctx, fixture.Worktree(), "Unreleased change", gitfixture.Library(map[string][]byte{"techs/go/naming.md": bytes.ReplaceAll(libraryTree.Files[".syllabus/rules/techs/go/naming.md"], []byte("failed operation"), []byte("failed operation and its input"))}))
+		unreleased, err := fixture.Commit(ctx, fixture.Worktree(), "Unreleased change", gitfixture.Library(map[string][]byte{"techs/go/naming.md": bytes.ReplaceAll(libraryTree.Files[".trailguide/rules/techs/go/naming.md"], []byte("failed operation"), []byte("failed operation and its input"))}))
 		if err != nil {
 			return report, err
 		}
@@ -401,7 +401,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !strings.Contains(string(after.Files[".syllabus/generated/libraries/team/README.md"]), "Imported from unreleased changes.") {
+		if !strings.Contains(string(after.Files[".trailguide/generated/libraries/team/README.md"]), "Imported from unreleased changes.") {
 			return report, fmt.Errorf("library summary does not mention unreleased changes")
 		}
 		if err := invoke("Check the unreleased import offline", consumer, offline, 0, "project", "check"); err != nil {

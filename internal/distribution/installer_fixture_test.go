@@ -22,8 +22,8 @@ type installerFixture struct {
 	t                                           *testing.T
 	root, home, commands, releases, destination string
 	binary                                      []byte
-	// executable names the release's archive and the executable in it: syllabus, or code-rules for releases made
-	// before Code Rules was renamed Syllabus.
+	// executable names the release's archive and the executable in it: trailguide, or code-rules for releases made
+	// before Code Rules was renamed Trail Guide.
 	executable                 string
 	platform, arch             string
 	shell, zdotdir, configHome string
@@ -38,7 +38,7 @@ type installerMember struct {
 func newInstallerFixture(t *testing.T) *installerFixture {
 	t.Helper()
 	root := t.TempDir()
-	f := &installerFixture{t: t, root: root, home: filepath.Join(root, "home"), commands: filepath.Join(root, "commands"), releases: filepath.Join(root, "releases"), platform: "Linux", arch: "x86_64", shell: "/bin/sh", binary: []byte("#!/bin/sh\nprintf 'syllabus 1.2.3\\n'\n"), executable: "syllabus"}
+	f := &installerFixture{t: t, root: root, home: filepath.Join(root, "home"), commands: filepath.Join(root, "commands"), releases: filepath.Join(root, "releases"), platform: "Linux", arch: "x86_64", shell: "/bin/sh", binary: []byte("#!/bin/sh\nprintf 'trailguide 1.2.3\\n'\n"), executable: "trailguide"}
 	f.destination = filepath.Join(f.home, ".local/bin")
 	for _, dir := range []string{f.home, f.commands, f.releases} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -71,7 +71,7 @@ func (f *installerFixture) read(path string) []byte {
 func (f *installerFixture) release(version, target string, members []installerMember) string {
 	f.t.Helper()
 	if members == nil {
-		members = []installerMember{{f.executable, f.binary, false}, {"LICENSE.md", []byte("MIT license"), false}, {"README.txt", []byte("Syllabus"), false}}
+		members = []installerMember{{f.executable, f.binary, false}, {"LICENSE.md", []byte("MIT license"), false}, {"README.txt", []byte("Trail Guide"), false}}
 	}
 	var data bytes.Buffer
 	compressed := gzip.NewWriter(&data)
@@ -181,7 +181,7 @@ while [ "$#" -gt 0 ]; do
  esac
 done
 [ "$proto" = '=https' ] && [ "$redir" = '=https' ] && [ "$tls" = yes ]
-base=https://github.com/fabricahq/code-rules/releases
+base=https://github.com/fabricahq/trailguide/releases
 case "$url" in
  "$base/latest") printf '%s' "$base/tag/v1.2.3" ;;
  "$base/download/"*)

@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/project"
 )
 
 // commandDirectory resolves the nearest .git boundary for ordinary commands and refuses nested init.
@@ -60,7 +60,7 @@ func commandDirectory(ctx context.Context, directory, scope string, initialize b
 				return "", &filetxn.Error{Code: "unsafe-path", Problem: filepath.Join(current, ".git") + ": expected a Git directory or file without symlinks"}
 			}
 			if initialize && current != physical {
-				return "", &filetxn.Error{Code: "not-repository-root", Problem: fmt.Sprintf("initialize Syllabus at the Git repository root, not in a subfolder. Run:\n  cd %s && syllabus %s init", shellDirectory(current), scope)}
+				return "", &filetxn.Error{Code: "not-repository-root", Problem: fmt.Sprintf("initialize Trail Guide at the Git repository root, not in a subfolder. Run:\n  cd %s && trailguide %s init", shellDirectory(current), scope)}
 			}
 			warnLegacyDirectory(ctx, current, scope)
 			return current, nil
@@ -108,13 +108,13 @@ func shellDirectory(directory string) string {
 }
 
 // legacyDirectoryWarning tells a project that keeps its files in the directory Code Rules used how to move them.
-const legacyDirectoryWarning = `this project keeps its files in .code-rules/, the directory Code Rules used before it was renamed Syllabus. Syllabus still reads and updates it, but a later version won't. Rename it, keeping everything in it:
+const legacyDirectoryWarning = `this project keeps its files in .code-rules/, the directory Code Rules used before it was renamed Trail Guide. Trail Guide still reads and updates it, but a later version won't. Rename it, keeping everything in it:
 
-  git mv .code-rules .syllabus
+  git mv .code-rules .trailguide
 
-Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .syllabus/generated/RULES.md, and run syllabus project build.`
+In a project that isn't in a Git repository, use mv instead of git mv. Then point the line in AGENTS.md or CLAUDE.md that sends agents to .code-rules/generated/RULES.md at .trailguide/generated/RULES.md, and run trailguide project build.`
 
-// warnLegacyDirectory warns, for a project command, when root, the project root, has no Syllabus directory but has
+// warnLegacyDirectory warns, for a project command, when root, the project root, has no Trail Guide directory but has
 // one under the name Code Rules used, which the project package then opens.
 func warnLegacyDirectory(ctx context.Context, root, scope string) {
 	if scope != "project" {

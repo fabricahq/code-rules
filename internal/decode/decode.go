@@ -1,4 +1,4 @@
-// Package decode holds the strict rules every Syllabus format shares for decoding YAML and JSON text into generic
+// Package decode holds the strict rules every Trail Guide format shares for decoding YAML and JSON text into generic
 // values, before a format's own parser interprets them: one document, no anchors, aliases, explicit tags, or
 // duplicate keys, and text without malformed Unicode. Each format's fields and rules live with that format. It does
 // no file, Git, or network access, and reports invalid input as its own *ValidationError at the location the caller

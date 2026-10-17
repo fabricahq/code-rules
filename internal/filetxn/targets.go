@@ -14,16 +14,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // GuideReadme and GuideStandalone are managed files, not permission to replace a general project README.
 // Callers must establish guide ownership and recheck its original bytes before publication.
 const (
 	GuideReadme     Target = "README.md"
-	GuideStandalone Target = "SYLLABUS.md"
+	GuideStandalone Target = "TRAILGUIDE.md"
 )
 
 // Config is the project configuration. Only project update replaces it, together with vendor and generated output,
@@ -56,14 +56,19 @@ func LocalRuleAssets(file string) Target {
 // stays small enough to read during recovery.
 const maxLocalRules = 1000
 
+// AgentsFile is the repository's AGENTS.md, beside the Trail Guide directory, which holds a section Trail Guide maintains.
+// Init, build, sync, and update replace it together with their other output, so recovery restores or finishes it with
+// them. Callers must establish that the file's text outside the section is unchanged.
+const AgentsFile Target = "../AGENTS.md"
+
 // SkillFolder is the installed skill folder at folder, a path relative to the repository root, the parent of the
-// Syllabus directory: a skill target's folder and an install name, such as .claude/skills/build-feature. Sync,
+// Trail Guide directory: a skill target's folder and an install name, such as .claude/skills/build-feature. Sync,
 // update, and build replace or, with a nil file map, remove it together with generated output, so recovery restores
-// or finishes them together. Apply creates its missing parent directories. Callers must establish that Syllabus
+// or finishes them together. Apply creates its missing parent directories. Callers must establish that Trail Guide
 // installed an existing folder before replacing or removing it.
 func SkillFolder(folder string) Target { return Target(skillPrefix + folder) }
 
-// skillPrefix begins every SkillFolder target, whose folder is outside the Syllabus directory.
+// skillPrefix begins every SkillFolder target, whose folder is outside the Trail Guide directory.
 const skillPrefix = "../"
 
 // maxSkillFolders bounds the skill folders one transaction can replace or remove, so its journal stays small enough
@@ -121,7 +126,7 @@ func localTarget(target Target) bool {
 
 // fileTarget reports whether target is a single file rather than a directory tree.
 func fileTarget(target Target) bool {
-	return guideTarget(target) || target == Config || localGroupMetadataTarget(target) || localRuleTarget(target)
+	return guideTarget(target) || target == Config || target == AgentsFile || localGroupMetadataTarget(target) || localRuleTarget(target)
 }
 
 func validTarget(target Target) bool {
@@ -136,12 +141,14 @@ func removable(target Target) bool {
 }
 
 // place is where a target and its transaction entries are: the root that holds them, the target's path in it, and
-// the transaction directory's path in it. Rename publishes within one root, so a skill folder, which is outside the
-// Syllabus directory, uses the repository root for its staged output and backup too.
+// the transaction directory's path in it. Rename publishes within one root, so a skill folder or AGENTS.md, which are
+// outside the Trail Guide directory, use the repository root for their staged output and backup too. file reports a
+// file target in the repository root, which renames publish without replacing a file that appeared meanwhile.
 type place struct {
 	root *os.Root
 	live string
 	txn  string
+	file bool
 }
 
 // entry returns the path in p.root of the transaction entry named prefix plus target's entry name, such as its
@@ -150,8 +157,8 @@ func (p place) entry(prefix string, target Target) string {
 	return path.Join(p.txn, prefix+entryName(target))
 }
 
-// roots resolves targets to places. project is the Syllabus directory; repository, its parent, is opened when a
-// skill folder first needs it, and close releases it.
+// roots resolves targets to places. project is the Trail Guide directory; repository, its parent, is opened when a
+// skill folder or AGENTS.md first needs it, and close releases it.
 type roots struct {
 	project    *os.Root
 	repository *os.Root
@@ -160,8 +167,10 @@ type roots struct {
 // place returns where target is.
 func (r *roots) place(target Target) (place, error) {
 	folder, skill := skillFolderTarget(target)
-	if !skill {
-		return place{r.project, string(target), transactionName}, nil
+	if target == AgentsFile {
+		folder = strings.TrimPrefix(string(target), skillPrefix)
+	} else if !skill {
+		return place{r.project, string(target), transactionName, false}, nil
 	}
 	if r.repository == nil {
 		repository, err := os.OpenRoot(filepath.Dir(r.project.Name()))
@@ -170,7 +179,7 @@ func (r *roots) place(target Target) (place, error) {
 		}
 		r.repository = repository
 	}
-	return place{r.repository, folder, path.Join(filepath.Base(r.project.Name()), transactionName)}, nil
+	return place{r.repository, folder, path.Join(filepath.Base(r.project.Name()), transactionName), !skill}, nil
 }
 
 // close releases the repository root when place opened it.
@@ -254,6 +263,11 @@ func renameManagedWith(root *os.Root, from, to string, exclusive func(int, strin
 	if !fileTarget(Target(to)) && path.Dir(to) != renameCheck {
 		return root.Rename(from, to)
 	}
+	return renameWithout(root, from, to, exclusive)
+}
+
+// renameWithout renames from to to, both in root, through exclusive, which fails rather than replace a file at to.
+func renameWithout(root *os.Root, from, to string, exclusive func(int, string, int, string) error) error {
 	source, err := root.Open(path.Dir(from))
 	if err != nil {
 		return err

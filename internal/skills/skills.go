@@ -6,9 +6,13 @@ package skills
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
+	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // File is the file whose presence makes a folder a skill folder.
@@ -17,7 +21,22 @@ const File = "SKILL.md"
 // Wildcard is the skills.include selector that includes every skill a source offers.
 const Wildcard = "*"
 
-// Directory is the folder, in a repository's Syllabus directory, that holds the repository's authored skills,
+// Recommended is the skills.include selector that includes the skills a library recommends.
+const Recommended = "recommended"
+
+// The levels a library gives its skills. A project that uses the library installs its required skills whatever it
+// includes, its recommended skills when it includes Recommended, and an offered skill when it names it or includes
+// Wildcard.
+const (
+	LevelRequired    = "required"
+	LevelRecommended = "recommended"
+	LevelOffered     = "offered"
+)
+
+// Levels lists the levels from the strongest to the weakest.
+var Levels = []string{LevelRequired, LevelRecommended, LevelOffered}
+
+// Directory is the folder, in a repository's Trail Guide directory, that holds the repository's authored skills,
 // and, in a library's vendor snapshot, the skills the library publishes.
 const Directory = "skills"
 
@@ -55,15 +74,23 @@ type Metadata struct {
 	Name string
 	// Description is the frontmatter's description, or empty.
 	Description string
-	// Type is metadata.syllabus-skill-type as written, or empty.
+	// Type is metadata.trailguide-skill-type as written, or empty.
 	Type string
+	// RulesUsed and SkillsUsed are the lines of metadata.trailguide-rules-used and metadata.trailguide-skills-used, trimmed of
+	// surrounding whitespace, without blank lines, in the order written; nil when the key is absent. Their IDs are
+	// unchecked: Check validates them.
+	RulesUsed, SkillsUsed []string
+	// ReservedKeys lists, sorted, the metadata keys that start with trailguide- but aren't one of the three Trail Guide
+	// defines, which only Check rejects; nil when there are none.
+	ReservedKeys []string
 	// Frontmatter reports whether the file starts with a frontmatter block.
 	Frontmatter bool
 }
 
 // ReadMetadata reads the frontmatter of a SKILL.md file. A file without frontmatter, such as one from a repository
 // that isn't a library, has empty metadata. It fails when the frontmatter isn't one closed YAML mapping, or a field
-// it reads isn't a string; it checks nothing else, so a field it doesn't read can hold anything.
+// it reads isn't a string; it checks nothing else, so a field it doesn't read can hold anything, and Check
+// validates what it reads.
 func ReadMetadata(data []byte, location string) (Metadata, error) {
 	header, _, found, err := split(data, location)
 	if err != nil || !found {
@@ -96,11 +123,47 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 		if json.Unmarshal(*fields.Metadata, &metadata) != nil {
 			return Metadata{}, invalid(location+".metadata", "expected a mapping of string keys to string values")
 		}
-		if raw, ok := metadata["syllabus-skill-type"]; ok && json.Unmarshal(raw, &result.Type) != nil {
-			return Metadata{}, invalid(location+".metadata.syllabus-skill-type", "expected a string, such as playbook or review")
+		if raw, ok := metadata[TypeKey]; ok && !readString(raw, &result.Type) {
+			return Metadata{}, invalid(location+".metadata."+TypeKey, "expected a string, such as playbook or review")
+		}
+		for _, field := range []struct {
+			key   string
+			lines *[]string
+		}{{RulesUsedKey, &result.RulesUsed}, {SkillsUsedKey, &result.SkillsUsed}} {
+			raw, ok := metadata[field.key]
+			if !ok {
+				continue
+			}
+			var text string
+			if !readString(raw, &text) {
+				return Metadata{}, invalid(location+".metadata."+field.key, "expected a string with one ID per line; write it as a YAML block string, starting with |")
+			}
+			*field.lines = idLines(text)
+		}
+		for _, key := range slices.Sorted(maps.Keys(metadata)) {
+			if strings.HasPrefix(key, "trailguide-") && !slices.Contains([]string{TypeKey, RulesUsedKey, SkillsUsedKey}, key) {
+				result.ReservedKeys = append(result.ReservedKeys, key)
+			}
 		}
 	}
 	return result, nil
+}
+
+// readString decodes raw into value and reports whether raw is a JSON string. It reports false for null, such as
+// a metadata key written with no value, which json.Unmarshal would accept by leaving value unchanged.
+func readString(raw json.RawMessage, value *string) bool {
+	return string(raw) != "null" && json.Unmarshal(raw, value) == nil
+}
+
+// idLines returns the lines of text, trimmed of surrounding whitespace, without blank lines.
+func idLines(text string) []string {
+	lines := []string{}
+	for line := range strings.Lines(text) {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 // InstallName returns the name a skill installs under, which names its installed folders: its frontmatter name, or,
@@ -112,9 +175,96 @@ func InstallName(id string, metadata Metadata, location string) (string, error) 
 		name = id[strings.LastIndex(id, "/")+1:]
 	}
 	if !ValidName(name) {
-		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Syllabus can't install it")
+		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Trail Guide can't install it")
 	}
 	return name, nil
+}
+
+// Rename returns the bytes of a SKILL.md file that names the skill name: data with its frontmatter's name field
+// replaced by one line, name: <name>, or with that line added as the frontmatter's first when it has no name field,
+// or with a frontmatter block holding only that line added when data has none. Every other byte is kept, so only the
+// name changes; mentions of the old name in the file are left as they are. A frontmatter that is one flow mapping,
+// such as {name: review, description: Review changes.}, is the exception: it is written again as a flow mapping
+// with name first, keeping every other entry and its order but not the original spacing or comments. data must be a
+// SKILL.md file ReadMetadata accepted, and name a valid name.
+func Rename(data []byte, name string) []byte {
+	header, body, found, _ := split(data, "")
+	field := "name: " + name
+	if !found {
+		return append([]byte("---\n"+field+"\n---\n"), data...)
+	}
+	opening := 4
+	ending := "\n"
+	if bytes.HasPrefix(data, []byte("---\r\n")) {
+		opening, ending = 5, "\r\n"
+	}
+	closing := data[opening+len(header) : len(data)-len(body)]
+	document, err := decode.Document(header, "")
+	if err != nil {
+		document = nil
+	}
+	if document != nil && document.Content[0].Style&yaml.FlowStyle != 0 {
+		return slices.Concat(data[:opening], renamedFlow(document.Content[0], name, ending), closing, body)
+	}
+	lines := bytes.SplitAfter(header, []byte("\n"))
+	first, last := nameLines(document, lines)
+	if first < 0 {
+		first, last = 0, -1
+	}
+	if first < len(lines) && !bytes.HasSuffix(lines[first], []byte("\r\n")) {
+		ending = "\n"
+	}
+	replaced := slices.Concat(lines[:first], [][]byte{[]byte(field + ending)}, lines[last+1:])
+	return slices.Concat(data[:opening], bytes.Join(replaced, nil), closing, body)
+}
+
+// renamedFlow returns mapping, a frontmatter written as one flow mapping, encoded again with its name entry set to
+// name, or with that entry added first when it has none, and its lines ended by ending.
+func renamedFlow(mapping *yaml.Node, name, ending string) []byte {
+	value := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: name}
+	fields := slices.Clone(mapping.Content)
+	renamed := false
+	for i := 0; i+1 < len(fields); i += 2 {
+		if fields[i].Value == "name" {
+			fields[i+1], renamed = value, true
+		}
+	}
+	if !renamed {
+		fields = append([]*yaml.Node{{Kind: yaml.ScalarNode, Tag: "!!str", Value: "name"}, value}, fields...)
+	}
+	encoded, err := yaml.Marshal(&yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Style: yaml.FlowStyle, Content: fields})
+	if err != nil {
+		// A mapping decoded from valid YAML, with one plain scalar changed, always encodes.
+		panic(err)
+	}
+	return bytes.ReplaceAll(encoded, []byte("\n"), []byte(ending))
+}
+
+// nameLines returns the zero-based indexes of the first and last of lines, the lines of the block mapping document
+// decodes, that hold its top-level name field, key and value, or -1 and -1 when document is nil or has no name
+// field. A value written over several lines runs until the next key, leaving out blank and comment lines before it.
+func nameLines(document *yaml.Node, lines [][]byte) (first, last int) {
+	if document == nil {
+		return -1, -1
+	}
+	fields := document.Content[0].Content
+	for i := 0; i+1 < len(fields); i += 2 {
+		if fields[i].Value != "name" {
+			continue
+		}
+		first, last = fields[i].Line-1, len(lines)-1
+		if i+2 < len(fields) {
+			last = fields[i+2].Line - 2
+		}
+		for last > fields[i+1].Line-1 {
+			if trimmed := bytes.TrimSpace(lines[last]); len(trimmed) > 0 && trimmed[0] != '#' {
+				break
+			}
+			last--
+		}
+		return first, last
+	}
+	return -1, -1
 }
 
 // Mark returns the bytes of an installed copy of a SKILL.md file: data, with marker on its own line right after the

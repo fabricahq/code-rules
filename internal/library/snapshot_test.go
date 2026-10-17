@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // ruleDocument is a valid rule whose body identifies it, so tests can tell copies apart.

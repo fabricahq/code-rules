@@ -10,11 +10,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // UpdateTarget names what an update moves: every rule of Source when Rule is empty, or only the library rule Rule.
@@ -49,10 +49,52 @@ type SourceUpdate struct {
 	Rules []RuleUpdate `json:"rules"`
 	// SharedFiles is how the update moves the source's library-wide files, or nil when they stay.
 	SharedFiles *SharedFilesUpdate `json:"sharedFiles,omitempty"`
+	// Skills compares the skills the source installs once the update is applied with those its source record
+	// locks, as skillChanges does. It is empty, never nil, when they don't differ.
+	Skills []SkillUpdate `json:"skills"`
 	// ReplacedSkills lists, sorted by ID, the skills the project replaces with authored skills whose copy at the
 	// revision the update takes the source's skills from differs from the copy the replacement is based on. It is
 	// empty, never nil, when there are none.
 	ReplacedSkills []ReplacedSkillUpdate `json:"replacedSkills"`
+	// SkillLevels lists, sorted by ID, the skills whose level the library changes at the revision the update takes
+	// the source's skills from. It is empty, never nil, when there are none.
+	SkillLevels []SkillLevelUpdate `json:"skillLevels"`
+	// Borrowed lists, sorted by name, the sources the library borrows skills from whose revision or skills the update
+	// changes; it is omitted when there are none. A library source the update doesn't name is listed with only these
+	// rows when a source the update names overrides a repository it borrows from.
+	Borrowed []BorrowedUpdate `json:"borrowed,omitempty"`
+}
+
+// SkillLevelUpdate is a row of the update preview for a skill whose level in its library changes: a skill whose
+// level differs between the revisions, and a required skill the library adds or removes, which installs or
+// uninstalls whatever the project includes.
+type SkillLevelUpdate struct {
+	ID string `json:"id"`
+	// From is the level at the commit the source record locks, and To the level at the commit the update takes
+	// skills from; each is empty when the library has no such skill at that commit.
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+// BorrowedUpdate moves the revision of a source a library borrows skills from, which the project resolves from the
+// ref the library names: a branch's newest commit, a tag's commit, or, without a ref, the repository's newest library
+// release.
+type BorrowedUpdate struct {
+	Name       string `json:"name"`
+	Repository string `json:"repository"`
+	// Ref is the ref the library names, or empty when it follows the newest library release.
+	Ref string `json:"ref,omitempty"`
+	// From is the commit the project recorded, or empty for a source it didn't borrow from before; To is the commit
+	// the update takes the borrowed skills from, or empty when the project no longer takes any skills from the source,
+	// so the update removes those it installed.
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
+	// Skills lists, sorted, the IDs of the borrowed skills the project takes from the source.
+	Skills []string `json:"skills"`
+	// Changes compares the borrowed skills the project installs from the source, and the skills they use, at To with
+	// those at From, as SourceUpdate.Skills compares a source's own skills, by their IDs in the library. It is empty,
+	// never nil, when they don't differ.
+	Changes []SkillUpdate `json:"changes"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -67,19 +109,19 @@ type RuleUpdate struct {
 	ID     string       `json:"id"`
 	Change UpdateChange `json:"change"`
 	// From is the version the project imports; it is nil for a new rule.
-	From *coderules.RuleVersion `json:"from,omitempty"`
+	From *trailguide.RuleVersion `json:"from,omitempty"`
 	// To is the version the update installs; it is nil for retired and pinned rules, which don't move, including a
 	// pinned replaced rule.
-	To *coderules.RuleVersion `json:"to,omitempty"`
+	To *trailguide.RuleVersion `json:"to,omitempty"`
 	// Newest is a pinned rule's newest version, including a pinned replaced rule's, and LastVersion a retired
 	// rule's; each is nil otherwise.
-	Newest      *coderules.RuleVersion `json:"newest,omitempty"`
-	LastVersion *coderules.RuleVersion `json:"lastVersion,omitempty"`
+	Newest      *trailguide.RuleVersion `json:"newest,omitempty"`
+	LastVersion *trailguide.RuleVersion `json:"lastVersion,omitempty"`
 	// Summaries holds one line per change note, oldest first: every version after From up to To, every version of
 	// a new rule, or the retirement. It is empty, never nil, for a pinned rule. SummaryVersions holds the version
 	// each summary belongs to, in the same order, a retired rule's being its last version.
-	Summaries       []string                `json:"summaries"`
-	SummaryVersions []coderules.RuleVersion `json:"summaryVersions"`
+	Summaries       []string                 `json:"summaries"`
+	SummaryVersions []trailguide.RuleVersion `json:"summaryVersions"`
 	// ReplacedBy is the library rule that replaces a retired rule, when there is one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// ReplacementRetired reports that the library later retired ReplacedBy too; CurrentReplacement is then the rule
@@ -87,13 +129,13 @@ type RuleUpdate struct {
 	ReplacementRetired bool   `json:"replacementRetired,omitempty"`
 	CurrentReplacement string `json:"currentReplacement,omitempty"`
 	// ReplacementLocalRule is the project's local rule that already replaces ReplacedBy, when the project replaced
-	// it, relative to the Syllabus directory, so the row doesn't recommend a rule agents don't read.
+	// it, relative to the Trail Guide directory, so the row doesn't recommend a rule agents don't read.
 	ReplacementLocalRule string `json:"replacementLocalRule,omitempty"`
-	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Syllabus directory.
+	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Trail Guide directory.
 	LocalRule string `json:"localRule,omitempty"`
 	// BasedOn is the version of a replaced rule that its local rule incorporates, as the exclusion records it; the
 	// row then lists the changes after it, From being the imported version. It is nil otherwise.
-	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty"`
+	BasedOn *trailguide.RuleVersion `json:"basedOn,omitempty"`
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
 	Pin *rules.Pin `json:"pin,omitempty"`
 	// Decision is "keep" when the project pins the rule at From instead of applying the change, "exclude" when it
@@ -103,7 +145,7 @@ type RuleUpdate struct {
 	Reason   string `json:"reason,omitempty"`
 	// Overwrites and Removes list, for an update-fork decision, the local files that replacing the fork writes again
 	// and deletes: of the local rule and the files in its asset directory, those the new fork has and those it
-	// doesn't, relative to the Syllabus directory. The project's preview leaves both empty, never nil, for other
+	// doesn't, relative to the Trail Guide directory. The project's preview leaves both empty, never nil, for other
 	// rows; planning leaves them nil.
 	Overwrites []string `json:"overwrites"`
 	Removes    []string `json:"removes"`
@@ -111,7 +153,7 @@ type RuleUpdate struct {
 
 // ReviewedVersion returns the newest version a replaced row lists changes up to, which replacing its fork forks and
 // records as basedOn: To, or Newest when a pin keeps the imported copy. It is nil for other rows.
-func (r RuleUpdate) ReviewedVersion() *coderules.RuleVersion {
+func (r RuleUpdate) ReviewedVersion() *trailguide.RuleVersion {
 	if r.Change != UpdateReplaced {
 		return nil
 	}
@@ -123,7 +165,9 @@ func (r RuleUpdate) ReviewedVersion() *coderules.RuleVersion {
 
 // Update is a planned project update: each source's preview, and what installing it imports.
 type Update struct {
-	// Sources lists, in configuration order, the sources the update names. A source that uses ref has no rows.
+	// Sources lists, in configuration order, the sources the update names, and each library source it doesn't name
+	// whose borrowed skills come from one it does, with only its borrowed rows. A source that uses ref has no rule
+	// rows.
 	Sources []SourceUpdate
 	// Warnings explain configuration the update tolerates, as sync reports them, for the sources it names. It is
 	// empty, never nil, when there are none.
@@ -132,6 +176,9 @@ type Update struct {
 	// doesn't name import what sync would.
 	plans    map[string]plannedSource
 	recorded map[string]library.Snapshot
+	// borrowed holds the preview rows of the library sources the update doesn't name whose borrowed skills come from
+	// a source it does name, which overrides the library's ref, by library source name.
+	borrowed map[string][]BorrowedUpdate
 }
 
 // plannedSource is one source an update names, with what its planner read, so applying the project's decisions
@@ -146,6 +193,9 @@ type plannedSource struct {
 	scoped   bool
 	recorded *library.Snapshot
 	history  releaseHistory
+	// skills maps each commit that can supply the source's skills once the project decides, the shared files'
+	// commit, to the preview of the skills the source installs from it.
+	skills map[string]skillPreview
 }
 
 // sharedFiles returns the library release, and its commit, that supplies the library-wide files once the update
@@ -168,16 +218,121 @@ func (u Update) SharedFiles(source string, kept []string) *SharedFilesUpdate {
 	if !named || planned.moved == nil {
 		return nil
 	}
-	decided := maps.Clone(planned.moved)
-	for _, id := range kept {
-		if rule, ok := planned.before.rules[id]; ok {
-			decided[id] = rule
-		}
-	}
-	if release, _ := planned.sharedFiles(decided); release != planned.before.release {
+	if release, _ := planned.keeping(kept); release != planned.before.release {
 		return &SharedFilesUpdate{From: planned.before.release, To: release}
 	}
 	return nil
+}
+
+// Skills returns the preview rows of the skills of source, which the update names, once the rules kept lists stay at
+// their versions from before the update: the skills come from the revision that then supplies the shared files.
+// It is empty, never nil, when the skills don't change or the update doesn't name source, and fails as installing
+// that revision would when planning couldn't read its skills, such as one skills.include names that it lacks.
+func (u Update) Skills(source string, kept []string) ([]SkillUpdate, error) {
+	planned, named := u.plans[source]
+	if !named {
+		return []SkillUpdate{}, nil
+	}
+	rows, err := planned.skillRows(kept)
+	if err != nil {
+		return nil, sourceError(source, err)
+	}
+	return rows, nil
+}
+
+// skillRows returns a copy of the preview rows of the revision that supplies the source's skills once the rules kept
+// lists stay at their versions from before the update, or the failure reading them. Planning reads every revision
+// that keeping rules can choose, as skillRevisions lists them.
+func (s plannedSource) skillRows(kept []string) ([]SkillUpdate, error) {
+	_, commit := s.keeping(kept)
+	preview, read := s.skills[commit]
+	switch {
+	case !read:
+		return nil, fmt.Errorf("the update preview didn't read the skills at commit %s", commit)
+	case preview.err != nil:
+		return nil, preview.err
+	}
+	return slices.Clone(preview.rows), nil
+}
+
+// ReplacedSkills returns the replaced skill rows of source, which the update names, once the rules kept lists stay
+// at their versions from before the update, as Skills chooses the revision. It is empty, never nil, when there are
+// none or the update doesn't name source.
+func (u Update) ReplacedSkills(source string, kept []string) []ReplacedSkillUpdate {
+	planned, named := u.plans[source]
+	if !named {
+		return []ReplacedSkillUpdate{}
+	}
+	return planned.replacedRows(kept)
+}
+
+// replacedRows returns a copy of the replaced skill rows of the revision that supplies the source's skills once the
+// rules kept lists stay at their versions from before the update; empty, never nil, when planning read none there.
+func (s plannedSource) replacedRows(kept []string) []ReplacedSkillUpdate {
+	_, commit := s.keeping(kept)
+	rows := slices.Clone(s.skills[commit].replaced)
+	if rows == nil {
+		return []ReplacedSkillUpdate{}
+	}
+	return rows
+}
+
+// SkillLevels returns the level change rows of source, which the update names, once the rules kept lists stay at
+// their versions from before the update, as Skills chooses the revision. It is empty, never nil, when no level
+// changes, the update doesn't name source, or source uses ref, which the update doesn't move.
+func (u Update) SkillLevels(source string, kept []string) []SkillLevelUpdate {
+	planned, named := u.plans[source]
+	if !named || planned.moved == nil {
+		return []SkillLevelUpdate{}
+	}
+	return planned.levelRows(kept)
+}
+
+// levelRows returns a copy of the level change rows of the revision that supplies the source's skills once the rules
+// kept lists stay at their versions from before the update; empty, never nil, when planning read none there.
+func (s plannedSource) levelRows(kept []string) []SkillLevelUpdate {
+	_, commit := s.keeping(kept)
+	rows := slices.Clone(s.skills[commit].levels)
+	if rows == nil {
+		return []SkillLevelUpdate{}
+	}
+	return rows
+}
+
+// keeping returns the library release, and its commit, that supplies the library-wide files and skills once the
+// rules kept lists stay at their versions from before the update. A source that uses ref keeps its revision.
+func (s plannedSource) keeping(kept []string) (int, string) {
+	if s.moved == nil {
+		return s.before.release, s.before.commit
+	}
+	decided := maps.Clone(s.moved)
+	for _, id := range kept {
+		if rule, ok := s.before.rules[id]; ok {
+			decided[id] = rule
+		}
+	}
+	return s.sharedFiles(decided)
+}
+
+// skillRevisions returns a plan of each revision that can supply the source's skills once the project decides: the
+// shared files' revision before the update for a scoped update, since keeping every rule it moves keeps them there,
+// and every library release a moved rule comes from, since keeping the others raises them only that far. after is
+// the plan without decisions, whose revision every whole-source update takes.
+func (s plannedSource) skillRevisions(after sourcePlan) []sourcePlan {
+	plans := []sourcePlan{after}
+	if !s.scoped {
+		return plans
+	}
+	revision := func(release int, commit string) sourcePlan {
+		return sourcePlan{release: release, commit: commit, locked: s.before.locked, nonLibrary: s.before.nonLibrary}
+	}
+	plans = append(plans, revision(s.before.release, s.before.commit))
+	for _, id := range slices.Sorted(maps.Keys(s.moved)) {
+		if rule := s.moved[id]; rule.Release > s.before.release {
+			plans = append(plans, revision(rule.Release, rule.Commit))
+		}
+	}
+	return plans
 }
 
 // decided returns what the source imports once the update is applied with source, its configuration plus the pins
@@ -202,7 +357,7 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 // ForkedRule is a version of a rule that a project forks during an update, from a source the update names.
 type ForkedRule struct {
 	Source, ID string
-	Version    coderules.RuleVersion
+	Version    trailguide.RuleVersion
 }
 
 // Import imports every source of configuration, the planned configuration plus the pins and exclusions the
@@ -211,7 +366,7 @@ type ForkedRule struct {
 // and fails when a library release tag those versions, or the versions in forked, come from has moved since
 // planning; any other source imports what sync would.
 func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options, forked []ForkedRule) (map[string]Library, error) {
-	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+	return importSources(ctx, configuration, options, borrowing{recorded: u.recorded, planned: u.borrowedRevisions()}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		planned, named := u.plans[source.Name]
 		if !named {
 			return planSource(ctx, repo, source, recordedSnapshot(u.recorded, source.Name))
@@ -240,7 +395,7 @@ func (u Update) Import(ctx context.Context, configuration rules.Configuration, o
 // ReadFork reads version of rule id from source, which the update names, as ReadPublishedRule does, from the
 // library release that planning found published it. It fails with invalid-release-tag, before reading the rule's
 // files, when that release's tag now names another commit, so a fork never holds content the preview didn't plan.
-func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version coderules.RuleVersion, options Options) (PublishedRule, error) {
+func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version trailguide.RuleVersion, options Options) (PublishedRule, error) {
 	planned, named := u.plans[source.Name]
 	if !named {
 		return PublishedRule{}, fmt.Errorf("source %s isn't part of the update", source.Name)
@@ -251,7 +406,7 @@ func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, ve
 	}
 	return readPublishedRule(ctx, source, id, version, options, func(release *libraryRelease) error {
 		if release.number != expected.number || release.commit != expected.commit {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when syllabus project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run syllabus project update again.", expected.number, version, id, source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when trailguide project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run trailguide project update again.", expected.number, version, id, source.Name), nil)
 		}
 		return nil
 	})
@@ -286,7 +441,7 @@ func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source
 	}
 	for _, number := range slices.Sorted(maps.Keys(recorded)) {
 		if commit, listed := current[number]; listed && commit != recorded[number] {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when syllabus project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run syllabus project update again.", number, source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when trailguide project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run trailguide project update again.", number, source.Name), nil)
 		}
 	}
 	return nil
@@ -294,9 +449,12 @@ func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source
 
 // PlanUpdate plans moving the rules that targets name to their newest versions, reading each named source's
 // release history without fetching rule files or writing anything. No targets names every source. It starts from
-// what project sync would import from configuration and recorded, the snapshots from the last sync without
-// files, so the preview never repeats changes sync makes on its own. It fails without a partial result when a
-// target names an unknown source, a source that uses ref, or a rule the source doesn't import.
+// what project sync would import from configuration and recorded, the snapshots from the last sync with only their
+// skills' files, so the preview never repeats changes sync makes on its own. It also reads the skills each named
+// source installs once updated, so the preview compares them with recorded's and flags every script the update adds
+// or changes; a skill that skills.include names and that revision lacks fails as installing it would. It fails
+// without a partial result when a target names an unknown source, a source that uses ref, or a rule the source
+// doesn't import.
 func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded map[string]library.Snapshot, targets []UpdateTarget, options Options) (Update, error) {
 	if err := ctx.Err(); err != nil {
 		return Update{}, gitexec.ContextFailure(err)
@@ -305,7 +463,7 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 	if err != nil {
 		return Update{}, err
 	}
-	update := Update{Sources: []SourceUpdate{}, Warnings: []string{}, plans: map[string]plannedSource{}, recorded: maps.Clone(recorded)}
+	update := Update{Sources: []SourceUpdate{}, Warnings: []string{}, plans: map[string]plannedSource{}, recorded: maps.Clone(recorded), borrowed: map[string][]BorrowedUpdate{}}
 	for _, source := range configuration.Sources {
 		scope, named := scopes[source.Name]
 		if !named {
@@ -319,7 +477,159 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 		update.Sources = append(update.Sources, preview)
 		update.Warnings = append(update.Warnings, warnings...)
 	}
+	// Borrowed skills come from other repositories, or from a source that overrides the library's ref, whose
+	// revision once the update is applied is known only once every source is planned. Only an update of a whole
+	// source resolves the library's refs for them again; a scoped one, and one of a source that uses ref, which the
+	// update doesn't move, keep them where sync would.
+	overridden := map[string]library.Snapshot{}
+	for name, snapshot := range recorded {
+		overridden[name] = snapshot
+	}
+	for name, planned := range update.plans {
+		release, commit := planned.keeping(nil)
+		overridden[name] = library.Snapshot{Release: release, Commit: commit, NonLibrary: planned.before.nonLibrary}
+	}
+	for i, source := range namedSources(configuration, update.plans) {
+		planned := update.plans[source.Name]
+		for _, commit := range slices.Sorted(maps.Keys(planned.skills)) {
+			at := planned.skills[commit]
+			if at.manifest == nil || at.err != nil {
+				continue
+			}
+			at.revisions, at.borrowed, err = planBorrowed(ctx, configuration, source, at.manifest, recordedSnapshot(recorded, source.Name), planned.scoped || !source.Ref.IsZero(), overridden, nil, options)
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return Update{}, gitexec.ContextFailure(ctxErr)
+			}
+			if err != nil {
+				// Only choosing this revision fails, as for a skill it lacks.
+				at.err, at.revisions, at.borrowed = sourceError(source.Name, err), nil, nil
+			}
+			planned.skills[commit] = at
+		}
+		update.Sources[i].Borrowed = planned.borrowedRows(nil)
+	}
+	for _, source := range configuration.Sources {
+		if _, named := update.plans[source.Name]; named {
+			continue
+		}
+		rows, err := planOverriddenBorrowing(ctx, configuration, source, recordedSnapshot(recorded, source.Name), update.plans, overridden, options)
+		if err != nil {
+			return Update{}, sourceError(source.Name, err)
+		}
+		if len(rows) > 0 {
+			update.borrowed[source.Name] = rows
+		}
+	}
+	// A library source the update doesn't name still gets a preview of the borrowed skills it installs from a named
+	// source, in configuration order.
+	sources := []SourceUpdate{}
+	for _, source := range configuration.Sources {
+		if rows, moved := update.borrowed[source.Name]; moved {
+			sources = append(sources, SourceUpdate{Name: source.Name, Rules: []RuleUpdate{}, Skills: []SkillUpdate{}, ReplacedSkills: []ReplacedSkillUpdate{}, SkillLevels: []SkillLevelUpdate{}, Borrowed: rows})
+			continue
+		}
+		if i := slices.IndexFunc(update.Sources, func(preview SourceUpdate) bool { return preview.Name == source.Name }); i >= 0 {
+			sources = append(sources, update.Sources[i])
+		}
+	}
+	update.Sources = sources
 	return update, nil
+}
+
+// namedSources returns, in configuration order, the sources of configuration that plans names.
+func namedSources(configuration rules.Configuration, plans map[string]plannedSource) []rules.Source {
+	named := []rules.Source{}
+	for _, source := range configuration.Sources {
+		if _, ok := plans[source.Name]; ok {
+			named = append(named, source)
+		}
+	}
+	return named
+}
+
+// planOverriddenBorrowing returns the preview rows of the borrowed skills that source, a library source the update
+// doesn't name, whose snapshot is recorded, installs from a source plans names, which overrides the library's ref,
+// so moving that source moves them, including one the project declared since the last sync. overridden is as planBorrowed takes it. It returns no rows when no source the
+// update names overrides one the library borrows from.
+func planOverriddenBorrowing(ctx context.Context, configuration rules.Configuration, source rules.Source, recorded *library.Snapshot, plans map[string]plannedSource, overridden map[string]library.Snapshot, options Options) (_ []BorrowedUpdate, err error) {
+	// The project's current sources decide the override, by repository identity, whatever overrode it at the last
+	// sync.
+	moves := func(override *rules.Source) bool {
+		if override == nil {
+			return false
+		}
+		_, named := plans[override.Name]
+		return named
+	}
+	if recorded == nil || recorded.NonLibrary || !slices.ContainsFunc(slices.Collect(maps.Values(recorded.Borrowed)), func(borrowed library.BorrowedSource) bool {
+		return moves(overridingSource(configuration, source.Name, borrowed.Repository))
+	}) {
+		return []BorrowedUpdate{}, nil
+	}
+	ctx, cancel, err := withTimeout(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	repo, err := openRepository(ctx, source, options)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := repo.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+	if err := repo.fetchCommits(ctx, []string{recorded.Commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records is missing from its repository, so the repository may have rewritten its history. Run trailguide project sync, then trailguide project update again.", source.Name)); err != nil {
+		return nil, err
+	}
+	manifest, err := repo.manifestAt(ctx, recorded.Commit)
+	if err != nil || manifest == nil {
+		return []BorrowedUpdate{}, err
+	}
+	// Only the borrowed sources a named source overrides move; sync keeps the others where they are.
+	_, rows, err := planBorrowed(ctx, configuration, source, manifest, recorded, true, overridden, func(_ string, override *rules.Source) bool {
+		return moves(override)
+	}, options)
+	return rows, err
+}
+
+// Borrowed returns the preview rows of the sources library source source borrows skills from, once the rules kept
+// lists stay at their versions from before the update, as Skills chooses the revision. It is empty, never nil, when
+// none moves.
+func (u Update) Borrowed(source string, kept []string) []BorrowedUpdate {
+	if rows, ok := u.borrowed[source]; ok {
+		return slices.Clone(rows)
+	}
+	planned, named := u.plans[source]
+	if !named {
+		return []BorrowedUpdate{}
+	}
+	return planned.borrowedRows(kept)
+}
+
+// borrowedRows returns the borrowed rows of the revision kept chooses, as levelRows does.
+func (s plannedSource) borrowedRows(kept []string) []BorrowedUpdate {
+	_, commit := s.keeping(kept)
+	rows := slices.Clone(s.skills[commit].borrowed)
+	if rows == nil {
+		return []BorrowedUpdate{}
+	}
+	return rows
+}
+
+// borrowedRevisions returns the borrowed revisions the update planned, by library source name, then by the commit of
+// the revision that supplies the library's skills, then by borrowed source name, so the import takes the ones of the
+// revision the project's decisions choose.
+func (u Update) borrowedRevisions() map[string]map[string]map[string]library.BorrowedSource {
+	revisions := map[string]map[string]map[string]library.BorrowedSource{}
+	for name, planned := range u.plans {
+		revisions[name] = map[string]map[string]library.BorrowedSource{}
+		for commit, preview := range planned.skills {
+			revisions[name][commit] = preview.revisions
+		}
+	}
+	return revisions
 }
 
 // sourceError names source before err, a failure importing or updating it, unless err already names it or is a
@@ -356,10 +666,10 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 		}
 		index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == target.Source })
 		if index < 0 {
-			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .syllabus/config.yaml"}
+			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .trailguide/config.yaml"}
 		}
 		if !configuration.Sources[index].Ref.IsZero() {
-			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run syllabus project sync"}
+			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run trailguide project sync"}
 		}
 		if target.Rule == "" {
 			whole[target.Source] = true
@@ -375,7 +685,8 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 // warnings that installing it without decisions would give. A nil scope moves every rule and adds new ones;
 // otherwise it moves only the rules scope names. A source that uses ref stays as sync would import it. Either way,
 // the preview lists the replaced skills whose copy at the revision the update takes skills from, before the
-// project's decisions, differs from the copy their replacement is based on.
+// project's decisions, differs from the copy their replacement is based on; the plan keeps those rows for every
+// revision the decisions can choose.
 func planSourceUpdate(ctx context.Context, source rules.Source, recorded *library.Snapshot, scope []string, options Options) (_ plannedSource, _ SourceUpdate, _ []string, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
@@ -397,12 +708,17 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
-	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}}
+	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}, Skills: []SkillUpdate{}, SkillLevels: []SkillLevelUpdate{}}
 	if !source.Ref.IsZero() {
-		if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, before.commit); err != nil {
+		planned := plannedSource{before: before}
+		if planned.skills, err = repo.previewSkills(ctx, source, recorded, []sourcePlan{before}); err != nil {
 			return plannedSource{}, SourceUpdate{}, nil, err
 		}
-		return plannedSource{before: before}, preview, before.warnings, nil
+		if preview.Skills, err = planned.skillRows(nil); err != nil {
+			return plannedSource{}, SourceUpdate{}, nil, err
+		}
+		preview.ReplacedSkills = planned.replacedRows(nil)
+		return planned, preview, before.warnings, nil
 	}
 	for _, id := range scope {
 		if _, imported := before.rules[id]; !imported {
@@ -424,9 +740,14 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err := p.requireUnmoved(before); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
-	if preview.ReplacedSkills, err = repo.replacedSkills(ctx, source, recorded, after.commit); err != nil {
+	if planned.skills, err = repo.previewSkills(ctx, source, recorded, planned.skillRevisions(after)); err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
+	if preview.Skills, err = planned.skillRows(nil); err != nil {
+		return plannedSource{}, SourceUpdate{}, nil, err
+	}
+	preview.ReplacedSkills = planned.replacedRows(nil)
+	preview.SkillLevels = planned.levelRows(nil)
 	preview.Rules = rows
 	return planned, preview, after.warnings, nil
 }
@@ -485,7 +806,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			row.Pin = &pin
 			rows = append(rows, p.withReplacementLocalRule(row))
 		case pinned && latest.Compare(*current.Version) > 0:
-			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []coderules.RuleVersion{}, Pin: &pin})
+			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []trailguide.RuleVersion{}, Pin: &pin})
 		case pinned:
 		case !published:
 			delete(after, id)
@@ -562,7 +883,7 @@ func retiredRow(id string, current library.ImportedRule, history releaseHistory)
 		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
 	}
 	last := retired.LastVersion
-	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []coderules.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
+	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []trailguide.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
 	for range row.Summaries {
 		row.SummaryVersions = append(row.SummaryVersions, last)
 	}
@@ -586,7 +907,7 @@ func (p *planner) withReplacementLocalRule(row RuleUpdate) RuleUpdate {
 }
 
 // versionChange classifies moving from one version to a newer one by the largest component that changed.
-func versionChange(from, to coderules.RuleVersion) UpdateChange {
+func versionChange(from, to trailguide.RuleVersion) UpdateChange {
 	switch {
 	case to.Major != from.Major:
 		return UpdateMajor

@@ -12,46 +12,60 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
-const transactionName = ".syllabus-transaction"
+const transactionName = ".trailguide-transaction"
 
 // backupPrefix begins the name of each backup of a target's previous output in the transaction directory.
 const backupPrefix = "old-"
 
 // maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
 // trees, format 3 adds a project guide, format 4 adds the configuration, format 5 adds local group metadata, format 6
-// adds local rules and their asset directories, which it can remove, and format 7 adds skill folders outside the
-// Syllabus directory, which it can remove too.
-var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules, 7: 4 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders}
+// adds local rules and their asset directories, which it can remove, format 7 adds skill folders outside the
+// Trail Guide directory, which it can remove too, and format 8 adds the repository's AGENTS.md.
+var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules, 7: 4 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders, 8: 5 + maxLocalGroupMetadata + 2*maxLocalRules + maxSkillFolders}
 
 // maxJournalFormat is the newest journal format; Apply writes the oldest one that can hold its targets.
-const maxJournalFormat = 7
+const maxJournalFormat = 8
 
-const lockName = ".syllabus-lock"
-const cleanupName = ".syllabus-cleanup"
+const lockName = ".trailguide-lock"
+const cleanupName = ".trailguide-cleanup"
 
-// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Syllabus. Their
-// presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers.
-var legacyNames = []string{".code-rules-lock", ".code-rules-transaction", ".code-rules-cleanup"}
+// legacyLockName is the lock Code Rules took before it was renamed Trail Guide. A writer of a project still in
+// legacyDirectory takes it too, before its own, so a Code Rules process can't write the project at the same time.
+const legacyLockName = ".code-rules-lock"
 
-// requireNoLegacyWriter fails with busy when root holds one of legacyNames.
-func requireNoLegacyWriter(root *os.Root) error {
-	for _, name := range legacyNames {
+// legacyDirectory is the project directory Code Rules used before it was renamed Trail Guide.
+const legacyDirectory = ".code-rules"
+
+// legacyNames are the lock, transaction, and cleanup names Code Rules used before it was renamed Trail Guide. Their
+// presence means a Code Rules process is writing the project, or left an interrupted write that only it recovers;
+// legacyLockName can also be held by a Trail Guide writer of a project in legacyDirectory.
+var legacyNames = []string{legacyLockName, ".code-rules-transaction", ".code-rules-cleanup"}
+
+// requireNoLegacyWriter fails with busy when root holds one of names, which are some of legacyNames.
+func requireNoLegacyWriter(root *os.Root, names []string) error {
+	for _, name := range names {
 		present, err := exists(root, name)
 		if err != nil {
 			return err
 		}
 		if present {
-			return failure("busy", name+": a Code Rules process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command with the code-rules version that was interrupted to recover its changes, then run this command again", nil)
+			return failure("busy", name+": another process is writing this project, or was interrupted while writing it. Wait for it to exit; if none is running, run the same command again with the version that was interrupted, code-rules or trailguide, to recover its changes, then run this command again", nil)
 		}
 	}
 	return nil
+}
+
+// isLegacyRoot reports whether root is a project directory still named legacyDirectory.
+func isLegacyRoot(root *os.Root) bool {
+	return filepath.Base(root.Name()) == legacyDirectory
 }
 
 // Target is a managed directory, project guide, the project configuration, an authored group's metadata, an
@@ -72,7 +86,8 @@ type Writer struct {
 	// rename and mkdir are the filesystem boundaries used by tests to stop a child at an exact rename or directory.
 	rename func(string, string) error
 	mkdir  func(string) error
-	// renameRepository, when set, replaces renames in the repository root, which skill folders use, for tests.
+	// renameRepository, when set, replaces renames in the repository root, which skill folders and AGENTS.md use,
+	// for tests.
 	renameRepository func(root *os.Root, from, to string) error
 	active           bool
 	// recovered reports that WithWriter first recovered an interrupted earlier operation, changing project files.
@@ -105,7 +120,7 @@ type journalRecord struct {
 // RequireIdle refuses read-only operations while writing or recovery could expose mixed output.
 // It never creates a lock or performs recovery.
 func RequireIdle(root *os.Root) error {
-	if err := requireNoLegacyWriter(root); err != nil {
+	if err := requireNoLegacyWriter(root, legacyNames); err != nil {
 		return err
 	}
 	for _, name := range []string{lockName, transactionName, cleanupName} {
@@ -129,10 +144,23 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	if root == nil || operation == nil {
 		return failure("invalid-operation", "expected an open project root and writer operation", nil)
 	}
-	if err := requireNoLegacyWriter(root); err != nil {
+	unlocked := legacyNames
+	if isLegacyRoot(root) {
+		// Code Rules honors only its own lock, so a project it can still write is locked under that name first.
+		if err := acquireLock(ctx, root, legacyLockName); err != nil {
+			return err
+		}
+		defer func() {
+			if removeErr := root.RemoveAll(legacyLockName); removeErr != nil {
+				err = errors.Join(err, removeErr)
+			}
+		}()
+		unlocked = legacyNames[1:]
+	}
+	if err := requireNoLegacyWriter(root, unlocked); err != nil {
 		return err
 	}
-	if err := acquireLock(ctx, root); err != nil {
+	if err := acquireLock(ctx, root, lockName); err != nil {
 		return err
 	}
 	// Joining only a failed removal keeps err itself, so callers still see its identity, such as a validation error.
@@ -150,8 +178,8 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	return operation(w)
 }
 
-// acquireLock exclusively creates an owner record or serializes reclamation of a dead local owner.
-func acquireLock(ctx context.Context, root *os.Root) error {
+// acquireLock exclusively creates an owner record in lockName or serializes reclamation of a dead local owner.
+func acquireLock(ctx context.Context, root *os.Root, lockName string) error {
 	host, err := os.Hostname()
 	if err != nil {
 		return err
@@ -234,11 +262,11 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 	}
 	places := &roots{project: w.root}
 	defer places.close()
-	order := []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config}
+	order := []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config, AgentsFile}
 	metadata, localRules, skillFolders := 0, 0, 0
 	for target, files := range output {
 		if !validTarget(target) {
-			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, local group metadata, local rules and their asset directories, and skill folders may be replaced", target), nil)
+			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, AGENTS.md, local group metadata, local rules and their asset directories, and skill folders may be replaced", target), nil)
 		}
 		if files == nil && !removable(target) {
 			return failure("invalid-target", fmt.Sprintf("%q: only a local rule's asset directory or a skill folder may be removed", target), nil)
@@ -263,11 +291,16 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 			}
 		}
 		if fileTarget(target) && !localRuleTarget(target) {
-			if err := rejectAlias(w.root, string(target)); err != nil {
+			p, err := places.place(target)
+			if err != nil {
+				return err
+			}
+			if err := rejectAlias(p.root, p.live); err != nil {
 				return err
 			}
 		}
-		if err := rules.ValidatePaths(files, nil); err != nil {
+		// AGENTS.md's one file is named for the target, outside the Trail Guide directory, which writeTarget checks.
+		if err := rules.ValidatePaths(files, nil); err != nil && target != AgentsFile {
 			return err
 		}
 	}
@@ -280,7 +313,7 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 		}
 	}
 	// Local targets and skill folders follow the fixed targets in path order, so journals are deterministic.
-	fixed := 5
+	fixed := 6
 	if metadata > maxLocalGroupMetadata || localRules > maxLocalRules || len(order)-fixed-metadata-localRules-skillFolders > maxLocalRules || skillFolders > maxSkillFolders {
 		return failure("invalid-target", fmt.Sprintf("one transaction can hold at most %d local group metadata files, %d local rules with their asset directories, and %d skill folders", maxLocalGroupMetadata, maxLocalRules, maxSkillFolders), nil)
 	}
@@ -303,7 +336,7 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 			recoveryErr = w.root.RemoveAll(transactionName)
 		}
 		if recoveryErr != nil {
-			err = failure("recovery-required", "update failed and rollback could not finish; preserve .syllabus-transaction for recovery", errors.Join(err, recoveryErr))
+			err = failure("recovery-required", "update failed and rollback could not finish; preserve .trailguide-transaction for recovery", errors.Join(err, recoveryErr))
 		}
 	}()
 	entries := []journalEntry{}
@@ -348,7 +381,8 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 			return err
 		}
 		if fileTarget(target) {
-			if err := w.probeFileRename(target, staged); err != nil {
+			// The transaction directory is the same in either root, so the probe uses the Trail Guide directory's.
+			if err := w.probeFileRename(target, path.Join(transactionName, "new-"+entryName(target))); err != nil {
 				return err
 			}
 		}
@@ -394,7 +428,9 @@ func (w *Writer) ApplyModes(output map[Target]map[string][]byte, executable map[
 		case localRuleTarget(entry.Name), localRuleAssetsTarget(entry.Name):
 			formatVersion = max(formatVersion, 6)
 		case skill:
-			formatVersion = 7
+			formatVersion = max(formatVersion, 7)
+		case entry.Name == AgentsFile:
+			formatVersion = 8
 		}
 	}
 	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
@@ -464,7 +500,7 @@ type parent struct {
 	directory string
 }
 
-// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Syllabus
+// renameIn renames from to to, both paths in p.root, through the writer's rename boundary in the Trail Guide
 // directory.
 func (w *Writer) renameIn(p place, from, to string) error {
 	if p.root == w.root {
@@ -472,6 +508,15 @@ func (w *Writer) renameIn(p place, from, to string) error {
 	}
 	if w.renameRepository != nil {
 		return w.renameRepository(p.root, from, to)
+	}
+	return renameInRepository(p, from, to)
+}
+
+// renameInRepository renames from to to in the repository root, never replacing a file that appeared at a file
+// target's path.
+func renameInRepository(p place, from, to string) error {
+	if p.file {
+		return renameWithout(p.root, from, to, renameExclusive)
 	}
 	return p.root.Rename(from, to)
 }
@@ -545,12 +590,12 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	ctx := context.Background()
 	places := &roots{project: root}
 	defer places.close()
-	// renameIn renames within p.root, through rename in the Syllabus directory.
+	// renameIn renames within p.root, through rename in the Trail Guide directory.
 	renameIn := func(p place, from, to string) error {
 		if p.root == root {
 			return rename(from, to)
 		}
-		return p.root.Rename(from, to)
+		return renameInRepository(p, from, to)
 	}
 	garbage, err := readTree(ctx, root, cleanupName, recoveryLimits)
 	if err != nil {
@@ -607,7 +652,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	for _, entry := range record.Entries {
 		localRule := localRuleTarget(entry.Name) || localRuleAssetsTarget(entry.Name)
 		_, skill := skillFolderTarget(entry.Name)
-		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5) || (localRule && record.FormatVersion < 6) || (skill && record.FormatVersion < 7)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || (removes(entry) && (!removable(entry.Name) || !entry.Existed)) {
+		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5) || (localRule && record.FormatVersion < 6) || (skill && record.FormatVersion < 7) || (entry.Name == AgentsFile && record.FormatVersion < 8)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || (removes(entry) && (!removable(entry.Name) || !entry.Existed)) {
 			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true

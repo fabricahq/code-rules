@@ -1,5 +1,5 @@
-// Package coderules provides the tool license embedded from the repository's canonical notice.
-package coderules
+// Package trailguide provides the tool license embedded from the repository's canonical notice.
+package trailguide
 
 import _ "embed"
 

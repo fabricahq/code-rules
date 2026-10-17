@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 const projectRule = "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn errors to the caller.\n"
@@ -90,10 +90,12 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(changes.Added) != len(stale.Problems) {
+			// Init wrote AGENTS.md's section without a version, so check reports it last, and build updates it.
+			last := len(stale.Problems) - 1
+			if len(changes.Added) != last || stale.Problems[last] != (Problem{Kind: OutdatedAgents, Path: "../AGENTS.md", Repair: Rebuild}) || changes.Agents == nil || *changes.Agents != (AgentsChange{Path: "AGENTS.md", Action: "updated"}) {
 				t.Fatalf("build/check differ: %+v %+v", changes, stale)
 			}
-			for i, problem := range stale.Problems {
+			for i, problem := range stale.Problems[:last] {
 				if problem.Kind != MissingFile || problem.Path != "generated/"+changes.Added[i] || problem.Repair != Rebuild {
 					t.Fatalf("unexpected initial problem: %+v", problem)
 				}
@@ -106,7 +108,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 				t.Fatal("short group not delivered in full")
 			}
 			again, err := Build(context.Background(), options)
-			if err != nil || len(again.Added)+len(again.Changed)+len(again.Removed) != 0 {
+			if err != nil || len(again.Added)+len(again.Changed)+len(again.Removed) != 0 || again.Agents != nil {
 				t.Fatalf("not idempotent: %+v %v", again, err)
 			}
 			clean, err := Check(context.Background(), options)
@@ -126,7 +128,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(differences.Problems, []Problem{{MissingFile, "generated/groups/techs/go.md", Rebuild}, {StaleContents, "generated/RULES.md", Rebuild}, {UnexpectedFile, "generated/extra.md", Rebuild}}) {
+			if !reflect.DeepEqual(differences.Problems, []Problem{{Kind: MissingFile, Path: "generated/groups/techs/go.md", Repair: Rebuild}, {Kind: StaleContents, Path: "generated/RULES.md", Repair: Rebuild}, {Kind: UnexpectedFile, Path: "generated/extra.md", Repair: Rebuild}}) {
 				t.Fatalf("diffs: %+v", differences)
 			}
 			after, err = filetxn.ReadTree(context.Background(), root, ".")
@@ -149,9 +151,9 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 			case "local":
 				writeFixture(t, root, "rules/techs/go/bad.md", "invalid rule")
 			case "vendor":
-				writeFixture(t, root, "vendor/team/techs/go/errors.md", "modified imported rule")
+				writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "modified imported rule")
 			case "recovery":
-				writeFixture(t, root, ".syllabus-transaction"+"/journal.json", `{"formatVersion":99}`)
+				writeFixture(t, root, ".trailguide-transaction"+"/journal.json", `{"formatVersion":99}`)
 			case "cancel":
 				cancel()
 			}
@@ -181,7 +183,7 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 // TestOfflineRejectsSemanticCorruptionBeyondDigests validates catalog content even with self-consistent hashes.
 func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 	root, options := importedProject(t)
-	writeFixture(t, root, "vendor/team/techs/go/errors.md", "invalid but rehashed")
+	writeFixture(t, root, "vendor/team/rules/techs/go/errors.md", "invalid but rehashed")
 	data, err := root.ReadFile("vendor/team/_source.json")
 	if err != nil {
 		t.Fatal(err)
@@ -220,12 +222,12 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 			files := record["files"].(map[string]any)
 			if move[0] != "" {
 				delete(files, move[0])
-				if err := root.Remove("vendor/team/" + move[0]); err != nil {
+				if err := root.Remove("vendor/team/rules/" + move[0]); err != nil {
 					t.Fatal(err)
 				}
 			}
 			files[move[1]] = digest([]byte(projectRule))
-			writeFixture(t, root, "vendor/team/"+move[1], projectRule)
+			writeFixture(t, root, "vendor/team/rules/"+move[1], projectRule)
 			encoded, err := json.Marshal(record)
 			if err != nil {
 				t.Fatal(err)
@@ -251,7 +253,7 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 func TestOfflineRejectsAnExclusionSyncDidntCheck(t *testing.T) {
 	root, options := importedProject(t)
 	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/erorrs","reason":"Typo."}]}}}}`)
-	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run syllabus project sync") {
+	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run trailguide project sync") {
 		t.Fatalf("check accepted an unchecked exclusion: %v", err)
 	}
 	if _, err := Build(context.Background(), options); err == nil {
@@ -291,7 +293,7 @@ func TestBuild_LinksAuthoredRulesInRulesToSharedAssetsInAssets(t *testing.T) {
 func TestBuild_RefusesMisplacedSharedAssets(t *testing.T) {
 	for _, test := range []struct{ name, location, problem string }{
 		{"missing asset", "local:techs/go/errors", "missing asset link destination: ../../../assets/retry.svg"},
-		{"asset in rules", "rules/assets/retry.svg", "rules/ holds groups under techs/ and practices/, so shared assets belong in .syllabus/assets/; move this file there"},
+		{"asset in rules", "rules/assets/retry.svg", "rules/ holds groups under techs/ and practices/, so shared assets belong in .trailguide/assets/; move this file there"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			root, options := sharedAssetProject(t)
@@ -331,6 +333,21 @@ func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	}
 	writeFixture(t, root, "rules/techs/go/errors.md", projectRule+"Later edit.\n")
 	projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
+}
+
+// TestProjectInputRecheckRejectsALaterLocalFolder refuses a local/ folder that appears after the project opened,
+// which the rechecked trees don't cover.
+func TestProjectInputRecheckRejectsALaterLocalFolder(t *testing.T) {
+	root, _ := localProject(t)
+	state, err := readProject(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
+	var validation *ValidationError
+	if err := requireUnchanged(context.Background(), root, state); !errors.As(err, &validation) || validation.Location != ".trailguide/local/" {
+		t.Fatalf("recheck error = %v, want the local/ refusal", err)
+	}
 }
 
 // TestOfflineRendersOnlyVerifiedSnapshotBytes loads the bytes whose digests were verified, so an edit made after

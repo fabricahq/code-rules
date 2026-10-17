@@ -6,7 +6,7 @@ package imports
 import (
 	"errors"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/gitexec"
 )
 
 // Error is the type of every import failure, including Git failures. Its Code is stable for callers.
@@ -32,7 +32,7 @@ func remoteFailure(diagnostics []byte) error {
 	if gitexec.Mentions(diagnostics, gitexec.AccessFailures...) {
 		return fail("not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials.", nil)
 	}
-	return fail("git-failed", "Could not read the library's repository for a reason Syllabus doesn't recognize. Run git ls-remote with the repository address to read Git's message.", nil)
+	return fail("git-failed", "Could not read the library's repository for a reason Trail Guide doesn't recognize. Run git ls-remote with the repository address to read Git's message.", nil)
 }
 
 // gitFailure explains a Git command that failed while reading the library, from its diagnostics, which it never
@@ -43,7 +43,7 @@ func gitFailure(code, problem string, diagnostics []byte) error {
 		return err
 	}
 	if gitexec.Mentions(diagnostics, objectRefusals...) {
-		return fail("object-fetch-refused", "The library's server refused to send a file by its object ID, which Syllabus needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant.", nil)
+		return fail("object-fetch-refused", "The library's server refused to send a file by its object ID, which Trail Guide needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant.", nil)
 	}
 	return fail(code, problem, nil)
 }
@@ -75,7 +75,7 @@ func fetchFailure(diagnostics []byte, what, missing string) error {
 	case gitexec.Mentions(diagnostics, gitexec.AccessFailures...):
 		return remoteFailure(diagnostics)
 	}
-	return fail("git-failed", "Could not fetch "+what+" from the library's repository, for a reason Syllabus doesn't recognize, such as a connection that broke off. Run the command again; if it keeps failing, run git fetch with the repository address to read Git's message.", nil)
+	return fail("git-failed", "Could not fetch "+what+" from the library's repository, for a reason Trail Guide doesn't recognize, such as a connection that broke off. Run the command again; if it keeps failing, run git fetch with the repository address to read Git's message.", nil)
 }
 
 // unreachable explains diagnostics that show Git never reached a server it could trust: an HTTPS server certificate

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // skillSource is a configuration whose source team includes every skill, followed by the YAML of its skills.exclude
@@ -55,15 +55,15 @@ func TestParseConfigurationRejectsInvalidSkillExclusions(t *testing.T) {
 	tests := map[string]struct{ exclude, location, problem string }{
 		"not a list":         {"      exclude: skills/review\n", "sources.team.skills.exclude", "expected a list"},
 		"wildcard":           {"      exclude:\n        - id: \"*\"\n          reason: None.\n", "sources.team.skills.exclude[0].id", `not "*"`},
-		"levels":             {"      exclude:\n        - id: recommended\n          reason: None.\n", "sources.team.skills.exclude[0].id", "skill levels aren't supported yet"},
+		"levels":             {"      exclude:\n        - id: recommended\n          reason: None.\n", "sources.team.skills.exclude[0].id", "remove recommended from skills.include"},
 		"invalid ID":         {"      exclude:\n        - id: skills/../x\n          reason: None.\n", "sources.team.skills.exclude[0].id", "expected a skill ID"},
 		"repeated ID":        {entry + "        - id: skills/review\n          reason: Again.\n", at, "listed more than once"},
 		"missing reason":     {"      exclude:\n        - id: skills/review\n", at + ".reason", "expected nonempty text"},
 		"blank reason":       {"      exclude:\n        - id: skills/review\n          reason: \" \"\n", at + ".reason", "expected nonempty text"},
 		"unknown field":      {entry + "          version: 1.0.0\n", at, "version"},
-		"replacement folder": {entry + "          replacedBy: .syllabus/skills/our-review/\n", at + ".replacedBy", "replacedBy names the authored skill by its ID, skills/our-review"},
+		"replacement folder": {entry + "          replacedBy: .trailguide/skills/our-review/\n", at + ".replacedBy", "replacedBy names the authored skill by its ID, skills/our-review"},
 		"replacement name":   {entry + "          replacedBy: our-review\n", at + ".replacedBy", "replacedBy names the authored skill by its ID, skills/our-review"},
-		"replacement path":   {entry + "          replacedBy: skills/a/b\n", at + ".replacedBy", "expected the ID of an authored skill in .syllabus/skills/"},
+		"replacement path":   {entry + "          replacedBy: skills/a/b\n", at + ".replacedBy", "expected the ID of an authored skill in .trailguide/skills/"},
 		"basedOn alone":      {entry + "          basedOn: \"" + commit + "\"\n", at + ".basedOn", "so it needs replacedBy"},
 		"basedOn short":      {entry + "          replacedBy: skills/r\n          basedOn: \"0123456\"\n", at + ".basedOn", `the full 40-character commit SHA the replacement was copied from, in quotes, got "0123456"`},
 		"basedOn a version":  {entry + "          replacedBy: skills/r\n          basedOn: 1.0.0\n", at + ".basedOn", `the full 40-character commit SHA the replacement was copied from, in quotes, got "1.0.0"`},

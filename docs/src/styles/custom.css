@@ -101,7 +101,7 @@ h1[data-page-title] { color: var(--cr-ink); font-weight: 500; letter-spacing: -.
 .sl-markdown-content :is(th, td) { padding: .8rem .85rem; }
 .sl-markdown-content code { overflow-wrap: anywhere; }
 /* A table's first column names keys, options, or values; keep them whole and let narrow tables scroll. */
-.sl-markdown-content td:first-child code { overflow-wrap: normal; }
+.sl-markdown-content td:first-child code { overflow-wrap: normal; white-space: nowrap; }
 .sl-markdown-content .starlight-aside { background: var(--cr-surface); border-color: var(--cr-border); color: var(--cr-ink); border-radius: 0 var(--cr-radius-card) var(--cr-radius-card) 0; }
 .sl-markdown-content .starlight-aside a, .starlight-aside__title { color: var(--cr-ink); }
 

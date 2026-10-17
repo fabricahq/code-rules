@@ -1,4 +1,4 @@
-// Check that one repository whose .syllabus/config.yaml has both sources and a library section works as a
+// Check that one repository whose .trailguide/config.yaml has both sources and a library section works as a
 // project and as a library.
 
 package cli
@@ -12,12 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // TestRepository_IsBothAProjectAndALibrary syncs, builds, checks, and updates the project a repository keeps in
-// .syllabus/, importing another library, while the same repository checks, records changes to, and publishes the
-// library its .syllabus/rules/ holds, whose library releases leave out the project's sources and its vendored and
+// .trailguide/, importing another library, while the same repository checks, records changes to, and publishes the
+// library its .trailguide/rules/ holds, whose library releases leave out the project's sources and its vendored and
 // generated files.
 func TestRepository_IsBothAProjectAndALibrary(t *testing.T) {
 	binary := buildCLI(t)
@@ -69,7 +69,7 @@ func TestRepository_IsBothAProjectAndALibrary(t *testing.T) {
 	run("project", "sync")
 	run("project", "build")
 	run("project", "check")
-	rules, err := os.ReadFile(filepath.Join(dir, ".syllabus", "generated", "RULES.md"))
+	rules, err := os.ReadFile(filepath.Join(dir, ".trailguide", "generated", "RULES.md"))
 	if err != nil || !strings.Contains(string(rules), "techs/go") || !strings.Contains(string(rules), "practices/testing") {
 		t.Fatalf("generated guidance lacks the imported or the project's own group: %v\n%s", err, rules)
 	}
@@ -107,14 +107,14 @@ func TestRepository_IsBothAProjectAndALibrary(t *testing.T) {
 	if out, diagnostic, code := runCLI(t, binary, consumer, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	if err := os.WriteFile(filepath.Join(consumer, ".syllabus", "config.yaml"), []byte("schemaVersion: 2\nsources:\n  team:\n    repository: git@fixture.invalid:team\n    rules:\n      include: [practices/testing/*]\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(consumer, ".trailguide", "config.yaml"), []byte("schemaVersion: 2\nsources:\n  team:\n    repository: git@fixture.invalid:team\n    rules:\n      include: [practices/testing/*]\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if out, diagnostic, code := runCLIWithEnvironment(t, binary, consumer, environment, "project", "sync"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
 	imported := []string{}
-	vendor := filepath.Join(consumer, ".syllabus", "vendor", "team")
+	vendor := filepath.Join(consumer, ".trailguide", "vendor", "team")
 	if err := filepath.WalkDir(vendor, func(path string, entry os.DirEntry, err error) error {
 		if err == nil && !entry.IsDir() {
 			relative, _ := filepath.Rel(vendor, path)
@@ -124,7 +124,7 @@ func TestRepository_IsBothAProjectAndALibrary(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"_source.json", "config.yaml", "practices/testing/_group.yaml", "practices/testing/a.md", "practices/testing/b.md"}; !slices.Equal(imported, want) {
+	if want := []string{"_source.json", "config.yaml", "rules/practices/testing/_group.yaml", "rules/practices/testing/a.md", "rules/practices/testing/b.md"}; !slices.Equal(imported, want) {
 		t.Fatalf("imported %v, want %v", imported, want)
 	}
 	if manifest, err := os.ReadFile(filepath.Join(vendor, "config.yaml")); err != nil || string(manifest) != `{"library":{},"schemaVersion":2,"sources":{}}`+"\n" {
@@ -140,7 +140,7 @@ func TestRepository_IsBothAProjectAndALibrary(t *testing.T) {
 	}
 	run("project", "update", "--yes")
 	run("project", "check")
-	vendored, err := os.ReadFile(filepath.Join(dir, ".syllabus", "vendor", "upstream", "techs", "go", "errors.md"))
+	vendored, err := os.ReadFile(filepath.Join(dir, ".trailguide", "vendor", "upstream", "rules", "techs", "go", "errors.md"))
 	if err != nil || !strings.Contains(string(vendored), "wrapped") {
 		t.Fatalf("update didn't import upstream's release/2: %v\n%s", err, vendored)
 	}

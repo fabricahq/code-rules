@@ -1,4 +1,4 @@
-// Package librarytree describes the structure of files and directories in a Syllabus library, and the group and
+// Package librarytree describes the structure of files and directories in a Trail Guide library, and the group and
 // rule IDs derived from positions in that tree: which paths are rules, their assets, group READMEs, or
 // library-wide files. It checks syntax only, accesses no files, and never cleans or normalizes paths, which use
 // forward slashes on every OS.
@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 var (

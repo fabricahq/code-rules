@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 // TestVersionedRule_NamesTheRuleThatOwnsAFile covers rule files, owned assets, and library-wide files.

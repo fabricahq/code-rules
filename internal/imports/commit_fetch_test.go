@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // failingCommitFetch returns a Git executable that runs f's Git, except that a fetch of commits by ID prints text
@@ -32,7 +32,7 @@ func failingCommitFetch(t *testing.T, f *gitfixture.Fixture, text string) string
 }
 
 // TestImport_ExplainsAFailedCommitFetchFromWhatGitReports: a recorded commit whose fetch fails because the
-// connection dropped, or for a reason Syllabus doesn't recognize, is never reported as missing, which would
+// connection dropped, or for a reason Trail Guide doesn't recognize, is never reported as missing, which would
 // suggest choosing versions again; only a server that says it doesn't have the commit makes it missing, and then
 // the advice keeps the project's versions before it mentions deleting vendor/.
 func TestImport_ExplainsAFailedCommitFetchFromWhatGitReports(t *testing.T) {

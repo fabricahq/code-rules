@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // projectedSource is a source as the fixtures describe it: its fields and, when it has a ref, the ref's canonical
@@ -111,5 +111,27 @@ func TestParseConfigurationYAML_VersionOneShowsAValidVersionTwoExample(t *testin
 	team := example.Sources[0]
 	if !team.Groups.Equal(rules.GroupSelection{Groups: []string{"techs/go"}}) || !reflect.DeepEqual(team.Rules, []string{"practices/testing/verify-retry-limits"}) || len(team.Exclude) != 1 || len(team.Pins) != 1 {
 		t.Fatalf("example parsed as %+v", team)
+	}
+}
+
+// TestParseConfiguration_ManageAgentsFile defaults to managing AGENTS.md and accepts only a boolean.
+func TestParseConfiguration_ManageAgentsFile(t *testing.T) {
+	for input, skip := range map[string]bool{
+		`{"schemaVersion":2,"sources":{}}`:                          false,
+		`{"schemaVersion":2,"manageAgentsFile":true,"sources":{}}`:  false,
+		`{"schemaVersion":2,"manageAgentsFile":false,"sources":{}}`: true,
+	} {
+		config, err := rules.ParseConfiguration([]byte(input))
+		if err != nil || config.SkipAgentsFile != skip {
+			t.Errorf("%s: %+v %v", input, config, err)
+		}
+	}
+	for _, value := range []string{`"no"`, `null`} {
+		if _, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"manageAgentsFile":` + value + `,"sources":{}}`)); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+			t.Fatal(value, err)
+		}
+	}
+	if _, err := rules.ParseConfigurationYAML([]byte("schemaVersion: 2\nmanageAgentsFile: null\nsources: {}\n")); err == nil || !strings.Contains(err.Error(), "manageAgentsFile") {
+		t.Fatal(err)
 	}
 }

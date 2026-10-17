@@ -1,4 +1,4 @@
-// Exercise syllabus project update through the compiled CLI: the preview, JSON, decisions, scopes, prompts, and
+// Exercise trailguide project update through the compiled CLI: the preview, JSON, decisions, scopes, prompts, and
 // exit statuses, against a real library with two library releases.
 
 package cli
@@ -13,12 +13,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/project"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/terminalfixture"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // updateRule is a valid rule whose body is text.
@@ -89,10 +89,10 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 	return u
 }
 
-// write writes a file in the project's Syllabus directory.
+// write writes a file in the project's Trail Guide directory.
 func (u updateFixture) write(t *testing.T, name, text string) {
 	t.Helper()
-	file := filepath.Join(u.directory, ".syllabus", name)
+	file := filepath.Join(u.directory, ".trailguide", name)
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func (u updateFixture) run(t *testing.T, args ...string) (string, string, int) {
 // versions returns each rule's recorded version@release from the source record.
 func (u updateFixture) versions(t *testing.T) map[string]string {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "vendor", "team", "_source.json"))
+	data, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "vendor", "team", "_source.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "retry": "1.0.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
 		t.Fatalf("versions %v", u.versions(t))
 	}
-	config, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "config.yaml"))
+	config, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 		t.Fatalf("offline check after the update: exit %d\n%s%s", code, out, diagnostic)
 	}
 	// Without --update-fork, the replaced rule's local rule and exclusion stay as they were.
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("Our loaders rule.")) || strings.Contains(string(config), "basedOn") {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("Our loaders rule.")) || strings.Contains(string(config), "basedOn") {
 		t.Fatalf("the update changed the replacement, %v:\n%s\n%s", err, fork, config)
 	}
 	// The next preview lists the kept retirement and both pins, and nothing else.
@@ -313,11 +313,11 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 	}) {
 		t.Fatalf("rows %+v", result.Value.Sources[0].Rules)
 	}
-	config, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "config.yaml"))
+	config, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "config.yaml"))
 	if err != nil || !strings.Contains(string(config), "          replacedBy: techs/go/use-data-loaders\n          basedOn: \"1.1.0\" # forked\n") {
 		t.Fatalf("configuration, %v:\n%s", err, config)
 	}
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
 		t.Fatalf("local rule, %v:\n%s", err, fork)
 	}
 	if out, _, code := u.run(t, "project", "update"); code != 0 || strings.Contains(out, "techs/go/loaders") {
@@ -379,7 +379,7 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 		{[]string{"--keep", "techs/go/errors", "--reason", "Why."}, 2, "expected SOURCE:RULE"},
 		{[]string{":techs/go/errors"}, 2, "expected SOURCE or SOURCE:RULE"},
 		{[]string{"team:Techs/Go"}, 2, "team:Techs/Go"},
-		{[]string{"other"}, 1, "Error: no source named other in .syllabus/config.yaml. No files were written.\n\nLocation: other\n"},
+		{[]string{"other"}, 1, "Error: no source named other in .trailguide/config.yaml. No files were written.\n\nLocation: other\n"},
 		{[]string{"team:techs/go/missing"}, 1, "Error: source team doesn't import this rule; name a rule it imports. No files were written.\n\nLocation: team:techs/go/missing\n"},
 		{[]string{"--exclude", "team:techs/go/errors", "--reason", "Why.", "--yes"}, 2, "Error: --exclude team:techs/go/errors: the update doesn't add this rule, so there's nothing to exclude"},
 		{[]string{"--keep", "team:techs/go/verify", "--reason", "Why.", "--yes"}, 2, "Error: --keep team:techs/go/verify: the update doesn't move or retire this rule, so there's nothing to keep"},
@@ -390,8 +390,8 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 		{[]string{"--update-fork", "team:techs/go/loaders", "--keep", "team:techs/go/loaders", "--reason", "Why."}, 2, "--keep and --update-fork both name team:techs/go/loaders"},
 		{[]string{"--update-fork", "team:techs/go/loaders", "--exclude", "team:techs/go/loaders", "--reason", "Why."}, 2, "--exclude and --update-fork both name team:techs/go/loaders"},
 		{[]string{"--update-fork", "techs/go/loaders"}, 2, "expected SOURCE:RULE"},
-		{[]string{"--update-fork", "team:techs/go/errors", "--yes"}, 2, "Error: --update-fork team:techs/go/errors: sources.team.rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run syllabus project add rule techs/go/errors --from team@VERSION. No files were written.\n"},
-		{[]string{"--update-fork", "other:techs/go/loaders", "--yes"}, 2, "--update-fork other:techs/go/loaders: no source named other in .syllabus/config.yaml"},
+		{[]string{"--update-fork", "team:techs/go/errors", "--yes"}, 2, "Error: --update-fork team:techs/go/errors: sources.team.rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run trailguide project add rule techs/go/errors --from team@VERSION. No files were written.\n"},
+		{[]string{"--update-fork", "other:techs/go/loaders", "--yes"}, 2, "--update-fork other:techs/go/loaders: no source named other in .trailguide/config.yaml"},
 		{[]string{"team:techs/go/naming", "--update-fork", "team:techs/go/loaders", "--yes"}, 2, "--update-fork team:techs/go/loaders: the update doesn't list this rule as replaced"},
 		{[]string{"--incorporated", "team:techs/go/loaders"}, 2, "unknown flag: --incorporated"},
 	} {
@@ -445,11 +445,11 @@ func TestUpdate_LaterLeavesTheForkInATerminal(t *testing.T) {
 	if err != nil || result.ExitCode != 0 || !strings.HasPrefix(result.Stdout, "Update complete: ") {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
-	config, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "config.yaml"))
+	config, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "use-data-loaders.md"))
+	fork, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "use-data-loaders.md"))
 	if err != nil || string(fork) != string(updateRule("Our loaders rule.")) || strings.Contains(string(config), "basedOn") || u.versions(t)["loaders"] != "1.1.0" {
 		t.Fatalf("the update changed the replacement, %v:\n%s\n%s", err, fork, config)
 	}
@@ -498,7 +498,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
 		t.Fatalf("versions %v", u.versions(t))
 	}
-	data, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "config.yaml"))
+	data, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -509,7 +509,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." || team.Exclude["techs/go/loaders"].BasedOn == nil || team.Exclude["techs/go/loaders"].BasedOn.String() != "1.1.0" {
 		t.Fatalf("configuration:\n%s\nstdout:\n%s", data, result.Stdout)
 	}
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
 		t.Fatalf("local rule, %v:\n%s", err, fork)
 	}
 	// With nothing left to move, a terminal update applies without questions and says, as a preview would, that
@@ -553,12 +553,12 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 
 // TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral, and only then.
 func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *testing.T) {
-	one, two := coderules.RuleVersion{Major: 1, Minor: 1}, coderules.RuleVersion{Major: 2}
-	spanning := imports.RuleUpdate{Change: imports.UpdateMajor, Summaries: []string{"Add an example.", "Require more."}, SummaryVersions: []coderules.RuleVersion{one, two}}
+	one, two := trailguide.RuleVersion{Major: 1, Minor: 1}, trailguide.RuleVersion{Major: 2}
+	spanning := imports.RuleUpdate{Change: imports.UpdateMajor, Summaries: []string{"Add an example.", "Require more."}, SummaryVersions: []trailguide.RuleVersion{one, two}}
 	if got, want := updateDetails("team", spanning), []string{"1.1.0: Add an example.", "2.0.0: Require more."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
-	single := imports.RuleUpdate{Change: imports.UpdatePatch, Summaries: []string{"Fix a typo.", "Fix a link."}, SummaryVersions: []coderules.RuleVersion{one, one}}
+	single := imports.RuleUpdate{Change: imports.UpdatePatch, Summaries: []string{"Fix a typo.", "Fix a link."}, SummaryVersions: []trailguide.RuleVersion{one, one}}
 	if got, want := updateDetails("team", single), []string{"Fix a typo.", "Fix a link."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -568,7 +568,7 @@ func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *t
 func TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay(t *testing.T) {
 	u := newUpdateFixture(t)
 	u.write(t, "config.yaml", "schemaVersion: 2\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/backoff\n          version: \"1.0.0\"\n          reason: 'Waiting on #45.'\n      exclude:\n        - id: techs/go/loaders\n          reason: Ours covers our data layer.\n          replacedBy: techs/go/use-data-loaders\n        - id: techs/go/missing\n          reason: Typo.\n")
-	want := "Error: names no rule the library supplies to this source; run syllabus project sync to check it against the library.\n\nLocation: sources.team.rules.exclude.techs/go/missing\n"
+	want := "Error: names no rule the library supplies to this source; run trailguide project sync to check it against the library.\n\nLocation: sources.team.rules.exclude.techs/go/missing\n"
 	for _, command := range []string{"build", "check"} {
 		out, diagnostic, code := u.run(t, "project", command)
 		if code != 1 || diagnostic != want {
@@ -581,7 +581,7 @@ func TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay(t *testing.T) {
 // so its generated README says so and doesn't claim the folder keeps copies of terms.
 func TestLibraryReadme_MentionsRetainedTermsOnlyWhenTheLibraryDeclaresThem(t *testing.T) {
 	u := newUpdateFixture(t)
-	data, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "generated", "libraries", "team", "README.md"))
+	data, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "generated", "libraries", "team", "README.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -594,7 +594,7 @@ func TestLibraryReadme_MentionsRetainedTermsOnlyWhenTheLibraryDeclaresThem(t *te
 // are from there, as authoring commands do.
 func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 	u := newUpdateFixture(t)
-	if err := os.Remove(filepath.Join(u.directory, ".syllabus", "generated", "RULES.md")); err != nil {
+	if err := os.Remove(filepath.Join(u.directory, ".trailguide", "generated", "RULES.md")); err != nil {
 		t.Fatal(err)
 	}
 	// A .git directory makes the project a repository, whose root commands find from a subdirectory.
@@ -606,11 +606,11 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	out, _, code := runCLI(t, u.binary, sub, "project", "check")
-	if code != 1 || !strings.Contains(out, "Paths relative to ../../.syllabus:\n") {
+	if code != 1 || !strings.Contains(out, "Paths relative to ../../.trailguide:\n") {
 		t.Fatalf("check: exit %d, stdout:\n%s", code, out)
 	}
 	out, diagnostic, code := runCLI(t, u.binary, sub, "project", "build")
-	if code != 0 || diagnostic != "" || !strings.Contains(out, "Paths relative to ../../.syllabus/generated:\n  Add: RULES.md\n") {
+	if code != 0 || diagnostic != "" || !strings.Contains(out, "Paths relative to ../../.trailguide/generated:\n  Add: RULES.md\n") {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 }
@@ -618,7 +618,7 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 // TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin: a pin on the imported copy doesn't hide the fork's
 // version or the files it overwrites.
 func TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin(t *testing.T) {
-	old, newest := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 2}
+	old, newest := trailguide.RuleVersion{Major: 1}, trailguide.RuleVersion{Major: 2}
 	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "rules/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"rules/techs/go/loaders.md"}, Removes: []string{"rules/techs/go/assets/loaders/notes.md"}, Summaries: []string{}}
 	want := []string{"Your rule: rules/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0.", "Replaces rules/techs/go/loaders.md", "Removes rules/techs/go/assets/loaders/notes.md"}
 	if got := updateDetails("team", row); !reflect.DeepEqual(got, want) {
@@ -642,14 +642,14 @@ func TestUpdate_AsksAboutAPinnedForkInATerminal(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
-	if fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) || u.versions(t)["loaders"] != "1.0.0" {
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) || u.versions(t)["loaders"] != "1.0.0" {
 		t.Fatalf("local rule, %v:\n%s\nversions %v", err, fork, u.versions(t))
 	}
 }
 
 // TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement instead of recommending it.
 func TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement(t *testing.T) {
-	last := coderules.RuleVersion{Major: 1}
+	last := trailguide.RuleVersion{Major: 1}
 	row := imports.RuleUpdate{Change: imports.UpdateRetired, From: &last, LastVersion: &last, ReplacedBy: "techs/go/d", ReplacementLocalRule: "rules/techs/go/d.md"}
 	if got := updateDetails("team", row); len(got) == 0 || got[0] != "Replaced by techs/go/d, which your project already replaces with rules/techs/go/d.md." {
 		t.Fatalf("got %q", got)
@@ -672,7 +672,7 @@ func TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			u := newUpdateFixture(t)
-			u.write(t, ".syllabus-transaction/staged", "left by an interrupted command")
+			u.write(t, ".trailguide-transaction/staged", "left by an interrupted command")
 			var transcript string
 			if test.steps == nil {
 				out, diagnostic, code := u.run(t, "project", "update")
@@ -695,7 +695,7 @@ func TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering(t *testing.T) {
 	// A JSON preview, which only previews, reports the recovery as recovered.
 	t.Run("JSON preview", func(t *testing.T) {
 		u := newUpdateFixture(t)
-		u.write(t, ".syllabus-transaction/staged", "left by an interrupted command")
+		u.write(t, ".trailguide-transaction/staged", "left by an interrupted command")
 		out, diagnostic, code := u.run(t, "project", "update", "--json")
 		var result struct {
 			OK    bool
@@ -714,7 +714,7 @@ func TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering(t *testing.T) {
 func TestUpdateReport_CountsARefreshedGuideAsAWrite(t *testing.T) {
 	result := project.UpdateResult{Applied: true, Sources: []imports.SourceUpdate{}, FileChanges: project.FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Guide: &project.GuideChange{Path: "README.md"}}}
 	report := updateReport(result, false, false, updateLocation{root: t.TempDir(), workdir: t.TempDir()})
-	if strings.Contains(report.human, "No files were written") || !strings.Contains(report.human, "Syllabus guide updated") {
+	if strings.Contains(report.human, "No files were written") || !strings.Contains(report.human, "Trail Guide guide updated") {
 		t.Fatalf("report:\n%s", report.human)
 	}
 }

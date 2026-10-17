@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 // Fixture owns a local repository and a private SSH transport that runs Git upload-pack or receive-pack over stdio,
@@ -37,7 +37,7 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 	if err != nil {
 		return nil, err
 	}
-	dir, err := os.MkdirTemp("", "syllabus-git-fixture-*")
+	dir, err := os.MkdirTemp("", "trailguide-git-fixture-*")
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (f *Fixture) Tag(ctx context.Context, dir, name, message string) error {
 // Worktree returns the fixture repository's working tree, for Commit, Tag, and Release on the served repository itself.
 func (f *Fixture) Worktree() string { return filepath.Join(f.Directory, "repository") }
 
-// Release publishes library release number on the served repository's HEAD, as syllabus library release would:
+// Release publishes library release number on the served repository's HEAD, as trailguide library release would:
 // an annotated release/<number> tag whose message is release notes, a line containing only ---, and record,
 // the release record's YAML.
 func (f *Fixture) Release(ctx context.Context, number int, record string) error {

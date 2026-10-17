@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -141,7 +141,7 @@ func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 // wildcard, then groups as selectors, then rules in rules.include, and omitting empty fields.
 func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 	input := []byte("schemaVersion: 2\nsources: {}\n")
-	pinned, err := coderules.ParseRuleVersion("1.3.0", "version")
+	pinned, err := trailguide.ParseRuleVersion("1.3.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,6 +215,9 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			if want.Skills == nil {
 				want.Skills = []string{}
 			}
+			if want.SkillUses == nil {
+				want.SkillUses = map[string][]string{}
+			}
 			if want.SkillExclude == nil {
 				want.SkillExclude = map[string]rules.SkillExclusion{}
 			}
@@ -265,7 +268,7 @@ sources:
 	if again, err := rules.AppendConfigurationLibrary(out, map[string]any{}); err == nil || again != nil || err.Error() != "library: the configuration already has a library section" {
 		t.Fatalf("accepted a second library section: %s, %v", again, err)
 	}
-	if invalid, err := rules.AppendConfigurationLibrary(input, map[string]any{"skills": map[string]any{}}); err == nil || invalid != nil {
+	if invalid, err := rules.AppendConfigurationLibrary(input, map[string]any{"skills": map[string]any{"required": "skills/ship"}}); err == nil || invalid != nil {
 		t.Fatalf("accepted an invalid library section: %s, %v", invalid, err)
 	}
 	for _, input := range []string{"schemaVersion: 2", "schemaVersion: 1\nsources: {}"} {

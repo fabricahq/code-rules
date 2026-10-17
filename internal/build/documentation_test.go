@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/build"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // TestDocumentationRules rejects documentation drift that would make copied examples fail a real build.

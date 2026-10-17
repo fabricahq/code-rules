@@ -1,5 +1,5 @@
 // Check that projects and libraries that keep their files in .code-rules/, the directory Code Rules used before it
-// was renamed Syllabus, keep working or are told how to move.
+// was renamed Trail Guide, keep working or are told how to move.
 
 package cli
 
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // legacyLibrary returns a fixture whose release/1, made before the rename, published rules a and b from
@@ -46,7 +46,7 @@ func legacyLibrary(t *testing.T) (*gitfixture.Fixture, string) {
 
 // TestProject_KeepsWorkingInTheLegacyDirectory syncs, builds, and checks a project that still keeps its files in
 // .code-rules/, importing a library whose release keeps its files there too, and warns, in human and JSON output,
-// that the directory should be renamed, without creating .syllabus/.
+// that the directory should be renamed, without creating .trailguide/.
 func TestProject_KeepsWorkingInTheLegacyDirectory(t *testing.T) {
 	binary := buildCLI(t)
 	team, _ := legacyLibrary(t)
@@ -72,7 +72,7 @@ func TestProject_KeepsWorkingInTheLegacyDirectory(t *testing.T) {
 			t.Fatalf("project %s: exit %d, stderr %q, stdout:\n%s", command, code, diagnostic, out)
 		}
 	}
-	vendored, err := os.ReadFile(filepath.Join(dir, librarytree.LegacyDirectory, "vendor", "team", "practices", "testing", "a.md"))
+	vendored, err := os.ReadFile(filepath.Join(dir, librarytree.LegacyDirectory, "vendor", "team", "rules", "practices", "testing", "a.md"))
 	if err != nil || !strings.Contains(string(vendored), "Test the retry limit.") {
 		t.Fatalf("sync didn't import release/1 from the library's .code-rules/: %v\n%s", err, vendored)
 	}
@@ -112,7 +112,7 @@ func TestLibrary_MovesOutOfTheLegacyDirectory(t *testing.T) {
 	if _, err := fixture.CommandIn(context.Background(), dir, "mv", librarytree.LegacyDirectory, librarytree.Directory); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := fixture.CommandIn(context.Background(), dir, "commit", "--quiet", "--message", "Rename .code-rules to .syllabus"); err != nil {
+	if _, err := fixture.CommandIn(context.Background(), dir, "commit", "--quiet", "--message", "Rename .code-rules to .trailguide"); err != nil {
 		t.Fatal(err)
 	}
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
@@ -122,8 +122,8 @@ func TestLibrary_MovesOutOfTheLegacyDirectory(t *testing.T) {
 }
 
 // legacyLibraryDirectoryProblem is the problem library commands report for a library in .code-rules/.
-const legacyLibraryDirectoryProblem = `Code Rules is now Syllabus, and library commands read a library's files from .syllabus/. Rename the directory, keeping everything in it, then run the command again:
+const legacyLibraryDirectoryProblem = `Code Rules is now Trail Guide, and library commands read a library's files from .trailguide/. Rename the directory, keeping everything in it, then run the command again:
 
-  git mv .code-rules .syllabus
+  git mv .code-rules .trailguide
 
 Library releases published from .code-rules/ stay readable, so projects keep their versions. Projects that import this library need no changes. Update the line in AGENTS.md or CLAUDE.md that points agents to .code-rules/generated/RULES.md.`

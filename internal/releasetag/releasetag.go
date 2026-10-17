@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // MaxBytes bounds one release tag object, its message and any signature included, in bytes. Publishing refuses a
@@ -48,12 +48,12 @@ func (t Tag) Name() string { return "release/" + strconv.Itoa(t.Number) }
 // and the release record after it.
 type Release struct {
 	Notes  string
-	Record coderules.ReleaseRecord
+	Record trailguide.ReleaseRecord
 }
 
 // RecordError reports a release tag whose message isn't release notes followed by a release record this version of
-// Syllabus can read, including a record whose number differs from the tag's. Err is the parser's error: a
-// *coderules.UnsupportedReleaseRecordError for a record in a newer format, which callers report separately, and
+// Trail Guide can read, including a record whose number differs from the tag's. Err is the parser's error: a
+// *trailguide.UnsupportedReleaseRecordError for a record in a newer format, which callers report separately, and
 // otherwise an errs.ValidationError with its location.
 type RecordError struct {
 	Tag string
@@ -97,7 +97,7 @@ func List(ctx context.Context, runner gitexec.Runner, dir, merged string) ([]Tag
 		if len(fields) != 6 {
 			return nil, unexpected
 		}
-		number, err := coderules.ParseReleaseTag(strings.TrimPrefix(fields[0], "refs/tags/"))
+		number, err := trailguide.ParseReleaseTag(strings.TrimPrefix(fields[0], "refs/tags/"))
 		if err != nil {
 			continue
 		}
@@ -161,11 +161,11 @@ func Read(ctx context.Context, runner gitexec.Runner, dir string, tags []Tag, ea
 
 // ParseObject returns the release notes and record in a raw annotated tag object, as git cat-file prints it, of the
 // library release tag named tag. It skips the object's headers and reads its message with
-// coderules.ParseReleaseMessage, which ignores a signature after the message, and returns that function's
+// trailguide.ParseReleaseMessage, which ignores a signature after the message, and returns that function's
 // errors.
 func ParseObject(tag string, object []byte) (Release, error) {
 	_, message, _ := bytes.Cut(object, []byte("\n\n"))
-	notes, record, err := coderules.ParseReleaseMessage(tag, message)
+	notes, record, err := trailguide.ParseReleaseMessage(tag, message)
 	if err != nil {
 		return Release{}, err
 	}

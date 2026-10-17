@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // LocalGroupPlan identifies a new project-only group. It owns no filesystem resources.
@@ -43,7 +43,7 @@ func PlanLocalGroup(ctx context.Context, id string, options Options) (*LocalGrou
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *LocalGroupPlan) Commit(ctx context.Context, metadata coderules.GroupMetadata) (AuthoringResult, error) {
+func (p *LocalGroupPlan) Commit(ctx context.Context, metadata trailguide.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}
@@ -123,7 +123,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 		return err
 	}
 	if !available {
-		return failure("missing-group", "group "+group+" does not exist; create it first with syllabus project add group "+group+", then retry adding the rule", nil)
+		return failure("missing-group", "group "+group+" does not exist; create it first with trailguide project add group "+group+", then retry adding the rule", nil)
 	}
 	return filetxn.RequireAbsent(ctx, root, path.Join("rules", id+".md"))
 }
@@ -131,7 +131,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 func checkSourceAlias(config rules.Configuration, alias string) error {
 	for _, source := range config.Sources {
 		if source.Name == alias {
-			return failure("source-exists", "source "+alias+" already exists; edit .syllabus/config.yaml or choose a different source name", nil)
+			return failure("source-exists", "source "+alias+" already exists; edit .trailguide/config.yaml or choose a different source name", nil)
 		}
 	}
 	return nil

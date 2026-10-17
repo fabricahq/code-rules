@@ -56,8 +56,8 @@ function localReference(rawHref: string): LocalReference | undefined {
   // Check absolute links to this site against this build, never the deployed version.
   if (/^(https?:)?\/\//iu.test(href)) {
     try {
-      const url = new URL(href, 'https://code-rules.fabricahq.com');
-      if (url.hostname === 'code-rules.fabricahq.com')
+      const url = new URL(href, 'https://trailguide.fabricahq.com');
+      if (url.hostname === 'trailguide.fabricahq.com')
         href = `${url.pathname}${url.search}${url.hash}`;
     } catch {
       return undefined; // The external check reports malformed HTTP URLs.

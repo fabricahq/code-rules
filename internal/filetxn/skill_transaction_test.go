@@ -1,4 +1,4 @@
-// Exercise installing, replacing, and removing skill folders outside the Syllabus directory together with managed
+// Exercise installing, replacing, and removing skill folders outside the Trail Guide directory together with managed
 // trees: executable files, process death, edits, links, and refused targets.
 
 package filetxn
@@ -14,21 +14,21 @@ import (
 	"testing"
 )
 
-// openSkillProject returns the repository root and its Syllabus directory, which holds the previous managed
+// openSkillProject returns the repository root and its Trail Guide directory, which holds the previous managed
 // trees; .claude/skills holds the previous copy of the installed skill review and another tool's skill.
 func openSkillProject(t *testing.T) (repository, root *os.Root) {
 	t.Helper()
 	repository = openProject(t)
-	if err := repository.Mkdir(".syllabus", 0700); err != nil {
+	if err := repository.Mkdir(".trailguide", 0700); err != nil {
 		t.Fatal(err)
 	}
-	root, err := repository.OpenRoot(".syllabus")
+	root, err := repository.OpenRoot(".trailguide")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = root.Close() })
-	// The writer finds the repository root by the Syllabus directory's name.
-	if root.Name() != filepath.Join(repository.Name(), ".syllabus") {
+	// The writer finds the repository root by the Trail Guide directory's name.
+	if root.Name() != filepath.Join(repository.Name(), ".trailguide") {
 		t.Fatalf("root name %s", root.Name())
 	}
 	writeFixture(t, root, "vendor/team/rule.md", "old rule")
@@ -102,7 +102,7 @@ var (
 	}
 )
 
-// TestApply_InstallsSkillFoldersWithTheirExecutableFiles writes each skill folder outside the Syllabus directory,
+// TestApply_InstallsSkillFoldersWithTheirExecutableFiles writes each skill folder outside the Trail Guide directory,
 // creating .agents/skills, replaces the existing folder, keeps the executable bit of the files listed, and leaves
 // another tool's skill alone.
 func TestApply_InstallsSkillFoldersWithTheirExecutableFiles(t *testing.T) {
@@ -202,13 +202,13 @@ func TestApply_RefusesInvalidSkillTargets(t *testing.T) {
 // TestKilledSkillWriterRecovers stops the writer at each step of replacing a skill folder; the next writer restores
 // the previous folders and trees, removing the new ones, or, once the commit marker exists, keeps everything new.
 func TestKilledSkillWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("SYLLABUS_SKILL_CHILD"); directory != "" {
+	if directory := os.Getenv("TRAILGUIDE_SKILL_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
-		stop := os.Getenv("SYLLABUS_SKILL_STOP")
+		stop := os.Getenv("TRAILGUIDE_SKILL_STOP")
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
 			rename := w.rename
 			w.rename = func(from, to string) error {
@@ -233,14 +233,14 @@ func TestKilledSkillWriterRecovers(t *testing.T) {
 	for _, test := range []struct{ name, stop, state string }{
 		{"generated", "generated", "old"},
 		{"first skill folder", ".agents/skills/build", "old"},
-		{"backup", ".syllabus/" + transactionName + "/" + backupPrefix + "..+.claude+skills+review", "old"},
+		{"backup", ".trailguide/" + transactionName + "/" + backupPrefix + "..+.claude+skills+review", "old"},
 		{"replaced folder", ".claude/skills/review", "old"},
 		{"committed", transactionName + "/committed.json", "new"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			repository, root := openSkillProject(t)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledSkillWriterRecovers$")
-			child.Env = append(os.Environ(), "SYLLABUS_SKILL_CHILD="+root.Name(), "SYLLABUS_SKILL_STOP="+test.stop)
+			child.Env = append(os.Environ(), "TRAILGUIDE_SKILL_CHILD="+root.Name(), "TRAILGUIDE_SKILL_STOP="+test.stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

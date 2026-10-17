@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // initRepository creates an empty Git repository in dir. It scrubs every inherited GIT_ variable and ignores
@@ -75,7 +75,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	if _, err = Initialize(ctx, options, terms, "1.2.3"); err == nil {
 		t.Fatal("overwrote terms")
 	}
-	metadata := coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := trailguide.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	if _, err = AddGroup(ctx, "techs/go", metadata, options); err != nil {
 		t.Fatal(err)
 	}
@@ -145,9 +145,9 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 				initRepository(t, options.Directory)
 				write(".git/objects/example", "arbitrary repository bytes")
 				write("docs/design.txt", "unrelated documentation")
-				write(".syllabus/vendor/team/config.yaml", "not this library's manifest")
-				write(".syllabus/generated/RULES.md", "[missing](absent.md)")
-				write(".syllabus/rules/README.md", "[missing](absent.md)")
+				write(".trailguide/vendor/team/config.yaml", "not this library's manifest")
+				write(".trailguide/generated/RULES.md", "[missing](absent.md)")
+				write(".trailguide/rules/README.md", "[missing](absent.md)")
 			case "cross-rule":
 				write("assets/shared.md", "[rule](/rules/techs/go/errors.md)")
 			case "malformed-rule":
@@ -296,7 +296,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	existing := coderules.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}
+	existing := trailguide.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}
 	if _, err := AddGroup(ctx, "techs/go", existing, options); err != nil {
 		t.Fatal(err)
 	}

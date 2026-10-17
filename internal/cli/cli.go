@@ -7,10 +7,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
-	coderules "github.com/fabricahq/code-rules"
-	"github.com/fabricahq/code-rules/internal/imports"
+	license "github.com/fabricahq/trailguide"
+	"github.com/fabricahq/trailguide/internal/imports"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +21,22 @@ type Options struct {
 	// Directory anchors relative paths without changing the process working directory.
 	Directory string
 	Git       imports.Options
+	// Home is the home directory whose personal skill folders sync, update, and check read, never write; empty means
+	// the user's home directory, as os.UserHomeDir finds it.
+	Home string
+}
+
+// home returns Home, or the user's home directory, or empty, which reads no personal skills, when it can't be
+// found.
+func (o Options) home() string {
+	if o.Home != "" {
+		return o.Home
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return home
 }
 
 // Streams separates user input, command results, and human diagnostics for each invocation.
@@ -43,7 +60,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		options.Version = "0.0.0-development"
 	}
 	output := &commandOutput{}
-	root := &cobra.Command{Use: "syllabus", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
+	root := &cobra.Command{Use: "trailguide", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
 	// An unnamed, hidden command prevents Cobra from installing its help subcommand. Help flags remain local.
 	root.SetHelpCommand(&cobra.Command{Hidden: true})
@@ -56,10 +73,10 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.SetUsageFunc(commandUsage)
 	var showLicense bool
-	root.Flags().BoolVar(&showLicense, "license", false, "Print the Syllabus license and copyright notice")
+	root.Flags().BoolVar(&showLicense, "license", false, "Print the Trail Guide license and copyright notice")
 	root.RunE = func(cmd *cobra.Command, _ []string) error {
 		if showLicense {
-			_, err := io.WriteString(cmd.OutOrStdout(), coderules.License())
+			_, err := io.WriteString(cmd.OutOrStdout(), license.License())
 			return err
 		}
 		return cmd.Help()

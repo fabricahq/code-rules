@@ -1,4 +1,4 @@
-/** @fileoverview Configures the Syllabus documentation site, navigation, and Markdown rendering. */
+/** @fileoverview Configures the Trail Guide documentation site, navigation, and Markdown rendering. */
 
 import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
@@ -8,7 +8,7 @@ import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
 import { cloudflareWebAnalytics } from './src/analytics.mjs';
 
 // Served at the domain root; page links are root-relative.
-const site = 'https://code-rules.fabricahq.com';
+const site = 'https://trailguide.fabricahq.com';
 
 export default defineConfig({
   site,
@@ -29,8 +29,8 @@ export default defineConfig({
   },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
-    title: 'Syllabus',
-    description: 'The package manager for your engineering rules',
+    title: 'Trail Guide',
+    description: 'The package manager for your agent skills and rules',
     favicon: '/favicon.svg',
     head: [
       { tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },
@@ -50,24 +50,26 @@ export default defineConfig({
     // Open the active section initially; Starlight remembers subsequent toggles in this tab.
     sidebar: [
       { label: 'Start here', collapsed: true, items: [
-        { label: 'What is Syllabus?', slug: 'start-here/overview' },
-        { label: 'Install Syllabus', slug: 'start-here/install' },
+        { label: 'What is Trail Guide?', slug: 'start-here/overview' },
+        { label: 'Install Trail Guide', slug: 'start-here/install' },
         { label: 'Set up your first project', slug: 'start-here/set-up-project' },
         { label: 'Create your first library', slug: 'start-here/create-library' },
       ] },
       { label: 'Concepts', collapsed: true, items: [
         { label: 'Rule', slug: 'concepts/rule' },
-        { label: 'Group', slug: 'concepts/groups' },
+        { label: 'Rule group', slug: 'concepts/groups' },
+        { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Library', slug: 'concepts/libraries' },
         { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
         { label: 'Write a rule', slug: 'guides/write-rules' },
+        { label: 'Write a skill', slug: 'guides/write-skills' },
         { label: 'Projects', collapsed: true, items: [
-          { label: 'Import rules', slug: 'guides/select-rules' },
-          { label: 'Update rules', slug: 'guides/update' },
+          { label: 'Include rules', slug: 'guides/select-rules' },
           { label: 'Install skills', slug: 'guides/install-skills' },
+          { label: 'Update rules and skills', slug: 'guides/update' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
         { label: 'Libraries', collapsed: true, items: [
@@ -80,15 +82,16 @@ export default defineConfig({
         { label: 'Projects', collapsed: true, items: [
           { label: 'Project files', slug: 'reference/files' },
           { label: 'Configuration', slug: 'reference/configuration' },
-          { label: 'How imports work', slug: 'reference/imports' },
+          { label: 'How sources work', slug: 'reference/imports' },
           { label: 'Sync and recovery', slug: 'reference/sync' },
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
-        { label: 'Rules and libraries', collapsed: true, items: [
-          { label: 'Rule and group format', slug: 'reference/rule-format' },
+        { label: 'Rules, skills, and libraries', collapsed: true, items: [
+          { label: 'Rule and rule group format', slug: 'reference/rule-format' },
           { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+          { label: 'Skill format', slug: 'reference/skill-format' },
           { label: 'Library format', slug: 'reference/library-format' },
-          { label: 'Rule versions', slug: 'reference/rule-versions' },
+          { label: 'Rule and skill versions', slug: 'reference/rule-versions' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
       { label: 'Brand', slug: 'reference/brand' },

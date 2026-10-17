@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // firstRelease is the release record of the sync fixture's first library release.
@@ -190,7 +190,7 @@ func TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, ".syllabus-transaction/staged", "left by an interrupted command")
+	writeFixture(t, root, ".trailguide-transaction/staged", "left by an interrupted command")
 	writeFixture(t, root, configurationFile, `{"schemaVersion":2,"sources":{},"unknown":true}`)
 	root.Close()
 	_, err = Sync(context.Background(), options, git)

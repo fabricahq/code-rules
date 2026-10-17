@@ -15,10 +15,10 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // TestLoadAssets retains complete owned trees and the shared assets that retained Markdown links reach, following
@@ -138,7 +138,7 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 // not an invalid rule.
 func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
 	files := validFiles()
-	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/LICENSE.md","notices":[]}}}`
+	files["config.yaml"] = `{"schemaVersion":2,"sources":{},"library":{"license":{"file":".trailguide/rules/techs/go/LICENSE.md","notices":[]}}}`
 	files["techs/go/LICENSE.md"] = "License terms."
 	files["techs/go/errors.md"] += "\n[terms](LICENSE.md)\n"
 	_, root := fixture(t, files)
@@ -167,7 +167,7 @@ func TestLoadRejectsTermsInsideRuleContent(t *testing.T) {
 				_, root := fixture(t, files)
 				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
 				var invalid errs.ValidationError
-				if !errors.As(err, &invalid) || invalid.ValidationLocation() != "team/.syllabus/config.yaml: library.license.notices[0]" || got.Groups != nil {
+				if !errors.As(err, &invalid) || invalid.ValidationLocation() != "team/.trailguide/config.yaml: library.license.notices[0]" || got.Groups != nil {
 					t.Fatalf("got %+v, %v; want the notice path refused", got, err)
 				}
 			})

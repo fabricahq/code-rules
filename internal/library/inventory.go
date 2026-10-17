@@ -4,8 +4,8 @@ package library
 
 import (
 	"context"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
 	"io/fs"
 	"maps"
 	"os"

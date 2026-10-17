@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/releasetag"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // TestParseObject_SkipsHeadersAndSignature reads the record from a signed tag object's message only, whether the
@@ -177,7 +177,7 @@ func TestRecordError_NamesTheTagOnce(t *testing.T) {
 		{"release/3.release", "invalid release record: release/3.release: expected a mapping"},
 		{"record", "invalid release record: release/3: record: expected a mapping"},
 	} {
-		err := &releasetag.RecordError{Tag: "release/3", Err: &coderules.ValidationError{Location: test.location, Problem: "expected a mapping"}}
+		err := &releasetag.RecordError{Tag: "release/3", Err: &trailguide.ValidationError{Location: test.location, Problem: "expected a mapping"}}
 		if got := err.Error(); got != test.want {
 			t.Errorf("location %s: got %q, want %q", test.location, got, test.want)
 		}

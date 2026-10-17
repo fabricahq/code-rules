@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/trailguide/internal/test/terminalfixture"
 )
 
 // TestInteractiveImpactRetry retains previous answers and validates impact before asking why it matters.
@@ -44,7 +44,7 @@ func TestInteractiveImpactRetry(t *testing.T) {
 			if !strings.Contains(transcript, "\nError: impact must be one of") || strings.Count(transcript, "Rule title:") != 1 || strings.Count(transcript, "Example rule:") != 1 || strings.Index(transcript, "Error:") > strings.LastIndex(transcript, "Why it matters:") {
 				t.Fatal(transcript)
 			}
-			data, err := os.ReadFile(filepath.Join(dir, ".syllabus", "rules", "practices/testing/my-rule.md"))
+			data, err := os.ReadFile(filepath.Join(dir, ".trailguide", "rules", "practices/testing/my-rule.md"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -60,8 +60,8 @@ func TestInteractiveImpactRetry(t *testing.T) {
 	}
 }
 
-// TestSourceAnswerRetry corrects constrained source inputs, including a source that would include nothing, before
-// the declaration is saved.
+// TestSourceAnswerRetry corrects constrained source inputs, including skill selectors that name no skill, before the
+// declaration is saved.
 func TestSourceAnswerRetry(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	binary := buildCLI(t)
@@ -74,15 +74,15 @@ func TestSourceAnswerRetry(t *testing.T) {
 		{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
 		{Prompt: rulesPrompt, Answer: "techs/go/*, techs/go/*"},
 		{Prompt: rulesPrompt, Answer: ""},
-		{Prompt: skillsPrompt, Answer: ""},
 		{Prompt: skillsPrompt, Answer: "skills/*"},
+		{Prompt: skillsPrompt, Answer: "recommended/*"},
 		{Prompt: skillsPrompt, Answer: "*"},
 	}
 	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "source", "team"}, steps)
 	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 4 {
 		t.Fatal(err, result)
 	}
-	data, err := os.ReadFile(filepath.Join(dir, ".syllabus/config.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, ".trailguide/config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestInvalidExplicitImpact(t *testing.T) {
 			t.Fatal(result)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".syllabus/rules/practices/testing/my-rule.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, ".trailguide/rules/practices/testing/my-rule.md")); !os.IsNotExist(err) {
 		t.Fatal("invalid flag wrote a rule", err)
 	}
 }

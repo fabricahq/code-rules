@@ -11,9 +11,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
@@ -76,10 +78,14 @@ func prepare(resolved resolution, options Options) (Output, error) {
 		return Output{}, err
 	}
 	ids := []string{}
+	renamed := []RenamedSkill{}
 	for _, skill := range resolved.Skills {
 		ids = append(ids, skill.ID)
+		if skill.RenamedFrom != "" {
+			renamed = append(renamed, RenamedSkill{ID: skill.ID, Source: skill.Source, Folder: skill.Folder, From: skill.RenamedFrom, To: skill.Name})
+		}
 	}
-	return Output{Files: files, Skills: folders, SkillIDs: ids}, nil
+	return Output{Files: files, Skills: folders, SkillIDs: ids, RenamedSkills: renamed}, nil
 }
 
 // libraryReadme summarizes the imported library release, each imported rule's version, the source's pins, and
@@ -89,7 +95,7 @@ func libraryReadme(source resolvedSource) string {
 	sections := []string{"# " + escapeText(source.Name)}
 	// Only a library that declares license or notice files has copies here to describe.
 	if source.License != nil && len(licenseMappings(source.Name, source.License)) > 0 {
-		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `syllabus project sync`.")
+		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `trailguide project sync`.")
 	}
 	sections = append(sections, "**Repository:** "+escapeText(source.Repository))
 	if source.NonLibrary {
@@ -123,7 +129,7 @@ func libraryReadme(source resolvedSource) string {
 		sections = append(sections, "## Skills", "This source supplies these skills from the resolved commit, and the project installs each one it doesn't exclude or replace. [SKILLS.md](../../SKILLS.md) says what each one does, where it's installed, and why the project excludes or replaces one.", strings.Join(items, "\n"))
 	}
 	if len(source.Pins) > 0 {
-		sections = append(sections, "## Pins", "`syllabus project update` keeps these rules at their pinned versions.", pinList(source.Pins))
+		sections = append(sections, "## Pins", "`trailguide project update` keeps these rules at their pinned versions.", pinList(source.Pins))
 	}
 	sections = append(sections, "## License terms")
 	if source.License == nil {
@@ -216,13 +222,27 @@ type provenanceSource struct {
 	Skills       []string `json:"skills"`
 }
 
-// provenanceSkill records an installed skill's origin, level, and installed folders.
+// provenanceSkill records an installed skill's origin, level, why it is installed, the skills it uses, and its
+// installed folders.
 type provenanceSkill struct {
 	ID     string                `json:"id"`
 	Name   string                `json:"name"`
 	Type   *string               `json:"type"`
 	Origin provenanceSkillOrigin `json:"origin"`
-	Level  *string               `json:"level"`
+	// Level is the skill's level in its library, or null for an authored skill or one from a repository that isn't
+	// a library. RequiredBy, RecommendedBy, and OfferedBy name the library that set that level, and its release, and
+	// one of them is present only when the level brought the skill in.
+	Level         *string          `json:"level"`
+	RequiredBy    *provenanceLevel `json:"requiredBy,omitempty"`
+	RecommendedBy *provenanceLevel `json:"recommendedBy,omitempty"`
+	OfferedBy     *provenanceLevel `json:"offeredBy,omitempty"`
+	// Included is false for a skill installed only because other skills use it. UsedBy and Uses list, sorted, the
+	// project IDs of the installed skills that use it and that it uses.
+	Included bool     `json:"included"`
+	UsedBy   []string `json:"usedBy"`
+	Uses     []string `json:"uses"`
+	// RenamedFrom is the name the skill's SKILL.md declares when the project installs it under Name instead, or null.
+	RenamedFrom *string `json:"renamedFrom"`
 	// Targets lists the folders the skill is installed in, by path from the repository root.
 	Targets []string `json:"targets"`
 	// Upstream is the origin of the skill an authored skill replaces, Reason the exclusion's reason, and BasedOn the
@@ -233,9 +253,39 @@ type provenanceSkill struct {
 	BasedOn  *string                `json:"basedOn"`
 }
 
+// provenanceLevel names the library, by source name, that set a skill's level, and the library release whose
+// manifest set it, or null for a revision other than a library release.
+type provenanceLevel struct {
+	Library string `json:"library"`
+	Release *int   `json:"release"`
+}
+
+// setLevel records skill's level in record, and which library set it when the level brought the skill in: a
+// required skill always, a recommended one when include, the source's skills.include, has recommended or "*", and
+// an offered one when it has "*". A skill the project names by ID and no level brings in records only its level.
+func setLevel(record *provenanceSkill, skill resolvedSkill, include []string) {
+	if skill.Level == "" {
+		return
+	}
+	record.Level = &skill.Level
+	by := &provenanceLevel{Library: skill.Source}
+	if skill.LevelRelease != 0 {
+		by.Release = &skill.LevelRelease
+	}
+	every := slices.Contains(include, skills.Wildcard)
+	switch {
+	case skill.Level == skills.LevelRequired:
+		record.RequiredBy = by
+	case skill.Level == skills.LevelRecommended && (every || slices.Contains(include, skills.Recommended)):
+		record.RecommendedBy = by
+	case skill.Level == skills.LevelOffered && every:
+		record.OfferedBy = by
+	}
+}
+
 // provenanceSkillOrigin identifies the source, repository, and commit that supplied a skill, and its folder there:
 // in the source's repository, or, for an authored skill, whose source, repository, and commit are null, in the
-// Syllabus directory. Version and release are null until skills have versions.
+// Trail Guide directory. Version and release are null until skills have versions.
 type provenanceSkillOrigin struct {
 	Source     *string `json:"source"`
 	Repository *string `json:"repository"`
@@ -244,6 +294,11 @@ type provenanceSkillOrigin struct {
 	Folder     string  `json:"folder"`
 	Version    *string `json:"version"`
 	Release    *int    `json:"release"`
+	// Borrowed names, for a borrowed skill, the source in the library's manifest it was borrowed from, whose
+	// repository and commit Repository and Commit then are, and Override the project's own source that supplied
+	// that revision, when one declares the same repository; each is omitted otherwise.
+	Borrowed *string `json:"borrowed,omitempty"`
+	Override *string `json:"overriddenBy,omitempty"`
 }
 
 // skillOrigin returns the origin of skill: its source, repository, ref, and commit, which are null for an authored
@@ -253,6 +308,7 @@ func skillOrigin(skill resolvedSkill) provenanceSkillOrigin {
 	if skill.Source != "" {
 		origin.Source, origin.Repository, origin.Ref, origin.Commit = &skill.Source, &skill.Repository, nullableText(skill.Ref), &skill.Commit
 	}
+	origin.Borrowed, origin.Override = nullableText(skill.Borrowed), nullableText(skill.Override)
 	return origin
 }
 
@@ -265,25 +321,29 @@ type provenanceGroup struct {
 
 // provenanceRule records effective origin, replacement history, and declared attribution.
 type provenanceRule struct {
-	ID           string                  `json:"id"`
-	Group        string                  `json:"group"`
-	Origin       provenanceOrigin        `json:"origin"`
-	Upstream     *provenanceOrigin       `json:"upstream"`
-	Reason       *string                 `json:"replacementReason"`
-	BasedOn      *coderules.RuleVersion  `json:"basedOn"`
-	LicenseBasis string                  `json:"licenseBasis"`
-	License      *provenanceLicense      `json:"license"`
-	Attribution  []coderules.Attribution `json:"attribution"`
+	ID           string                   `json:"id"`
+	Group        string                   `json:"group"`
+	Origin       provenanceOrigin         `json:"origin"`
+	Upstream     *provenanceOrigin        `json:"upstream"`
+	Reason       *string                  `json:"replacementReason"`
+	BasedOn      *trailguide.RuleVersion  `json:"basedOn"`
+	LicenseBasis string                   `json:"licenseBasis"`
+	License      *provenanceLicense       `json:"license"`
+	Attribution  []trailguide.Attribution `json:"attribution"`
 }
 
-// termProvenance maps declared source terms to retained workspace and generated paths.
-func termProvenance(source, originalPrefix string, license *rules.LicenseDeclaration) *provenanceLicense {
+// termProvenance maps declared source terms to retained workspace and generated paths. The original paths are
+// library paths, or, with a snapshot directory such as vendor/team/, where the snapshot stores the files.
+func termProvenance(source, snapshot string, license *rules.LicenseDeclaration) *provenanceLicense {
 	if license == nil {
 		return nil
 	}
 	record := &provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
 	for _, mapping := range licenseMappings(source, license) {
-		original := originalPrefix + mapping.Source
+		original := mapping.Source
+		if snapshot != "" {
+			original = snapshot + librarytree.SnapshotPath(mapping.Source)
+		}
 		if mapping.Kind == "license" {
 			record.Files = append(record.Files, original)
 			record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)
@@ -305,7 +365,9 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		Rules           []provenanceRule   `json:"rules"`
 		Skills          []provenanceSkill  `json:"skills"`
 	}{GeneratedNotice: generatedNotice + " " + strings.ReplaceAll(regenerationNotice, "`", ""), ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}, Skills: []provenanceSkill{}}
+	includes := map[string][]string{}
 	for _, source := range resolved.Sources {
+		includes[source.Name] = source.SkillSelection
 		kind := "library"
 		if source.NonLibrary {
 			kind = "non-library"
@@ -342,11 +404,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		}
 	}
 	for _, skill := range resolved.Skills {
-		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), Level: nullableText(skill.Level), Targets: skill.Targets}
+		record := provenanceSkill{ID: skill.ID, Name: skill.Name, Type: nullableText(skill.Type), Origin: skillOrigin(skill), RenamedFrom: nullableText(skill.RenamedFrom), Targets: skill.Targets}
+		setLevel(&record, skill, includes[skill.Source])
 		if replaced := skill.Replaces; replaced != nil {
 			upstream := skillOrigin(replaced.Upstream)
 			record.Upstream, record.Reason, record.BasedOn = &upstream, &replaced.Reason, nullableText(replaced.BasedOn.Canonical())
 		}
+		record.Included, record.UsedBy, record.Uses = skill.Included, skill.UsedBy, skill.Uses
 		result.Skills = append(result.Skills, record)
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })
@@ -367,13 +431,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 // the commit that supplied the rule's files; Version and Release are null for local rules and for imported
 // files that aren't a published version.
 type provenanceOrigin struct {
-	Source     string                 `json:"source"`
-	File       string                 `json:"file"`
-	Repository *string                `json:"repository"`
-	Ref        *string                `json:"ref"`
-	Commit     *string                `json:"resolvedCommit"`
-	Version    *coderules.RuleVersion `json:"version"`
-	Release    *int                   `json:"release"`
+	Source     string                  `json:"source"`
+	File       string                  `json:"file"`
+	Repository *string                 `json:"repository"`
+	Ref        *string                 `json:"ref"`
+	Commit     *string                 `json:"resolvedCommit"`
+	Version    *trailguide.RuleVersion `json:"version"`
+	Release    *int                    `json:"release"`
 }
 
 // nonNilList returns list, or an empty list for nil, so JSON shows an empty list rather than null.

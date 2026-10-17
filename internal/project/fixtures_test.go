@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // openProject creates a disposable project root owned by the test.
 func openTestProject(t *testing.T) *os.Root {
 	t.Helper()
-	directory := filepath.Join(t.TempDir(), ".syllabus")
+	directory := filepath.Join(t.TempDir(), ".trailguide")
 	if err := os.Mkdir(directory, 0700); err != nil {
 		t.Fatal(err)
 	}

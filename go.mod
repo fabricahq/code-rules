@@ -1,4 +1,4 @@
-module github.com/fabricahq/code-rules
+module github.com/fabricahq/trailguide
 
 go 1.27.2
 

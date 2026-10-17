@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // GitRefKind distinguishes a complete commit SHA from an exact tag name.

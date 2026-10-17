@@ -3,16 +3,19 @@
 package cli
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/project"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +46,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			return &project.UnchangedError{Err: err}
 		}
 		f.status("Reading library releases...")
-		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version}, options.Git, targets, decisions)
+		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version, Home: options.home()}, options.Git, targets, decisions)
 		if err != nil {
 			return err
 		}
@@ -73,10 +76,13 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				if updatesForks(decisions[flagged:]) {
 					f.status("Reading forked rule versions...")
 				}
+				shown := preview
 				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
 				f.introduction += "\n" + answersSummary(preview.Sources)
+				// Keeping a rule can move the skills to another revision, whose scripts people read before consenting.
+				f.introduction += answeredSkills(shown, preview)
 			}
 			f.introduction += "\n"
 			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
@@ -175,6 +181,10 @@ func flagDecisions(keep, exclude, forks []string, reason string) ([]project.Upda
 func askUpdateDecisions(f *authoringFlags, plan *project.UpdatePlan, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, error) {
 	var intro strings.Builder
 	formatUpdatePreview(&intro, preview.Sources)
+	// The scripts warning comes before the questions, so people read the scripts before they decide.
+	if warning := preview.ScriptsWarning(); warning != "" {
+		fmt.Fprintf(&intro, "\nWarning: %s\n", warning)
+	}
 	f.introduction = intro.String()
 	for _, source := range preview.Sources {
 		for _, row := range source.Rules {
@@ -328,6 +338,10 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 		out.WriteString(projectChangesReport("update", result.FileChanges, location.root, location.workdir).human)
 		return commandReport{value: result, human: out.String()}
 	}
+	// A blank line sets the warnings apart from the preview, as a terminal shows them before its questions.
+	if out.Len() > 0 && len(result.Warnings) > 0 {
+		out.WriteByte('\n')
+	}
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
@@ -350,8 +364,9 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 // updateKindWidth fits the longest change name, replaced.
 const updateKindWidth = len(imports.UpdateReplaced)
 
-// formatUpdatePreview lists each source's rows with the change, rule ID, and versions in aligned columns, each
-// row's details indented beneath them, and any move of its shared files. It writes nothing when no source has
+// formatUpdatePreview lists each source's rule rows with the change, rule ID, and versions in aligned columns, then
+// its skill rows with the change and skill ID, each row's details indented beneath them, and any move of its shared
+// files. It writes nothing when no source has
 // anything to show, so the caller's summary stands alone.
 func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 	idWidth := 0
@@ -363,7 +378,13 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		for _, row := range source.ReplacedSkills {
 			idWidth = max(idWidth, len(row.ID))
 		}
-		listed = listed || len(source.Rules) > 0 || len(source.ReplacedSkills) > 0 || source.Ref != "" || source.SharedFiles != nil
+		for _, row := range source.SkillLevels {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		for _, row := range source.Borrowed {
+			idWidth = max(idWidth, len(row.Name))
+		}
+		listed = listed || len(source.Rules) > 0 || len(source.Skills) > 0 || len(source.ReplacedSkills) > 0 || len(source.SkillLevels) > 0 || len(source.Borrowed) > 0 || source.Ref != "" || source.SharedFiles != nil
 	}
 	if !listed {
 		return
@@ -374,7 +395,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		switch {
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
-		case len(source.Rules) == 0 && source.SharedFiles == nil:
+		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil && len(source.Borrowed) == 0:
 			out.WriteString("  No rule updates.\n")
 		}
 		for _, row := range source.Rules {
@@ -383,16 +404,131 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
+		formatSkillRows(out, source.Skills)
 		for _, row := range source.ReplacedSkills {
 			fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, imports.UpdateReplaced, idWidth, row.ID, commitSpan(row.From, row.To))
 			for _, line := range replacedSkillDetails(row) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
 		}
+		formatLevelRows(out, source.SkillLevels, idWidth)
+		formatBorrowedRows(out, source.Borrowed, idWidth)
 		if shared := source.SharedFiles; shared != nil {
 			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
+}
+
+// formatBorrowedRows lists the rows of the sources a library borrows skills from, with the source name in a column
+// idWidth wide and the commits it moves between, each row's details and skill rows beneath it.
+func formatBorrowedRows(out *strings.Builder, rows []imports.BorrowedUpdate, idWidth int) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		span := commitSpan(row.From, row.To)
+		if row.To == "" {
+			span = "commit " + shortCommit(row.From) + " -> none"
+		}
+		fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "borrowed", idWidth, row.Name, span)
+		for _, line := range borrowedDetails(row) {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
+		formatSkillRows(out, row.Changes)
+	}
+}
+
+// formatLevelRows lists a source's skill level rows with the skill ID, in a column idWidth wide, and the levels it
+// moves between, each row's detail indented beneath it.
+func formatLevelRows(out *strings.Builder, rows []imports.SkillLevelUpdate, idWidth int) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %-*s  %s\n", updateKindWidth, "level", idWidth, row.ID, levelSpan(row))
+		fmt.Fprintf(out, "%s%s\n", indent, levelDetail(row))
+	}
+}
+
+// levelSpan shows the levels a skill's level row moves between, with "none" for a side where the library has no
+// such skill.
+func levelSpan(row imports.SkillLevelUpdate) string {
+	from, to := cmp.Or(row.From, "none"), cmp.Or(row.To, "none")
+	return from + " -> " + to
+}
+
+// levelDetail returns the line shown under a skill's level row: what the change does to the project.
+func levelDetail(row imports.SkillLevelUpdate) string {
+	switch {
+	case row.From == "":
+		return "New required skill: it installs whatever skills.include says."
+	case row.To == "":
+		return "The library removes this required skill, so it's no longer installed."
+	case row.To == skills.LevelRequired:
+		return "Now required: it installs whatever skills.include says, and the project can't exclude or fork it."
+	case row.From == skills.LevelRequired:
+		return "No longer required: it stays installed only when skills.include selects it."
+	case row.To == skills.LevelRecommended:
+		return "Now recommended: it installs when skills.include has recommended."
+	}
+	return `No longer recommended: it installs only when skills.include names it or has "*".`
+}
+
+// formatSkillRows lists a source's skill rows with the change and skill ID, each row's details indented beneath them.
+func formatSkillRows(out *strings.Builder, rows []imports.SkillUpdate) {
+	indent := strings.Repeat(" ", 2+updateKindWidth+2)
+	for _, row := range rows {
+		fmt.Fprintf(out, "  %-*s  %s\n", updateKindWidth, row.Change, row.ID)
+		for _, line := range skillUpdateDetails(row) {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
+	}
+}
+
+// answeredSkills lists the skill, level, and borrowed rows of each source whose rows in after, the preview with the
+// answers, differ from those in before, the preview shown before the questions, then after's scripts warning, or
+// returns empty when no source's rows differ.
+func answeredSkills(before, after project.UpdateResult) string {
+	shown := map[string]imports.SourceUpdate{}
+	for _, source := range before.Sources {
+		shown[source.Name] = source
+	}
+	var out strings.Builder
+	for _, source := range after.Sources {
+		if reflect.DeepEqual(shown[source.Name].Skills, source.Skills) && reflect.DeepEqual(shown[source.Name].SkillLevels, source.SkillLevels) && reflect.DeepEqual(shown[source.Name].Borrowed, source.Borrowed) {
+			continue
+		}
+		if out.Len() == 0 {
+			out.WriteString("\nYour answers change the update's skills:\n")
+		}
+		out.WriteString(source.Name + "\n")
+		if len(source.Skills) == 0 && len(source.SkillLevels) == 0 && len(source.Borrowed) == 0 {
+			out.WriteString("  No skill changes.\n")
+		}
+		formatSkillRows(&out, source.Skills)
+		idWidth := 0
+		for _, row := range source.SkillLevels {
+			idWidth = max(idWidth, len(row.ID))
+		}
+		for _, row := range source.Borrowed {
+			idWidth = max(idWidth, len(row.Name))
+		}
+		formatLevelRows(&out, source.SkillLevels, idWidth)
+		formatBorrowedRows(&out, source.Borrowed, idWidth)
+	}
+	if warning := after.ScriptsWarning(); out.Len() > 0 && warning != "" {
+		fmt.Fprintf(&out, "\nWarning: %s\n", warning)
+	}
+	return out.String()
+}
+
+// skillUpdateDetails returns the lines shown under a skill's row: the files a changed skill's update changes, then
+// one line for each script the update adds or changes.
+func skillUpdateDetails(row imports.SkillUpdate) []string {
+	lines := []string{}
+	if len(row.Files) > 0 {
+		lines = append(lines, "Changed: "+strings.Join(row.Files, ", "))
+	}
+	for _, script := range row.Scripts {
+		lines = append(lines, "script "+string(script.Change)+": "+script.Path)
+	}
+	return lines
 }
 
 // shortCommit returns the first 12 digits of a commit SHA, enough to tell commits apart in a preview.
@@ -404,6 +540,20 @@ func commitSpan(from, to string) string {
 		return "commit " + shortCommit(to)
 	}
 	return "commit " + shortCommit(from) + " -> " + shortCommit(to)
+}
+
+// borrowedDetails returns the lines shown under the row of a source the library borrows skills from: the repository
+// and ref the commit was resolved from, and the borrowed skills that move with it, or, for a source the project no
+// longer takes skills from, why.
+func borrowedDetails(row imports.BorrowedUpdate) []string {
+	if row.To == "" {
+		return []string{"No longer borrowed from " + row.Repository + ": the library no longer lists the skills the project takes from it."}
+	}
+	resolved := "the newest library release"
+	if row.Ref != "" {
+		resolved = "ref " + row.Ref
+	}
+	return []string{"Borrowed from " + row.Repository + ", resolved from " + resolved + ".", "Skills: " + strings.Join(row.Skills, ", ")}
 }
 
 // replacedSkillDetails returns the lines shown under a replaced skill's row: the authored skill that replaces it,
@@ -453,7 +603,7 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Replaced by "+row.ReplacedBy+".")
 	}
 	// A row spanning several versions labels each summary with its version, so people can tell which change is which.
-	spans := slices.ContainsFunc(row.SummaryVersions, func(version coderules.RuleVersion) bool { return version != row.SummaryVersions[0] })
+	spans := slices.ContainsFunc(row.SummaryVersions, func(version trailguide.RuleVersion) bool { return version != row.SummaryVersions[0] })
 	for i, summary := range row.Summaries {
 		if spans && i < len(row.SummaryVersions) {
 			summary = row.SummaryVersions[i].String() + ": " + summary

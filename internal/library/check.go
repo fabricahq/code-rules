@@ -5,6 +5,9 @@ package library
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"io/fs"
 	"iter"
 	"maps"
 	"os"
@@ -14,9 +17,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -78,6 +82,9 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
 		return checkedLibrary{}, err
 	}
+	if err = requireLeveledSkills(root, input.tree.Files[librarytree.Manifest]); err != nil {
+		return checkedLibrary{}, err
+	}
 	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
 	if err != nil {
 		return checkedLibrary{}, err
@@ -97,6 +104,9 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 	}
 	if problems := changes.review(); len(problems) > 0 {
 		return checkedLibrary{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
+	}
+	if problems := skillProblems(input.skills, current, changes); len(problems) > 0 {
+		return checkedLibrary{}, failure("invalid-skill", "skills don't pass library check:\n  - "+strings.Join(problems, "\n  - "), nil)
 	}
 	plan, err := changes.plan()
 	if err != nil {
@@ -263,7 +273,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 					return failure("invalid-library", name+": use rule Markdown, _group.yaml, or a conventional assets directory", err)
 				}
 				if rules.HasDraftMarker(files[name]) {
-					return failure("incomplete-rule", name+": complete the draft and remove its syllabus:draft marker", nil)
+					return failure("incomplete-rule", name+": complete the draft and remove its trailguide:draft marker", nil)
 				}
 			}
 		}
@@ -293,7 +303,9 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 
 // checkInput is a bounded snapshot of every library-owned file and change note a complete check considers.
 type checkInput struct {
-	tree    *filetxn.Tree
+	tree *filetxn.Tree
+	// skills is the library's skills/ folder, by path in it, or nil when the library has none.
+	skills  *filetxn.Tree
 	license *rules.LicenseDeclaration
 	// notes maps each change note, by its library path under changes/, to its bytes; notes stay out of catalogs and snapshots.
 	notes map[string][]byte
@@ -309,7 +321,11 @@ func libraryCheckInput(ctx context.Context, root *os.Root) (checkInput, error) {
 	if err != nil {
 		return checkInput{}, err
 	}
-	return checkInput{tree: &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, license: inventory.License, notes: notes}, nil
+	authoredSkills, err := filetxn.ReadTree(ctx, root, skillsDirectory)
+	if err != nil {
+		return checkInput{}, err
+	}
+	return checkInput{tree: &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, skills: authoredSkills, license: inventory.License, notes: notes}, nil
 }
 
 // requireLibraryUnchanged rejects differences observed after validating the captured snapshot.
@@ -318,8 +334,32 @@ func requireLibraryUnchanged(ctx context.Context, root *os.Root, before checkInp
 	if err != nil {
 		return failure("changed-input", "library changed during validation; retry library check", err)
 	}
-	if !maps.EqualFunc(before.tree.Files, after.tree.Files, bytes.Equal) || !slices.Equal(before.tree.Directories, after.tree.Directories) || !maps.EqualFunc(before.notes, after.notes, bytes.Equal) {
+	if !maps.EqualFunc(before.tree.Files, after.tree.Files, bytes.Equal) || !slices.Equal(before.tree.Directories, after.tree.Directories) || before.skills.Digest() != after.skills.Digest() || !maps.EqualFunc(before.notes, after.notes, bytes.Equal) {
 		return failure("changed-input", "library changed during validation; retry library check", nil)
+	}
+	return nil
+}
+
+// requireLeveledSkills fails when manifest, the library's configuration, gives a level to an own skill the library
+// doesn't have: a folder in .trailguide/skills/ with a SKILL.md, in the repository at root.
+func requireLeveledSkills(root *os.Root, manifest []byte) error {
+	declaration, err := rules.ParseLibraryManifest(manifest, manifestPath)
+	if err != nil || declaration == nil {
+		return err
+	}
+	for _, id := range declaration.Skills.Listed() {
+		// A borrowed skill is in the repository the library borrows it from, which each project resolves for itself.
+		if strings.Contains(id, ":") {
+			continue
+		}
+		file := librarytree.Directory + "/" + id + "/" + skills.File
+		info, err := root.Lstat(file)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("inspect %s: %v", file, err)
+		}
+		if err != nil || !info.Mode().IsRegular() {
+			return &ValidationError{Location: manifestPath + ": library.skills." + declaration.Skills.Level(id), Problem: id + " names no skill of the library, because " + file + " doesn't exist; add the skill, or remove it from the list"}
+		}
 	}
 	return nil
 }

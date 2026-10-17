@@ -1,4 +1,4 @@
-// Leave a real syllabus project update interrupted partway through installing, at a chosen step, then check
+// Leave a real trailguide project update interrupted partway through installing, at a chosen step, then check
 // that the next update or sync, run through the real CLI, recovers the project and completes.
 
 package cli
@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/filetxn"
 )
 
 // updateArguments are the arguments of the update the tests interrupt and then run again.
@@ -54,7 +54,7 @@ func (u updateFixture) runBounded(t *testing.T, directory string, args ...string
 func interruptedUpdate(t *testing.T, blocked filetxn.Target) updateFixture {
 	t.Helper()
 	u := newUpdateFixture(t)
-	project := filepath.Join(u.directory, ".syllabus")
+	project := filepath.Join(u.directory, ".trailguide")
 	completed := filepath.Join(t.TempDir(), "project")
 	if err := os.CopyFS(completed, os.DirFS(u.directory)); err != nil {
 		t.Fatal(err)
@@ -62,13 +62,13 @@ func interruptedUpdate(t *testing.T, blocked filetxn.Target) updateFixture {
 	if out, diagnostic, code := u.runBounded(t, completed, updateArguments...); code != 0 {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	output := updateOutput(t, project, filepath.Join(completed, ".syllabus"))
+	output := updateOutput(t, project, filepath.Join(completed, ".trailguide"))
 	root, err := os.OpenRoot(project)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	blocker := filepath.Join(".syllabus-transaction", "old-"+string(blocked))
+	blocker := filepath.Join(".trailguide-transaction", "old-"+string(blocked))
 	err = filetxn.WithWriter(context.Background(), root, func(w *filetxn.Writer) error {
 		// Apply calls this after staging every target and before writing its journal.
 		return w.Apply(output, func() error { return root.MkdirAll(filepath.Join(blocker, "blocker"), 0700) })
@@ -81,7 +81,7 @@ func interruptedUpdate(t *testing.T, blocked filetxn.Target) updateFixture {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"journal.json", "old-vendor", "new-" + string(blocked)} {
-		if _, err := root.Stat(filepath.Join(".syllabus-transaction", name)); err != nil {
+		if _, err := root.Stat(filepath.Join(".trailguide-transaction", name)); err != nil {
 			t.Fatalf("the interrupted transaction lacks %s: %v", name, err)
 		}
 	}
@@ -92,7 +92,7 @@ func interruptedUpdate(t *testing.T, blocked filetxn.Target) updateFixture {
 	return u
 }
 
-// updateOutput returns what the update installed in completed, the Syllabus directory of a copy of project
+// updateOutput returns what the update installed in completed, the Trail Guide directory of a copy of project
 // that ran it: the vendor and generated trees, config.yaml, and the managed guide when it changed.
 func updateOutput(t *testing.T, project, completed string) map[filetxn.Target]map[string][]byte {
 	t.Helper()
@@ -161,7 +161,7 @@ func TestSync_RecoversAnInterruptedUpdate(t *testing.T) {
 			if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.0", "loaders": "1.0.0", "naming": "1.0.0", "retry": "1.0.0"}; !maps.Equal(u.versions(t), want) {
 				t.Fatalf("versions %v", u.versions(t))
 			}
-			if config, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "config.yaml")); err != nil || strings.Contains(string(config), "techs/go/errors:") {
+			if config, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "config.yaml")); err != nil || strings.Contains(string(config), "techs/go/errors:") {
 				t.Fatalf("the rolled-back configuration kept the update's pin: %v\n%s", err, config)
 			}
 		})
@@ -171,8 +171,8 @@ func TestSync_RecoversAnInterruptedUpdate(t *testing.T) {
 // requireRecoveredUpdate checks that no transaction remains and the project checks offline.
 func requireRecoveredUpdate(t *testing.T, u updateFixture) {
 	t.Helper()
-	for _, name := range []string{".syllabus-transaction", ".syllabus-cleanup", ".syllabus-lock"} {
-		if _, err := os.Stat(filepath.Join(u.directory, ".syllabus", name)); !errors.Is(err, os.ErrNotExist) {
+	for _, name := range []string{".trailguide-transaction", ".trailguide-cleanup", ".trailguide-lock"} {
+		if _, err := os.Stat(filepath.Join(u.directory, ".trailguide", name)); !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("%s remains: %v", name, err)
 		}
 	}
@@ -188,12 +188,12 @@ func TestSyncAndBuild_SayWhenTheyFirstRecoveredAnInterruptedCommand(t *testing.T
 	note := "First recovered an interrupted earlier command, which restored or finished that command's files.\n"
 	for _, command := range []string{"sync", "build"} {
 		t.Run(command, func(t *testing.T) {
-			u.write(t, ".syllabus-transaction/staged", "left by an interrupted command")
+			u.write(t, ".trailguide-transaction/staged", "left by an interrupted command")
 			out, diagnostic, code := u.run(t, "project", command)
 			if code != 0 || !strings.HasPrefix(out, note) {
 				t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 			}
-			u.write(t, ".syllabus-transaction/staged", "left by an interrupted command")
+			u.write(t, ".trailguide-transaction/staged", "left by an interrupted command")
 			out, diagnostic, code = u.run(t, "project", command, "--json")
 			var result struct {
 				OK    bool

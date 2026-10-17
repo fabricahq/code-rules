@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
@@ -45,7 +45,7 @@ func TestRenderRules(t *testing.T) {
 }
 
 // TestRenderLinksSharedAuthoredAssets links a rule in rules/ to a shared asset in assets/ through its place in the
-// Syllabus directory, three levels up.
+// Trail Guide directory, three levels up.
 func TestRenderLinksSharedAuthoredAssets(t *testing.T) {
 	output, err := renderFixture(t, "[diagram](../../../assets/diagram.svg)", map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
 	if err != nil {
@@ -62,12 +62,12 @@ func TestRenderRejectsLinksOutsideAuthoredFolders(t *testing.T) {
 	for _, test := range []struct{ body, target string }{
 		{"[diagram](../../assets/diagram.svg)", "rules/assets/diagram.svg"},
 		{"[config](../../../config.yaml)", "config.yaml"},
-		{"[vendored](../../../vendor/team/techs/go/errors.md)", "vendor/team/techs/go/errors.md"},
+		{"[vendored](../../../vendor/team/rules/techs/go/errors.md)", "vendor/team/rules/techs/go/errors.md"},
 	} {
 		t.Run(test.target, func(t *testing.T) {
 			output, err := renderFixture(t, test.body, map[string][]byte{"assets/diagram.svg": []byte("<svg/>")})
 			var validation errs.ValidationError
-			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .syllabus/rules/ and .syllabus/assets/; link to this rule's own assets directory, or to a shared asset in .syllabus/assets/" || output != nil {
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "rules/techs/go/local.md" || validation.ValidationProblem() != "links to "+test.target+", which is outside .trailguide/rules/ and .trailguide/assets/; link to this rule's own assets directory, or to a shared asset in .trailguide/assets/" || output != nil {
 				t.Fatalf("got %v, %v", output, err)
 			}
 		})
@@ -110,7 +110,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			if state == "unselected" {
 				target = "techs/rust/other.md"
 			} else {
-				other, err := coderules.ParseRule(document, target, "team")
+				other, err := trailguide.ParseRule(document, target, "team")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -206,6 +206,27 @@ func TestRenderReferenceImages(t *testing.T) {
 		if !strings.Contains(output["rules/team/techs/go/errors.md"], "../../../../../vendor/team/assets/diagram.png") {
 			t.Fatal(output)
 		}
+	}
+}
+
+// TestRenderLinksImportedRuleAssetsToTheirVendoredCopy links an imported rule's own asset to where the source's
+// snapshot stores it, under vendor/team/rules/.
+func TestRenderLinksImportedRuleAssetsToTheirVendoredCopy(t *testing.T) {
+	config, libraries := fixture(t, `[]`)
+	lib := libraries["team"]
+	lib.Catalog.Groups[0].Rules[0].Document = document + "\n![diagram](assets/errors/diagram.png)"
+	lib.Catalog.SupportingFiles["techs/go/assets/errors/diagram.png"] = []byte("image bytes")
+	libraries["team"] = lib
+	resolved, err := resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := renderRules(resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := output["rules/team/techs/go/errors.md"]; !strings.Contains(got, "](../../../../../vendor/team/rules/techs/go/assets/errors/diagram.png)") {
+		t.Fatal(got)
 	}
 }
 

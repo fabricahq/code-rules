@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // SourceInput selects a repository, the rules and skills to include from it, and an optional exact ref. Rules holds
 // rule selectors for rules.include: rule IDs, group prefixes such as techs/go/*, and the wildcards *, techs/*, and
-// practices/*. Skills holds skill selectors for skills.include: skill IDs, such as skills/build-feature, or only *.
-// At least one rule or skill selector is required. An empty Ref means the source follows rule versions. Pins and
-// exclusions are configured separately.
+// practices/*. Skills holds skill selectors for skills.include: skill IDs, such as skills/build-feature, and
+// recommended, or only *. With neither, the source installs only its library's required skills. An empty Ref means
+// the source follows rule versions. Pins and exclusions are configured separately.
 type SourceInput struct {
 	Repository string
 	Ref        string
@@ -63,9 +63,6 @@ func parseSourceInput(input SourceInput) (rules.Source, error) {
 	}
 	if source.Skills, err = ParseSourceSkills(input.Skills); err != nil {
 		return rules.Source{}, err
-	}
-	if !source.HasRules() && len(source.Skills) == 0 {
-		return rules.Source{}, &ValidationError{Location: "--rules", Problem: "supply at least one --rules or --skills selector"}
 	}
 	return source, nil
 }

@@ -369,7 +369,7 @@
   {
     "id": "configuration-pins",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"techs/go/*\"], \"pins\": [{\"id\": \"techs/go/wrap-errors\", \"version\": \"1.3.0\", \"reason\": \" Waiting on acme/.syllabus#45. \"}, {\"id\": \"practices/testing/verify-retry-limits\", \"version\": \"999999999.0.0\", \"reason\": \"Largest version\"}]}}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"techs/go/*\"], \"pins\": [{\"id\": \"techs/go/wrap-errors\", \"version\": \"1.3.0\", \"reason\": \" Waiting on acme/.trailguide#45. \"}, {\"id\": \"practices/testing/verify-retry-limits\", \"version\": \"999999999.0.0\", \"reason\": \"Largest version\"}]}}}}",
     "location": "configuration",
     "expected": {
       "ok": true,
@@ -389,7 +389,7 @@
               },
               "techs/go/wrap-errors": {
                 "version": "1.3.0",
-                "reason": " Waiting on acme/.syllabus#45. "
+                "reason": " Waiting on acme/.trailguide#45. "
               }
             },
             "exclude": {},
@@ -768,11 +768,19 @@
     "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\"}}}",
     "location": "configuration",
     "expected": {
-      "ok": false,
-      "error": {
-        "name": "ValidationError",
-        "message": "sources.team: include rules or skills from the source, such as rules: {include: [techs/go/*]} or skills: {include: [skills/build-feature]}",
-        "location": "sources.team"
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "groups": [],
+            "rules": [],
+            "pins": {},
+            "exclude": {},
+            "skills": []
+          }
+        ]
       }
     }
   },
@@ -1331,7 +1339,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "schemaVersion: version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run syllabus project check.",
+        "message": "schemaVersion: version 1 configuration is no longer supported, and Trail Guide doesn't convert it. Rewrite .trailguide/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .trailguide/local/ to .trailguide/rules/, and shared assets from .trailguide/local/assets/ to .trailguide/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run trailguide project check.",
         "location": "schemaVersion"
       }
     }
@@ -1345,7 +1353,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "schemaVersion: version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run syllabus project check.",
+        "message": "schemaVersion: version 1 configuration is no longer supported, and Trail Guide doesn't convert it. Rewrite .trailguide/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .trailguide/local/ to .trailguide/rules/, and shared assets from .trailguide/local/assets/ to .trailguide/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run trailguide project check.",
         "location": "schemaVersion"
       }
     }
@@ -1798,7 +1806,12 @@
       "value": {
         "sources": [],
         "library": {
-          "license": null
+          "license": null,
+          "skills": {
+            "required": [],
+            "recommended": [],
+            "offered": []
+          }
         }
       }
     }
@@ -1806,7 +1819,7 @@
   {
     "id": "configuration-library-license",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"spdxExpression\": \"MIT\", \"file\": \"LICENSE.md\", \"notices\": [\".syllabus/assets/NOTICE.md\"]}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"spdxExpression\": \"MIT\", \"file\": \"LICENSE.md\", \"notices\": [\".trailguide/assets/NOTICE.md\"]}}}",
     "location": "configuration",
     "expected": {
       "ok": true,
@@ -1821,6 +1834,11 @@
             "attributionFiles": [
               "assets/NOTICE.md"
             ]
+          },
+          "skills": {
+            "required": [],
+            "recommended": [],
+            "offered": []
           }
         }
       }
@@ -1843,14 +1861,109 @@
   {
     "id": "configuration-library-skills",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"review\": \"required\"}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": [\"skills/ship\"], \"recommended\": [\"skills/review\", \"skills/build\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [],
+        "library": {
+          "license": null,
+          "skills": {
+            "required": [
+              "skills/ship"
+            ],
+            "recommended": [
+              "skills/build",
+              "skills/review"
+            ],
+            "offered": []
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-unknown-level",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"mandatory\": [\"skills/ship\"]}}}",
     "location": "configuration",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library.skills: skill levels aren't supported yet in this version of Syllabus; remove library.skills",
+        "message": "library.skills: unknown field mandatory",
         "location": "library.skills"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-not-a-list",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": \"skills/ship\"}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.required: expected a list of the library's skill IDs, such as [skills/build-feature]",
+        "location": "library.skills.required"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-borrowed-undeclared-source",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"recommended\": [\"mattpocock:skills/to-spec\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.recommended[0]: mattpocock:skills/to-spec borrows from mattpocock, which isn't a source in sources; add sources.mattpocock with the repository the skill comes from, and a ref unless the repository publishes library releases",
+        "location": "library.skills.recommended[0]"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-not-authored",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"offered\": [\"tools/review\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.offered[0]: expected the ID of one of the library's skills, skills/<name>, the folder's path in .trailguide/, such as skills/build-feature, got \"tools/review\"",
+        "location": "library.skills.offered[0]"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-two-levels",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": [\"skills/ship\"], \"offered\": [\"skills/ship\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.offered[0]: skills/ship is already required; give each skill one level",
+        "location": "library.skills.offered[0]"
+      }
+    }
+  },
+  {
+    "id": "configuration-library-skills-repeated",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": [\"skills/ship\", \"skills/ship\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library.skills.required[1]: skills/ship is listed more than once; list each skill once",
+        "location": "library.skills.required[1]"
       }
     }
   },

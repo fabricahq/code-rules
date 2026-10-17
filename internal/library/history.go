@@ -19,12 +19,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/releasetag"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // maxReleaseTags bounds the release tags one check reads, matching the tag-listing limit for imports.
@@ -38,7 +38,7 @@ const shallowClone = "this clone has partial history, so it can't be compared wi
 
 // missingReleaseTags explains a clone whose commit has change notes but no release tags, such as a clone made with
 // git clone --no-tags, which would otherwise look like a library that never published a library release.
-const missingReleaseTags = ".syllabus/changes/ holds change notes, but this clone has no release/<number> tags, so it can't be compared with the latest library release. Fetch the tags, such as with git fetch --tags; in CI, check out with fetch-depth: 0. If the library has never published a library release, delete the notes in .syllabus/changes/, which the first library release doesn't need."
+const missingReleaseTags = ".trailguide/changes/ holds change notes, but this clone has no release/<number> tags, so it can't be compared with the latest library release. Fetch the tags, such as with git fetch --tags; in CI, check out with fetch-depth: 0. If the library has never published a library release, delete the notes in .trailguide/changes/, which the first library release doesn't need."
 
 // libraryGit runs Git in the library author's own repository, honoring their Git configuration.
 type libraryGit struct {
@@ -74,7 +74,7 @@ type publishedRelease struct {
 	object, commit string
 	// notes are the release notes before the tag message's record, which a GitHub Release page repeats.
 	notes  string
-	record coderules.ReleaseRecord
+	record trailguide.ReleaseRecord
 	// files maps the library path of each file under practices/, techs/, and changes/ at the release's commit to its
 	// blob ID.
 	files map[string]string
@@ -197,7 +197,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 		return nil
 	})
 	var invalid *releasetag.RecordError
-	var unsupported *coderules.UnsupportedReleaseRecordError
+	var unsupported *trailguide.UnsupportedReleaseRecordError
 	switch {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, unsupportedRecord(invalid.Tag, unsupported.FormatVersion)
@@ -216,10 +216,10 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	return history, nil
 }
 
-// unsupportedRecord fails with unsupported-release-record for release tag tag, whose record a newer Syllabus
+// unsupportedRecord fails with unsupported-release-record for release tag tag, whose record a newer Trail Guide
 // wrote in release record format version, asking the author to upgrade.
 func unsupportedRecord(tag string, version int) error {
-	return failure("unsupported-release-record", tag+" uses release record format "+strconv.Itoa(version)+", which this version of Syllabus can't read. Upgrade Syllabus, then run the command again.", nil)
+	return failure("unsupported-release-record", tag+" uses release record format "+strconv.Itoa(version)+", which this version of Trail Guide can't read. Upgrade Trail Guide, then run the command again.", nil)
 }
 
 // releaseFiles lists the blobs under practices/, techs/, and changes/ at a release tag's commit, by library path.
@@ -255,7 +255,7 @@ func (g *libraryGit) libraryFiles(ctx context.Context, treeish string, paths []s
 	return files, nil
 }
 
-// manifestDigest identifies what a library publishes of its manifest, data, which is a .syllabus/config.yaml or,
+// manifestDigest identifies what a library publishes of its manifest, data, which is a .trailguide/config.yaml or,
 // in a library release made before the layout of version 2, a rule-library.yaml: its library section, as
 // rules.PublishedManifest gives it, so a change to only the sources the repository uses as a project, or to a
 // comment, isn't a library-wide change. A manifest that doesn't parse, which library check reports, is identified
@@ -272,7 +272,7 @@ func manifestDigest(data []byte) string {
 				section, _ = json.Marshal(fields)
 			}
 			if section != nil {
-				if manifest, err := rules.PublishedManifestOf(section); err == nil {
+				if manifest, err := rules.PublishedManifestOf(section, fields["sources"]); err == nil {
 					published = manifest
 				}
 			}
@@ -292,7 +292,7 @@ type treeEntry struct {
 // tag's, to its mode, kind, and object. A tree in the layout before version 2, which has rule-library.yaml at the
 // repository root, keeps its library at the root, where each path is its library path, and its manifest stands in
 // for config.yaml, so a library release made before the move compares with the moved working tree; it ignores that
-// tree's .syllabus/, which held only a project's files.
+// tree's .trailguide/, which held only a project's files.
 func (g *libraryGit) libraryEntries(ctx context.Context, treeish string, paths []string) (map[string]treeEntry, error) {
 	listed := []string{librarytree.LegacyManifest}
 	for _, name := range paths {
@@ -327,8 +327,8 @@ func (g *libraryGit) libraryEntries(ctx context.Context, treeish string, paths [
 }
 
 // treeEntries maps each entry at or under paths in a commit's tree, or a tag's, to its mode, kind, and object. A
-// tree that keeps its Syllabus directory under the name from before the rename, as every library release published
-// before it does, lists that directory's entries as .syllabus/, as librarytree.Upgrade spells them.
+// tree that keeps its Trail Guide directory under the name from before the rename, as every library release published
+// before it does, lists that directory's entries as .trailguide/, as librarytree.Upgrade spells them.
 func (g *libraryGit) treeEntries(ctx context.Context, treeish string, paths []string) (map[string]treeEntry, error) {
 	listing, err := g.runner.Output(ctx, g.dir, append([]string{"ls-tree", "-r", "-z", "--full-tree", treeish, "--"}, withLegacyDirectory(paths)...), 32*1024*1024)
 	if err != nil {
@@ -359,8 +359,8 @@ func (g *libraryGit) treeEntries(ctx context.Context, treeish string, paths []st
 	return upgraded, nil
 }
 
-// withLegacyDirectory returns paths, repository paths, followed by the same path under the Syllabus directory's
-// name from before the rename for each one in the Syllabus directory, so a listing finds either spelling.
+// withLegacyDirectory returns paths, repository paths, followed by the same path under the Trail Guide directory's
+// name from before the rename for each one in the Trail Guide directory, so a listing finds either spelling.
 func withLegacyDirectory(paths []string) []string {
 	result := slices.Clone(paths)
 	for _, name := range paths {

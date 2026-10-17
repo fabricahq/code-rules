@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // forkedRule is a rule document whose body is text.
@@ -100,7 +100,7 @@ func (f forkFixture) fork(t *testing.T, id, from, reason string) (AuthoringResul
 	return plan.Commit(context.Background(), reason)
 }
 
-// files returns every file of the project's Syllabus directory.
+// files returns every file of the project's Trail Guide directory.
 func (f forkFixture) files(t *testing.T) map[string][]byte {
 	t.Helper()
 	return projectTree(t, f.options).Files
@@ -295,8 +295,8 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
 		t.Fatal(err)
 	}
-	rule, err := coderules.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []coderules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.syllabus/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	rule, err := trailguide.ParseRule(string(f.files(t)["rules/techs/go/errors.md"]), "techs/go/errors.md", "local")
+	want := []trailguide.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/.trailguide/rules/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -306,14 +306,14 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 // layout keeps them, cites other hosts' HTTPS addresses, and gives other addresses no entry.
 func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
-	version, _ := coderules.ParseRuleVersion("1.3.0", "version")
+	version, _ := trailguide.ParseRuleVersion("1.3.0", "version")
 	for _, test := range []struct {
 		repository, url string
 		legacy          bool
 	}{
-		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.syllabus/rules/techs/go/errors.md", false},
+		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/.trailguide/rules/techs/go/errors.md", false},
 		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md", true},
-		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.syllabus/rules/techs/go/errors.md", false},
+		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/.trailguide/rules/techs/go/errors.md", false},
 		{"https://git.example.org/srv/rules.git", "https://git.example.org/srv/rules.git", false},
 		{"git@git.example.org:srv/rules.git", "", false},
 	} {
@@ -379,24 +379,28 @@ func TestFork_RefusesWithoutWriting(t *testing.T) {
 }
 
 // TestFork_NeverReplacesAnExistingExclusion refuses before reading the library when the source already excludes
-// the rule.
+// the rule, by its ID or by a selector that matches it.
 func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
-	f := newForkFixture(t, "")
-	root, err := openProject(context.Background(), f.options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer root.Close()
-	config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: techs/go/errors\n          reason: Not for us.\n"
-	writeFixture(t, root, configurationFile, config)
-	source, _ := ParseForkSource("team@1.0.0")
-	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude.techs/go/errors" {
-		t.Fatalf("got %v", err)
-	}
-	if got := string(f.files(t)["config.yaml"]); got != config {
-		t.Fatalf("configuration changed to %q", got)
+	for _, entry := range []string{"techs/go/errors", "techs/go/*", "techs/*", `"*"`} {
+		t.Run(entry, func(t *testing.T) {
+			f := newForkFixture(t, "")
+			root, err := openProject(context.Background(), f.options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: " + entry + "\n          reason: Not for us.\n"
+			writeFixture(t, root, configurationFile, config)
+			source, _ := ParseForkSource("team@1.0.0")
+			_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
+			var invalid errs.ValidationError
+			if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude" {
+				t.Fatalf("got %v", err)
+			}
+			if got := string(f.files(t)["config.yaml"]); got != config {
+				t.Fatalf("configuration changed to %q", got)
+			}
+		})
 	}
 }
 
@@ -551,7 +555,7 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run syllabus project sync") {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run trailguide project sync") {
 		t.Fatalf("got %v", err)
 	}
 }

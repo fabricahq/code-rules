@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
@@ -20,7 +20,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	metadata := coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := trailguide.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	group, err := PlanGroup(ctx, "techs/go", options)
 	if err != nil {
 		t.Fatal(err)

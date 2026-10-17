@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/distribution"
+	"github.com/fabricahq/trailguide/internal/distribution"
 )
 
 // main owns signals and the packaging command exit status.

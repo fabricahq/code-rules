@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/terminalfixture"
 )
 
 // forkFixture is a project synced at a library's release/1, which publishes techs/go/errors, linking to a shared
@@ -58,10 +58,10 @@ func newForkFixture(t *testing.T) forkFixture {
 	return forkFixture{u}
 }
 
-// read returns a file of the project's Syllabus directory, or nil when it's missing.
+// read returns a file of the project's Trail Guide directory, or nil when it's missing.
 func (f forkFixture) read(t *testing.T, name string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(f.directory, ".syllabus", name))
+	data, err := os.ReadFile(filepath.Join(f.directory, ".trailguide", name))
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
@@ -76,12 +76,12 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if code != 0 || diagnostic != "" {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .syllabus/rules/techs/go/assets/errors/guide.md\n  .syllabus/rules/techs/go/errors.md\nChanged:\n  .syllabus/config.yaml\n\n" +
+	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .trailguide/rules/techs/go/assets/errors/guide.md\n  .trailguide/rules/techs/go/errors.md\nChanged:\n  .trailguide/config.yaml\n\n" +
 		"Next: Edit the forked rule to change what it says. A fork has no version: it changes\n" +
 		"only when you edit it. The library's license still applies to the copied text.\n" +
 		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement,\n" +
-		"based on 1.0.0; syllabus project update lists the library's later changes to it.\n\n" +
-		"Then rebuild this project's guidance:\n  syllabus project build\n  syllabus project check\n"
+		"based on 1.0.0; trailguide project update lists the library's later changes to it.\n\n" +
+		"Then rebuild this project's guidance:\n  trailguide project build\n  trailguide project check\n"
 	if out != want {
 		t.Fatalf("output:\n%s\nwant:\n%s", out, want)
 	}
@@ -125,7 +125,7 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	}
 	config := string(f.read(t, "config.yaml"))
 	forked := run(0, "practices/testing/verify", "--from", "team@1.0.0")
-	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text.", Commands: []string{}}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"syllabus project build", "syllabus project check"}}}
+	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text.", Commands: []string{}}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"trailguide project build", "trailguide project check"}}}
 	if !forked.OK || len(forked.Value.Added) != 3 || len(forked.Value.Changed) != 0 || !reflect.DeepEqual(forked.Value.NextSteps, steps) || string(f.read(t, "config.yaml")) != config {
 		t.Fatalf("fork %+v, configuration:\n%s", forked, f.read(t, "config.yaml"))
 	}

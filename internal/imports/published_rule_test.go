@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // forkRule is a rule document whose body is text.
@@ -27,7 +27,7 @@ func forkLibrary(t *testing.T) (*gitfixture.Fixture, Options) {
 	t.Helper()
 	ctx := context.Background()
 	f := newLibraryFixture(t, map[string][]byte{
-		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"LICENSE","notices":[".syllabus/assets/NOTICE.md"]}}}`),
+		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":"LICENSE","notices":[".trailguide/assets/NOTICE.md"]}}}`),
 		"LICENSE":                         []byte("Terms\n"),
 		"techs/go/_group.yaml":            []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`),
 		"techs/go/errors.md":              forkRule("[Guide](../../../assets/guide.md) [Notes](assets/errors/notes.md) [Notice](../../../assets/NOTICE.md)"),
@@ -55,7 +55,7 @@ func forkLibrary(t *testing.T) (*gitfixture.Fixture, Options) {
 // readPublished reads version of rule id from the fixture as source team.
 func readPublished(t *testing.T, f *gitfixture.Fixture, options Options, id, version string) (PublishedRule, error) {
 	t.Helper()
-	parsed, err := coderules.ParseRuleVersion(version, "version")
+	parsed, err := trailguide.ParseRuleVersion(version, "version")
 	if err != nil {
 		t.Fatal(err)
 	}

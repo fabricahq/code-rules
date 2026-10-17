@@ -8,14 +8,15 @@ import (
 	"errors"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/build"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/internal/skills"
+	"github.com/fabricahq/trailguide/internal/build"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // Options identifies the project root and controls rendering.
@@ -27,20 +28,28 @@ type Options struct {
 	IndexMaxLines int
 	// GroupInlineMaxBytes uses the renderer's 8 KiB default when nil; zero forces summaries.
 	GroupInlineMaxBytes *int
+	// Home is the home directory whose personal skill folders sync, update, and check read, never write, to warn
+	// about personal skills with the name of a skill the project installs. Empty reads none.
+	Home string
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
 // names, list rules/<group>/_group.yaml when they add an authored group's metadata, and update also lists
 // config.yaml when it writes pins or exclusions.
-// Empty lists mean matching tree output; Guide reports a separate managed-guide update.
+// Empty lists mean matching tree output; Guide reports a separate managed-guide update, and Agents a change to the
+// Trail Guide section of the repository's AGENTS.md.
 type FileChanges struct {
-	Added   []string     `json:"added"`
-	Changed []string     `json:"changed"`
-	Removed []string     `json:"removed"`
-	Guide   *GuideChange `json:"guide,omitempty"`
+	Added   []string      `json:"added"`
+	Changed []string      `json:"changed"`
+	Removed []string      `json:"removed"`
+	Guide   *GuideChange  `json:"guide,omitempty"`
+	Agents  *AgentsChange `json:"agents,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
-	// they wrote. Build reports none.
+	// they wrote, then skills installed nowhere for want of skill targets, then, for build too, each rule an
+	// authored skill cites that its library retired, which check rejects, and each use of a skill the project
+	// excludes without a replacement. Last, one for each personal skill in Options.Home with the name of a skill the
+	// project installs, which build doesn't report.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
 	// that command's files, which the lists above don't include.
@@ -53,8 +62,9 @@ type GuideChange struct {
 	Created bool   `json:"created"`
 }
 
-// Build generates rules offline and refreshes the managed project guide in one recoverable transaction.
-// Cancellation, validation failure, or detected edits preserve existing output; errors return no changes.
+// Build generates rules offline and refreshes the managed project guide and the Trail Guide section of the repository's
+// AGENTS.md in one recoverable transaction. Cancellation, validation failure, or detected edits preserve existing
+// output; errors return no changes.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
@@ -84,14 +94,25 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
+		agents, err := planAgentsSection(ctx, root, before.config, options)
+		if err != nil {
+			return err
+		}
+		defer agents.close()
 		changes = compareFiles(treeFiles(before.generated), output.Files)
+		changes.Warnings = append(retiredCitationWarnings(output), output.ExcludedUses...)
 		// Build reports paths relative to generated/, two folders below the repository root.
 		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
+		changes.Warnings = append(changes.Warnings, renameWarnings(output)...)
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
 		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)
+		agents.include(targets, &changes)
 		return w.ApplyModes(targets, installs.executable, func() error {
 			if err := requireUnchanged(ctx, root, before); err != nil {
+				return err
+			}
+			if err := agents.requireUnchanged(ctx); err != nil {
 				return err
 			}
 			if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
@@ -107,39 +128,72 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	return changes, nil
 }
 
-// checkWithFiles checks generated output and additional root-relative files in one optimistic snapshot.
-// Missing files are reported as additions; invalid paths, unreadable files, and concurrent edits are errors.
-func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (FileChanges, FileChanges, error) {
+// checkedProject is what a check found: how generated output and the requested files differ from what build would
+// write, and each installed skill folder build would add, replace, or remove. The generated changes' warnings are the
+// personal skill warnings for the skills generated/ records as installed.
+type checkedProject struct {
+	generated, files FileChanges
+	skills           []skillFolderChange
+}
+
+// checkWithFiles checks generated output, the installed skill folders, and additional root-relative files in one
+// optimistic snapshot. Missing files are reported as additions; invalid paths, unreadable files, concurrent edits, a
+// folder in a skill target that Trail Guide would install into but didn't install, and a rule an authored skill cites
+// that its library retired are errors.
+func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (checkedProject, error) {
+	return checkProjectFiles(ctx, options, expected, nil)
+}
+
+// checkProjectFiles is checkWithFiles, also calling inspect, when not nil, with the Trail Guide directory and the
+// project's configuration before it rechecks the snapshot, for checks of files outside the Trail Guide directory.
+func checkProjectFiles(ctx context.Context, options Options, expected map[string][]byte, inspect func(*os.Root, rules.Configuration) error) (checkedProject, error) {
 	if err := ctx.Err(); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	if err := rules.ValidatePaths(expected, nil); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	root, err := openProject(ctx, options, false)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	defer root.Close()
 	if err := filetxn.RequireIdle(root); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	before, err := readProject(ctx, root)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	files, err := readCheckFiles(ctx, root, expected)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
 	output, err := prepareProject(ctx, before, options)
 	if err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
+	}
+	if len(output.RetiredCitations) > 0 {
+		return checkedProject{}, output.RetiredCitations[0]
+	}
+	installs, err := planSkillFolders(ctx, root, before.generated, output)
+	if err != nil {
+		return checkedProject{}, err
+	}
+	if inspect != nil {
+		if err := inspect(root, before.config); err != nil {
+			return checkedProject{}, err
+		}
 	}
 	if err := requireCheckUnchanged(ctx, root, before, expected, files); err != nil {
-		return FileChanges{}, FileChanges{}, err
+		return checkedProject{}, err
 	}
-	return compareFiles(treeFiles(before.generated), output.Files), compareFiles(files, expected), nil
+	if err := requireSkillFoldersUnchanged(ctx, root, installs); err != nil {
+		return checkedProject{}, err
+	}
+	generated := compareFiles(treeFiles(before.generated), output.Files)
+	generated.Warnings = personalSkillWarnings(options.Home, filepath.Dir(root.Name()), treeFiles(before.generated)[build.InstalledSkillsFile])
+	return checkedProject{generated: generated, files: compareFiles(files, expected), skills: installs.folders}, nil
 }
 
 // readCheckFiles retains only requested files, preserving absence as a missing map entry.
@@ -182,8 +236,12 @@ type projectState struct {
 	local, assets, skills, vendor, generated *filetxn.Tree
 }
 
-// readProject validates configuration and retains every authored and managed byte used for change detection.
+// readProject validates configuration and retains every authored and managed byte used for change detection. It
+// fails when local/ has appeared since the project opened, so the input recheck refuses it too.
 func readProject(ctx context.Context, root *os.Root) (projectState, error) {
+	if err := requireNoLocalFolder(ctx, root); err != nil {
+		return projectState{}, err
+	}
 	data, config, err := configuration(ctx, root)
 	if err != nil {
 		return projectState{}, err
@@ -257,10 +315,7 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 	if err := ctx.Err(); err != nil {
 		return build.Output{}, err
 	}
-	version := options.ToolVersion
-	if version == "" {
-		version = "0.0.0-development"
-	}
+	version := toolVersion(options)
 	authored, err := authoredFiles(state)
 	if err != nil {
 		return build.Output{}, err
@@ -304,7 +359,7 @@ func authoredFiles(state projectState) (map[string][]byte, error) {
 	files := map[string][]byte{}
 	for name, data := range treeFiles(state.local) {
 		if strings.HasPrefix(name, "assets/") {
-			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .syllabus/assets/; move this file there"}
+			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .trailguide/assets/; move this file there"}
 		}
 		files[name] = data
 	}
@@ -356,11 +411,11 @@ func verifyLoadedSnapshot(source rules.Source, catalog library.Catalog, snapshot
 	}
 	slices.Sort(loaded)
 	if !slices.Equal(loaded, slices.Sorted(maps.Keys(snapshot.Rules))) {
-		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run syllabus project sync", nil)
+		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run trailguide project sync", nil)
 	}
 	files := catalog.Files()
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run syllabus project sync", nil)
+		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run trailguide project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {

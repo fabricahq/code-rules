@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/filetxn"
 )
 
 // TestCheckWithFiles reports guide drift together with generated drift without writing repairs.
@@ -37,7 +37,8 @@ func TestCheckWithFiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			generated, files, err := checkWithFiles(ctx, options, expected)
+			checked, err := checkWithFiles(ctx, options, expected)
+			generated, files := checked.generated, checked.files
 			if err != nil || len(generated.Added)+len(generated.Changed)+len(generated.Removed) != 0 {
 				t.Fatal(generated, files, err)
 			}
@@ -93,7 +94,7 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 			case "config-edited":
 				writeFixture(t, root, "config.yaml", "{\n\"schemaVersion\":2,\"sources\":{}}\n")
 			case "writer-started":
-				if err := root.Mkdir(".syllabus-lock", 0700); err != nil {
+				if err := root.Mkdir(".trailguide-lock", 0700); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -118,7 +119,7 @@ func TestCheckWithFilesRejectsUnsafeGuide(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root.Name(), "README.md")); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := checkWithFiles(context.Background(), options, map[string][]byte{"README.md": []byte("Outside")}); err == nil {
+	if _, err := checkWithFiles(context.Background(), options, map[string][]byte{"README.md": []byte("Outside")}); err == nil {
 		t.Fatal("followed guide symlink")
 	}
 }

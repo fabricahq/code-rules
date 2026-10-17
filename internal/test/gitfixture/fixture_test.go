@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/releasetag"
+	"github.com/fabricahq/trailguide/internal/releasetag"
 )
 
 // TestClone_PushesCommitsAndTagsToTheFixture lets library release tests publish through the fixture's transport.
@@ -39,7 +39,7 @@ func TestClone_PushesCommitsAndTagsToTheFixture(t *testing.T) {
 		t.Fatalf("pushed main is %q, want %q: %v", head, commit, err)
 	}
 	// The working tree follows the pushed branch, so later fixture commits build on it.
-	if _, err := os.Stat(filepath.Join(f.Directory, "repository", ".syllabus", "changes", "one.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(f.Directory, "repository", ".trailguide", "changes", "one.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := f.Command(ctx, "tag", "--list", "--format=%(contents)", "release/1"); err != nil || got+"\n" != message {
@@ -70,7 +70,7 @@ func TestNew_ServesPartialCloneFilters(t *testing.T) {
 	}
 }
 
-// TestRelease_TagsARecordThatParses publishes a library release whose tag message Syllabus can read.
+// TestRelease_TagsARecordThatParses publishes a library release whose tag message Trail Guide can read.
 func TestRelease_TagsARecordThatParses(t *testing.T) {
 	ctx := context.Background()
 	f, err := New(ctx, Library(map[string][]byte{"config.yaml": []byte("schemaVersion: 2\nsources: {}\nlibrary: {}\n")}))
@@ -90,10 +90,10 @@ func TestRelease_TagsARecordThatParses(t *testing.T) {
 	}
 }
 
-// TestLibrary_PlacesLibraryFilesInTheSyllabusDirectory keeps deletions and files outside the library.
-func TestLibrary_PlacesLibraryFilesInTheSyllabusDirectory(t *testing.T) {
+// TestLibrary_PlacesLibraryFilesInTheTrailGuideDirectory keeps deletions and files outside the library.
+func TestLibrary_PlacesLibraryFilesInTheTrailGuideDirectory(t *testing.T) {
 	got := Library(map[string][]byte{"config.yaml": []byte("a"), "techs/go/errors.md": []byte("b"), "assets/x.svg": nil, "LICENSE.md": []byte("c")})
-	want := map[string][]byte{".syllabus/config.yaml": []byte("a"), ".syllabus/rules/techs/go/errors.md": []byte("b"), ".syllabus/assets/x.svg": nil, "LICENSE.md": []byte("c")}
+	want := map[string][]byte{".trailguide/config.yaml": []byte("a"), ".trailguide/rules/techs/go/errors.md": []byte("b"), ".trailguide/assets/x.svg": nil, "LICENSE.md": []byte("c")}
 	if len(got) != len(want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}

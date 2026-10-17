@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // ReplacedSkillUpdate is a row of the update preview for a skill the project replaces with an authored skill, listed
@@ -19,7 +19,7 @@ import (
 type ReplacedSkillUpdate struct {
 	ID string `json:"id"`
 	// LocalSkill is the authored skill that replaces it, as the exclusion's replacedBy names it, which is also its
-	// folder relative to the Syllabus directory.
+	// folder relative to the Trail Guide directory.
 	LocalSkill string `json:"localSkill"`
 	// BasedOn is the commit the replacement was copied from, as the exclusion records it, or empty when it records
 	// none; the row then compares with From.
@@ -111,7 +111,7 @@ func (r *repository) replacedSkills(ctx context.Context, source rules.Source, re
 		if baseline == "" || baseline == commit {
 			continue
 		}
-		if err := r.fetchCommits(ctx, []string{commit}, fmt.Sprintf("The repository no longer has commit %s, which the update takes source %s's skills from. Run syllabus project update again.", commit, source.Name)); err != nil {
+		if err := r.fetchCommits(ctx, []string{commit}, fmt.Sprintf("The repository no longer has commit %s, which the update takes source %s's skills from. Run trailguide project update again.", commit, source.Name)); err != nil {
 			return nil, err
 		}
 		after, found, err := r.skillAt(ctx, id, commit)
@@ -136,7 +136,7 @@ func (r *repository) replacementBaseline(ctx context.Context, source rules.Sourc
 	if from == "" {
 		return nil, "", nil
 	}
-	if err := r.fetchCommits(ctx, []string{from}, fmt.Sprintf("The repository no longer has commit %s, which vendor/%s/_source.json records. Run syllabus project sync to check the source.", from, source.Name)); err != nil {
+	if err := r.fetchCommits(ctx, []string{from}, fmt.Sprintf("The repository no longer has commit %s, which vendor/%s/_source.json records. Run trailguide project sync to check the source.", from, source.Name)); err != nil {
 		return nil, "", err
 	}
 	entries, _, err := r.skillAt(ctx, id, from)

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/filetxn"
 )
 
 // UnchangedError reports a failed command that wrote no files of its own; Err is why it failed. Recovered reports

@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // TestLicenseFixtures checks the license declarations of complete configurations against independent expectations.
@@ -96,7 +96,33 @@ func TestPublishedManifest(t *testing.T) {
 	if none, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\n"), "config.yaml"); err != nil || none != nil {
 		t.Fatalf("got %s, %v for a project's configuration", none, err)
 	}
-	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {}\n"), "config.yaml"); err == nil {
-		t.Fatal("published a library section with skill levels")
+	borrowing := "schemaVersion: 2\nsources:\n  upstream:\n    repository: https://github.com/acme/upstream.git\n    rules:\n      include: ['techs/*']\n  mattpocock:\n    repository: https://github.com/mattpocock/skills.git\n    ref: v1.0.0\nlibrary:\n  skills:\n    recommended: [mattpocock:skills/to-spec]\n"
+	published, err = rules.PublishedManifest([]byte(borrowing), "config.yaml")
+	want = `{"library":{"skills":{"recommended":["mattpocock:skills/to-spec"]}},"schemaVersion":2,"sources":{"mattpocock":{"ref":"v1.0.0","repository":"https://github.com/mattpocock/skills.git"}}}` + "\n"
+	if err != nil || string(published) != want {
+		t.Fatalf("got %s, %v; want only the borrowed source's repository and ref: %s", published, err, want)
+	}
+	if again, err := rules.PublishedManifest(published, "config.yaml"); err != nil || string(again) != want {
+		t.Fatalf("republished %s, %v", again, err)
+	}
+	levels := "schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    required: [skills/ship]\n"
+	if published, err := rules.PublishedManifest([]byte(levels), "config.yaml"); err != nil || string(published) != `{"library":{"skills":{"required":["skills/ship"]}},"schemaVersion":2,"sources":{}}`+"\n" {
+		t.Fatalf("got %s, %v; want the skill levels published", published, err)
+	}
+	if _, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills: {required: skills/ship}\n"), "config.yaml"); err == nil {
+		t.Fatal("published invalid skill levels")
+	}
+}
+
+// TestLicenseDeclaredInTheLegacyDirectory reads a license file declared in .code-rules/assets/, as a library release
+// from before Code Rules was renamed Trail Guide declares it, as the shared asset it is.
+func TestLicenseDeclaredInTheLegacyDirectory(t *testing.T) {
+	text := "schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: .code-rules/assets/LICENSE.md\n    notices: [.code-rules/assets/NOTICE.md]\n"
+	library, err := rules.ParseLibraryManifest([]byte(text), "config.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := library.License; !reflect.DeepEqual(got.Files, []string{"assets/LICENSE.md"}) || !reflect.DeepEqual(got.AttributionFiles, []string{"assets/NOTICE.md"}) {
+		t.Fatalf("got %+v; want the shared assets", got)
 	}
 }

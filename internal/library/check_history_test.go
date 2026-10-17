@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarytree"
-	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // releaseOne publishes rules a and b at 1.0.0, as the first library release must.
@@ -147,7 +147,7 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 	}{
 		{name: "unchanged library", rows: []string{}},
 		{name: "changed rule without a note", files: map[string]string{"practices/testing/a.md": changedA},
-			problems: []string{"practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: syllabus library change practices/testing/a"}},
+			problems: []string{"practices/testing/a changed since release/1, where its version is 1.0.0, and no pending change note names it. Record it with: trailguide library change practices/testing/a"}},
 		{name: "changed rule asset without a note", files: map[string]string{"practices/testing/assets/a/example.go": "package changed\n"},
 			problems: []string{"practices/testing/a changed since release/1"}},
 		{name: "added rule asset without a note", files: map[string]string{"practices/testing/assets/a/more.go": "package more\n"},
@@ -159,11 +159,11 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 		{name: "largest of several notes", files: map[string]string{"practices/testing/a.md": changedA, "changes/one.yaml": "summary: Fix a typo.\nrules:\n  practices/testing/a: patch\n", "changes/two.yaml": "summary: Require a test past the limit.\nrules:\n  practices/testing/a: major\n"},
 			rows: []string{"practices/testing/a major 1.0.0 2.0.0"}},
 		{name: "new rule without a note", files: map[string]string{"practices/testing/c.md": ruleC},
-			problems: []string{"practices/testing/c is a new rule, and no pending change note names it. Record it with: syllabus library change practices/testing/c"}},
+			problems: []string{"practices/testing/c is a new rule, and no pending change note names it. Record it with: trailguide library change practices/testing/c"}},
 		{name: "new rule with a note", files: map[string]string{"practices/testing/c.md": ruleC, "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n"},
 			rows: []string{"practices/testing/c new - 1.0.0"}},
 		{name: "deleted rule without a retirement", files: map[string]string{"practices/testing/b.md": ""},
-			problems: []string{"practices/testing/b, version 1.0.0, was deleted, and no pending change note retires it. Restore it, or record the retirement with: syllabus library change practices/testing/b --retire"}},
+			problems: []string{"practices/testing/b, version 1.0.0, was deleted, and no pending change note retires it. Restore it, or record the retirement with: trailguide library change practices/testing/b --retire"}},
 		{name: "rename", files: map[string]string{"practices/testing/b.md": "", "practices/testing/c.md": ruleC, "changes/rename.yaml": "summary: Rename b.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/c\n  practices/testing/c: new\n"},
 			rows: []string{"practices/testing/b retired 1.0.0 - replacedBy practices/testing/c", "practices/testing/c new - 1.0.0"}},
 		{name: "retirement outweighs a change", files: map[string]string{"practices/testing/b.md": "", "changes/one.yaml": "summary: Fix b.\nrules:\n  practices/testing/b: patch\n", "changes/two.yaml": "summary: Stop testing backoff.\nrules:\n  practices/testing/b: retired\n"},
@@ -510,7 +510,7 @@ func TestCheck_RejectsFilesThatArentNotesInChanges(t *testing.T) {
 				edit(t, options.Directory, map[string]string{name: string(content)})
 			}
 			edit(t, options.Directory, files)
-			if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "expected only change notes, as .yaml files, in .syllabus/changes/") {
+			if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "expected only change notes, as .yaml files, in .trailguide/changes/") {
 				t.Fatal(err)
 			}
 		})
@@ -522,26 +522,26 @@ func TestCheck_RejectsFilesThatArentNotesInChanges(t *testing.T) {
 // license edit as a rule change.
 func TestCheck_RejectsTermsInsideARulesVersion(t *testing.T) {
 	files := libraryFiles()
-	files["config.yaml"] = []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    file: .syllabus/rules/practices/testing/assets/a/LICENSE\n    notices: []\n")
+	files["config.yaml"] = []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    file: .trailguide/rules/practices/testing/assets/a/LICENSE\n    notices: []\n")
 	files["practices/testing/assets/a/LICENSE"] = []byte("Terms.\n")
 	for name, tags := range map[string][]string{"before the first library release": nil, "after a library release": {releaseOne}} {
 		t.Run(name, func(t *testing.T) {
 			_, options := authorClone(t, files, tags...)
 			_, err := Check(context.Background(), options)
 			var invalid errs.ValidationError
-			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.ValidationLocation(), ".syllabus/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "belongs to a rule's version") {
+			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.ValidationLocation(), ".trailguide/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "belongs to a rule's version") {
 				t.Fatalf("got %v; want the license path refused", err)
 			}
 		})
 	}
 }
 
-// TestCheck_AsksToUpgradeForANewerReleaseRecordFormat refuses a library release whose record a later Syllabus
+// TestCheck_AsksToUpgradeForANewerReleaseRecordFormat refuses a library release whose record a later Trail Guide
 // wrote, with its own code.
 func TestCheck_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	_, options := authorClone(t, libraryFiles(), strings.Replace(releaseOne, "formatVersion: 1", "formatVersion: 2", 1))
 	_, err := Check(context.Background(), options)
-	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Syllabus") {
+	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Trail Guide") {
 		t.Fatalf("got %v", err)
 	}
 }

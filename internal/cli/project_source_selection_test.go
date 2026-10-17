@@ -33,10 +33,11 @@ func TestSourceSelectionFlags(t *testing.T) {
 		{"skills only", []string{"--skills", "tools/review", "--skills", "skills/build-feature"}, 0, map[string]any{"repository": repository, "skills": include("skills/build-feature", "tools/review")}},
 		{"every skill from a ref", []string{"--ref", "v1.0.0", "--skills", "*"}, 0, map[string]any{"repository": repository, "ref": "v1.0.0", "skills": include("*")}},
 		{"rules and skills", []string{"--rules", "techs/go/*", "--skills", "skills/build-feature"}, 0, map[string]any{"repository": repository, "rules": include("techs/go/*"), "skills": include("skills/build-feature")}},
-		{"skill levels", []string{"--skills", "recommended"}, 1, nil},
+		{"recommended skills", []string{"--skills", "recommended", "--skills", "skills/deploy"}, 0, map[string]any{"repository": repository, "skills": include("recommended", "skills/deploy")}},
+		{"required skills only", nil, 0, map[string]any{"repository": repository}},
+		{"recommended prefix", []string{"--skills", "recommended/*"}, 1, nil},
 		{"skill prefix", []string{"--skills", "skills/*"}, 1, nil},
 		{"wildcard and a skill", []string{"--skills", "*", "--skills", "skills/build-feature"}, 1, nil},
-		{"no selection", nil, 2, nil},
 		{"version range", []string{"--ref", ">= 1.2.0, < 2.0.0", "--rules", "techs/go/*"}, 2, nil},
 		{"branch", []string{"--ref", "refs/heads/main", "--rules", "techs/go/*"}, 2, nil},
 		{"group as rule", []string{"--rules", "techs/go"}, 1, nil},
@@ -60,7 +61,7 @@ func TestSourceSelectionFlags(t *testing.T) {
 				}
 				return
 			}
-			data, err := os.ReadFile(filepath.Join(dir, ".syllabus/config.yaml"))
+			data, err := os.ReadFile(filepath.Join(dir, ".trailguide/config.yaml"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -68,7 +69,7 @@ func TestSourceSelectionFlags(t *testing.T) {
 			if err := yaml.Unmarshal(data, &config); err != nil || !reflect.DeepEqual(config.Sources["team"], tc.want) {
 				t.Fatal(string(data), err)
 			}
-			if _, err := os.Stat(filepath.Join(dir, ".syllabus/vendor")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(dir, ".trailguide/vendor")); !os.IsNotExist(err) {
 				t.Fatal("add source fetched files", err)
 			}
 		})
