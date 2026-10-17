@@ -566,7 +566,7 @@ func TestImport_WithoutLibraryReleasesFailsWithoutARef(t *testing.T) {
 	config.Sources[0].Ref = rules.GitRef{}
 	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "ref-required")
-	if !strings.Contains(err.Error(), "Set sources.team.ref to the tag or full commit SHA") {
+	if !strings.Contains(err.Error(), "Set sources.team.ref to the branch, tag, or full commit SHA") {
 		t.Fatalf("got %v; want the ref to set", err)
 	}
 }

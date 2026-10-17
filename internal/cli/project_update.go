@@ -390,6 +390,13 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 	for _, source := range sources {
 		out.WriteString(source.Name + "\n")
 		switch {
+		case source.FollowsRef && source.Commit != nil:
+			fmt.Fprintf(out, "  %s: %s -> %s\n", source.Ref, shortCommit(source.Commit.From), shortCommit(source.Commit.To))
+			if source.TagMoved {
+				fmt.Fprintf(out, "%sThe tag %s now names a different commit than at the last update.\n", indent, source.Ref)
+			}
+		case source.FollowsRef:
+			fmt.Fprintf(out, "  %s: no new commit.\n", source.Ref)
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
 		case len(source.Rules) == 0 && len(source.Skills) == 0 && source.SharedFiles == nil && len(source.Curated) == 0:

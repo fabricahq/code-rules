@@ -4,6 +4,7 @@ package imports
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -37,6 +38,10 @@ type sourcePlan struct {
 	nonLibrary bool
 	// locked is the commit the source's record holds, which sync keeps, or empty for a source without one.
 	locked string
+	// resolved is what the source's ref named when the plan resolved it again, a commit, a tag, or a branch, as for
+	// a bare name the repository decides; it is empty when the plan kept the recorded commit or follows library
+	// releases.
+	resolved rules.GitRefKind
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
@@ -48,6 +53,9 @@ type planner struct {
 	recorded *library.Snapshot
 	// history is nil until first needed.
 	history *releaseHistory
+	// again resolves a source's ref again, as an update of a source that follows its ref does, instead of keeping the
+	// commit recorded holds.
+	again bool
 }
 
 // planSource chooses what source imports, as project sync does: recorded versions stay, and versions are chosen
@@ -196,7 +204,7 @@ func (p *planner) versioned() (releaseHistory, error) {
 		return releaseHistory{}, err
 	}
 	if history.newest() == nil {
-		return releaseHistory{}, fail("ref-required", fmt.Sprintf("the repository has no release/<number> tags, so Trail Guide can't choose a library release to take the source from: it isn't a library, or hasn't published its first library release. Set sources.%s.ref to the tag or full commit SHA to take it from.", p.source.Name), nil)
+		return releaseHistory{}, fail("ref-required", fmt.Sprintf("the repository has no release/<number> tags, so Trail Guide can't choose a library release to take the source from: it isn't a library, or hasn't published its first library release. Set sources.%s.ref to the branch, tag, or full commit SHA to take it from.", p.source.Name), nil)
 	}
 	return history, nil
 }
@@ -344,23 +352,25 @@ func selectsMore(recorded *library.Snapshot, source rules.Source) bool {
 }
 
 // planRevision plans a source that imports one revision with ref. A recorded snapshot of the same ref, however it
-// is written, keeps its commit and rule versions; otherwise the ref is resolved again. Rules newly selected at the
-// revision record the version its library release record lists, or, for any other revision, the newest published
-// version whose files match, or none.
+// is written, keeps its commit and rule versions, unless the planner resolves the ref again; otherwise the ref is
+// resolved again. Rules newly selected at the revision record the version its library release record lists, or, for
+// any other revision, the newest published version whose files match, or none. A ref that names a branch of a
+// library fails with code ref-is-branch.
 func (p *planner) planRevision() (sourcePlan, error) {
 	plan := sourcePlan{rules: map[string]library.ImportedRule{}, individual: []string{}, warnings: []string{}}
 	recorded := p.recorded
-	if recorded != nil && p.source.Ref.Equal(recorded.Ref) {
+	if recorded != nil && p.source.Ref.Equal(recorded.Ref) && !p.again {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
-		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or set sources.%s.ref to a tag or commit the library still has, then run trailguide project sync. As a last resort, delete vendor/%s and run trailguide project sync to resolve the ref again, which may import different content.", p.source.Name, p.source.Name, p.source.Name, p.source.Name)); err != nil {
+		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, p.lostCommit()); err != nil {
 			return sourcePlan{}, err
 		}
 	} else {
 		recorded = nil
-		var err error
-		if plan.release, plan.commit, err = p.resolveRef(); err != nil {
+		resolved, err := p.resolveRef()
+		if err != nil {
 			return sourcePlan{}, err
 		}
+		plan.release, plan.commit, plan.resolved = resolved.release, resolved.commit, resolved.kind
 	}
 	isLibrary, err := p.repo.isLibrary(p.ctx, plan.commit)
 	if err != nil {
@@ -375,6 +385,9 @@ func (p *planner) planRevision() (sourcePlan, error) {
 		}
 		plan.nonLibrary = true
 		return plan, nil
+	}
+	if plan.resolved == rules.GitRefBranch {
+		return sourcePlan{}, fail("ref-is-branch", fmt.Sprintf("sources.%s.ref: %s is a branch, and the repository is a library, whose rules and skills a project takes at a library release, a tag, or a full commit SHA. Remove ref to follow the library's releases, or set it to a tag or commit. A branch ref is for repositories of skills that aren't libraries.", p.source.Name, p.source.Ref), nil)
 	}
 	tree, err := p.repo.tree(p.ctx, plan.commit)
 	if err != nil {
@@ -423,24 +436,57 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	return plan, nil
 }
 
-// resolveRef returns the commit the source's ref names and its library release number, or 0 when it isn't a
-// library release tag. A missing tag or commit fails with code version-not-found.
-func (p *planner) resolveRef() (int, string, error) {
+// lostCommit explains that the repository no longer has the commit the source record holds for the source's ref.
+// A source that isn't a library and whose ref can move, a branch or a tag, takes the commit its ref names now with
+// trailguide project update.
+func (p *planner) lostCommit() string {
+	name := p.source.Name
+	if p.recorded.NonLibrary && p.source.Ref.Kind() != rules.GitRefCommit {
+		return fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref, %s, is missing from the source's repository, so the branch or tag may have been force-pushed, moved, or deleted. Run trailguide project update %s to take the commit sources.%s.ref names now.", name, name, p.source.Ref, name, name)
+	}
+	return fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or set sources.%s.ref to a tag or commit the library still has, then run trailguide project sync. As a last resort, delete vendor/%s and run trailguide project sync to resolve the ref again, which may import different content.", name, name, name, name)
+}
+
+// resolvedRef is the revision a source's ref names in its repository now.
+type resolvedRef struct {
+	// release is the library release the ref names, or 0 when it isn't a library release tag.
+	release int
+	commit  string
+	// kind is what the ref named: a bare name's is GitRefTag or GitRefBranch, as the repository resolved it.
+	kind rules.GitRefKind
+}
+
+// resolveRef returns the revision the source's ref names now. A missing branch, tag, or commit fails with code
+// version-not-found, and a bare name of both a branch and a tag with ambiguous-ref. A bare name shaped like a library
+// release, such as release/5, names that release only when the repository has no branch of that name.
+func (p *planner) resolveRef() (resolvedRef, error) {
 	if ref := p.source.Ref; ref.Kind() == rules.GitRefTag {
-		if number, err := trailguide.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
+		if number, err := trailguide.ParseReleaseTag(ref.Name()); err == nil {
+			if ref.Bare() {
+				name, err := p.repo.bareRef(p.ctx, p.source)
+				var failure *Error
+				switch {
+				case err == nil && strings.HasPrefix(name, "refs/heads/"):
+					commit, kind, err := p.repo.fetchName(p.ctx, p.source, name)
+					return resolvedRef{commit: commit, kind: kind}, err
+				// The release history explains a release the library doesn't have.
+				case err != nil && (!errors.As(err, &failure) || failure.Code != "version-not-found"):
+					return resolvedRef{}, err
+				}
+			}
 			history, err := p.releases()
 			if err != nil {
-				return 0, "", err
+				return resolvedRef{}, err
 			}
 			release := history.release(number)
 			if release == nil {
-				return 0, "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no %s; check the ref.", p.source.Name, p.source.Ref), nil)
+				return resolvedRef{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no %s; check the ref.", p.source.Name, p.source.Ref), nil)
 			}
-			return number, release.commit, nil
+			return resolvedRef{release: number, commit: release.commit, kind: rules.GitRefTag}, nil
 		}
 	}
-	commit, err := p.repo.fetchRef(p.ctx, p.source)
-	return 0, commit, err
+	commit, kind, err := p.repo.fetchRef(p.ctx, p.source)
+	return resolvedRef{commit: commit, kind: kind}, err
 }
 
 // revisionVersion chooses the version of rule id imported at the plan's revision.

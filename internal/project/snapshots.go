@@ -868,7 +868,10 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 		}
 	}
 	number, err := trailguide.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
-	if ref.Kind() != rules.GitRefTag || err != nil {
+	// A bare name shaped like a library release, such as release/5, can name a branch of a repository that isn't a
+	// library, which has no library release.
+	branch := ref.Bare() && record.NonLibrary && record.Release == 0
+	if ref.Kind() != rules.GitRefTag || err != nil || branch {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")
 		}
