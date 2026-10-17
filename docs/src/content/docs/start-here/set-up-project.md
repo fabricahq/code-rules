@@ -115,13 +115,13 @@ This checks the rule files, not whether your application follows the rules.
 
 Now let's reuse rules someone else has written. A **library** is a repository that publishes rule groups and skills for projects to take.
 
-The [Fabrica public library](https://github.com/fabricahq/public-rules) includes a code design practice group. Its rules help agents structure functions, modules, and folders, such as **Express operations as meaningful steps**, which keeps functions understandable without extracting unnecessary helpers. Read them before deciding to include them.
+The [Fabrica public library](https://github.com/fabricahq/public-library) includes a code design practice group. Its rules help agents structure functions, modules, and folders, such as **Express operations as meaningful steps**, which keeps functions understandable without extracting unnecessary helpers. Read them before deciding to include them.
 
 From the same project root, run:
 
 ```sh
 trailguide project add source fabrica \
-  --repository https://github.com/fabricahq/public-rules.git \
+  --repository https://github.com/fabricahq/public-library.git \
   --rules 'practices/code-design/*'
 ```
 
@@ -149,7 +149,7 @@ schemaVersion: 2
 skillTargets: [claude, agents]
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/public-rules.git
+    repository: https://github.com/fabricahq/public-library.git
     rules:
       include: [practices/code-design/*]
     skills:

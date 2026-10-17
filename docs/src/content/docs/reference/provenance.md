@@ -100,7 +100,7 @@ Installed skills are in the top-level `skills` array, one entry per skill the pr
   "origin": {
     "source": "fabrica",
     "curatedFrom": null,
-    "repository": "https://github.com/fabricahq/public-rules.git",
+    "repository": "https://github.com/fabricahq/public-library.git",
     "resolvedCommit": "4f1c2a95…",
     "folder": "skills/tdd",
     "version": "1.1.0",
@@ -164,7 +164,7 @@ A library's snapshot mirrors its Trail Guide directory, so its files keep their 
   "kind": "library",
   "checksum": "5d1b…c07e",
   "kind": "library",
-  "repository": "https://github.com/fabricahq/public-rules.git",
+  "repository": "https://github.com/fabricahq/public-library.git",
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
   "ruleInclude": [
