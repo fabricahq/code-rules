@@ -27,7 +27,7 @@ type CuratedSkill struct {
 type CuratedReader func(ctx context.Context, name string, source rules.CuratedSource, ids []string) (map[string]CuratedSkill, string, error)
 
 // requireCuratedSkills fails when manifest, the library's configuration, lists a curated skill that its source
-// doesn't have at the ref the library declares, or when two skills it offers projects, its own in authored, its
+// doesn't have at the ref the library declares, or that uses one the source doesn't have, or when two skills it offers projects, its own in authored, its
 // skills/ folder, the curated ones it lists, and the curated ones those use, which projects install with them, have
 // the same install name, which agents find skills by. read reads each curated source; nil skips the check.
 func requireCuratedSkills(ctx context.Context, manifest []byte, authored *filetxn.Tree, read CuratedReader) error {
@@ -90,9 +90,17 @@ func requireCuratedSkills(ctx context.Context, manifest []byte, authored *filetx
 		source, skill, _ := SplitCurated(id)
 		for _, used := range usedSkills(installed[source], skill) {
 			usedID := source + ":" + used
+			field := "library.skills." + declaration.Skills.Level(id)
+			if _, found := installed[source][used]; !found {
+				return &ValidationError{Location: manifestPath + ": " + field, Problem: id + " uses " + usedID + ", which " + source + " doesn't have at " + revisions[source] + ", so projects can't install " + id + "; stop listing it, or set sources." + source + ".ref to a revision that has both"}
+			}
 			name := installed[source][used].Name
 			other, clash := seen[name]
-			if !clash || other == usedID {
+			if !clash {
+				seen[name] = usedID
+				continue
+			}
+			if other == usedID {
 				continue
 			}
 			problem := id + " uses " + usedID + ", which projects install with it as " + name + ", beside " + other + ", which also installs as " + name
@@ -101,21 +109,21 @@ func requireCuratedSkills(ctx context.Context, manifest []byte, authored *filetx
 			} else {
 				problem += "; stop listing one of them, or rename the folder of your own skill"
 			}
-			return &ValidationError{Location: manifestPath + ": library.skills." + declaration.Skills.Level(id), Problem: problem}
+			return &ValidationError{Location: manifestPath + ": " + field, Problem: problem}
 		}
 	}
 	return nil
 }
 
-// usedSkills returns, sorted, the skills of known, by ID, that the skill id uses, directly or through the skills
-// it uses, leaving out those known lacks.
+// usedSkills returns, sorted, the skills, by ID, that the skill id of known uses, directly or through the skills it
+// uses, including those known lacks, whose uses it can't follow.
 func usedSkills(known map[string]CuratedSkill, id string) []string {
 	found := map[string]bool{}
 	pending := slices.Clone(known[id].Uses)
 	for len(pending) > 0 {
 		used := pending[0]
 		pending = pending[1:]
-		if _, ok := known[used]; !ok || found[used] || used == id {
+		if found[used] || used == id {
 			continue
 		}
 		found[used] = true

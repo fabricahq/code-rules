@@ -1,3 +1,5 @@
+// Test forking a skill into a library through the CLI, and the source changes library check lists for it.
+
 package cli
 
 import (
@@ -11,7 +13,8 @@ import (
 )
 
 // forkingLibrary returns a library whose library.skills lists listed, YAML indented under it, from pocock at tag
-// stable, whose release skill uses deploy, with the pocock fixture and the environment that routes to it.
+// stable, whose release skill uses deploy and rollback uses a skill it lacks, with the pocock fixture and the
+// environment that routes to it.
 func forkingLibrary(t *testing.T, listed string) (string, *gitfixture.Fixture, []string) {
 	t.Helper()
 	ctx := context.Background()
@@ -19,6 +22,7 @@ func forkingLibrary(t *testing.T, listed string) (string, *gitfixture.Fixture, [
 		"skills/ops/deploy/SKILL.md":          []byte("---\nname: deploy\ndescription: Deploy a service.\n---\n# Deploy\n"),
 		"skills/ops/deploy/scripts/deploy.sh": []byte("#!/bin/sh\necho deploy\n"),
 		"skills/ops/release/SKILL.md":         []byte("---\nname: release\ndescription: Release a service.\nmetadata:\n  trailguide-skills-used: |\n    skills/ops/deploy\n---\n# Release\n"),
+		"skills/ops/rollback/SKILL.md":        []byte("---\nname: rollback\ndescription: Roll back a release.\nmetadata:\n  trailguide-skills-used: |\n    skills/ops/missing\n---\n# Roll back\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -119,5 +123,21 @@ func TestLibraryCheck_AsksToForkTheCuratedSkillThatUsesAFork(t *testing.T) {
 	}
 	if out, diagnostic, code := runCLIWithEnvironment(t, binary, directory, environment, "library", "check"); code != 0 {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+}
+
+func TestLibraryAddSkill_AsksToForkTheSkillsAForkUsesFirst(t *testing.T) {
+	directory, _, environment := forkingLibrary(t, "    recommended: [pocock:skills/ops/deploy]\n")
+	out, diagnostic, code := runCLIWithEnvironment(t, buildCLI(t), directory, environment, "library", "add", "skill", "--from", "pocock:skills/ops/release", "--reason", "Ours.")
+	if want := "the skill uses pocock:skills/ops/deploy, which the library hasn't forked"; code == 0 || !strings.Contains(out+diagnostic, want) {
+		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
+	}
+}
+
+func TestLibraryCheck_RejectsACuratedSkillThatUsesOneItsSourceLacks(t *testing.T) {
+	directory, _, environment := forkingLibrary(t, "    offered: [pocock:skills/ops/rollback]\n")
+	out, diagnostic, code := runCLIWithEnvironment(t, buildCLI(t), directory, environment, "library", "check")
+	if want := "pocock:skills/ops/rollback uses pocock:skills/ops/missing, which pocock doesn't have at stable"; code == 0 || !strings.Contains(out+diagnostic, want) {
+		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
 	}
 }
