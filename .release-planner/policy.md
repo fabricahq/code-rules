@@ -55,7 +55,7 @@ The notes present changes in this order, leaving out any with nothing to say:
 
 ## Always and never
 
-- Always also call out a breaking change in a sentence near the start of the notes, so readers can't miss it.
+- Always keep new features and improvements high level: say what readers can now do in a short bullet, and leave option names, flags, and edge cases to the linked docs. Give a feature its own section only when it's a major change, such as a new capability or a rename, and summarize its parts in bullets.
 - Always give migration steps for a breaking change, with the commands or before-and-after examples readers need. Until Trail Guide is publicly announced, summarize breaking changes in a sentence instead, and say that upgrade instructions are omitted because Trail Guide is in initial development.
 - Always credit external contributors by GitHub handle.
 - Never present internal refactors, CI changes, or website-only changes as new CLI features.
