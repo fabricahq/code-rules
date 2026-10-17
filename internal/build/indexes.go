@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // defaultIndexMaxLines keeps ordinary summaries together before pagination. It is a provisional delivery default,
@@ -222,8 +222,8 @@ func groupTitle(group resolvedGroup) string {
 // installs skills, points to SKILLS.md.
 func indexHeader(groups []resolvedGroup, installsSkills bool) string {
 	blocks := []string{
-		"# Syllabus",
-		"This project uses [Fabrica Syllabus](https://code-rules.fabricahq.com) to declare its adopted engineering practices.",
+		"# Trail Guide",
+		"This project uses [Fabrica Trail Guide](https://trailguide.fabricahq.com) to declare its adopted engineering practices.",
 	}
 	if installsSkills {
 		blocks = append(blocks, "This project also installs agent skills. See [SKILLS.md](SKILLS.md) for what each one does and where it's installed.")
@@ -236,7 +236,7 @@ func indexHeader(groups []resolvedGroup, installsSkills bool) string {
 		}
 	}
 	if !hasRules {
-		blocks = append(blocks, "**No active rules are selected for this project.**", "There is no Syllabus guidance to load. Continue using the project’s other instructions.")
+		blocks = append(blocks, "**No active rules are selected for this project.**", "There is no Trail Guide guidance to load. Continue using the project’s other instructions.")
 		if len(groups) > 0 {
 			blocks = append(blocks, "## Technology and practice group indexes", "The selected groups below contain no active rules.")
 		}

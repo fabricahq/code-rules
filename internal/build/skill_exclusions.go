@@ -7,7 +7,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // skillReplacement is what an authored skill replaces: a source's skill, which the project excludes and installs
@@ -45,13 +45,13 @@ func skillReplacements(config rules.Configuration, libraries map[string]Library,
 				continue
 			}
 			if _, authored := local[exclusion.ReplacedBy]; !authored {
-				return nil, invalid(where+".replacedBy", fmt.Sprintf("the project has no authored skill %s; add .syllabus/%s/SKILL.md, or remove replacedBy to exclude the skill without a replacement", exclusion.ReplacedBy, exclusion.ReplacedBy))
+				return nil, invalid(where+".replacedBy", fmt.Sprintf("the project has no authored skill %s; add .trailguide/%s/SKILL.md, or remove replacedBy to exclude the skill without a replacement", exclusion.ReplacedBy, exclusion.ReplacedBy))
 			}
 			if other, taken := replaces[exclusion.ReplacedBy]; taken {
 				return nil, invalid(where+".replacedBy", fmt.Sprintf("%s already replaces the skill %s names; each authored skill replaces one skill", exclusion.ReplacedBy, other))
 			}
 			replaces[exclusion.ReplacedBy] = where
-			upstream := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary}
+			upstream := sourceSkill(source, snapshot, id)
 			result[exclusion.ReplacedBy] = skillReplacement{Upstream: upstream, Reason: exclusion.Reason, BasedOn: exclusion.BasedOn}
 		}
 	}

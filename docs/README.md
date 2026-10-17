@@ -1,12 +1,12 @@
-# Syllabus documentation
+# Trail Guide documentation
 
-The [Fabrica Syllabus](https://code-rules.fabricahq.com) website documents the Go CLI and its file formats.
+The [Fabrica Trail Guide](https://trailguide.fabricahq.com) website documents the Go CLI and its file formats.
 
 The site uses Astro and Starlight, with human-facing guides, a reference, and a dedicated “For agents” section.
 Its visual direction follows [FM Linear's documentation](https://github.com/josh-padnick/fm-linear/tree/main/docs): monochrome typography, generous spacing, and rounded example panels.
 The starting design reference is commit `bbb6bb3f1b94d0506120277179128066270f2e3b`.
 Shared theme tokens and the accessible-callout transform are adapted from that project.
-Homepage content and illustrations are original Syllabus examples; no FM Linear brand imagery is included.
+Homepage content and illustrations are original Trail Guide examples; no FM Linear brand imagery is included.
 
 ## Run locally
 
@@ -36,10 +36,10 @@ These commands do not publish the site.
 
 ## Publishing
 
-The Documentation workflow publishes the site, including `install.sh`, to GitHub Pages at <https://code-rules.fabricahq.com> after a push to `main` passes every docs check, including the external link check. Pull requests and other branches only run the checks.
+The Documentation workflow publishes the site, including `install.sh`, to GitHub Pages at <https://trailguide.fabricahq.com> after a push to `main` passes every docs check, including the external link check. Pull requests and other branches only run the checks.
 The site is served at the domain root, and page links are root-relative; do not set Astro's `base`.
 GitHub Pages settings, the custom domain, and its DNS record are managed in Fabrica's infrastructure repository, not here.
-Every documentation page loads Cloudflare Web Analytics, which counts visits without cookies, only when served from code-rules.fabricahq.com, so local builds and tests report nothing. `src/analytics.mjs` builds that script, and `astro.config.mjs` holds the public site token from the Cloudflare dashboard. The footer links to Fabrica's privacy policy, which describes the analytics.
+Every documentation page loads Cloudflare Web Analytics, which counts visits without cookies, only when served from trailguide.fabricahq.com, so local builds and tests report nothing. `src/analytics.mjs` builds that script, and `astro.config.mjs` holds the public site token from the Cloudflare dashboard. The footer links to Fabrica's privacy policy, which describes the analytics.
 
 ## Maintain the docs
 
@@ -49,10 +49,10 @@ Homepage composition lives in `src/components/HomePage.astro` and its illustrati
 
 ### Brand assets
 
-The Syllabus mark is the Corner check: a rule card with an open corner and a clear checkmark.
+The Trail Guide mark is the Corner check: a rule card with an open corner and a clear checkmark.
 The [brand reference](src/content/docs/reference/brand.mdx) explains how to use it and links every downloadable logo export in `public/brand/`.
 The homepage hero shows the horizontal logo exports, switching between the dark and white files by theme, and `src/components/BrandAsset.astro` renders the reference page's previews.
-The site's favicons at the root of `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) come from the brand package; its favicon and app icon exports are deliberately not published for download because they identify Syllabus itself.
+The site's favicons at the root of `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) come from the brand package; its favicon and app icon exports are deliberately not published for download because they identify Trail Guide itself.
 
 ### Styling
 
@@ -69,7 +69,7 @@ Run `bun run check` to verify website/tooling formatting, lint, types, tests, th
 
 ### Link checks
 
-`bun run check` checks links and anchors within the built site, including absolute URLs to `code-rules.fabricahq.com`. To also check external links, run `bun run docs:build && bun run docs:links:all` from the repository root.
+`bun run check` checks links and anchors within the built site, including absolute URLs to `trailguide.fabricahq.com`. To also check external links, run `bun run docs:build && bun run docs:links:all` from the repository root.
 
 The Documentation workflow runs both checks on every push and pull request. A broken link fails the workflow, even when the change does not touch a Markdown file.
 

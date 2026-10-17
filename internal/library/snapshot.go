@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // Snapshot owns one source's original library bytes and the record of what was imported, which works like a lockfile.
@@ -43,7 +43,7 @@ type Snapshot struct {
 	// Files maps each library path to its original bytes, excluding _source.json, except config.yaml, which holds
 	// what the library publishes of its manifest, as rules.PublishedManifest gives it. The snapshot holds one version
 	// of each imported rule, so every file is stored at its library path. Each skill's files are stored in the
-	// folder its ID names, such as skills/build-feature/SKILL.md.
+	// folder SkillFolder names, such as skills/build-feature/SKILL.md.
 	Files map[string][]byte `json:"files"`
 	// NonLibrary reports that the source's repository has no library manifest at Commit, so the snapshot holds only
 	// skills, at their paths in the repository, and no rules, release, or catalog files.
@@ -52,7 +52,7 @@ type Snapshot struct {
 	// empty, never nil, when there are none.
 	SkillSelection []string `json:"skillSelection"`
 	// Skills maps the ID of each skill the source installs to its record; it is empty, never nil, when there are
-	// none. Every skill comes from Commit.
+	// none. Every skill the source publishes comes from Commit, and every borrowed skill from its Borrowed revision.
 	Skills map[string]ImportedSkill `json:"skills"`
 	// AvailableSkills maps the ID of every skill the source offers at Commit, installed or not, to its record, so
 	// listings can show what else the project could install; it is empty, never nil, when there are none.
@@ -60,6 +60,48 @@ type Snapshot struct {
 	// Executable lists, sorted, the paths in Files whose executable bit the repository records; it is empty, never
 	// nil, when there are none.
 	Executable []string `json:"executable"`
+	// Borrowed maps the name of each source in the library's manifest that supplies a borrowed skill the snapshot
+	// holds to the revision that supplied it; it is nil when there are none. A borrowed skill's ID is
+	// that name, a colon, and the skill's ID in the source's repository, such as mattpocock:skills/to-spec.
+	Borrowed map[string]BorrowedSource `json:"borrowed,omitempty"`
+}
+
+// BorrowedSource records the revision of one source a library borrows skills from, which the project resolved
+// itself: a library release never locks it.
+type BorrowedSource struct {
+	Repository string `json:"repository"`
+	// Ref is the ref the revision was resolved from: the one the library's manifest names for the source, or the
+	// project's own source's when Source overrides it; it is the zero GitRef when the borrowed repository follows its
+	// newest library release.
+	Ref rules.GitRef `json:"ref,omitzero"`
+	// Release is the borrowed repository's library release at Commit, or 0 when Commit isn't one.
+	Release int    `json:"release,omitempty"`
+	Commit  string `json:"resolvedCommit"`
+	// Source names the project's own source that declares the same repository, whose revision supplies the
+	// borrowed skills in place of the library's ref; it is empty when the library's ref does.
+	Source string `json:"source,omitempty"`
+	// NonLibrary reports that the repository has no library manifest at Commit, so its skill IDs are their paths
+	// from its root.
+	NonLibrary bool `json:"nonLibrary,omitempty"`
+}
+
+// BorrowedDirectory is the folder, in a library source's vendor snapshot, that holds the skills it borrows, one
+// folder per borrowed source.
+const BorrowedDirectory = "borrowed"
+
+// SplitBorrowed returns the source name and the skill's ID in that source's repository for a borrowed skill's ID,
+// such as mattpocock and skills/to-spec for mattpocock:skills/to-spec, and reports false for any other ID.
+func SplitBorrowed(id string) (source, skill string, borrowed bool) {
+	return strings.Cut(id, ":")
+}
+
+// SkillFolder returns the folder, in Files, that holds the files of skill id: its ID for a skill the source itself
+// publishes, and borrowed/<source>/<ID> for a borrowed one.
+func SkillFolder(id string) string {
+	if source, skill, borrowed := SplitBorrowed(id); borrowed {
+		return BorrowedDirectory + "/" + source + "/" + skill
+	}
+	return id
 }
 
 // ImportedSkill records one installed skill from a source.
@@ -70,7 +112,7 @@ type ImportedSkill struct {
 	// Included reports that the source's skills.include selects the skill; a skill it doesn't select is installed
 	// because other installed skills of the source use it.
 	Included bool `json:"included"`
-	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their syllabus-skills-used
+	// UsedBy lists, sorted, the IDs of the source's installed skills that use this one, through their trailguide-skills-used
 	// or the source's skills.uses; it is empty, never nil, when none does, which happens only when Included is set.
 	UsedBy []string `json:"usedBy"`
 }
@@ -99,18 +141,42 @@ func HiddenSkill(id string) bool {
 func (s Snapshot) SkillFiles(id string) map[string][]byte {
 	files := map[string][]byte{}
 	for name, data := range s.Files {
-		if relative, ok := strings.CutPrefix(name, id+"/"); ok {
+		if relative, ok := strings.CutPrefix(name, SkillFolder(id)+"/"); ok {
 			files[relative] = data
 		}
 	}
 	return files
 }
 
+// BorrowedFrom returns what the snapshot holds of the source name it borrows skills from, as a snapshot of that
+// source's repository: its commit, its borrowed skills by their IDs there, and their files and executable files by
+// path there. It is empty when the snapshot borrows nothing from name.
+func (s Snapshot) BorrowedFrom(name string) Snapshot {
+	result := Snapshot{Commit: s.Borrowed[name].Commit, Skills: map[string]ImportedSkill{}, Files: map[string][]byte{}, Executable: []string{}}
+	for id, skill := range s.Skills {
+		if source, folder, borrowed := SplitBorrowed(id); borrowed && source == name {
+			result.Skills[folder] = skill
+		}
+	}
+	prefix := BorrowedDirectory + "/" + name + "/"
+	for file, data := range s.Files {
+		if relative, ok := strings.CutPrefix(file, prefix); ok {
+			result.Files[relative] = data
+		}
+	}
+	for _, file := range s.Executable {
+		if relative, ok := strings.CutPrefix(file, prefix); ok {
+			result.Executable = append(result.Executable, relative)
+		}
+	}
+	return result
+}
+
 // SkillExecutable returns, sorted, the executable files of skill id, by path in its folder.
 func (s Snapshot) SkillExecutable(id string) []string {
 	executable := []string{}
 	for _, name := range s.Executable {
-		if relative, ok := strings.CutPrefix(name, id+"/"); ok {
+		if relative, ok := strings.CutPrefix(name, SkillFolder(id)+"/"); ok {
 			executable = append(executable, relative)
 		}
 	}
@@ -120,7 +186,7 @@ func (s Snapshot) SkillExecutable(id string) []string {
 // IsSkillFile reports whether file, a path in Files, belongs to one of the snapshot's skills.
 func (s Snapshot) IsSkillFile(file string) bool {
 	for id := range s.Skills {
-		if strings.HasPrefix(file, id+"/") {
+		if strings.HasPrefix(file, SkillFolder(id)+"/") {
 			return true
 		}
 	}
@@ -131,12 +197,12 @@ func (s Snapshot) IsSkillFile(file string) bool {
 type ImportedRule struct {
 	// Version is nil, and Release is 0, when the rule's files aren't a published version, which only a ref other
 	// than a library release can import.
-	Version *syllabus.RuleVersion `json:"version"`
-	Release int                   `json:"release,omitempty"`
+	Version *trailguide.RuleVersion `json:"version"`
+	Release int                     `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
 	// LegacyLayout reports that Commit keeps the library in the layout before version 2, with the rule's files at
-	// their library paths from the repository root rather than in .syllabus/rules/.
+	// their library paths from the repository root rather than in .trailguide/rules/.
 	LegacyLayout bool `json:"legacyLayout,omitempty"`
 }
 

@@ -12,30 +12,33 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 // Library is a configuration's library section, the manifest, which makes the repository a library.
 type Library struct {
 	// License is nil when the library declares no license.
 	License *LicenseDeclaration `json:"license"`
-	// Skills holds the levels the library gives its skills.
+	// Skills holds the levels the library gives its skills, its own and those it borrows.
 	Skills SkillLevels `json:"skills"`
+	// Borrowed maps the name of each source that Skills borrows from to its repository and ref, as the
+	// configuration's sources declare them; it is nil when the library borrows nothing.
+	Borrowed map[string]BorrowedSource `json:"borrowed,omitempty"`
 }
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
 // A nil SPDXExpression means the library declared a file but no SPDX identifier. Files and AttributionFiles hold
-// library paths, which are the declared paths except inside .syllabus/: a declared
-// .syllabus/assets/NOTICE.md is assets/NOTICE.md.
+// library paths, which are the declared paths except inside .trailguide/: a declared
+// .trailguide/assets/NOTICE.md is assets/NOTICE.md.
 type LicenseDeclaration struct {
 	SPDXExpression   *string  `json:"spdxExpression"`
 	Files            []string `json:"files"`
 	AttributionFiles []string `json:"attributionFiles"`
 }
 
-// ParseLibraryManifest validates text, a library's whole .syllabus/config.yaml, and returns its library section,
+// ParseLibraryManifest validates text, a library's whole .trailguide/config.yaml, and returns its library section,
 // or nil when the configuration has none, which means the repository isn't a library. Errors prefix their location
 // with location, such as team/config.yaml. It checks syntax only; callers read the declared files themselves.
 func ParseLibraryManifest(text []byte, location string) (*Library, error) {
@@ -57,7 +60,7 @@ func ParseLibraryManifest(text []byte, location string) (*Library, error) {
 	return config.Library, nil
 }
 
-// PublishedManifest returns what a library publishes of text, its whole .syllabus/config.yaml, when it validates
+// PublishedManifest returns what a library publishes of text, its whole .trailguide/config.yaml, when it validates
 // as ParseLibraryManifest validates it: a configuration that holds only its library section, as canonical JSON, so
 // the sources and other fields that configure the repository as a project, and its comments and formatting, stay in
 // the repository. It returns nil for a configuration without a library section.
@@ -74,25 +77,37 @@ func PublishedManifest(text []byte, location string) ([]byte, error) {
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return nil, err
 	}
-	return PublishedManifestOf(fields["library"])
+	return PublishedManifestOf(fields["library"], fields["sources"])
 }
 
-// PublishedManifestOf returns the configuration that PublishedManifest publishes for a library section, given as
-// JSON: schema version 2, no sources, and the section with its object keys sorted.
-func PublishedManifestOf(section json.RawMessage) ([]byte, error) {
+// PublishedManifestOf returns the configuration that PublishedManifest publishes for a library section and the
+// configuration's sources, both given as JSON: schema version 2, the repository and ref of each source the
+// section's skills borrow from, which projects resolve for themselves, and the section, with object keys sorted.
+func PublishedManifestOf(section, sources json.RawMessage) ([]byte, error) {
 	var value any
 	if err := json.Unmarshal(section, &value); err != nil {
 		return nil, err
 	}
-	encoded, err := json.Marshal(map[string]any{"schemaVersion": 2, "sources": map[string]any{}, "library": value})
+	var declared map[string]map[string]any
+	_ = json.Unmarshal(sources, &declared)
+	published := map[string]any{}
+	for _, name := range borrowedNames(section) {
+		source := map[string]any{"repository": declared[name]["repository"]}
+		if ref, ok := declared[name]["ref"]; ok {
+			source["ref"] = ref
+		}
+		published[name] = source
+	}
+	encoded, err := json.Marshal(map[string]any{"schemaVersion": 2, "sources": published, "library": value})
 	if err != nil {
 		return nil, err
 	}
 	return append(encoded, '\n'), nil
 }
 
-// parseLibrary validates a configuration's library section: its license and the levels of its skills.
-func parseLibrary(input json.RawMessage) (*Library, error) {
+// parseLibrary validates a configuration's library section: its license and the levels of its skills, whose
+// borrowed skills must borrow from sources, the configuration's sources.
+func parseLibrary(input json.RawMessage, sources []Source) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
 		return nil, err
@@ -106,9 +121,14 @@ func parseLibrary(input json.RawMessage) (*Library, error) {
 			return nil, err
 		}
 	}
-	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills"); err != nil {
+	names := []string{}
+	for _, source := range sources {
+		names = append(names, source.Name)
+	}
+	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills", names); err != nil {
 		return nil, err
 	}
+	result.Borrowed = borrowedSources(result.Skills, sources)
 	return result, nil
 }
 
@@ -165,11 +185,11 @@ func parseLicense(input json.RawMessage, location string) (*LicenseDeclaration, 
 }
 
 // termsPath reads a declared license or notice path, relative to the repository root, and returns its library path.
-// The file must be library-wide: outside .syllabus/, or in its assets/ or a group in its rules/. A rule's Markdown
+// The file must be library-wide: outside .trailguide/, or in its assets/ or a group in its rules/. A rule's Markdown
 // file or a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a
 // library release replace a rule version's content. A path in .code-rules/, which a library declared before Code
-// Rules was renamed Syllabus, reads as the same path in .syllabus/, where tree upgrades and git mv put its file. A file
-// outside .syllabus/ keeps its repository path in a project's snapshot of the library, so it can't start with a name
+// Rules was renamed Trail Guide, reads as the same path in .trailguide/, where tree upgrades and git mv put its file. A file
+// outside .trailguide/ keeps its repository path in a project's snapshot of the library, so it can't start with a name
 // the snapshot keeps for the library's other files.
 func termsPath(input json.RawMessage, location string) (string, error) {
 	declared, err := decode.Path(input, location)
@@ -178,7 +198,7 @@ func termsPath(input json.RawMessage, location string) (string, error) {
 	}
 	path, ok := librarytree.LibraryPath(librarytree.Upgrade(declared))
 	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") || (path == declared && librarytree.InSnapshotNames(path)) {
-		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
+		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
 	}
 	if librarytree.IsRuleContent(path) {
 		return "", invalid(location, decode.Quote(declared)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root")

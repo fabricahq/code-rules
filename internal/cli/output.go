@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/gitexec"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -27,7 +27,7 @@ type commandOutput struct {
 	json   bool
 	report commandReport
 	text   bytes.Buffer // Cobra help, version, and license output, rendered only after command completion.
-	// warnings are about how the command found the project, such as a Syllabus directory under its old name, and
+	// warnings are about how the command found the project, such as a Trail Guide directory under its old name, and
 	// accompany any outcome.
 	warnings []string
 }

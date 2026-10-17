@@ -10,25 +10,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // TestRenderAgentsSection records the version and a digest of the lines between the markers, and names the
 // project's directory.
 func TestRenderAgentsSection(t *testing.T) {
-	section := renderAgentsSection(".syllabus", "1.2.3")
+	section := renderAgentsSection(".trailguide", "1.2.3")
 	lines := strings.SplitAfter(section, "\n")
 	marker := agentsBeginMarker.FindStringSubmatch(strings.TrimSuffix(lines[0], "\n"))
-	if marker == nil || marker[1] != "1.2.3" || marker[2] != agentsDigest(strings.Join(lines[1:len(lines)-2], "")) || lines[len(lines)-2] != "<!-- syllabus:end -->\n" {
+	if marker == nil || marker[1] != "1.2.3" || marker[2] != agentsDigest(strings.Join(lines[1:len(lines)-2], "")) || lines[len(lines)-2] != "<!-- trailguide:end -->\n" {
 		t.Fatalf("markers:\n%s", section)
 	}
-	for _, want := range []string{"## Skills and Rules\n", "Read `.syllabus/generated/RULES.md`", "If `.syllabus/generated/SKILLS.md` exists, read it", "follow `.syllabus/README.md`"} {
+	for _, want := range []string{"## Skills and Rules\n", "Read `.trailguide/generated/RULES.md`", "If `.trailguide/generated/SKILLS.md` exists, read it", "follow `.trailguide/README.md`"} {
 		if !strings.Contains(section, want) {
 			t.Fatalf("missing %q:\n%s", want, section)
 		}
 	}
-	if legacy := renderAgentsSection(".code-rules", "1.2.3"); strings.Contains(legacy, ".syllabus/") || !strings.Contains(legacy, "Read `.code-rules/generated/RULES.md`") {
+	if legacy := renderAgentsSection(".code-rules", "1.2.3"); strings.Contains(legacy, ".trailguide/") || !strings.Contains(legacy, "Read `.code-rules/generated/RULES.md`") {
 		t.Fatalf("section for .code-rules/:\n%s", legacy)
 	}
 }
@@ -36,8 +36,8 @@ func TestRenderAgentsSection(t *testing.T) {
 // TestPlanAgentsSection covers creating, appending, refreshing, and leaving alone, and keeps every line outside the
 // markers byte for byte.
 func TestPlanAgentsSection(t *testing.T) {
-	current := renderAgentsSection(".syllabus", "1.2.3")
-	older := renderAgentsSection(".syllabus", "1.0.0")
+	current := renderAgentsSection(".trailguide", "1.2.3")
+	older := renderAgentsSection(".trailguide", "1.0.0")
 	for name, test := range map[string]struct {
 		existing *string
 		want     string
@@ -50,7 +50,7 @@ func TestPlanAgentsSection(t *testing.T) {
 		"older version":    {ptr("# Guide\n\n" + older + "\n## Releases\n"), "# Guide\n\n" + current + "\n## Releases\n", "updated"},
 		"other directory":  {ptr(renderAgentsSection(".code-rules", "1.2.3")), current, "updated"},
 		"current":          {ptr("# Guide\n\n" + current + "Footer\n"), "", ""},
-		"pasted":           {ptr("## Engineering rules\n\n1. Read `.syllabus/generated/RULES.md`.\n"), "", ""},
+		"pasted":           {ptr("## Engineering rules\n\n1. Read `.trailguide/generated/RULES.md`.\n"), "", ""},
 		"crlf current":     {ptr(strings.ReplaceAll(current, "\n", "\r\n")), "", ""},
 		"pasted elsewhere": {ptr("Read `.code-rules/generated/RULES.md`.\n"), "Read `.code-rules/generated/RULES.md`.\n\n" + current, "added"},
 	} {
@@ -76,15 +76,15 @@ func TestPlanAgentsSection(t *testing.T) {
 
 // TestPlanAgentsSectionRefuses an edited section and broken markers, so no command overwrites what someone wrote.
 func TestPlanAgentsSectionRefuses(t *testing.T) {
-	current := renderAgentsSection(".syllabus", "1.2.3")
+	current := renderAgentsSection(".trailguide", "1.2.3")
 	for name, test := range map[string]struct{ existing, code string }{
 		"edited":     {strings.Replace(current, "Briefly report", "Always report", 1), "agents-section-edited"},
-		"begin only": {"# Guide\n<!-- syllabus:begin 1.2.3 sha256:0123456789abcdef -->\n", "agents-section-invalid"},
-		"end first":  {"<!-- syllabus:end -->\n" + current, "agents-section-invalid"},
-		"two begins": {"<!-- syllabus:begin 1.2.3 sha256:0123456789abcdef -->\n" + current, "agents-section-invalid"},
-		"two ends":   {current + "<!-- syllabus:end -->\n", "agents-section-invalid"},
+		"begin only": {"# Guide\n<!-- trailguide:begin 1.2.3 sha256:0123456789abcdef -->\n", "agents-section-invalid"},
+		"end first":  {"<!-- trailguide:end -->\n" + current, "agents-section-invalid"},
+		"two begins": {"<!-- trailguide:begin 1.2.3 sha256:0123456789abcdef -->\n" + current, "agents-section-invalid"},
+		"two ends":   {current + "<!-- trailguide:end -->\n", "agents-section-invalid"},
 		"link":       {current, "unsafe-file"},
-		"malformed":  {strings.NewReplacer("syllabus:begin 1.2.3", "syllabus:begin", "syllabus:end", "syllabus:end-x").Replace(current), "agents-section-invalid"},
+		"malformed":  {strings.NewReplacer("trailguide:begin 1.2.3", "trailguide:begin", "trailguide:end", "trailguide:end-x").Replace(current), "agents-section-invalid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := agentsProject(t, &test.existing)
@@ -124,13 +124,13 @@ func TestBuildAgentsSection(t *testing.T) {
 	if err != nil || changes.Agents == nil || changes.Agents.Action != "updated" {
 		t.Fatalf("%+v %v", changes, err)
 	}
-	if got, err := os.ReadFile(agents); err != nil || string(got) != own+renderAgentsSection(".syllabus", "1.2.3") {
+	if got, err := os.ReadFile(agents); err != nil || string(got) != own+renderAgentsSection(".trailguide", "1.2.3") {
 		t.Fatalf("%s %v", got, err)
 	}
 	if result, err := Check(ctx, options); err != nil || !result.Current() {
 		t.Fatalf("%+v %v", result, err)
 	}
-	edited := own + strings.Replace(renderAgentsSection(".syllabus", "1.2.3"), "Briefly report", "Always report", 1)
+	edited := own + strings.Replace(renderAgentsSection(".trailguide", "1.2.3"), "Briefly report", "Always report", 1)
 	if err := os.WriteFile(agents, []byte(edited), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestAgentsFileTurnedOff(t *testing.T) {
 func TestCheckAcceptsAPastedSection(t *testing.T) {
 	ctx := context.Background()
 	_, options := localProject(t)
-	pasted := "## Engineering rules\n\n1. Read `.syllabus/generated/RULES.md` and follow its instructions.\n"
+	pasted := "## Engineering rules\n\n1. Read `.trailguide/generated/RULES.md` and follow its instructions.\n"
 	agents := filepath.Join(options.Directory, "AGENTS.md")
 	if err := os.WriteFile(agents, []byte(pasted), 0644); err != nil {
 		t.Fatal(err)
@@ -194,11 +194,11 @@ func TestCheckAcceptsAPastedSection(t *testing.T) {
 	}
 }
 
-// agentsProject returns the Syllabus directory of a repository whose AGENTS.md holds existing, or has none when nil.
+// agentsProject returns the Trail Guide directory of a repository whose AGENTS.md holds existing, or has none when nil.
 func agentsProject(t *testing.T, existing *string) *os.Root {
 	t.Helper()
 	repository := t.TempDir()
-	if err := os.Mkdir(filepath.Join(repository, ".syllabus"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(repository, ".trailguide"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	if existing != nil {
@@ -206,7 +206,7 @@ func agentsProject(t *testing.T, existing *string) *os.Root {
 			t.Fatal(err)
 		}
 	}
-	root, err := os.OpenRoot(filepath.Join(repository, ".syllabus"))
+	root, err := os.OpenRoot(filepath.Join(repository, ".trailguide"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestAgentsPlanNoticesAChange(t *testing.T) {
 // TestInitRefusesAnEditedSectionFirst fails before writing any scaffolding when AGENTS.md holds an edited section.
 func TestInitRefusesAnEditedSectionFirst(t *testing.T) {
 	repository := t.TempDir()
-	edited := strings.Replace(renderAgentsSection(".syllabus", "1.2.3"), "Briefly report", "Always report", 1)
+	edited := strings.Replace(renderAgentsSection(".trailguide", "1.2.3"), "Briefly report", "Always report", 1)
 	if err := os.WriteFile(filepath.Join(repository, "AGENTS.md"), []byte(edited), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestInitRefusesAnEditedSectionFirst(t *testing.T) {
 	if !errors.As(err, &failure) || failure.Code != "agents-section-edited" {
 		t.Fatalf("got %v, want agents-section-edited", err)
 	}
-	if _, err := os.Lstat(filepath.Join(repository, ".syllabus", "config.yaml")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repository, ".trailguide", "config.yaml")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("init wrote config.yaml: %v", err)
 	}
 }

@@ -20,7 +20,7 @@ import (
 	"syscall"
 	"unicode/utf16"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 const maxProjectFile = 64 * 1024 * 1024

@@ -73,7 +73,7 @@ func RunWithEnvironment(ctx context.Context, binary, directory string, environme
 	}
 	// Keep the parent's slave open until capture has drained the master: macOS can discard
 	// unread output when the last slave descriptor closes, which loses a quick child's output.
-	// See https://github.com/fabricahq/syllabus/pull/65.
+	// See https://github.com/fabricahq/trailguide/pull/65.
 	exited := make(chan struct{})
 	var waitErr error
 	go func() {

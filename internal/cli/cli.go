@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	license "github.com/fabricahq/syllabus"
-	"github.com/fabricahq/syllabus/internal/imports"
+	license "github.com/fabricahq/trailguide"
+	"github.com/fabricahq/trailguide/internal/imports"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +60,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		options.Version = "0.0.0-development"
 	}
 	output := &commandOutput{}
-	root := &cobra.Command{Use: "syllabus", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
+	root := &cobra.Command{Use: "trailguide", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
 	// An unnamed, hidden command prevents Cobra from installing its help subcommand. Help flags remain local.
 	root.SetHelpCommand(&cobra.Command{Hidden: true})
@@ -73,7 +73,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.SetUsageFunc(commandUsage)
 	var showLicense bool
-	root.Flags().BoolVar(&showLicense, "license", false, "Print the Syllabus license and copyright notice")
+	root.Flags().BoolVar(&showLicense, "license", false, "Print the Trail Guide license and copyright notice")
 	root.RunE = func(cmd *cobra.Command, _ []string) error {
 		if showLicense {
 			_, err := io.WriteString(cmd.OutOrStdout(), license.License())

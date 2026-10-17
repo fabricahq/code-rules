@@ -48,13 +48,13 @@ func TestAuthoringArgumentErrors(t *testing.T) {
 					if extra {
 						want = "expected one " + test.name + "; received 2 arguments."
 					}
-					if !strings.Contains(message, want) || !strings.Contains(message, "Usage:\n  syllabus "+test.command+" ") {
+					if !strings.Contains(message, want) || !strings.Contains(message, "Usage:\n  trailguide "+test.command+" ") {
 						t.Fatalf("unhelpful argument error: %s", message)
 					}
-					if !extra && !strings.Contains(message, "Example:\n  syllabus "+test.command+" "+test.example) {
+					if !extra && !strings.Contains(message, "Example:\n  trailguide "+test.command+" "+test.example) {
 						t.Fatalf("missing example: %s", message)
 					}
-					if !structured && !strings.Contains(diagnostic, "Run syllabus "+test.command+" --help") {
+					if !structured && !strings.Contains(diagnostic, "Run trailguide "+test.command+" --help") {
 						t.Fatalf("wrong help destination: %s", diagnostic)
 					}
 					entries, err := os.ReadDir(dir)

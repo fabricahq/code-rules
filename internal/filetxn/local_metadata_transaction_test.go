@@ -99,7 +99,7 @@ func TestApply_RejectsTargetsOutsideLocalGroupMetadata(t *testing.T) {
 // TestKilledMetadataWriterRecovers stops the writer after each rename; the next writer restores the previous trees
 // and removes the metadata, or, once the commit marker exists, keeps everything new.
 func TestKilledMetadataWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("SYLLABUS_METADATA_CHILD"); directory != "" {
+	if directory := os.Getenv("TRAILGUIDE_METADATA_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
@@ -109,7 +109,7 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 			rename := w.rename
 			w.rename = func(from, to string) error {
 				err := rename(from, to)
-				if err == nil && to == os.Getenv("SYLLABUS_METADATA_STOP") {
+				if err == nil && to == os.Getenv("TRAILGUIDE_METADATA_STOP") {
 					os.Exit(42)
 				}
 				return err
@@ -129,7 +129,7 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 			root := openProject(t)
 			writeMetadataProject(t, root)
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledMetadataWriterRecovers$")
-			child.Env = append(os.Environ(), "SYLLABUS_METADATA_CHILD="+root.Name(), "SYLLABUS_METADATA_STOP="+stop)
+			child.Env = append(os.Environ(), "TRAILGUIDE_METADATA_CHILD="+root.Name(), "TRAILGUIDE_METADATA_STOP="+stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

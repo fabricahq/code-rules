@@ -10,19 +10,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // legacyLibraryProblem is the problem every library command reports for the library below, in the layout before
 // version 2.
-const legacyLibraryProblem = `this version of Syllabus reads a library's manifest from the library section of .syllabus/config.yaml, and its groups, shared assets, and change notes from .syllabus/. It no longer reads rule-library.yaml or rule folders at the repository root, and doesn't move them. Move them yourself, keeping each path below its folder:
+const legacyLibraryProblem = `this version of Trail Guide reads a library's manifest from the library section of .trailguide/config.yaml, and its groups, shared assets, and change notes from .trailguide/. It no longer reads rule-library.yaml or rule folders at the repository root, and doesn't move them. Move them yourself, keeping each path below its folder:
 
-  rule-library.yaml              ->  the library section of .syllabus/config.yaml
-  practices/testing/_group.yaml  ->  .syllabus/rules/practices/testing/_group.yaml
-  practices/testing/a.md         ->  .syllabus/rules/practices/testing/a.md
-  practices/testing/b.md         ->  .syllabus/rules/practices/testing/b.md
+  rule-library.yaml              ->  the library section of .trailguide/config.yaml
+  practices/testing/_group.yaml  ->  .trailguide/rules/practices/testing/_group.yaml
+  practices/testing/a.md         ->  .trailguide/rules/practices/testing/a.md
+  practices/testing/b.md         ->  .trailguide/rules/practices/testing/b.md
 
-Then delete rule-library.yaml. Write its license fields, without formatVersion, in .syllabus/config.yaml, beside the sources the repository uses as a project, if any:
+Then delete rule-library.yaml. Write its license fields, without formatVersion, in .trailguide/config.yaml, beside the sources the repository uses as a project, if any:
 
   schemaVersion: 2
   sources: {}
@@ -32,7 +32,7 @@ Then delete rule-library.yaml. Write its license fields, without formatVersion, 
       file: LICENSE.md
       notices: []
 
-License and notice paths stay relative to the repository root. Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg, and its links to license files at the repository root need two more; links that start with /assets/ still work. Once the library has a library release, record each rule whose links change with syllabus library change --bump patch. Then run syllabus library check.`
+License and notice paths stay relative to the repository root. Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg, and its links to license files at the repository root need two more; links that start with /assets/ still work. Once the library has a library release, record each rule whose links change with trailguide library change --bump patch. Then run trailguide library check.`
 
 // TestLibraryCommands_RejectTheLayoutBeforeVersion2 refuses, writing nothing, every library command in a released
 // library that keeps rule-library.yaml and its rule folders at the repository root, and lists where each of its files

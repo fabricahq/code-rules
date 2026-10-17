@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/skills"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/skills"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -23,7 +23,7 @@ type Configuration struct {
 	// is empty, never nil, when the configuration has none, which records skills without installing them.
 	SkillTargets []string `json:"skillTargets"`
 	// SkipAgentsFile is true when manageAgentsFile is false, so project commands leave the repository's AGENTS.md
-	// alone; by default they maintain a Syllabus section in it.
+	// alone; by default they maintain a Trail Guide section in it.
 	SkipAgentsFile bool `json:"skipAgentsFile,omitempty"`
 	// Library is the library section, the manifest, or nil when the repository isn't a library.
 	Library *Library `json:"library,omitempty"`
@@ -54,13 +54,20 @@ type Source struct {
 	// source includes no skills, though it still installs its library's required skills. Whether each ID names a
 	// skill the source has is checked when sync reads the source.
 	Skills []string `json:"skills"`
-	// SkillUses maps a skill ID to the IDs of the skills it uses that its own syllabus-skills-used doesn't declare, each a
+	// SkillUses maps a skill ID to the IDs of the skills it uses that its own trailguide-skills-used doesn't declare, each a
 	// folder path in the source's repository, sorted; it is empty, never nil, when skills.uses declares none. Whether
 	// each key is a skill the source installs, and each value a skill it has, is checked when sync reads the source.
 	SkillUses map[string][]string `json:"skillUses,omitempty"`
 	// SkillExclude maps the ID of each skill that skills.exclude leaves out to its exclusion; it is empty, never nil,
 	// when there are none. An excluded skill is still imported, so updates can compare it with its replacement.
 	SkillExclude map[string]SkillExclusion `json:"skillExclude,omitempty"`
+	// LibraryRequires lists, sorted, the IDs of the source's skills that the configuration's own library section
+	// requires, borrowing them, which the repository installs as a project too, so its maintainers work with the
+	// skills it asks projects to use. It is nil when there are none.
+	LibraryRequires []string `json:"libraryRequires,omitempty"`
+	// Lends reports that the configuration's own library section borrows skills from the source, which then needs
+	// to install nothing itself.
+	Lends bool `json:"lends,omitempty"`
 }
 
 // HasRules reports whether the source includes rules.
@@ -82,8 +89,8 @@ func (c Configuration) SkillFolders() []string {
 
 // Pin keeps one rule at an exact published version, with the project's reason.
 type Pin struct {
-	Version syllabus.RuleVersion `json:"version" yaml:"version"`
-	Reason  string               `json:"reason" yaml:"reason"`
+	Version trailguide.RuleVersion `json:"version" yaml:"version"`
+	Reason  string                 `json:"reason" yaml:"reason"`
 }
 
 // Exclusion leaves one rule, or every rule a selector matches, out of generated guidance, with the project's reason.
@@ -94,7 +101,7 @@ type Exclusion struct {
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
 	// one. Configuration alone owns it.
-	BasedOn *syllabus.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
+	BasedOn *trailguide.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 // Exclusion returns the exclusion that leaves rule id out of generated guidance: the entry for id itself, or else
@@ -116,7 +123,7 @@ func (s Source) Exclusion(id string) (Exclusion, bool) {
 	return Exclusion{}, false
 }
 
-// ReplacementFile returns the path, relative to the Syllabus directory, of the authored rule that replaces the
+// ReplacementFile returns the path, relative to the Trail Guide directory, of the authored rule that replaces the
 // excluded rule, such as rules/techs/go/wrap-errors.md for ReplacedBy techs/go/wrap-errors, or "" when nothing
 // replaces it.
 func (e Exclusion) ReplacementFile() string {
@@ -128,8 +135,8 @@ func (e Exclusion) ReplacementFile() string {
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// versionOneProblem explains how to rewrite a version 1 configuration, which Syllabus no longer reads, as version 2.
-const versionOneProblem = `version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.
+// versionOneProblem explains how to rewrite a version 1 configuration, which Trail Guide no longer reads, as version 2.
+const versionOneProblem = `version 1 configuration is no longer supported, and Trail Guide doesn't convert it. Rewrite .trailguide/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .trailguide/local/ to .trailguide/rules/, and shared assets from .trailguide/local/assets/ to .trailguide/assets/.
 
 schemaVersion: 2
 sources:
@@ -145,7 +152,7 @@ sources:
           version: "1.3.0"
           reason: Waiting on the author's answer.
 
-After rewriting it, run syllabus project check.`
+After rewriting it, run trailguide project check.`
 
 // ParseConfiguration validates schema version 2, rejecting unknown fields and contradictory source declarations,
 // and a version 1 configuration with an example of the version 2 shape. A library section is the manifest, which
@@ -197,9 +204,22 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		result.Sources = append(result.Sources, source)
 	}
 	if raw, ok := fields["library"]; ok {
-		if result.Library, err = parseLibrary(raw); err != nil {
+		if result.Library, err = parseLibrary(raw, result.Sources); err != nil {
 			return Configuration{}, err
 		}
+		for name := range result.Library.Borrowed {
+			index := slices.IndexFunc(result.Sources, func(source Source) bool { return source.Name == name })
+			result.Sources[index].Lends = true
+		}
+		for _, id := range result.Library.Skills.Required {
+			if name, skill, borrowed := strings.Cut(id, ":"); borrowed {
+				index := slices.IndexFunc(result.Sources, func(source Source) bool { return source.Name == name })
+				result.Sources[index].LibraryRequires = append(result.Sources[index].LibraryRequires, skill)
+			}
+		}
+	}
+	for i := range result.Sources {
+		slices.Sort(result.Sources[i].LibraryRequires)
 	}
 	return result, nil
 }
@@ -506,12 +526,12 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 }
 
 // quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
-func quotedVersion(raw json.RawMessage, location string) (syllabus.RuleVersion, error) {
+func quotedVersion(raw json.RawMessage, location string) (trailguide.RuleVersion, error) {
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
-		return syllabus.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+		return trailguide.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
 	}
-	return syllabus.ParseRuleVersion(text, location)
+	return trailguide.ParseRuleVersion(text, location)
 }
 
 // parseExclusions validates each exclusion's selector, reason, and, for a rule ID, the optional ID of the local rule

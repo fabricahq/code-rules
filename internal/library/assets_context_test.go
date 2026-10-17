@@ -12,7 +12,7 @@ import (
 
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
+	"github.com/fabricahq/trailguide/internal/errs"
 )
 
 // TestSupportingLinksCanceledWithoutReads covers link-only work after catalog files are already in memory.

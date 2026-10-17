@@ -9,7 +9,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // RuleMetadata is the complete author-supplied discovery and consequence metadata.
@@ -25,13 +25,13 @@ type RuleMetadata struct {
 //go:embed rule-template.md
 var ruleTemplate string
 
-// RenderGroup returns the _group.yaml text of metadata with its text trimmed, failing unless the syllabus package reads it.
-func RenderGroup(metadata syllabus.GroupMetadata) ([]byte, error) {
+// RenderGroup returns the _group.yaml text of metadata with its text trimmed, failing unless the trailguide package reads it.
+func RenderGroup(metadata trailguide.GroupMetadata) ([]byte, error) {
 	draft, err := encodeGroup(metadata)
 	if err != nil {
 		return nil, err
 	}
-	normalized, err := syllabus.ParseGroupMetadata(draft, "_group.yaml")
+	normalized, err := trailguide.ParseGroupMetadata(draft, "_group.yaml")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func RenderGroup(metadata syllabus.GroupMetadata) ([]byte, error) {
 }
 
 // encodeGroup writes metadata as YAML with two-space indentation.
-func encodeGroup(metadata syllabus.GroupMetadata) ([]byte, error) {
+func encodeGroup(metadata trailguide.GroupMetadata) ([]byte, error) {
 	var out bytes.Buffer
 	encoder := yaml.NewEncoder(&out)
 	encoder.SetIndent(2)
@@ -67,7 +67,7 @@ func RenderRule(id string, metadata RuleMetadata, body *string) ([]byte, error) 
 		content = strings.Replace(content, "## <Short action-oriented title>", "## "+strings.NewReplacer("\r", " ", "\n", " ").Replace(metadata.Title), 1)
 	}
 	text := "---\n" + string(header) + "---\n\n" + content
-	if _, err := syllabus.ParseRule(text, id+".md", "local"); err != nil {
+	if _, err := trailguide.ParseRule(text, id+".md", "local"); err != nil {
 		return nil, err
 	}
 	if !strings.HasSuffix(text, "\n") {

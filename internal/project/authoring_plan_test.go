@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
@@ -18,7 +18,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	metadata := syllabus.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := trailguide.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	group, err := PlanLocalGroup(ctx, "techs/go", options)
 	if err != nil {
 		t.Fatal(err)
@@ -38,7 +38,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 		t.Fatal(err)
 	}
 	ruleMetadata := rules.RuleMetadata{Title: "Return errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	if err := os.Remove(filepath.Join(options.Directory, ".syllabus/rules/techs/go/_group.yaml")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, ".trailguide/rules/techs/go/_group.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	_, commitErr = rule.Commit(ctx, ruleMetadata, nil)
@@ -46,7 +46,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if commitErr == nil || planErr == nil || commitErr.Error() != planErr.Error() {
 		t.Fatal(commitErr, planErr)
 	}
-	if _, err := os.Stat(filepath.Join(options.Directory, ".syllabus/rules/techs/go/errors.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(options.Directory, ".trailguide/rules/techs/go/errors.md")); !os.IsNotExist(err) {
 		t.Fatal("wrote rule after group disappeared", err)
 	}
 
@@ -71,14 +71,14 @@ func TestRulePlanPreservesCompetingFile(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := AddLocalGroup(ctx, "techs/go", syllabus.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}, options); err != nil {
+	if _, err := AddLocalGroup(ctx, "techs/go", trailguide.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}, options); err != nil {
 		t.Fatal(err)
 	}
 	plan, err := PlanLocalRule(ctx, "techs/go/errors", options)
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := filepath.Join(options.Directory, ".syllabus/rules/techs/go/errors.md")
+	name := filepath.Join(options.Directory, ".trailguide/rules/techs/go/errors.md")
 	if err := os.WriteFile(name, []byte("Concurrent author's content"), 0600); err != nil {
 		t.Fatal(err)
 	}

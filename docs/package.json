@@ -1,5 +1,5 @@
 {
-  "name": "@syllabus/docs",
+  "name": "@trailguide/docs",
   "private": true,
   "type": "module",
   "scripts": {

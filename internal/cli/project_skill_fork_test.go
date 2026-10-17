@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // forkedSkill is the SKILL.md of the fixture library's build-feature skill at release/1.
@@ -24,17 +24,17 @@ func newSkillForkFixture(t *testing.T) (updateFixture, string) {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                                   []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                          []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
-		"techs/go/errors.md":                            updateRule("Wrap errors."),
-		".syllabus/skills/build-feature/SKILL.md":       []byte(forkedSkill),
-		".syllabus/skills/build-feature/scripts/run.sh": []byte("#!/bin/sh\necho build\n"),
+		"config.yaml":                                     []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                            []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
+		"techs/go/errors.md":                              updateRule("Wrap errors."),
+		".trailguide/skills/build-feature/SKILL.md":       []byte(forkedSkill),
+		".trailguide/skills/build-feature/scripts/run.sh": []byte("#!/bin/sh\necho build\n"),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := os.Chmod(filepath.Join(f.Worktree(), ".syllabus/skills/build-feature/scripts/run.sh"), 0o700); err != nil {
+	if err := os.Chmod(filepath.Join(f.Worktree(), ".trailguide/skills/build-feature/scripts/run.sh"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	commit, err := f.Commit(ctx, f.Worktree(), "Make the script executable", nil)
@@ -61,21 +61,21 @@ func newSkillForkFixture(t *testing.T) (updateFixture, string) {
 func TestForkSkill_InstallsTheForkInPlaceOfTheSkill(t *testing.T) {
 	u, commit := newSkillForkFixture(t)
 	out, diagnostic, code := u.run(t, "project", "add", "skill", "--from", "team:skills/build-feature", "--reason", "We build with make.", "--non-interactive")
-	want := "Skill forked from team:skills/build-feature at commit " + commit[:12] + ".\nAdded:\n  .syllabus/skills/build-feature/SKILL.md\n  .syllabus/skills/build-feature/scripts/run.sh\nChanged:\n  .syllabus/config.yaml\n\n" +
+	want := "Skill forked from team:skills/build-feature at commit " + commit[:12] + ".\nAdded:\n  .trailguide/skills/build-feature/SKILL.md\n  .trailguide/skills/build-feature/scripts/run.sh\nChanged:\n  .trailguide/config.yaml\n\n" +
 		"Next: Edit the forked skill to change its steps. A fork has no version: it changes\nonly when you edit it. The source's license still applies to the copied files.\n" +
-		"config.yaml now excludes team:skills/build-feature and names skills/build-feature as its replacement,\nbased on commit " + commit[:12] + "; syllabus project update lists the source's later changes to it.\n\n" +
-		"Then install the fork in place of the source's skill:\n  syllabus project build\n  syllabus project check\n"
+		"config.yaml now excludes team:skills/build-feature and names skills/build-feature as its replacement,\nbased on commit " + commit[:12] + "; trailguide project update lists the source's later changes to it.\n\n" +
+		"Then install the fork in place of the source's skill:\n  trailguide project build\n  trailguide project check\n"
 	if code != 0 || diagnostic != "" || out != want {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, diagnostic, out, want)
 	}
-	if info, err := os.Stat(filepath.Join(u.directory, ".syllabus/skills/build-feature/scripts/run.sh")); err != nil || info.Mode().Perm()&0o100 == 0 {
+	if info, err := os.Stat(filepath.Join(u.directory, ".trailguide/skills/build-feature/scripts/run.sh")); err != nil || info.Mode().Perm()&0o100 == 0 {
 		t.Fatalf("the fork's script isn't executable: %v %v", info, err)
 	}
 	if out, diagnostic, code := u.run(t, "project", "build"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
 	installed, err := os.ReadFile(filepath.Join(u.directory, ".claude/skills/build-feature/SKILL.md"))
-	if err != nil || !strings.Contains(string(installed), "edit .syllabus/skills/build-feature/ instead") {
+	if err != nil || !strings.Contains(string(installed), "edit .trailguide/skills/build-feature/ instead") {
 		t.Fatalf("installed copy, %v:\n%s", err, installed)
 	}
 	if out, diagnostic, code := u.run(t, "project", "check"); code != 0 {
@@ -83,7 +83,7 @@ func TestForkSkill_InstallsTheForkInPlaceOfTheSkill(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	later, err := u.fixture.Commit(ctx, u.fixture.Worktree(), "Change the skill", map[string][]byte{".syllabus/skills/build-feature/SKILL.md": []byte(strings.Replace(forkedSkill, "Run scripts/run.sh.", "Run make.", 1))})
+	later, err := u.fixture.Commit(ctx, u.fixture.Worktree(), "Change the skill", map[string][]byte{".trailguide/skills/build-feature/SKILL.md": []byte(strings.Replace(forkedSkill, "Run scripts/run.sh.", "Run make.", 1))})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,8 +122,8 @@ func TestForkSkill_RejectsMissingAndExtraInputs(t *testing.T) {
 		args    []string
 		message string
 	}{
-		{[]string{"--reason", "Ours."}, "--from is required: name the skill to fork as SOURCE:SKILL, such as fabrica:skills/fix-bug. To write a new skill instead, create .syllabus/skills/<name>/SKILL.md"},
-		{[]string{"build-feature", "--from", "team:skills/build-feature"}, "project add skill takes no arguments: it forks the skill --from names, keeping its name. To write a new skill instead, create .syllabus/skills/build-feature/SKILL.md."},
+		{[]string{"--reason", "Ours."}, "--from is required: name the skill to fork as SOURCE:SKILL, such as fabrica:skills/fix-bug. To write a new skill instead, create .trailguide/skills/<name>/SKILL.md"},
+		{[]string{"build-feature", "--from", "team:skills/build-feature"}, "project add skill takes no arguments: it forks the skill --from names, keeping its name. To write a new skill instead, create .trailguide/skills/build-feature/SKILL.md."},
 		{[]string{"--from", "skills/build-feature", "--reason", "Ours."}, `"skills/build-feature": expected SOURCE:SKILL`},
 		{[]string{"--from", "team:skills/build-feature"}, "--reason is required: the fork replaces team's skills/build-feature, and the exclusion that makes it the replacement records why"},
 	} {

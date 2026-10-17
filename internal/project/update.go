@@ -13,12 +13,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/build"
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/build"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // UpdatePlan is a previewed update. Planning reads the project and the libraries' release histories without
@@ -84,7 +84,7 @@ type UpdateResult struct {
 // keep. A replaced row counts even when its imported copy stays, since applying it can replace the local rule's fork.
 func (r UpdateResult) Moves() bool {
 	for _, source := range r.Sources {
-		if source.SharedFiles != nil || len(source.Skills) > 0 {
+		if source.SharedFiles != nil || len(source.Skills) > 0 || len(source.Borrowed) > 0 {
 			return true
 		}
 		for _, row := range source.Rules {
@@ -96,18 +96,22 @@ func (r UpdateResult) Moves() bool {
 	return false
 }
 
-// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows
-// flags a script, or empty when none does.
+// ScriptsWarning returns the warning that a preview gives, and an applied update repeats, when one of its skill rows,
+// borrowed skills' included, flags a script, or empty when none does.
 func (r UpdateResult) ScriptsWarning() string {
 	for _, source := range r.Sources {
-		for _, skill := range source.Skills {
+		rows := slices.Clone(source.Skills)
+		for _, borrowed := range source.Borrowed {
+			rows = append(rows, borrowed.Changes...)
+		}
+		for _, skill := range rows {
 			if len(skill.Scripts) == 0 {
 				continue
 			}
 			if r.Applied {
-				return "some skills in this update added or changed scripts. Syllabus never runs them, but your agents may; read them before you commit the update."
+				return "some skills in this update added or changed scripts. Trail Guide never runs them, but your agents may; read them before you commit the update."
 			}
-			return "some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm."
+			return "some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm."
 		}
 	}
 	return ""
@@ -200,7 +204,7 @@ func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (U
 // exclusion for each excluded one, and the new basedOn of each replaced fork, in the same transaction that replaces
 // vendor and generated output and each replaced fork's local rule and asset directory, so recovery restores or
 // finishes them together. A kept rule stays at its current version. Each fork is read from the library before the
-// transaction, as syllabus project add rule --from reads it. It fails with concurrent-change, writing nothing,
+// transaction, as trailguide project add rule --from reads it. It fails with concurrent-change, writing nothing,
 // when the configuration, local rules, vendor or generated output, or managed guide changed after planning.
 func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (UpdateResult, error) {
 	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
@@ -236,7 +240,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 			return err
 		}
 		if !sameProject(p.planned, before) || (guide.Previous == nil) != (p.guide == nil) || !bytes.Equal(guide.Previous, p.guide) {
-			return failure("concurrent-change", "the project's configuration, local rules, imported files, generated output, or Syllabus guide changed after the update preview; run syllabus project update again", nil)
+			return failure("concurrent-change", "the project's configuration, local rules, imported files, generated output, or Trail Guide guide changed after the update preview; run trailguide project update again", nil)
 		}
 		in := installation{guide: guide, config: before.config, options: p.options, forks: forks}
 		if len(edits) > 0 {
@@ -313,7 +317,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			version := *row.ReviewedVersion()
 			row.Decision = string(DecisionUpdateFork)
 			if edit.BasedOn == nil {
-				edit.BasedOn = map[string]syllabus.RuleVersion{}
+				edit.BasedOn = map[string]trailguide.RuleVersion{}
 			}
 			edit.BasedOn[decision.Rule] = version
 			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "rules/")})
@@ -332,7 +336,8 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		edits[decision.Source] = edit
 	}
 	// Keeping a rule a scoped update would move can leave the shared files where they are, so they and the skills,
-	// including the replaced skills' rows and level changes, which come from the same revision, follow the decisions.
+	// including the replaced skills' rows, level changes, and borrowed skills, which come from the same revision,
+	// follow the decisions.
 	for i := range sources {
 		kept := slices.Collect(maps.Keys(edits[sources[i].Name].Pins))
 		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, kept)
@@ -343,13 +348,14 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		sources[i].Skills = skills
 		sources[i].ReplacedSkills = p.update.ReplacedSkills(sources[i].Name, kept)
 		sources[i].SkillLevels = p.update.SkillLevels(sources[i].Name, kept)
+		sources[i].Borrowed = p.update.Borrowed(sources[i].Name, kept)
 	}
 	return sources, edits, forks, nil
 }
 
 // ReplacedFiles returns the authored files that replacing the fork at localRule, a replaced row's local rule,
 // overwrites or removes, as the project was when planned: the rule and every file in its asset directory, relative
-// to the Syllabus directory and sorted. It is empty when none of them exist.
+// to the Trail Guide directory and sorted. It is empty when none of them exist.
 func (p *UpdatePlan) ReplacedFiles(localRule string) []string {
 	overwritten := slices.Sorted(maps.Keys(rulesPaths(forkPaths(treeFiles(p.planned.local), strings.TrimPrefix(localRule, "rules/")))))
 	if overwritten == nil {
@@ -396,15 +402,15 @@ func forkUpdateRefusal(configuration rules.Configuration, decision UpdateDecisio
 	}
 	index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == decision.Source })
 	if index < 0 {
-		return invalidArguments(where + "no source named " + decision.Source + " in .syllabus/config.yaml")
+		return invalidArguments(where + "no source named " + decision.Source + " in .trailguide/config.yaml")
 	}
 	if exclusion := configuration.Sources[index].Exclude[decision.Rule]; exclusion.ReplacedBy == "" {
-		return invalidArguments(where + "sources." + decision.Source + ".rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run syllabus project add rule " + decision.Rule + " --from " + decision.Source + "@VERSION")
+		return invalidArguments(where + "sources." + decision.Source + ".rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run trailguide project add rule " + decision.Rule + " --from " + decision.Source + "@VERSION")
 	}
 	return nil
 }
 
-// decisionFlags names the syllabus project update flag that makes each kind of decision; a terminal answer
+// decisionFlags names the trailguide project update flag that makes each kind of decision; a terminal answer
 // makes the same decision.
 var decisionFlags = map[UpdateDecisionKind]string{DecisionKeep: "--keep", DecisionExclude: "--exclude", DecisionUpdateFork: "--update-fork"}
 
@@ -415,14 +421,14 @@ func invalidArguments(problem string) error { return failure("invalid-arguments"
 // source, becomes a fork of version. read fills files.
 type forkUpdate struct {
 	source, id, file string
-	version          syllabus.RuleVersion
+	version          trailguide.RuleVersion
 	// files holds the new fork's files by path relative to rules/: the rule at file and its asset directory.
 	files map[string][]byte
 }
 
 // read reads the forked version from the library of the source in configuration, from the library release that
 // planning the update found published it, and prepares the fork's files at the local rule's path, exactly as
-// syllabus project add rule --from writes a fork there.
+// trailguide project add rule --from writes a fork there.
 func (f *forkUpdate) read(ctx context.Context, update imports.Update, configuration rules.Configuration, options imports.Options) error {
 	index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == f.source })
 	library := rules.Source{Name: f.source, Repository: configuration.Sources[index].Repository}

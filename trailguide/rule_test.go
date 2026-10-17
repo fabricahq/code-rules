@@ -1,0 +1,141 @@
+// Verify complete rules through the public parser and independent shared cases.
+
+package trailguide_test
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/fabricahq/trailguide/trailguide"
+)
+
+// TestParseRuleSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
+func TestParseRuleSharedExpectations(t *testing.T) {
+	data, err := os.ReadFile("testdata/rules/cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []struct {
+		ID       string
+		Input    struct{ Text, Path, Source string }
+		Expected struct {
+			OK    bool
+			Value trailguide.Rule
+			Error *struct{ Name, Message, Location string }
+		}
+	}
+	if err := json.Unmarshal(data, &cases); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range cases {
+		t.Run(test.ID, func(t *testing.T) {
+			got, err := trailguide.ParseRule(test.Input.Text, test.Input.Path, test.Input.Source)
+			if test.Expected.OK {
+				if err != nil || !reflect.DeepEqual(got, test.Expected.Value) {
+					t.Fatalf("got %#v, %v; want %#v", got, err, test.Expected.Value)
+				}
+				return
+			}
+			var validation *trailguide.ValidationError
+			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
+				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
+			}
+			if !reflect.DeepEqual(got, trailguide.Rule{}) {
+				t.Fatalf("failure returned partial data: %#v", got)
+			}
+		})
+	}
+}
+
+// TestParseRulePathBeforeDocument checks that an invalid path fails before document parsing begins.
+func TestParseRulePathBeforeDocument(t *testing.T) {
+	_, err := trailguide.ParseRule("malformed", "../escape.md", "team")
+	var invalid *trailguide.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "team:../escape.md" || !strings.HasPrefix(invalid.Problem, "expected a contained relative path") {
+		t.Fatalf("got %v; want the path refused", err)
+	}
+}
+
+// FuzzParseRule checks arbitrary documents for typed failures, zero partial results, and preserved text on success.
+func FuzzParseRule(f *testing.F) {
+	f.Add("---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\nBody")
+	f.Add("---\na: &a [*a]\n---\nBody")
+	f.Add("---\ntitle: [\n---\nBody")
+	f.Fuzz(func(t *testing.T, text string) {
+		got, err := trailguide.ParseRule(text, "techs/go/example.md", "fuzz")
+		if err != nil {
+			var validation *trailguide.ValidationError
+			if !errors.As(err, &validation) {
+				t.Fatalf("untyped failure: %v", err)
+			}
+			if !reflect.DeepEqual(got, trailguide.Rule{}) {
+				t.Fatal("partial result on failure")
+			}
+			return
+		}
+		if got.Document != text {
+			t.Fatal("successful parse changed authored text")
+		}
+	})
+}
+
+// TestParseRuleManyEscapedScalars checks a large tag collection without changing its authored text.
+func TestParseRuleManyEscapedScalars(t *testing.T) {
+	text := escapedTagDocument(2000)
+	got, err := trailguide.ParseRule(text, "techs/go/example.md", "lab")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Document != text || got.Title != "🐹" {
+		t.Fatal("large document lost its values or original text")
+	}
+}
+
+// BenchmarkParseRuleEscapedScalars measures scaling across documents containing many independently quoted escape pairs.
+func BenchmarkParseRuleEscapedScalars(b *testing.B) {
+	for _, count := range []int{500, 1000, 2000} {
+		b.Run(fmt.Sprint(count), func(b *testing.B) {
+			text := escapedTagDocument(count)
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := trailguide.ParseRule(text, "techs/go/example.md", "lab"); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+// escapedTagDocument creates distinct quoted tags for correctness and scaling checks.
+func escapedTagDocument(count int) string {
+	var text strings.Builder
+	text.WriteString("---\ntitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures\nwhenToRead: Editing\ntags:\n")
+	for i := 0; i < count; i++ {
+		fmt.Fprintf(&text, "  - \"tag-%d \\uD83D\\uDC39\"\n", i)
+	}
+	text.WriteString("---\nBody")
+	return text.String()
+}
+
+// TestParseRuleDocumentEncoding rejects malformed bytes while preserving valid Unicode verbatim.
+func TestParseRuleDocumentEncoding(t *testing.T) {
+	prefix := "---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\n"
+	for _, body := range []string{"Guidance: \xff", "Guidance: \xe2\x82", "Guidance: café 🐹 \ufffd"} {
+		got, err := trailguide.ParseRule(prefix+body, "techs/go/example.md", "local")
+		if strings.HasPrefix(body, "Guidance: café") {
+			if err != nil || got.Document != prefix+body {
+				t.Fatalf("valid Unicode changed: %#v, %v", got, err)
+			}
+			continue
+		}
+		var validation *trailguide.ValidationError
+		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, trailguide.Rule{}) {
+			t.Fatalf("expected UTF-8 error and zero rule, got %#v, %v", got, err)
+		}
+	}
+}

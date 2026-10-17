@@ -84,8 +84,8 @@ export async function checkExternalLinks(
       const normalized = href.trim().replace(/[\t\r\n]/gu, '');
       if (!/^(https?:|\/\/)/iu.test(normalized)) continue;
       try {
-        const url = new URL(normalized, 'https://code-rules.fabricahq.com');
-        if (url.hostname === 'code-rules.fabricahq.com') continue;
+        const url = new URL(normalized, 'https://trailguide.fabricahq.com');
+        if (url.hostname === 'trailguide.fabricahq.com') continue;
         const fragment = decodeURIComponent(url.hash.slice(1));
         url.hash = '';
         const destination = destinations.get(url.href) ?? {

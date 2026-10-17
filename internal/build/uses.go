@@ -8,20 +8,21 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // linkSkillUses sets the Uses and UsedBy of every skill in resolved, the project's installed skills. A source's skill
-// uses the skills its syllabus-skills-used names, which are skill IDs in the same source, and those its source's skills.uses
+// uses the skills its trailguide-skills-used names, which are skill IDs in the same source, and those its source's skills.uses
 // adds; sync installed them all. An authored skill uses another authored skill by its bare ID, such as skills/tdd,
 // and a source's skill by its project ID, such as fabrica:skills/tdd. It fails at an authored skill's SKILL.md when
 // it uses a skill the project doesn't install, or when authored skills use each other in a cycle; a source's skill
 // that uses one the project doesn't install fails as invalid output, because its source record, which sync and the
 // offline checks keep complete, can't produce one. A skill that uses a source's skill the project excludes uses the
 // authored skill that replaces it instead; with no replacement, the use is dropped, and linkSkillUses returns a
-// warning for it, in skill order.
-func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]string, error) {
+// warning for it, in skill order. A use of a skill in aliases, a project source's copy of a borrowed skill that
+// withoutBorrowedCopies dropped, reaches the borrowed skill it maps to.
+func linkSkillUses(resolved []resolvedSkill, config rules.Configuration, aliases map[string]string) ([]string, error) {
 	sources := map[string]rules.Source{}
 	// excluded maps the project ID of each source's skill the project excludes to the authored skill that replaces
 	// it, or "" when none does.
@@ -38,6 +39,8 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]stri
 	redirect := func(skill resolvedSkill, id string) (string, bool) {
 		replacement, isExcluded := excluded[id]
 		switch {
+		case !isExcluded && aliases[id] != "":
+			return aliases[id], true
 		case !isExcluded:
 			return id, true
 		case replacement != "":
@@ -54,13 +57,19 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]stri
 		location := skillLocation(skill)
 		used := []string{}
 		if skill.Source != "" {
-			for _, id := range slices.Concat(skill.SkillsUsed, sources[skill.Source].SkillUses[skill.Folder]) {
-				target, kept := redirect(skill, skill.Source+":"+id)
+			// A borrowed skill uses skills of the repository it was borrowed from, which the library source installs
+			// as borrowed skills too, and its source's skills.uses names none of them.
+			prefix, declared := skill.Source+":", sources[skill.Source].SkillUses[skill.Folder]
+			if skill.Borrowed != "" {
+				prefix, declared = prefix+skill.Borrowed+":", nil
+			}
+			for _, id := range slices.Concat(skill.SkillsUsed, declared) {
+				target, kept := redirect(skill, prefix+id)
 				if !kept {
 					continue
 				}
 				if _, installed := uses[target]; !installed {
-					return nil, invalid(location, fmt.Sprintf("the skill uses %s, which the project doesn't install; run syllabus project sync", id))
+					return nil, invalid(location, fmt.Sprintf("the skill uses %s, which the project doesn't install; run trailguide project sync", id))
 				}
 				used = append(used, target)
 			}
@@ -99,17 +108,17 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration) ([]stri
 	return warnings, nil
 }
 
-// authoredUseProblem explains why an authored skill can't use citation, a line of its syllabus-skills-used that names no
+// authoredUseProblem explains why an authored skill can't use citation, a line of its trailguide-skills-used that names no
 // skill the project installs. sources holds the configuration's sources by name.
 func authoredUseProblem(citation skills.Citation, sources map[string]rules.Source) string {
 	source, configured := sources[citation.Source]
 	switch {
 	case citation.Source == "":
-		return fmt.Sprintf("%s names %s, which isn't a skill in .syllabus/skills/; write the skill, or name a source's skill with its source name, such as fabrica:%s", skills.SkillsUsedKey, citation.ID, citation.ID)
+		return fmt.Sprintf("%s names %s, which isn't a skill in .trailguide/skills/; write the skill, or name a source's skill with its source name, such as fabrica:%s", skills.SkillsUsedKey, citation.ID, citation.ID)
 	case !configured:
 		return fmt.Sprintf("%s names %s, but the configuration has no source named %s; add the source, or correct the source name", skills.SkillsUsedKey, citation, citation.Source)
 	}
-	return fmt.Sprintf("%s names %s, which the project doesn't install; add %s to sources.%s.skills.include, then run syllabus project sync", skills.SkillsUsedKey, citation, citation.ID, source.Name)
+	return fmt.Sprintf("%s names %s, which the project doesn't install; add %s to sources.%s.skills.include, then run trailguide project sync", skills.SkillsUsedKey, citation, citation.ID, source.Name)
 }
 
 // useFacts returns the SKILLS.md lines that say which installed skills skill uses, and, for a source's skill, why it

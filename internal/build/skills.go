@@ -13,8 +13,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillFiles is one skill folder's files, by path in the folder, and the paths of its executable files, sorted.
@@ -52,19 +53,27 @@ type resolvedSkill struct {
 	Release                 int
 	NonLibrary              bool
 	// Level is the skill's level in its library, or empty for an authored skill or one from another repository.
-	Level string
+	// LevelRelease is the library release whose manifest set it, or 0 when the library source's revision isn't one;
+	// it differs from Release for a borrowed skill.
+	Level        string
+	LevelRelease int
+	// Borrowed names the source in the library's manifest that a borrowed skill comes from, whose repository and
+	// revision Repository, Ref, Commit, and Release then identify, and whose files are in Vendored, the skill's
+	// folder in the library source's vendor snapshot; both are empty for any other skill. Override names the
+	// project's own source that supplied the borrowed revision, when one declares the same repository.
+	Borrowed, Vendored, Override string
 	// Targets lists, sorted, the folders the skill installs into, by path from the repository root.
 	Targets []string
-	// RulesUsed lists the lines of the skill's syllabus-rules-used, and Cited how the project resolves each of them, in
+	// RulesUsed lists the lines of the skill's trailguide-rules-used, and Cited how the project resolves each of them, in
 	// the same order; both are empty for a skill that cites no rules.
 	RulesUsed []string
 	Cited     []citedRule
-	// SkillsUsed lists the lines of the skill's syllabus-skills-used, as written; nil when it has none.
+	// SkillsUsed lists the lines of the skill's trailguide-skills-used, as written; nil when it has none.
 	SkillsUsed []string
 	// Included reports that the configuration includes the skill, as it includes every authored skill; a source's
 	// skill that isn't included is installed because other skills use it.
 	Included bool
-	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its syllabus-skills-used
+	// Uses and UsedBy list, sorted, the project IDs of the installed skills this skill uses, by its trailguide-skills-used
 	// and its source's skills.uses, and of those that use it; each is empty, never nil, when there are none.
 	Uses, UsedBy []string
 	// Replaces is the source's skill an authored skill is installed in place of, or nil when it replaces none.
@@ -89,13 +98,15 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 			if _, excluded := source.SkillExclude[id]; excluded {
 				continue
 			}
-			skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Files: SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
-			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+id+"/"+skills.File); err != nil {
+			skill := sourceSkill(source, snapshot, id)
+			skill.Files = SkillFiles{snapshot.SkillFiles(id), snapshot.SkillExecutable(id)}
+			if err := describeSkill(&skill, "vendor/"+source.Name+"/"+skill.Vendored+"/"+skills.File); err != nil {
 				return nil, nil, err
 			}
 			result = append(result, skill)
 		}
 	}
+	result, aliases := withoutBorrowedCopies(result)
 	for _, id := range slices.Sorted(maps.Keys(local)) {
 		skill := resolvedSkill{ID: id, Folder: id, Files: local[id], Included: true}
 		if replacement, replaces := replacements[id]; replaces {
@@ -118,11 +129,47 @@ func resolveSkills(config rules.Configuration, libraries map[string]Library, loc
 		}
 		names[skill.Name] = skill.ID
 	}
-	warnings, err := linkSkillUses(result, config)
+	warnings, err := linkSkillUses(result, config, aliases)
 	if err != nil {
 		return nil, nil, err
 	}
 	return result, warnings, nil
+}
+
+// sourceSkill returns the origin of skill id of source, whose snapshot is snapshot: the source's repository and
+// revision for a skill it publishes, and, for a borrowed one, the repository and revision it was borrowed from.
+func sourceSkill(source rules.Source, snapshot library.Snapshot, id string) resolvedSkill {
+	skill := resolvedSkill{ID: source.Name + ":" + id, Source: source.Name, Folder: id, Vendored: id, Repository: source.Repository, Ref: source.Ref.String(), Commit: snapshot.Commit, Release: snapshot.Release, NonLibrary: snapshot.NonLibrary, Level: snapshot.Skills[id].Level, Included: snapshot.Skills[id].Included}
+	if skill.Level != "" {
+		skill.LevelRelease = snapshot.Release
+	}
+	if name, folder, borrowed := library.SplitBorrowed(id); borrowed {
+		origin := snapshot.Borrowed[name]
+		skill.Folder, skill.Vendored, skill.Borrowed, skill.Override = folder, library.SkillFolder(id), name, origin.Source
+		skill.Repository, skill.Ref, skill.Commit, skill.Release, skill.NonLibrary = origin.Repository, origin.Ref.String(), origin.Commit, origin.Release, origin.NonLibrary
+	}
+	return skill
+}
+
+// withoutBorrowedCopies drops from resolved each skill a project source installs that is also a borrowed skill
+// resolved, from the same repository, folder, and commit, as an overriding source supplies it: a skill's identity is
+// its repository and folder, so the borrowed one, which carries its library's level, is the one installed. It also
+// returns, by the project ID of each dropped skill, the borrowed skill's, which uses of the dropped one reach instead.
+func withoutBorrowedCopies(resolved []resolvedSkill) ([]resolvedSkill, map[string]string) {
+	aliases := map[string]string{}
+	kept := slices.DeleteFunc(resolved, func(skill resolvedSkill) bool {
+		if skill.Borrowed != "" {
+			return false
+		}
+		i := slices.IndexFunc(resolved, func(borrowed resolvedSkill) bool {
+			return borrowed.Override == skill.Source && borrowed.Borrowed != "" && borrowed.Folder == skill.Folder && borrowed.Commit == skill.Commit
+		})
+		if i >= 0 {
+			aliases[skill.ID] = resolved[i].ID
+		}
+		return i >= 0
+	})
+	return kept, aliases
 }
 
 // describeSkill reads skill's SKILL.md, at location for diagnostics, for its install name, description, type, and
@@ -153,9 +200,9 @@ func describeSkill(skill *resolvedSkill, location string) error {
 // skill, and, for an authored skill, where to edit it.
 func (skill resolvedSkill) marker() string {
 	if skill.Source == "" {
-		return fmt.Sprintf("<!-- syllabus:installed %s. Do not edit; edit .syllabus/%s/ instead. -->", skill.ID, skill.Folder)
+		return fmt.Sprintf("<!-- trailguide:installed %s. Do not edit; edit .trailguide/%s/ instead. -->", skill.ID, skill.Folder)
 	}
-	return fmt.Sprintf("<!-- syllabus:installed %s %s. Do not edit; syllabus project sync replaces this copy. -->", skill.ID, skill.Commit)
+	return fmt.Sprintf("<!-- trailguide:installed %s %s. Do not edit; trailguide project sync replaces this copy. -->", skill.ID, skill.Commit)
 }
 
 // installed returns the files of skill's installed copy: its files with the marker line in SKILL.md, and, when the
@@ -195,7 +242,7 @@ func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[strin
 			folders[target] = installed
 		}
 		entry := record{Name: skill.Name, ID: skill.ID, Targets: skill.Targets, Digest: folderDigest(installed)}
-		if skill.NonLibrary {
+		if skill.NonLibrary || skill.Borrowed != "" {
 			entry.Commit = &skill.Commit
 		}
 		records = append(records, entry)
@@ -216,19 +263,19 @@ func renderSkills(resolved []resolvedSkill, excluded []excludedSkill) (map[strin
 	return folders, files, nil
 }
 
-// InstalledSkillsFile is the record, in generated/, of the skill folders Syllabus installed, which is how it knows
+// InstalledSkillsFile is the record, in generated/, of the skill folders Trail Guide installed, which is how it knows
 // which folders in the skill targets it owns.
 const InstalledSkillsFile = "installed-skills.json"
 
 // InstalledFolders reads the folders an installed-skills.json record lists, by path from the repository root,
-// sorted. A record it can't read lists none, so no folder counts as installed by Syllabus.
+// sorted. A record it can't read lists none, so no folder counts as installed by Trail Guide.
 func InstalledFolders(data []byte) []string {
 	return slices.Sorted(maps.Keys(InstalledSkillIDs(data)))
 }
 
 // InstalledSkillIDs reads the folders an installed-skills.json record lists, by path from the repository root, each
 // with the project ID of the skill installed there. It keeps only folders in a skill target folder whose name
-// follows the skill name grammar. A record it can't read lists none, so no folder counts as installed by Syllabus.
+// follows the skill name grammar. A record it can't read lists none, so no folder counts as installed by Trail Guide.
 func InstalledSkillIDs(data []byte) map[string]string {
 	folders := map[string]string{}
 	for _, skill := range InstalledSkills(data) {
@@ -296,7 +343,7 @@ func folderDigest(folder SkillFiles) string {
 // skillsIndex renders SKILLS.md: one entry per installed skill, saying what it does, where it comes from, what it
 // replaces, and where agents find it, then the skills the project excludes, each with its reason.
 func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
-	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.syllabus/skills/` and rebuild."}
+	sections := []string{"# Skills", "This project installs the agent skills below. Agents that load skills from a skill target folder find each one there. Any other agent can read a skill's `SKILL.md` at the path given and follow it when its description matches the task. These files are generated; edit the configuration or the authored skills in `.trailguide/skills/` and rebuild."}
 	if slices.ContainsFunc(resolved, func(skill resolvedSkill) bool { return skill.Level != "" }) {
 		sections = append(sections, "A skill's level says how strongly the library that supplies it asks projects to use it: every project that uses the library installs its required skills, and the team chose to install its recommended and offered ones.")
 	}
@@ -309,6 +356,8 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		switch {
 		case skill.Source == "":
 			facts = append(facts, "- **Skill:** `"+skill.ID+"`, authored in this project")
+		case skill.Borrowed != "":
+			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, borrowed by `%s` from %s, commit `%s`", skill.ID, skill.Source, escapeText(skill.Repository), skill.Commit))
 		case skill.Release != 0:
 			facts = append(facts, fmt.Sprintf("- **Skill:** `%s`, from release/%d, commit `%s`", skill.ID, skill.Release, skill.Commit))
 		default:
@@ -317,8 +366,8 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		facts = append(facts, replacementFacts(skill.Replaces)...)
 		if skill.Level != "" {
 			setBy := "`" + skill.Source + "`"
-			if skill.Release != 0 {
-				setBy += fmt.Sprintf(", release %d", skill.Release)
+			if skill.LevelRelease != 0 {
+				setBy += fmt.Sprintf(", release %d", skill.LevelRelease)
 			}
 			facts = append(facts, "- **Level:** "+skill.Level+" by "+setBy)
 		}
@@ -330,22 +379,22 @@ func skillsIndex(resolved []resolvedSkill, excluded []excludedSkill) string {
 		} else if len(skill.Cited) > 0 {
 			lines := []string{}
 			for _, cited := range skill.Cited {
-				lines = append(lines, "  - "+citedLine(cited, ".syllabus/generated/SKILLS.md"))
+				lines = append(lines, "  - "+citedLine(cited, ".trailguide/generated/SKILLS.md"))
 			}
 			facts = append(facts, "- **Applies:**\n"+strings.Join(lines, "\n"))
 		}
 		facts = append(facts, useFacts(skill, resolved)...)
 		if len(skill.Targets) == 0 {
-			source := ".syllabus/" + skill.Folder + "/" + skills.File
+			source := ".trailguide/" + skill.Folder + "/" + skills.File
 			if skill.Source != "" {
-				source = ".syllabus/vendor/" + skill.Source + "/" + skill.Folder + "/" + skills.File
+				source = ".trailguide/vendor/" + skill.Source + "/" + skill.Vendored + "/" + skills.File
 			}
-			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", source)+").")
+			facts = append(facts, "- **Installed at:** nowhere, because the project has no skill targets. Read it at ["+source+"]("+rules.RelativeLink(".trailguide/generated/SKILLS.md", source)+").")
 		} else {
 			links := []string{}
 			for _, target := range skill.Targets {
 				file := target + "/" + skills.File
-				links = append(links, "["+file+"]("+rules.RelativeLink(".syllabus/generated/SKILLS.md", file)+")")
+				links = append(links, "["+file+"]("+rules.RelativeLink(".trailguide/generated/SKILLS.md", file)+")")
 			}
 			facts = append(facts, "- **Installed at:** "+strings.Join(links, ", "))
 		}

@@ -5,7 +5,7 @@ package rules
 import (
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // ValidateToolVersion rejects blank text using the established input whitespace rules.
