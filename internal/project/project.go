@@ -103,6 +103,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		changes.Warnings = append(retiredCitationWarnings(output), output.ExcludedUses...)
 		// Build reports paths relative to generated/, two folders below the repository root.
 		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
+		changes.Warnings = append(changes.Warnings, renameWarnings(output)...)
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
 		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)

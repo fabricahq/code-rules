@@ -153,12 +153,15 @@ type SourceEdit struct {
 	BasedOn map[string]trailguide.RuleVersion
 	// SkillExclude holds the entries to add to skills.exclude, by skill ID.
 	SkillExclude map[string]SkillExclusion
+	// SkillUnrename names skills whose existing skills.rename entries the edit removes.
+	SkillUnrename []string
 }
 
 // EditConfigurationSource adds pins, exclusions, and skill exclusions to the existing source alias, removes the pins
-// edit.Unpin names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced
+// edit.Unpin names and the skill renames edit.SkillUnrename names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced
 // value's comment, without dropping other comments or reordering entries. Setting basedOn of a rule the source
-// doesn't replace fails. A rules.pins list left empty is removed; a pin to remove that the source lacks fails. New
+// doesn't replace fails. A rules.pins list or skills.rename mapping left empty is removed; a pin or rename to remove that the source lacks
+// fails. New
 // entries follow the source's existing ones in rule or skill ID order, in a rules.pins, rules.exclude, or
 // skills.exclude list that is created when absent. Versions and commits are written quoted, such as
 // version: "1.3.0", so YAML reads them as text. A rule or skill the source already pins or excludes by its ID fails
@@ -177,6 +180,9 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
+	if err := removeSkillRenames(source, edit.SkillUnrename, "sources."+alias+".skills"); err != nil {
+		return nil, err
+	}
 	if err := addSkillExclusions(source, edit.SkillExclude, "sources."+alias+".skills"); err != nil {
 		return nil, err
 	}
@@ -238,6 +244,39 @@ func addSkillExclusions(source *yaml.Node, exclude map[string]SkillExclusion, wh
 		nodes[id] = node
 	}
 	return addEntries(skillFields, "exclude", nodes, where)
+}
+
+// removeSkillRenames deletes the entry of each of ids from the skills.rename mapping of source, and the mapping
+// itself once it's empty. An ID the mapping lacks fails with its location under where.
+func removeSkillRenames(source *yaml.Node, ids []string, where string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	skillFields := mappingValue(source, "skills")
+	renames := mappingValue(skillFields, "rename")
+	for _, id := range ids {
+		if !removeKey(renames, id) {
+			return invalid(where+".rename."+id, "the source has no such entry to remove")
+		}
+	}
+	if len(renames.Content) == 0 {
+		removeKey(skillFields, "rename")
+	}
+	return nil
+}
+
+// removeKey deletes key and its value from mapping, reporting whether mapping had it. A nil mapping has no keys.
+func removeKey(mapping *yaml.Node, key string) bool {
+	if mapping == nil {
+		return false
+	}
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		if mapping.Content[i].Value == key {
+			mapping.Content = slices.Delete(mapping.Content, i, i+2)
+			return true
+		}
+	}
+	return false
 }
 
 // mappingValue returns the value of key in mapping, or nil when mapping is nil or lacks the key.

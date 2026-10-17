@@ -111,7 +111,12 @@ func TestParseConfigurationRejectsInvalidSkillFields(t *testing.T) {
 		"targets not a list":   {"schemaVersion: 2\nskillTargets: claude\nsources: {}\n", "skillTargets", "expected a list"},
 		"empty include":        {source + "    skills:\n      include: []\n", "sources.team.skills.include", "select skills"},
 		"missing include":      {source + "    skills: {}\n", "sources.team.skills.include", "select skills"},
-		"unknown field":        {source + "    skills:\n      include: [skills/x]\n      rename: {}\n", "sources.team.skills", "rename"},
+		"unknown field":        {source + "    skills:\n      include: [skills/x]\n      pins: {}\n", "sources.team.skills", "pins"},
+		"rename not a map":     {source + "    skills:\n      include: [\"*\"]\n      rename: [skills/x]\n", "sources.team.skills.rename", "expected a mapping"},
+		"rename wildcard":      {source + "    skills:\n      include: [\"*\"]\n      rename: {\"*\": x}\n", "sources.team.skills.rename.*", "names one skill"},
+		"rename invalid ID":    {source + "    skills:\n      include: [\"*\"]\n      rename: {skills/../x: y}\n", "sources.team.skills.rename.skills/../x", "expected a skill ID"},
+		"rename bad name":      {source + "    skills:\n      include: [\"*\"]\n      rename: {skills/x: Team_Review}\n", "sources.team.skills.rename.skills/x", "name grammar"},
+		"rename excluded":      {source + "    skills:\n      include: [\"*\"]\n      exclude: [{id: skills/x, reason: No.}]\n      rename: {skills/x: y}\n", "sources.team.skills.rename.skills/x", "excludes this skill"},
 		"prefix":               {source + "    skills:\n      include: [skills/*]\n", "sources.team.skills.include[0]", "no prefixes"},
 		"wildcard and IDs":     {source + "    skills:\n      include: [\"*\", skills/x]\n", "sources.team.skills.include", "already includes every skill"},
 		"repeated ID":          {source + "    skills:\n      include: [skills/x, skills/x]\n", "sources.team.skills.include[1]", "more than once"},
@@ -201,4 +206,32 @@ func mustRef(t *testing.T, text string) rules.GitRef {
 		t.Fatal(err)
 	}
 	return ref
+}
+
+func TestParseConfigurationReadsSkillRenames(t *testing.T) {
+	config, err := rules.ParseConfigurationYAML([]byte(`schemaVersion: 2
+sources:
+  team:
+    repository: https://example.invalid/team.git
+    ref: main
+    skills:
+      include: ["*"]
+      rename:
+        skills/review: team-review
+        skills/engineering/to-spec: spec
+  other:
+    repository: https://example.invalid/other.git
+    ref: main
+    skills:
+      include: ["*"]
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := config.Sources[1].SkillRename; !reflect.DeepEqual(got, map[string]string{"skills/review": "team-review", "skills/engineering/to-spec": "spec"}) {
+		t.Fatalf("team renames = %v", got)
+	}
+	if got := config.Sources[0].SkillRename; got != nil {
+		t.Fatalf("other renames = %v, want none", got)
+	}
 }

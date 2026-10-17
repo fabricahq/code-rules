@@ -216,7 +216,7 @@ The installed copy is now `fabrica-review`, in `.claude/skills/fabrica-review/`.
 Warning: fabrica:skills/review-change is installed as fabrica-review. Mentions of review-change in skill text aren't rewritten; check the skills that call it by that name.
 ```
 
-Check whether any installed skill tells the agent to use `review-change`. You can rename a required skill too, because it stays installed.
+Check whether any installed skill tells the agent to use `review-change`, the renamed skill's own text included. After the clash, `review-change` is the other source's skill, so an agent following that mention runs the wrong one. [Fork](#fork-a-skill) any skill you need to change. You can rename a required skill too, because it stays installed.
 
 ## Exclude a skill
 

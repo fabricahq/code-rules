@@ -241,6 +241,16 @@ func noSkillTargetsWarning(output build.Output, targets []string) string {
 	return fmt.Sprintf("The project has no skill targets, so no copy of its %d skill(s) was installed. Agents can find them through .trailguide/generated/SKILLS.md. To install copies, set skillTargets in .trailguide/config.yaml, such as [claude, agents], then run trailguide project build.", len(output.SkillIDs))
 }
 
+// renameWarnings returns one warning for each skill output installs under the name skills.rename gives it, saying
+// that only the installed SKILL.md's name changed, so text that mentions the old name still does.
+func renameWarnings(output build.Output) []string {
+	warnings := []string{}
+	for _, skill := range output.RenamedSkills {
+		warnings = append(warnings, fmt.Sprintf("%s is installed as %s. Mentions of %s in skill text aren't rewritten; check the skills that call it by that name.", skill.ID, skill.To, skill.From))
+	}
+	return warnings
+}
+
 // retiredCitationWarnings returns a warning for each rule an authored skill in output cites that its library
 // retired. Build and sync install the skill anyway; check fails.
 func retiredCitationWarnings(output build.Output) []string {
