@@ -1,4 +1,4 @@
-// Fetch the skills a library borrows from other repositories, from those repositories, at revisions each project
+// Fetch the skills a library curates from other repositories, from those repositories, at revisions each project
 // resolves for itself.
 
 package imports
@@ -17,41 +17,41 @@ import (
 	"github.com/fabricahq/trailguide/internal/skills"
 )
 
-// borrowing says which revision of each source a library borrows from an import takes skills from.
-type borrowing struct {
-	// recorded holds each source's snapshot from the last sync, keyed by source name. Its borrowed revisions stay
+// curating says which revision of each source a library curates from an import takes skills from.
+type curating struct {
+	// recorded holds each source's snapshot from the last sync, keyed by source name. Its curated revisions stay
 	// while the library still names the same repository and ref for them, since sync never moves a source.
 	recorded map[string]library.Snapshot
-	// planned maps the name of a library source to the borrowed revisions an update planned for it, by the commit
-	// that supplies the library's skills, then by borrowed source name, which the import takes as they are.
-	planned map[string]map[string]map[string]library.BorrowedSource
+	// planned maps the name of a library source to the curated revisions an update planned for it, by the commit
+	// that supplies the library's skills, then by curated source name, which the import takes as they are.
+	planned map[string]map[string]map[string]library.CuratedSource
 }
 
-// borrowedSkill is a borrowed skill a project takes from a library source: its ID in the library, such as
+// curatedSkill is a curated skill a project takes from a library source: its ID in the library, such as
 // mattpocock:skills/to-spec, and the level the library lists it at.
-type borrowedSkill struct {
+type curatedSkill struct {
 	id, level string
 }
 
-// borrowedSkills returns, by borrowed source name, the borrowed skills source takes from manifest, its library's:
+// curatedSkills returns, by curated source name, the curated skills source takes from manifest, its library's:
 // every required one, the recommended ones when skills.include names recommended, and each offered one that it
 // names or includes with "*", which, as for a source's own skills, leaves out one in a folder whose name starts with
-// a dot. It fails when skills.include or skills.exclude names a borrowed skill the library
-// doesn't list, since a borrowed skill reaches projects only through the library's lists, and when skills.exclude
+// a dot. It fails when skills.include or skills.exclude names a curated skill the library
+// doesn't list, since a curated skill reaches projects only through the library's lists, and when skills.exclude
 // names a required one, since a project that uses the library can't diverge from it.
-func borrowedSkills(manifest *rules.Library, source rules.Source, release int) (map[string][]borrowedSkill, error) {
+func curatedSkills(manifest *rules.Library, source rules.Source, release int) (map[string][]curatedSkill, error) {
 	listed := rules.SkillLevels{}
 	if manifest != nil {
 		listed = manifest.Skills
 	}
-	borrowed := listed.Borrowed()
+	curated := listed.Curated()
 	for _, field := range []struct {
 		name string
 		ids  []string
 	}{{"include", source.Skills}, {"exclude", slices.Sorted(maps.Keys(source.SkillExclude))}} {
 		for _, id := range field.ids {
-			if _, _, isBorrowed := library.SplitBorrowed(id); isBorrowed && !slices.Contains(borrowed, id) {
-				return nil, &ValidationError{Location: "sources." + source.Name + ".skills." + field.name, Problem: fmt.Sprintf("the library doesn't list %s at any level, and a library's borrowed skills reach projects only through its lists; check the skill ID, or ask the library's maintainer to list it", id)}
+			if _, _, isCurated := library.SplitCurated(id); isCurated && !slices.Contains(curated, id) {
+				return nil, &ValidationError{Location: "sources." + source.Name + ".skills." + field.name, Problem: fmt.Sprintf("the library doesn't list %s at any level, and a library's curated skills reach projects only through its lists; check the skill ID, or ask the library's maintainer to list it", id)}
 			}
 		}
 	}
@@ -60,10 +60,10 @@ func borrowedSkills(manifest *rules.Library, source rules.Source, release int) (
 			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + id, Problem: rules.RequiredSkillProblem(source.Name, id, release)}
 		}
 	}
-	result := map[string][]borrowedSkill{}
-	for _, id := range borrowed {
+	result := map[string][]curatedSkill{}
+	for _, id := range curated {
 		level := listed.Level(id)
-		_, folder, _ := library.SplitBorrowed(id)
+		_, folder, _ := library.SplitCurated(id)
 		switch {
 		case level == skills.LevelRequired:
 		case slices.Contains(source.Skills, id):
@@ -72,17 +72,17 @@ func borrowedSkills(manifest *rules.Library, source rules.Source, release int) (
 		default:
 			continue
 		}
-		name, _, _ := library.SplitBorrowed(id)
-		result[name] = append(result[name], borrowedSkill{id: id, level: level})
+		name, _, _ := library.SplitCurated(id)
+		result[name] = append(result[name], curatedSkill{id: id, level: level})
 	}
 	return result, nil
 }
 
-// borrowSkills adds to imported, source's import, the borrowed skills the source takes from its library, with their
-// files from the repositories the library borrows from, and records each borrowed source's revision. all holds every
-// source's import, so a project source that declares a borrowed repository supplies its revision instead of the
+// curateSkills adds to imported, source's import, the curated skills the source takes from its library, with their
+// files from the repositories the library curates from, and records each curated source's revision. all holds every
+// source's import, so a project source that declares a curated repository supplies its revision instead of the
 // library's ref.
-func borrowSkills(ctx context.Context, configuration rules.Configuration, source rules.Source, imported *Library, all map[string]Library, borrow borrowing, options Options) error {
+func curateSkills(ctx context.Context, configuration rules.Configuration, source rules.Source, imported *Library, all map[string]Library, curate curating, options Options) error {
 	if imported.Snapshot.NonLibrary {
 		return nil
 	}
@@ -90,23 +90,23 @@ func borrowSkills(ctx context.Context, configuration rules.Configuration, source
 	if err != nil {
 		return err
 	}
-	selected, err := borrowedSkills(manifest, source, imported.Snapshot.Release)
+	selected, err := curatedSkills(manifest, source, imported.Snapshot.Release)
 	if err != nil {
 		return err
 	}
-	// The skills the library lists are what it offers of each borrowed repository, whether the project takes them or not.
-	for _, id := range manifest.Skills.Borrowed() {
+	// The skills the library lists are what it offers of each curated repository, whether the project takes them or not.
+	for _, id := range manifest.Skills.Curated() {
 		imported.Snapshot.AvailableSkills[id] = library.ImportedSkill{Level: manifest.Skills.Level(id)}
 	}
 	for _, name := range slices.Sorted(maps.Keys(selected)) {
-		lender := lendingSource{library: source.Name, name: name, declared: manifest.Borrowed[name]}
-		lender.override = overridingSource(configuration, source.Name, lender.declared.Repository)
-		if lender.override != nil {
-			lender.overridden = all[lender.override.Name].Snapshot
+		origin := curatedSource{library: source.Name, name: name, declared: manifest.Curated[name]}
+		origin.override = overridingSource(configuration, source.Name, origin.declared.Repository)
+		if origin.override != nil {
+			origin.overridden = all[origin.override.Name].Snapshot
 		}
-		recorded := borrow.recorded[source.Name].Borrowed[name]
-		planned, isPlanned := borrow.planned[source.Name][imported.Snapshot.Commit][name]
-		if err := lender.borrow(ctx, imported, selected[name], recorded, planned, isPlanned, options); err != nil {
+		recorded := curate.recorded[source.Name].Curated[name]
+		planned, isPlanned := curate.planned[source.Name][imported.Snapshot.Commit][name]
+		if err := origin.curate(ctx, imported, selected[name], recorded, planned, isPlanned, options); err != nil {
 			return err
 		}
 	}
@@ -135,12 +135,12 @@ func repositoryIdentity(address string) string {
 	return parsed.Identity
 }
 
-// lendingSource is one source a library borrows skills from, as one project resolves it.
-type lendingSource struct {
-	// library names the project's library source, and name the borrowed source in the library's manifest, which
+// curatedSource is one source a library curates skills from, as one project resolves it.
+type curatedSource struct {
+	// library names the project's library source, and name the curated source in the library's manifest, which
 	// declares it as declared.
 	library, name string
-	declared      rules.BorrowedSource
+	declared      rules.CuratedSource
 	// override is the project's own source that declares the same repository, and overridden its import; override
 	// is nil when no source does.
 	override   *rules.Source
@@ -150,10 +150,10 @@ type lendingSource struct {
 	maintained bool
 }
 
-// borrow fetches the lending source's revision and adds the files of chosen, its skills the project takes, to
+// curate fetches the curated source's revision and adds the files of chosen, its skills the project takes, to
 // imported. The revision is the overriding source's, when there is one; else planned, when an update planned one;
 // else recorded's, when it records the ref the library names; else the library's ref, resolved now.
-func (l lendingSource) borrow(ctx context.Context, imported *Library, chosen []borrowedSkill, recorded library.BorrowedSource, planned library.BorrowedSource, isPlanned bool, options Options) (err error) {
+func (l curatedSource) curate(ctx context.Context, imported *Library, chosen []curatedSkill, recorded library.CuratedSource, planned library.CuratedSource, isPlanned bool, options Options) (err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return err
@@ -191,24 +191,24 @@ func (l lendingSource) borrow(ctx context.Context, imported *Library, chosen []b
 		}
 		imported.Snapshot.Skills[l.name+":"+id] = library.ImportedSkill{Level: skill.Level, Included: skill.Included, UsedBy: usedBy}
 	}
-	prefix := library.BorrowedDirectory + "/" + l.name + "/"
+	prefix := library.CuratedDirectory + "/" + l.name + "/"
 	for name, data := range read.files {
 		imported.Snapshot.Files[prefix+name] = data
 	}
 	for _, name := range read.executable {
 		imported.Snapshot.Executable = append(imported.Snapshot.Executable, prefix+name)
 	}
-	if imported.Snapshot.Borrowed == nil {
-		imported.Snapshot.Borrowed = map[string]library.BorrowedSource{}
+	if imported.Snapshot.Curated == nil {
+		imported.Snapshot.Curated = map[string]library.CuratedSource{}
 	}
-	imported.Snapshot.Borrowed[l.name] = revision
+	imported.Snapshot.Curated[l.name] = revision
 	return nil
 }
 
-// read reads, from repo at revision, the lending source's skills that chosen names and every skill they use, as a
-// source's own skills bring the skills they use, by their IDs in the borrowed repository, with their files by path
+// read reads, from repo at revision, the curated source's skills that chosen names and every skill they use, as a
+// source's own skills bring the skills they use, by their IDs in the curated repository, with their files by path
 // in that repository. kept and retained are as missing and readFiles take them.
-func (l lendingSource) read(ctx context.Context, repo *repository, revision library.BorrowedSource, chosen []borrowedSkill, kept bool, retained int) (importedSkills, error) {
+func (l curatedSource) read(ctx context.Context, repo *repository, revision library.CuratedSource, chosen []curatedSkill, kept bool, retained int) (importedSkills, error) {
 	tree, err := repo.repositoryTree(ctx, revision.Commit)
 	if err != nil {
 		return importedSkills{}, err
@@ -216,19 +216,19 @@ func (l lendingSource) read(ctx context.Context, repo *repository, revision libr
 	folders := skillFolders(tree, !revision.NonLibrary)
 	ids, levels := []string{}, map[string]string{}
 	for _, skill := range chosen {
-		_, id, _ := library.SplitBorrowed(skill.id)
+		_, id, _ := library.SplitCurated(skill.id)
 		if _, ok := folders[id]; !ok {
 			return importedSkills{}, l.missing(skill.id, revision, kept)
 		}
 		ids, levels[id] = append(ids, id), skill.level
 	}
-	lender := rules.Source{Name: l.library}
+	origin := rules.Source{Name: l.library}
 	plan := sourcePlan{release: revision.Release, commit: revision.Commit}
-	uses, err := repo.skillUses(ctx, lender, folders, ids)
+	uses, err := repo.skillUses(ctx, origin, folders, ids)
 	if err != nil {
 		return importedSkills{}, err
 	}
-	installed, err := installedSkills(lender, plan, ids, uses)
+	installed, err := installedSkills(origin, plan, ids, uses)
 	if err != nil {
 		return importedSkills{}, err
 	}
@@ -246,20 +246,20 @@ func (l lendingSource) read(ctx context.Context, repo *repository, revision libr
 	return result, err
 }
 
-// revision returns the revision the lending source's skills come from, fetched, and reports whether a source record
+// revision returns the revision the curated source's skills come from, fetched, and reports whether a source record
 // locked it, which sync never moves.
-func (l lendingSource) revision(ctx context.Context, repo *repository, recorded, planned library.BorrowedSource, isPlanned bool) (library.BorrowedSource, bool, error) {
+func (l curatedSource) revision(ctx context.Context, repo *repository, recorded, planned library.CuratedSource, isPlanned bool) (library.CuratedSource, bool, error) {
 	if l.override != nil {
-		revision := library.BorrowedSource{Repository: l.override.Repository, Ref: l.override.Ref, Release: l.overridden.Release, Commit: l.overridden.Commit, Source: l.override.Name, NonLibrary: l.overridden.NonLibrary}
+		revision := library.CuratedSource{Repository: l.override.Repository, Ref: l.override.Ref, Release: l.overridden.Release, Commit: l.overridden.Commit, Source: l.override.Name, NonLibrary: l.overridden.NonLibrary}
 		return revision, true, repo.fetchCommits(ctx, []string{revision.Commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s is missing from its repository, so the repository may have rewritten its history. Run trailguide project sync again, or delete vendor/%s and run trailguide project sync to resolve sources.%s again.", l.override.Name, l.override.Name, l.override.Name, l.override.Name))
 	}
 	if isPlanned && l.declares(planned) {
 		return planned, false, repo.fetchCommits(ctx, []string{planned.Commit}, l.vanished("trailguide project update "+l.library))
 	}
 	if recorded.Source == "" && l.declares(recorded) {
-		missing := fmt.Sprintf("The commit that vendor/%s/_source.json records for the skills library %s borrows from %s is missing from that repository, so it may have rewritten its history. Run trailguide project update %s to resolve the library's ref for %s again.", l.library, l.library, l.name, l.library, l.name)
+		missing := fmt.Sprintf("The commit that vendor/%s/_source.json records for the skills library %s curates from %s is missing from that repository, so it may have rewritten its history. Run trailguide project update %s to resolve the library's ref for %s again.", l.library, l.library, l.name, l.library, l.name)
 		if err := repo.fetchCommits(ctx, []string{recorded.Commit}, missing); err != nil {
-			return library.BorrowedSource{}, false, err
+			return library.CuratedSource{}, false, err
 		}
 		isLibrary, err := repo.isLibrary(ctx, recorded.Commit)
 		recorded.NonLibrary = !isLibrary
@@ -269,40 +269,40 @@ func (l lendingSource) revision(ctx context.Context, repo *repository, recorded,
 	return revision, false, err
 }
 
-// vanished explains a commit of the lending source that its repository no longer has, although Trail Guide just read it,
+// vanished explains a commit of the curated source that its repository no longer has, although Trail Guide just read it,
 // and names command, what to run again.
-func (l lendingSource) vanished(command string) string {
-	return fmt.Sprintf("A commit of the repository library %s borrows skills from as %s disappeared while Trail Guide read it, so the repository's history changed. Run %s again.", l.library, l.name, command)
+func (l curatedSource) vanished(command string) string {
+	return fmt.Sprintf("A commit of the repository library %s curates skills from as %s disappeared while Trail Guide read it, so the repository's history changed. Run %s again.", l.library, l.name, command)
 }
 
-// declares reports whether revision records the repository and ref the library declares for the lending source.
-func (l lendingSource) declares(revision library.BorrowedSource) bool {
+// declares reports whether revision records the repository and ref the library declares for the curated source.
+func (l curatedSource) declares(revision library.CuratedSource) bool {
 	return revision.Commit != "" && revision.Repository == l.declared.Repository && revision.Ref.Equal(l.declared.Ref)
 }
 
-// resolve resolves the ref the library declares for the lending source, or, without one, the repository's newest
+// resolve resolves the ref the library declares for the curated source, or, without one, the repository's newest
 // library release, and fetches the revision.
-func (l lendingSource) resolve(ctx context.Context, repo *repository) (library.BorrowedSource, error) {
+func (l curatedSource) resolve(ctx context.Context, repo *repository) (library.CuratedSource, error) {
 	p := &planner{ctx: ctx, repo: repo, source: rules.Source{Name: l.name, Repository: l.declared.Repository, Ref: l.declared.Ref}}
-	revision := library.BorrowedSource{Repository: l.declared.Repository, Ref: l.declared.Ref}
+	revision := library.CuratedSource{Repository: l.declared.Repository, Ref: l.declared.Ref}
 	var err error
 	if l.declared.Ref.IsZero() {
 		history, historyErr := p.releases()
 		if historyErr != nil {
-			return library.BorrowedSource{}, historyErr
+			return library.CuratedSource{}, historyErr
 		}
 		newest := history.newest()
 		if newest == nil {
-			return library.BorrowedSource{}, fail("ref-required", fmt.Sprintf("%s borrows skills from its source %s, whose repository has no release/<number> tags, so the library must name a ref for it. %s", l.subject(), l.name, l.fixRef("set")), nil)
+			return library.CuratedSource{}, fail("ref-required", fmt.Sprintf("%s curates skills from its source %s, whose repository has no release/<number> tags, so the library must name a ref for it. %s", l.subject(), l.name, l.fixRef("set")), nil)
 		}
 		revision.Release, revision.Commit = newest.number, newest.commit
 		if err := repo.fetchCommits(ctx, []string{revision.Commit}, l.vanished("the command")); err != nil {
-			return library.BorrowedSource{}, err
+			return library.CuratedSource{}, err
 		}
 	} else if revision.Release, revision.Commit, err = p.resolveRef(); err != nil {
-		return library.BorrowedSource{}, l.libraryRef(err)
+		return library.CuratedSource{}, l.libraryRef(err)
 	} else if err := repo.fetchCommits(ctx, []string{revision.Commit}, l.vanished("the command")); err != nil {
-		return library.BorrowedSource{}, err
+		return library.CuratedSource{}, err
 	}
 	isLibrary, err := repo.isLibrary(ctx, revision.Commit)
 	revision.NonLibrary = !isLibrary
@@ -311,60 +311,60 @@ func (l lendingSource) resolve(ctx context.Context, repo *repository) (library.B
 
 // libraryRef rewords a failure resolving the ref the library declares, which names sources.<name>.ref as if it
 // were the project's, to name the library's configuration.
-func (l lendingSource) libraryRef(err error) error {
+func (l curatedSource) libraryRef(err error) error {
 	var failure *Error
 	if !errors.As(err, &failure) || !strings.HasPrefix(failure.Problem, "sources."+l.name+".ref") {
 		return err
 	}
-	return fail(failure.Code, fmt.Sprintf("%s borrows skills from its source %s at ref %s, which the repository doesn't resolve: %s %s", l.subject(), l.name, l.declared.Ref, strings.TrimSpace(strings.TrimPrefix(failure.Problem, "sources."+l.name+".ref:")), l.fixRef("fix")), nil)
+	return fail(failure.Code, fmt.Sprintf("%s curates skills from its source %s at ref %s, which the repository doesn't resolve: %s %s", l.subject(), l.name, l.declared.Ref, strings.TrimSpace(strings.TrimPrefix(failure.Problem, "sources."+l.name+".ref:")), l.fixRef("fix")), nil)
 }
 
 // subject names the library in advice: by its source name in a project, and as the library to its maintainer.
-func (l lendingSource) subject() string {
+func (l curatedSource) subject() string {
 	if l.maintained {
 		return "The library"
 	}
 	return "Library " + l.library
 }
 
-// fixRef advises how to fix the ref the library declares for the lending source, with verb, such as set or fix:
+// fixRef advises how to fix the ref the library declares for the curated source, with verb, such as set or fix:
 // the maintainer edits the library's configuration, and a project asks them to or overrides the ref.
-func (l lendingSource) fixRef(verb string) string {
+func (l curatedSource) fixRef(verb string) string {
 	if l.maintained {
 		return fmt.Sprintf("%s sources.%s.ref in .trailguide/config.yaml.", strings.ToUpper(verb[:1])+verb[1:], l.name)
 	}
 	return fmt.Sprintf("Ask the library's maintainer to %s sources.%s.ref in its .trailguide/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", verb, l.name)
 }
 
-// missing explains a borrowed skill, id, that the lending source's revision doesn't have: a revision a record or an
+// missing explains a curated skill, id, that the curated source's revision doesn't have: a revision a record or an
 // overriding source locks needs an update or another ref, and any other means the library lists a skill its
-// borrowed repository lacks.
-func (l lendingSource) missing(id string, revision library.BorrowedSource, kept bool) error {
+// curated repository lacks.
+func (l curatedSource) missing(id string, revision library.CuratedSource, kept bool) error {
 	where := revisionName(revision.Release, revision.Commit)
 	switch {
 	case l.override != nil:
-		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision of sources.%s, which declares the same repository and so supplies the skills the library borrows from it. Run trailguide project update %s, or set sources.%s.ref to a revision that has the skill, then run trailguide project sync.", l.library, id, where, l.override.Name, l.override.Name, l.override.Name), nil)
+		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision of sources.%s, which declares the same repository and so supplies the skills the library curates from it. Run trailguide project update %s, or set sources.%s.ref to a revision that has the skill, then run trailguide project sync.", l.library, id, where, l.override.Name, l.override.Name, l.override.Name), nil)
 	case kept:
-		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision vendor/%s/_source.json records for the skills it borrows from %s. Sync never moves that revision; run trailguide project update %s, which resolves the library's ref for %s again.", l.library, id, where, l.library, l.name, l.library, l.name), nil)
+		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision vendor/%s/_source.json records for the skills it curates from %s. Sync never moves that revision; run trailguide project update %s, which resolves the library's ref for %s again.", l.library, id, where, l.library, l.name, l.library, l.name), nil)
 	}
 	return &ValidationError{Location: "sources." + l.library, Problem: fmt.Sprintf("library %s lists %s, which its repository %s doesn't have at %s; ask the library's maintainer to fix library.skills or sources.%s.ref", l.library, id, l.declared.Repository, where, l.name)}
 }
 
-// planBorrowed plans the revision of each source a library borrows skills from, given manifest, the library's
+// planCurated plans the revision of each source a library curates skills from, given manifest, the library's
 // .trailguide/config.yaml at a revision the update can take source's skills from, and recorded, the source's snapshot,
 // or nil. It resolves the ref the library names again, as an update of the whole source does, unless keep is set,
-// which keeps the recorded revision while the library still names its repository and ref, as sync does. A borrowed repository that
+// which keeps the recorded revision while the library still names its repository and ref, as sync does. A curated repository that
 // a project source declares too comes from overridden, that source's revision once the update is applied, by source
-// name. A non-nil only limits the plan to the borrowed sources it reports true for, given each one's name and the
+// name. A non-nil only limits the plan to the curated sources it reports true for, given each one's name and the
 // project source that overrides it, or nil. It returns the revisions it
-// resolved, by borrowed source name, leaving out overridden ones, and a preview row for each borrowed source whose
+// resolved, by curated source name, leaving out overridden ones, and a preview row for each curated source whose
 // commit or skills differ from those recorded, including one the project no longer takes any skills from.
-func planBorrowed(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, keep bool, overridden map[string]library.Snapshot, only func(name string, override *rules.Source) bool, options Options) (map[string]library.BorrowedSource, []BorrowedUpdate, error) {
+func planCurated(ctx context.Context, configuration rules.Configuration, source rules.Source, manifest []byte, recorded *library.Snapshot, keep bool, overridden map[string]library.Snapshot, only func(name string, override *rules.Source) bool, options Options) (map[string]library.CuratedSource, []CuratedUpdate, error) {
 	parsed, err := rules.ParseLibraryManifest(manifest, source.Name+"/"+librarytree.RepositoryPath(librarytree.Manifest))
 	if err != nil {
 		return nil, nil, err
 	}
-	selected, err := borrowedSkills(parsed, source, 0)
+	selected, err := curatedSkills(parsed, source, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -372,38 +372,38 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 	if recorded != nil {
 		before = *recorded
 	}
-	revisions, rows := map[string]library.BorrowedSource{}, []BorrowedUpdate{}
+	revisions, rows := map[string]library.CuratedSource{}, []CuratedUpdate{}
 	names := maps.Clone(selected)
-	for name := range before.Borrowed {
+	for name := range before.Curated {
 		if _, ok := names[name]; !ok {
 			names[name] = nil
 		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(names)) {
-		was := before.BorrowedFrom(name)
-		lender := lendingSource{library: source.Name, name: name, declared: parsed.Borrowed[name]}
-		lender.override = overridingSource(configuration, source.Name, lender.declared.Repository)
-		if only != nil && !only(name, lender.override) {
+		was := before.CuratedFrom(name)
+		origin := curatedSource{library: source.Name, name: name, declared: parsed.Curated[name]}
+		origin.override = overridingSource(configuration, source.Name, origin.declared.Repository)
+		if only != nil && !only(name, origin.override) {
 			continue
 		}
 		if len(selected[name]) == 0 {
 			// The project takes no skills from the source any more, so the update removes those it installed.
-			gone := before.Borrowed[name]
-			row := borrowedMove(name, gone, library.BorrowedSource{Repository: gone.Repository, Ref: gone.Ref}, skillChanges(&was, importedSkills{}))
+			gone := before.Curated[name]
+			row := curatedMove(name, gone, library.CuratedSource{Repository: gone.Repository, Ref: gone.Ref}, skillChanges(&was, importedSkills{}))
 			for i := range row.Changes {
 				row.Changes[i].ID = name + ":" + row.Changes[i].ID
 			}
 			rows = append(rows, row)
 			continue
 		}
-		if lender.override != nil {
-			lender.overridden = overridden[lender.override.Name]
+		if origin.override != nil {
+			origin.overridden = overridden[origin.override.Name]
 		}
-		revision, row, err := lender.plan(ctx, selected[name], was, before.Borrowed[name], keep, options)
+		revision, row, err := origin.plan(ctx, selected[name], was, before.Curated[name], keep, options)
 		if err != nil {
 			return nil, nil, err
 		}
-		if lender.override == nil {
+		if origin.override == nil {
 			revisions[name] = revision
 		}
 		if row != nil {
@@ -413,16 +413,16 @@ func planBorrowed(ctx context.Context, configuration rules.Configuration, source
 	return revisions, rows, nil
 }
 
-// plan fetches the lending source's revision in a repository of its own, within one import deadline, and returns it,
+// plan fetches the curated source's revision in a repository of its own, within one import deadline, and returns it,
 // and the preview row for it when its commit or the skills the project takes from it differ from was's, which holds
-// the skills the project recorded from the source, as Snapshot.BorrowedFrom gives them. The revision is the
+// the skills the project recorded from the source, as Snapshot.CuratedFrom gives them. The revision is the
 // overriding source's, when there is one; else recorded, when keep is set and it records the ref the library names;
 // else the library's ref, resolved now. The row compares the files of chosen, the skills the project takes, and of
 // the skills they use, at the two commits, as skillChanges compares a source's own skills.
-func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was library.Snapshot, recorded library.BorrowedSource, keep bool, options Options) (_ library.BorrowedSource, _ *BorrowedUpdate, err error) {
+func (l curatedSource) plan(ctx context.Context, chosen []curatedSkill, was library.Snapshot, recorded library.CuratedSource, keep bool, options Options) (_ library.CuratedSource, _ *CuratedUpdate, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
-		return library.BorrowedSource{}, nil, err
+		return library.CuratedSource{}, nil, err
 	}
 	defer cancel()
 	address := l.declared.Repository
@@ -431,7 +431,7 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 	}
 	repo, err := openRepository(ctx, rules.Source{Name: l.name, Repository: address}, options)
 	if err != nil {
-		return library.BorrowedSource{}, nil, err
+		return library.CuratedSource{}, nil, err
 	}
 	defer func() {
 		if closeErr := repo.Close(); closeErr != nil {
@@ -440,17 +440,17 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 	}()
 	recordedRevision := recorded
 	if !keep {
-		recorded = library.BorrowedSource{}
+		recorded = library.CuratedSource{}
 	}
-	revision, kept, err := l.revision(ctx, repo, recorded, library.BorrowedSource{}, false)
+	revision, kept, err := l.revision(ctx, repo, recorded, library.CuratedSource{}, false)
 	if err != nil {
-		return library.BorrowedSource{}, nil, err
+		return library.CuratedSource{}, nil, err
 	}
 	read, err := l.read(ctx, repo, revision, chosen, kept, 0)
 	if err != nil {
-		return library.BorrowedSource{}, nil, err
+		return library.CuratedSource{}, nil, err
 	}
-	row := borrowedMove(l.name, recordedRevision, revision, skillChanges(&was, read))
+	row := curatedMove(l.name, recordedRevision, revision, skillChanges(&was, read))
 	if row.Commit == nil && len(row.Changes) == 0 {
 		return revision, nil, nil
 	}
@@ -460,11 +460,11 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 	return revision, &row, nil
 }
 
-// BorrowedSkillIDs resolves the ref a library declares for its borrowed source name, or, without one, the
+// CuratedSkillIDs resolves the ref a library declares for its curated source name, or, without one, the
 // repository's newest library release, as a project that uses the library would when it updates, for the library's
 // maintainer. It returns, sorted, the IDs the repository's skills have there, which follow the source's name and a
 // colon in the library's lists, and the revision's name, such as main or release/3.
-func BorrowedSkillIDs(ctx context.Context, name string, declared rules.BorrowedSource, options Options) (_ []string, _ string, err error) {
+func CuratedSkillIDs(ctx context.Context, name string, declared rules.CuratedSource, options Options) (_ []string, _ string, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return nil, "", err
@@ -479,8 +479,8 @@ func BorrowedSkillIDs(ctx context.Context, name string, declared rules.BorrowedS
 			err = errors.Join(err, closeErr)
 		}
 	}()
-	lender := lendingSource{name: name, declared: declared, maintained: true}
-	revision, err := lender.resolve(ctx, repo)
+	origin := curatedSource{name: name, declared: declared, maintained: true}
+	revision, err := origin.resolve(ctx, repo)
 	if err != nil {
 		return nil, "", err
 	}
@@ -495,11 +495,11 @@ func BorrowedSkillIDs(ctx context.Context, name string, declared rules.BorrowedS
 	return slices.Sorted(maps.Keys(skillFolders(tree, !revision.NonLibrary))), at, nil
 }
 
-// borrowedMove returns the preview row of the borrowed source name moving from the revision from, which the project
-// recorded, or the zero BorrowedSource for one it didn't borrow from before, to the revision to, whose Commit is empty
+// curatedMove returns the preview row of the curated source name moving from the revision from, which the project
+// recorded, or the zero CuratedSource for one it didn't curate from before, to the revision to, whose Commit is empty
 // when the update removes the source's skills, with the changes to its skills.
-func borrowedMove(name string, from, to library.BorrowedSource, changes []SkillUpdate) BorrowedUpdate {
-	row := BorrowedUpdate{Name: name, Repository: to.Repository, Ref: to.Ref.String(), Changes: changes}
+func curatedMove(name string, from, to library.CuratedSource, changes []SkillUpdate) CuratedUpdate {
+	row := CuratedUpdate{Name: name, Repository: to.Repository, Ref: to.Ref.String(), Changes: changes}
 	if from.Commit == to.Commit {
 		return row
 	}

@@ -21,11 +21,11 @@ import (
 type Library struct {
 	// License is nil when the library declares no license.
 	License *LicenseDeclaration `json:"license"`
-	// Skills holds the levels the library gives its skills, its own and those it borrows.
+	// Skills holds the levels the library gives its skills, its own and those it curates.
 	Skills SkillLevels `json:"skills"`
-	// Borrowed maps the name of each source that Skills borrows from to its repository and ref, as the
-	// configuration's sources declare them; it is nil when the library borrows nothing.
-	Borrowed map[string]BorrowedSource `json:"borrowed,omitempty"`
+	// Curated maps the name of each source that Skills curates from to its repository and ref, as the
+	// configuration's sources declare them; it is nil when the library curates nothing.
+	Curated map[string]CuratedSource `json:"curated,omitempty"`
 }
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -82,7 +82,7 @@ func PublishedManifest(text []byte, location string) ([]byte, error) {
 
 // PublishedManifestOf returns the configuration that PublishedManifest publishes for a library section and the
 // configuration's sources, both given as JSON: schema version 2, the repository and ref of each source the
-// section's skills borrow from, which projects resolve for themselves, and the section, with object keys sorted.
+// section's skills curate from, which projects resolve for themselves, and the section, with object keys sorted.
 func PublishedManifestOf(section, sources json.RawMessage) ([]byte, error) {
 	var value any
 	if err := json.Unmarshal(section, &value); err != nil {
@@ -91,7 +91,7 @@ func PublishedManifestOf(section, sources json.RawMessage) ([]byte, error) {
 	var declared map[string]map[string]any
 	_ = json.Unmarshal(sources, &declared)
 	published := map[string]any{}
-	for _, name := range borrowedNames(section) {
+	for _, name := range curatedNames(section) {
 		source := map[string]any{"repository": declared[name]["repository"]}
 		if ref, ok := declared[name]["ref"]; ok {
 			source["ref"] = ref
@@ -106,7 +106,7 @@ func PublishedManifestOf(section, sources json.RawMessage) ([]byte, error) {
 }
 
 // parseLibrary validates a configuration's library section: its license and the levels of its skills, whose
-// borrowed skills must borrow from sources, the configuration's sources.
+// curated skills must curate from sources, the configuration's sources.
 func parseLibrary(input json.RawMessage, sources []Source) (*Library, error) {
 	fields, err := decode.Object(input, "library")
 	if err != nil {
@@ -128,7 +128,7 @@ func parseLibrary(input json.RawMessage, sources []Source) (*Library, error) {
 	if result.Skills, err = parseSkillLevels(fields["skills"], "library.skills", names); err != nil {
 		return nil, err
 	}
-	result.Borrowed = borrowedSources(result.Skills, sources)
+	result.Curated = curatedSources(result.Skills, sources)
 	return result, nil
 }
 
@@ -198,7 +198,7 @@ func termsPath(input json.RawMessage, location string) (string, error) {
 	}
 	path, ok := librarytree.LibraryPath(librarytree.Upgrade(declared))
 	if !ok || path == librarytree.Manifest || strings.HasPrefix(path, "changes/") || (path == declared && librarytree.InSnapshotNames(path)) {
-		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
+		return "", invalid(location, decode.Quote(declared)+" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, curated/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library")
 	}
 	if librarytree.IsRuleContent(path) {
 		return "", invalid(location, decode.Quote(declared)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root")

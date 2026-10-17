@@ -110,7 +110,7 @@ Each rule ID in `include` must name a rule the source publishes, and each prefix
 | `"*"` | Every skill the source offers, at any level. |
 | `skills/deploy-preview` | That skill, whatever its level, plus the required ones. |
 
-Skill selectors have no prefixes: `skills/*` and `recommended/*` are rejected. A library's required skills always install, whatever `include` says; see [Skill levels](#skill-levels). A skill a library borrows from another repository is named as the library's manifest names it, with the borrowed source's name, such as `mattpocock:skills/engineering/to-spec`; see [Borrowed skills](#borrowed-skills).
+Skill selectors have no prefixes: `skills/*` and `recommended/*` are rejected. A library's required skills always install, whatever `include` says; see [Skill levels](#skill-levels). A skill a library curates from another repository is named as the library's manifest names it, with the curated source's name, such as `mattpocock:skills/engineering/to-spec`; see [Curated skills](#curated-skills).
 
 `exclude` entries take a skill ID, `recommended`, or `"*"`, with a reason. Excluding a required skill fails validation, however the exclusion names it.
 
@@ -126,7 +126,7 @@ A library sets one of three **levels** for each skill it publishes, in its [mani
 
 A library's own skill that no level lists is offered. A source without a manifest, a **non-library source**, offers every skill it has and requires none.
 
-A project sees only the levels of the libraries it names as sources. When a library borrows a skill from another library, the project sees the level the borrowing library sets, not the one the original library sets: levels don't chain.
+A project sees only the levels of the libraries it names as sources. When a library curates a skill from another library, the project sees the level the curating library sets, not the one the original library sets: levels don't chain.
 
 Because required skills install with no `include`, a source declared with only a `repository` installs its library's required skills, now and after every update that adds one:
 
@@ -338,22 +338,22 @@ library:
 | `library.skills.recommended` | Skills a project installs when it includes `recommended`. |
 | `library.skills.offered` | Skills a project installs when it names them or includes `"*"`. |
 
-An empty `library: {}` makes a repository a library with no levels and no declared license. Each level is an optional list. Each entry is either an authored skill's ID, such as `skills/ship-service`, or a borrowed skill, `<source>:<skill-id>`, where `<source>` names an entry in this repository's own `sources`. A skill can appear in one level only. An authored skill that no level lists is offered.
+An empty `library: {}` makes a repository a library with no levels and no declared license. Each level is an optional list. Each entry is either an authored skill's ID, such as `skills/ship-service`, or a curated skill, `<source>:<skill-id>`, where `<source>` names an entry in this repository's own `sources`. A skill can appear in one level only. An authored skill that no level lists is offered.
 
-`trailguide library check` validates the manifest, and fails when two listed skills, authored or borrowed, have the same install name, so projects never inherit a clash from one library. See [Library format](/reference/library-format/).
+`trailguide library check` validates the manifest, and fails when two listed skills, authored or curated, have the same install name, so projects never inherit a clash from one library. See [Library format](/reference/library-format/).
 
 The manifest replaces the separate `rule-library.yaml` that earlier versions used. A repository with a `rule-library.yaml` fails to load; see [No backward compatibility](#no-backward-compatibility).
 
-### Borrowed skills
+### Curated skills
 
-A library can list skills from another repository in its levels, such as a third party's skill it wants its projects to use. The repository it takes them from is a **borrowed source**: an ordinary entry in the library's own `sources`, with the `ref` the library tracks. A library borrows skills only; rules in its sources are for its own use, and it never publishes them.
+A library can list skills from another repository in its levels, such as a third party's skill it wants its projects to use. The repository it takes them from is a **curated source**: an ordinary entry in the library's own `sources`, with the `ref` the library tracks. A library curates skills only; rules in its sources are for its own use, and it never publishes them.
 
-- **Every borrowed skill is listed.** A skill from a borrowed source reaches projects only when a level lists it.
-- **Files come from the original repository.** A skill's identity is its repository plus its path. Projects fetch a borrowed skill's files from the borrowed source, not from the library, and provenance records which library required, recommended, or offered it.
-- **Refs resolve per project.** A library release doesn't lock a borrowed source's `ref`. Each project resolves it when it runs `trailguide project update` and records the commit in the library source's `_source.json`, so `ref: main` gives each project the newest commit at its own update, without a new library release. `trailguide project sync` keeps the recorded commit.
-- **A project can override the ref.** When a project declares a source with the same repository as a borrowed source, its own `ref` decides which commit the borrowed skills come from. Repository identity decides the match, not the source name; see [Repository addresses](#repository-addresses).
+- **Every curated skill is listed.** A skill from a curated source reaches projects only when a level lists it.
+- **Files come from the original repository.** A skill's identity is its repository plus its path. Projects fetch a curated skill's files from the curated source, not from the library, and provenance records which library required, recommended, or offered it.
+- **Refs resolve per project.** A library release doesn't lock a curated source's `ref`. Each project resolves it when it runs `trailguide project update` and records the commit in the library source's `_source.json`, so `ref: main` gives each project the newest commit at its own update, without a new library release. `trailguide project sync` keeps the recorded commit.
+- **A project can override the ref.** When a project declares a source with the same repository as a curated source, its own `ref` decides which commit the curated skills come from. Repository identity decides the match, not the source name; see [Repository addresses](#repository-addresses).
 
-The library repository is a project too: it installs the required skills of the sources it borrows from, as any project would, and whatever it includes from them for its own use.
+The library repository is a project too: it installs the required skills of the sources it curates from, as any project would, and whatever it includes from them for its own use.
 
 ## Repository addresses
 
@@ -382,7 +382,7 @@ Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper prot
 The `owner/name` shorthand isn't accepted; use `https://github.com/owner/name.git` instead.
 
 Trail Guide preserves the supplied address in provenance and requires the snapshot to match it exactly.
-Two addresses name the same repository when they match after normalizing host spelling, standard GitHub.com and GitLab.com transport aliases, and optional `.git` suffixes. This decides duplicate sources, and which project source overrides a [borrowed source's](#borrowed-skills) ref.
+Two addresses name the same repository when they match after normalizing host spelling, standard GitHub.com and GitLab.com transport aliases, and optional `.git` suffixes. This decides duplicate sources, and which project source overrides a [curated source's](#curated-skills) ref.
 GitHub path matching ignores case; generic repository paths and GitLab paths retain case.
 Other hosts retain their transport, username, port, and path distinctions.
 For example, `git@host:rules.git` is home-relative, while `ssh://git@host/rules.git` is absolute. Trail Guide does not equate them.
@@ -415,7 +415,7 @@ skills/fix-bug
 
 - A rule ID is the rule's path in its repository's `rules/` folder, without `.md`.
 - A skill ID is the skill folder's path: `skills/<name>` for a library's skills, and the folder's path from the repository root for a non-library source's, such as `skills/engineering/to-spec`.
-- A borrowed skill's project ID adds the borrowed source's name after the library's, as the manifest lists it. When the project declares the borrowed repository as its own source, the skill's project ID uses that source's name instead.
+- A curated skill's project ID adds the curated source's name after the library's, as the manifest lists it. When the project declares the curated repository as its own source, the skill's project ID uses that source's name instead.
 - Authored rules and skills have no source name.
 
 The source name keeps identical IDs from different sources distinct. Renaming a source changes its project IDs and any external references to them. Replacing a repository under an existing source name also requires reviewing its `exclude`, `pins`, `uses`, and `rename` entries.

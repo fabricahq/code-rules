@@ -52,7 +52,7 @@ type Snapshot struct {
 	// empty, never nil, when there are none.
 	SkillSelection []string `json:"skillSelection"`
 	// Skills maps the ID of each skill the source installs to its record; it is empty, never nil, when there are
-	// none. Every skill the source publishes comes from Commit, and every borrowed skill from its Borrowed revision.
+	// none. Every skill the source publishes comes from Commit, and every curated skill from its Curated revision.
 	Skills map[string]ImportedSkill `json:"skills"`
 	// AvailableSkills maps the ID of every skill the source offers at Commit, installed or not, to its record, so
 	// listings can show what else the project could install; it is empty, never nil, when there are none.
@@ -60,46 +60,46 @@ type Snapshot struct {
 	// Executable lists, sorted, the paths in Files whose executable bit the repository records; it is empty, never
 	// nil, when there are none.
 	Executable []string `json:"executable"`
-	// Borrowed maps the name of each source in the library's manifest that supplies a borrowed skill the snapshot
-	// holds to the revision that supplied it; it is nil when there are none. A borrowed skill's ID is
+	// Curated maps the name of each source in the library's manifest that supplies a curated skill the snapshot
+	// holds to the revision that supplied it; it is nil when there are none. A curated skill's ID is
 	// that name, a colon, and the skill's ID in the source's repository, such as mattpocock:skills/to-spec.
-	Borrowed map[string]BorrowedSource `json:"borrowed,omitempty"`
+	Curated map[string]CuratedSource `json:"curated,omitempty"`
 }
 
-// BorrowedSource records the revision of one source a library borrows skills from, which the project resolved
+// CuratedSource records the revision of one source a library curates skills from, which the project resolved
 // itself: a library release never locks it.
-type BorrowedSource struct {
+type CuratedSource struct {
 	Repository string `json:"repository"`
 	// Ref is the ref the revision was resolved from: the one the library's manifest names for the source, or the
-	// project's own source's when Source overrides it; it is the zero GitRef when the borrowed repository follows its
+	// project's own source's when Source overrides it; it is the zero GitRef when the curated repository follows its
 	// newest library release.
 	Ref rules.GitRef `json:"ref,omitzero"`
-	// Release is the borrowed repository's library release at Commit, or 0 when Commit isn't one.
+	// Release is the curated repository's library release at Commit, or 0 when Commit isn't one.
 	Release int    `json:"release,omitempty"`
 	Commit  string `json:"resolvedCommit"`
 	// Source names the project's own source that declares the same repository, whose revision supplies the
-	// borrowed skills in place of the library's ref; it is empty when the library's ref does.
+	// curated skills in place of the library's ref; it is empty when the library's ref does.
 	Source string `json:"source,omitempty"`
 	// NonLibrary reports that the repository has no library manifest at Commit, so its skill IDs are their paths
 	// from its root.
 	NonLibrary bool `json:"nonLibrary,omitempty"`
 }
 
-// BorrowedDirectory is the folder, in a library source's vendor snapshot, that holds the skills it borrows, one
-// folder per borrowed source.
-const BorrowedDirectory = "borrowed"
+// CuratedDirectory is the folder, in a library source's vendor snapshot, that holds the skills it curates, one
+// folder per curated source.
+const CuratedDirectory = "curated"
 
-// SplitBorrowed returns the source name and the skill's ID in that source's repository for a borrowed skill's ID,
+// SplitCurated returns the source name and the skill's ID in that source's repository for a curated skill's ID,
 // such as mattpocock and skills/to-spec for mattpocock:skills/to-spec, and reports false for any other ID.
-func SplitBorrowed(id string) (source, skill string, borrowed bool) {
+func SplitCurated(id string) (source, skill string, curated bool) {
 	return strings.Cut(id, ":")
 }
 
 // SkillFolder returns the folder, in Files, that holds the files of skill id: its ID for a skill the source itself
-// publishes, and borrowed/<source>/<ID> for a borrowed one.
+// publishes, and curated/<source>/<ID> for a curated one.
 func SkillFolder(id string) string {
-	if source, skill, borrowed := SplitBorrowed(id); borrowed {
-		return BorrowedDirectory + "/" + source + "/" + skill
+	if source, skill, curated := SplitCurated(id); curated {
+		return CuratedDirectory + "/" + source + "/" + skill
 	}
 	return id
 }
@@ -148,17 +148,17 @@ func (s Snapshot) SkillFiles(id string) map[string][]byte {
 	return files
 }
 
-// BorrowedFrom returns what the snapshot holds of the source name it borrows skills from, as a snapshot of that
-// source's repository: its commit, its borrowed skills by their IDs there, and their files and executable files by
-// path there. It is empty when the snapshot borrows nothing from name.
-func (s Snapshot) BorrowedFrom(name string) Snapshot {
-	result := Snapshot{Commit: s.Borrowed[name].Commit, Skills: map[string]ImportedSkill{}, Files: map[string][]byte{}, Executable: []string{}}
+// CuratedFrom returns what the snapshot holds of the source name it curates skills from, as a snapshot of that
+// source's repository: its commit, its curated skills by their IDs there, and their files and executable files by
+// path there. It is empty when the snapshot curates nothing from name.
+func (s Snapshot) CuratedFrom(name string) Snapshot {
+	result := Snapshot{Commit: s.Curated[name].Commit, Skills: map[string]ImportedSkill{}, Files: map[string][]byte{}, Executable: []string{}}
 	for id, skill := range s.Skills {
-		if source, folder, borrowed := SplitBorrowed(id); borrowed && source == name {
+		if source, folder, curated := SplitCurated(id); curated && source == name {
 			result.Skills[folder] = skill
 		}
 	}
-	prefix := BorrowedDirectory + "/" + name + "/"
+	prefix := CuratedDirectory + "/" + name + "/"
 	for file, data := range s.Files {
 		if relative, ok := strings.CutPrefix(file, prefix); ok {
 			result.Files[relative] = data

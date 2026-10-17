@@ -1,6 +1,6 @@
 ---
 title: "Library format"
-description: "Layout, manifest, skill levels, borrowed skills, shared assets, and license metadata for a library."
+description: "Layout, manifest, skill levels, curated skills, shared assets, and license metadata for a library."
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
@@ -124,19 +124,19 @@ A skill can cite rules from any rule group in the library with `trailguide-rules
 
 An authored skill that no level lists is offered, so list only the skills you have an opinion about. Each skill can appear in one level. Levels are library-wide settings: changing one needs no change note, and projects see the change, such as `recommended -> required`, in their update preview after the next library release.
 
-A project sees only the levels of the libraries it names as sources. Levels don't chain: when your library borrows a skill from another library, your projects see the level you set, not the other library's.
+A project sees only the levels of the libraries it names as sources. Levels don't chain: when your library curates a skill from another library, your projects see the level you set, not the other library's.
 
-### Borrowed skills
+### Curated skills
 
-A level can list a skill from another repository as `<source>:<skill-id>`, where `<source>` is an entry in the library's own `sources`, with the `ref` the library tracks, such as `main` or a tag. A library borrows skills only, and must list every skill it borrows: a borrowed source's other skills don't reach projects.
+A level can list a skill from another repository as `<source>:<skill-id>`, where `<source>` is an entry in the library's own `sources`, with the `ref` the library tracks, such as `main` or a tag. A library curates skills only, and must list every skill it curates: a curated source's other skills don't reach projects.
 
-Projects fetch a borrowed skill's files from the original repository, not from the library, and record which library required, recommended, or offered it. A library release doesn't lock a borrowed source's ref: each project resolves it when it runs `trailguide project update`, so moving a borrowed skill forward needs no new library release, and two projects on the same library release can hold different commits of it. A project overrides the ref by declaring the same repository as its own source. See [Borrowed skills](/reference/configuration/#borrowed-skills).
+Projects fetch a curated skill's files from the original repository, not from the library, and record which library required, recommended, or offered it. A library release doesn't lock a curated source's ref: each project resolves it when it runs `trailguide project update`, so moving a curated skill forward needs no new library release, and two projects on the same library release can hold different commits of it. A project overrides the ref by declaring the same repository as its own source. See [Curated skills](/reference/configuration/#curated-skills).
 
-Your library repository is a project too, so it installs the required skills of the sources it borrows from, as your projects do.
+Your library repository is a project too, so it installs the required skills of the sources it curates from, as your projects do.
 
 ### Name clashes
 
-Agents find skills by name, so `trailguide library check` fails when two skills the manifest lists, authored or borrowed, have the same name. It reads each borrowed source at its `ref` to find the names. Fix the clash in the library, so your projects never have to rename a skill to install both.
+Agents find skills by name, so `trailguide library check` fails when two skills the manifest lists, authored or curated, have the same name. It reads each curated source at its `ref` to find the names. Fix the clash in the library, so your projects never have to rename a skill to install both.
 
 ## Shared assets
 
@@ -156,7 +156,7 @@ The optional `library.license` object declares the library-wide terms. Authors s
 
 When `license` is present, all three fields are required and all declared files must exist within the repository.
 Declared license and notice files are [library-wide files](/reference/rule-versions/#what-a-version-covers), so they can't be part of a rule's or skill's version: a declared path can't be a rule's Markdown file, lie in a rule's asset directory, such as `.trailguide/rules/practices/testing/assets/verify-retry-limits/LICENSE`, or lie in a skill folder, such as `.trailguide/skills/build-feature/LICENSE`. Otherwise a later library release could replace a file that a project's pinned rule version covers. `trailguide library check` rejects such a declaration, and projects refuse to take a library release whose manifest has one.
-A project's [vendor snapshot](/reference/files/) of the library stores a declared file from outside `.trailguide/` at its path from the repository root, beside the files from `.trailguide/`, so that path can't start with a name the snapshot uses for those files or its records, in any letter case: `_source.json`, `config.yaml`, `assets/`, `borrowed/`, `changes/`, `rules/`, or `skills/`.
+A project's [vendor snapshot](/reference/files/) of the library stores a declared file from outside `.trailguide/` at its path from the repository root, beside the files from `.trailguide/`, so that path can't start with a name the snapshot uses for those files or its records, in any letter case: `_source.json`, `config.yaml`, `assets/`, `curated/`, `changes/`, `rules/`, or `skills/`.
 Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
 Trail Guide retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
 If the declaration is absent, provenance records `license: null`. Trail Guide never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text.
@@ -173,7 +173,7 @@ generated/libraries/<source-name>/licenses/notices/002.md
 
 `<source-name>` is the name the project gave the source. Unique notice files are numbered in declaration order; repeated paths and a notice path identical to the license path are copied only once. No notice files are generated when none are declared. Contents, including whitespace and line endings, are preserved. Output paths are not configurable. Vendor snapshots retain the original names for traceability. Declared terms are retained even when exclusions or replacements leave no active rules from that library.
 
-One library-wide license declaration covers every rule group, rule, and skill the library authors. A `license` or `licenses` field on a rule or rule group is rejected. A skill's `SKILL.md` can carry the Agent Skills `license` field, but it's informational: `trailguide library check` warns when it differs from the library's SPDX expression; see [Skill format](/reference/skill-format/#licenses). A borrowed skill keeps its own repository's terms, which Trail Guide finds as it does for any [non-library source](/reference/imports/#non-library-sources).
+One library-wide license declaration covers every rule group, rule, and skill the library authors. A `license` or `licenses` field on a rule or rule group is rejected. A skill's `SKILL.md` can carry the Agent Skills `license` field, but it's informational: `trailguide library check` warns when it differs from the library's SPDX expression; see [Skill format](/reference/skill-format/#licenses). A curated skill keeps its own repository's terms, which Trail Guide finds as it does for any [non-library source](/reference/imports/#non-library-sources).
 Keep original attribution with each rule and include required notices in the manifest. Material requiring a different declaration belongs in a separate library.
 See [License rules](/guides/license-rules/) for publisher guidance and the boundary with the consuming project's license.
 

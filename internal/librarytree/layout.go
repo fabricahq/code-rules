@@ -73,9 +73,9 @@ func SnapshotPath(file string) string {
 }
 
 // snapshotNames are the top-level names in a project's snapshot of a library that SnapshotPath gives the files of
-// its Trail Guide directory, or that the project keeps for its records of the source: _source.json, and borrowed/
-// for the skills the library borrows.
-var snapshotNames = []string{"_source.json", "assets", "borrowed", "changes", Manifest, "rules", "skills"}
+// its Trail Guide directory, or that the project keeps for its records of the source: _source.json, and curated/
+// for the skills the library curates.
+var snapshotNames = []string{"_source.json", "assets", "curated", "changes", Manifest, "rules", "skills"}
 
 // InSnapshotNames reports whether file, the library path of a file outside the Trail Guide directory, such as a
 // license file, starts with one of the names a snapshot keeps for the library's Trail Guide directory or the project's

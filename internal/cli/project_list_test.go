@@ -50,15 +50,15 @@ func TestFormatUpdatePreview_ShowsSkillLevelChanges(t *testing.T) {
 	}
 }
 
-func TestFormatUpdatePreview_ShowsBorrowedSourcesAndTheirSkillChanges(t *testing.T) {
+func TestFormatUpdatePreview_ShowsCuratedSourcesAndTheirSkillChanges(t *testing.T) {
 	var out strings.Builder
-	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Borrowed: []imports.BorrowedUpdate{{
+	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Curated: []imports.CuratedUpdate{{
 		Name: "pocock", Repository: "https://github.com/mattpocock/skills", Ref: "stable", TagMoved: true,
 		Commit:  &imports.CommitMove{From: "1111111111111111111111111111111111111111", To: "2222222222222222222222222222222222222222"},
 		Changes: []imports.SkillUpdate{{ID: "pocock:skills/ops/deploy", Change: imports.SkillChanged, Files: []string{"SKILL.md", "scripts/deploy.sh"}, Scripts: []imports.ScriptUpdate{{Path: "scripts/deploy.sh", Change: imports.SkillChanged}}}},
 	}}}})
 	want := "team\n" +
-		"  team borrows pocock  stable: 111111111111 -> 222222222222\n" +
+		"  team curates pocock  stable: 111111111111 -> 222222222222\n" +
 		"            The tag stable now names a different commit than at the last update.\n" +
 		"  changed   pocock:skills/ops/deploy\n" +
 		"            Changed: SKILL.md, scripts/deploy.sh\n" +
@@ -68,27 +68,27 @@ func TestFormatUpdatePreview_ShowsBorrowedSourcesAndTheirSkillChanges(t *testing
 	}
 }
 
-func TestFormatUpdatePreview_ShowsABorrowedSourceTheProjectNoLongerTakesSkillsFrom(t *testing.T) {
+func TestFormatUpdatePreview_ShowsACuratedSourceTheProjectNoLongerTakesSkillsFrom(t *testing.T) {
 	var out strings.Builder
-	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Borrowed: []imports.BorrowedUpdate{{
+	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Curated: []imports.CuratedUpdate{{
 		Name: "pocock", Repository: "https://github.com/mattpocock/skills", Ref: "main", Commit: &imports.CommitMove{From: "1111111111111111111111111111111111111111"},
 		Changes: []imports.SkillUpdate{{ID: "pocock:skills/ops/deploy", Change: imports.SkillRemoved, Files: []string{}, Scripts: []imports.ScriptUpdate{}}},
 	}}}})
 	want := "team\n" +
-		"  team borrows pocock  main: 111111111111 -> none\n" +
+		"  team curates pocock  main: 111111111111 -> none\n" +
 		"  removed   pocock:skills/ops/deploy\n"
 	if out.String() != want {
 		t.Fatalf("preview:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
 
-func TestFormatUpdatePreview_ShowsABorrowedLibraryMovingBetweenReleases(t *testing.T) {
+func TestFormatUpdatePreview_ShowsACuratedLibraryMovingBetweenReleases(t *testing.T) {
 	var out strings.Builder
-	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Borrowed: []imports.BorrowedUpdate{{
+	formatUpdatePreview(&out, []imports.SourceUpdate{{Name: "team", Rules: []imports.RuleUpdate{}, Curated: []imports.CuratedUpdate{{
 		Name: "shared", Repository: "https://github.com/example/shared", Commit: &imports.CommitMove{From: "1111111111111111111111111111111111111111", To: "2222222222222222222222222222222222222222"},
 		Release: &imports.SharedFilesUpdate{From: 3, To: 4}, Changes: []imports.SkillUpdate{},
 	}}}})
-	if want := "team\n  team borrows shared  release 3 -> 4\n"; out.String() != want {
+	if want := "team\n  team curates shared  release 3 -> 4\n"; out.String() != want {
 		t.Fatalf("preview:\n%s\nwant:\n%s", out.String(), want)
 	}
 }

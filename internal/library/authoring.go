@@ -43,9 +43,9 @@ type Options struct {
 	Directory string
 	// Git runs Git in the library's own repository, to read its library releases; zero values use Git from PATH.
 	Git gitexec.Options
-	// Borrowed reads the sources the library borrows skills from, so check can find their skills; nil leaves them
+	// Curated reads the sources the library curates skills from, so check can find their skills; nil leaves them
 	// unchecked.
-	Borrowed BorrowedReader
+	Curated CuratedReader
 }
 
 // Terms contains publisher-supplied text; nil Notice omits a notice while an empty value preserves an empty file.

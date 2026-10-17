@@ -50,7 +50,7 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	if err != nil {
 		return CheckResult{}, err
 	}
-	checked, err := checkLibrary(ctx, root, git, options.Borrowed)
+	checked, err := checkLibrary(ctx, root, git, options.Curated)
 	if err != nil {
 		return CheckResult{}, err
 	}
@@ -73,9 +73,9 @@ type checkedLibrary struct {
 }
 
 // checkLibrary validates the library under root and its change notes against git's library releases; a nil
-// git is a library outside Git. borrowed reads the sources the library borrows skills from, or is nil to leave
+// git is a library outside Git. curated reads the sources the library curates skills from, or is nil to leave
 // them unchecked. The caller confirms that the library didn't change while it was read.
-func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit, borrowed BorrowedReader) (checkedLibrary, error) {
+func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit, curated CuratedReader) (checkedLibrary, error) {
 	input, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return checkedLibrary{}, err
@@ -86,7 +86,7 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit, borrowed 
 	if err = requireLeveledSkills(root, input.tree.Files[librarytree.Manifest]); err != nil {
 		return checkedLibrary{}, err
 	}
-	if err = requireBorrowedSkills(ctx, input.tree.Files[librarytree.Manifest], input.skills, borrowed); err != nil {
+	if err = requireCuratedSkills(ctx, input.tree.Files[librarytree.Manifest], input.skills, curated); err != nil {
 		return checkedLibrary{}, err
 	}
 	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
@@ -352,7 +352,7 @@ func requireLeveledSkills(root *os.Root, manifest []byte) error {
 		return err
 	}
 	for _, id := range declaration.Skills.Listed() {
-		// A borrowed skill is in the repository the library borrows it from, which each project resolves for itself.
+		// A curated skill is in the repository the library curates it from, which each project resolves for itself.
 		if strings.Contains(id, ":") {
 			continue
 		}

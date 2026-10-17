@@ -30,12 +30,12 @@ func (f *authoringFlags) libraryOptions(ctx context.Context, initialize bool) (l
 		directory = f.file("directory")
 	}
 	directory, err := commandDirectory(ctx, directory, "library", initialize)
-	return library.Options{Directory: directory, Git: f.git, Borrowed: f.readBorrowed}, err
+	return library.Options{Directory: directory, Git: f.git, Curated: f.readCurated}, err
 }
 
-// readBorrowed reads a source the library borrows skills from, as a project that uses the library would.
-func (f *authoringFlags) readBorrowed(ctx context.Context, name string, source rules.BorrowedSource) ([]string, string, error) {
-	return imports.BorrowedSkillIDs(ctx, name, source, f.imports)
+// readCurated reads a source the library curates skills from, as a project that uses the library would.
+func (f *authoringFlags) readCurated(ctx context.Context, name string, source rules.CuratedSource) ([]string, string, error) {
+	return imports.CuratedSkillIDs(ctx, name, source, f.imports)
 }
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.

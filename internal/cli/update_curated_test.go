@@ -1,5 +1,5 @@
-// Exercise how trailguide project update previews the skills a library borrows from another repository, in human
-// output and JSON, when that repository's tag moves and changes a borrowed skill's script.
+// Exercise how trailguide project update previews the skills a library curates from another repository, in human
+// output and JSON, when that repository's tag moves and changes a curated skill's script.
 
 package cli
 
@@ -13,10 +13,10 @@ import (
 	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
-// newBorrowedUpdateFixture syncs a project that uses team, a library that requires deploy, a skill it borrows from
+// newCuratedUpdateFixture syncs a project that uses team, a library that requires deploy, a skill it curates from
 // pocock, a repository that isn't a library, at its tag stable, then moves stable to a commit that changes deploy's
 // script and makes it executable.
-func newBorrowedUpdateFixture(t *testing.T) (updateFixture, string, string) {
+func newCuratedUpdateFixture(t *testing.T) (updateFixture, string, string) {
 	t.Helper()
 	ctx := context.Background()
 	pocock, err := gitfixture.New(ctx, map[string][]byte{
@@ -68,11 +68,11 @@ func newBorrowedUpdateFixture(t *testing.T) (updateFixture, string, string) {
 	return u, pocock.FirstCommit, moved
 }
 
-func TestUpdate_PreviewsBorrowedSkillsAndTheirScripts(t *testing.T) {
-	u, from, to := newBorrowedUpdateFixture(t)
+func TestUpdate_PreviewsCuratedSkillsAndTheirScripts(t *testing.T) {
+	u, from, to := newCuratedUpdateFixture(t)
 	out, diagnostic, code := u.run(t, "project", "update", "team")
 	want := "team\n" +
-		"  team borrows pocock  stable: " + from[:12] + " -> " + to[:12] + "\n" +
+		"  team curates pocock  stable: " + from[:12] + " -> " + to[:12] + "\n" +
 		"            The tag stable now names a different commit than at the last update.\n" +
 		"  changed   pocock:skills/ops/deploy\n" +
 		"            Changed: scripts/deploy.sh\n" +
@@ -84,24 +84,24 @@ func TestUpdate_PreviewsBorrowedSkillsAndTheirScripts(t *testing.T) {
 	}
 }
 
-func TestUpdate_JSONReportsBorrowedSkillsAndTheirScripts(t *testing.T) {
-	u, from, to := newBorrowedUpdateFixture(t)
+func TestUpdate_JSONReportsCuratedSkillsAndTheirScripts(t *testing.T) {
+	u, from, to := newCuratedUpdateFixture(t)
 	out, diagnostic, code := u.run(t, "project", "update", "team", "--json")
 	var result struct {
 		OK    bool
 		Value struct {
 			Sources []struct {
-				Borrowed []json.RawMessage
+				Curated []json.RawMessage
 			}
 			Warnings []string
 		}
 	}
-	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || diagnostic != "" || !result.OK || len(result.Value.Sources) != 1 || len(result.Value.Sources[0].Borrowed) != 1 {
+	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || diagnostic != "" || !result.OK || len(result.Value.Sources) != 1 || len(result.Value.Sources[0].Curated) != 1 {
 		t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
 	}
 	want := `{"name":"pocock","repository":"git@fixture.invalid:pocock","ref":"stable","commit":{"from":"` + from + `","to":"` + to + `"},"tagMoved":true,"changes":[{"id":"pocock:skills/ops/deploy","change":"changed","files":["scripts/deploy.sh"],"scripts":[{"path":"scripts/deploy.sh","change":"changed"}]}]}`
-	if got := compactJSON(t, result.Value.Sources[0].Borrowed[0]); got != want {
-		t.Fatalf("borrowed row:\n%s\nwant:\n%s", got, want)
+	if got := compactJSON(t, result.Value.Sources[0].Curated[0]); got != want {
+		t.Fatalf("curated row:\n%s\nwant:\n%s", got, want)
 	}
 	if wantWarnings := []string{"some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm."}; !reflect.DeepEqual(result.Value.Warnings, wantWarnings) {
 		t.Fatalf("warnings %q", result.Value.Warnings)

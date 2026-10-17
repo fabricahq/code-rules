@@ -1,4 +1,4 @@
-// Exercise how trailguide library check reads the repositories a library borrows skills from, at the refs it declares.
+// Exercise how trailguide library check reads the repositories a library curates skills from, at the refs it declares.
 
 package cli
 
@@ -12,10 +12,10 @@ import (
 	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
-// checkBorrowingLibrary runs library check in a library outside Git whose configuration is config, with an own
+// checkCuratingLibrary runs library check in a library outside Git whose configuration is config, with an own
 // skill, skills/review, and pocock, a repository that isn't a library, with the skills skills/ops/deploy and
 // skills/team/review, tagged stable.
-func checkBorrowingLibrary(t *testing.T, config string) (string, string, int) {
+func checkCuratingLibrary(t *testing.T, config string) (string, string, int) {
 	t.Helper()
 	ctx := context.Background()
 	pocock, err := gitfixture.New(ctx, map[string][]byte{
@@ -49,23 +49,23 @@ func checkBorrowingLibrary(t *testing.T, config string) (string, string, int) {
 	return runCLIWithEnvironment(t, buildCLI(t), directory, environment, "library", "check")
 }
 
-func TestLibraryCheck_AcceptsBorrowedSkillsTheirSourceHas(t *testing.T) {
-	out, diagnostic, code := checkBorrowingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    required: [pocock:skills/ops/deploy]\n")
+func TestLibraryCheck_AcceptsCuratedSkillsTheirSourceHas(t *testing.T) {
+	out, diagnostic, code := checkCuratingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    required: [pocock:skills/ops/deploy]\n")
 	if code != 0 || !strings.Contains(out, "Library is valid") {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
 }
 
-func TestLibraryCheck_RejectsABorrowedSkillItsSourceLacks(t *testing.T) {
-	out, diagnostic, code := checkBorrowingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    offered: [pocock:skills/ops/grill]\n")
+func TestLibraryCheck_RejectsACuratedSkillItsSourceLacks(t *testing.T) {
+	out, diagnostic, code := checkCuratingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    offered: [pocock:skills/ops/grill]\n")
 	want := "library.skills.offered names pocock:skills/ops/grill, which pocock doesn't have at stable; check the skill ID, or set sources.pocock.ref to a revision that has it"
 	if code == 0 || !strings.Contains(out+diagnostic, want) {
 		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
 	}
 }
 
-func TestLibraryCheck_RejectsABorrowedSkillWithTheNameOfItsOwn(t *testing.T) {
-	out, diagnostic, code := checkBorrowingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    recommended: [pocock:skills/team/review]\n")
+func TestLibraryCheck_RejectsACuratedSkillWithTheNameOfItsOwn(t *testing.T) {
+	out, diagnostic, code := checkCuratingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    recommended: [pocock:skills/team/review]\n")
 	want := "library.skills lists skills/review and pocock:skills/team/review, which both install as review; list one of them, or rename the folder of your own skill"
 	if code == 0 || !strings.Contains(out+diagnostic, want) {
 		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)

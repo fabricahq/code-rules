@@ -76,8 +76,8 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 			return &ValidationError{Location: "--from", Problem: "no source named " + from.Source + " in .trailguide/config.yaml; name a configured source"}
 		}
 		source := config.Sources[index]
-		if _, _, borrowed := library.SplitBorrowed(from.Skill); borrowed {
-			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("%s is a skill library %s borrows from another repository, which a fork can't record a revision for; declare that repository as a source of your own, run trailguide project sync, and fork the skill from that source", from.Skill, source.Name)}
+		if _, _, curated := library.SplitCurated(from.Skill); curated {
+			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("%s is a skill library %s curates from another repository, which a fork can't record a revision for; declare that repository as a source of your own, run trailguide project sync, and fork the skill from that source", from.Skill, source.Name)}
 		}
 		if _, excluded := source.SkillExclude[from.Skill]; excluded {
 			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + from.Skill, Problem: "the source already excludes this skill, and a fork never replaces an existing exclusion; delete the entry to fork the skill"}

@@ -112,7 +112,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	// A release tag only this clone has is checked against the library release this commit would publish after
 	// the latest one the remote published, instead of serving as the baseline itself.
 	git = git.withoutUnpublished(unpushed)
-	checked, err := checkLibrary(ctx, root, git, request.Borrowed)
+	checked, err := checkLibrary(ctx, root, git, request.Curated)
 	if err != nil {
 		return ReleaseResult{}, err
 	}

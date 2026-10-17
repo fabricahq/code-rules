@@ -96,11 +96,11 @@ func TestPublishedManifest(t *testing.T) {
 	if none, err := rules.PublishedManifest([]byte("schemaVersion: 2\nsources: {}\n"), "config.yaml"); err != nil || none != nil {
 		t.Fatalf("got %s, %v for a project's configuration", none, err)
 	}
-	borrowing := "schemaVersion: 2\nsources:\n  upstream:\n    repository: https://github.com/acme/upstream.git\n    rules:\n      include: ['techs/*']\n  mattpocock:\n    repository: https://github.com/mattpocock/skills.git\n    ref: v1.0.0\nlibrary:\n  skills:\n    recommended: [mattpocock:skills/to-spec]\n"
-	published, err = rules.PublishedManifest([]byte(borrowing), "config.yaml")
+	curating := "schemaVersion: 2\nsources:\n  upstream:\n    repository: https://github.com/acme/upstream.git\n    rules:\n      include: ['techs/*']\n  mattpocock:\n    repository: https://github.com/mattpocock/skills.git\n    ref: v1.0.0\nlibrary:\n  skills:\n    recommended: [mattpocock:skills/to-spec]\n"
+	published, err = rules.PublishedManifest([]byte(curating), "config.yaml")
 	want = `{"library":{"skills":{"recommended":["mattpocock:skills/to-spec"]}},"schemaVersion":2,"sources":{"mattpocock":{"ref":"v1.0.0","repository":"https://github.com/mattpocock/skills.git"}}}` + "\n"
 	if err != nil || string(published) != want {
-		t.Fatalf("got %s, %v; want only the borrowed source's repository and ref: %s", published, err, want)
+		t.Fatalf("got %s, %v; want only the curated source's repository and ref: %s", published, err, want)
 	}
 	if again, err := rules.PublishedManifest(published, "config.yaml"); err != nil || string(again) != want {
 		t.Fatalf("republished %s, %v", again, err)

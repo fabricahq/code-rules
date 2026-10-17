@@ -53,7 +53,7 @@ From a library, the snapshot includes:
 - The library's `config.yaml`, for its manifest, and its declared license and notice files.
 - Each installed skill's whole folder, `skills/<name>/`, including skills your project excludes or replaces, and the skills that installed skills call.
 - The rules that installed skills cite, with their asset directories and rule group metadata.
-- The folders of [borrowed skills](/reference/configuration/#borrowed-skills) the project installs, under `borrowed/<borrowed-source>/`, from the commit the project resolved for that borrowed source.
+- The folders of [curated skills](/reference/configuration/#curated-skills) the project installs, under `curated/<curated-source>/`, from the commit the project resolved for that curated source.
 
 Keeping the original rules and skills lets you review a source's changes even when your project uses a replacement. Make project-specific changes in your authored content; syncing replaces the vendored files.
 
@@ -86,7 +86,7 @@ Skills don't belong to rule groups, so including a rule group's rules never inst
 
 It then removes the skills your `skills.exclude` entries name, which can't include a required skill, adds the authored skills your exclusions name as `replacedBy`, applies your [renames](/reference/configuration/#rename-a-skill), and adds your authored skills in `skills/` and the skills they call. Each skill's `trailguide-skills-used` and `trailguide-rules-used` lists come from the revision the project installs. When two installed skills would have the same install name, sync fails with `skill-name-clash`.
 
-A borrowed skill's files come from the borrowed source's repository, at the commit the project resolved for it, or at the commit of the project's own source for that repository when it declares one.
+A curated skill's files come from the curated source's repository, at the commit the project resolved for it, or at the commit of the project's own source for that repository when it declares one.
 
 Trail Guide also takes every rule in each installed library skill's `trailguide-rules-used` list, from the same library, and every rule an authored skill cites by project ID, from the named source, even when your `include` doesn't name it. These **cited rules** are reference-only: each gets its generated rule file, and the installed skill's [generated section](/reference/files/#installed-skills) links to it, but `RULES.md` and the rule group pages don't list it, so installing a skill never widens the rules your agents apply to all work. A cited rule your project also includes is an ordinary rule. A cited rule your project excludes or replaces follows that choice: the installed skill says it's excluded, or links to your replacement. Rules cited by a skill you exclude aren't taken for it.
 
@@ -108,7 +108,7 @@ Each source's `vendor/<source-name>/_source.json` records the library release or
 
 - A library without `ref` moves to its newest library release. Each rule moves to its newest version, unless it's [pinned](/reference/configuration/#pin-a-rule), and all of the source's skills move together.
 - A source whose `ref` names a branch moves to the branch's newest commit, and one whose `ref` names a tag moves to the tag's commit, warning when the tag moved. A commit never moves.
-- Each borrowed source a library lists is resolved again from the `ref` the library names, or from your own source for that repository.
+- Each curated source a library lists is resolved again from the `ref` the library names, or from your own source for that repository.
 
 With the same configuration and recorded versions, Trail Guide produces the same paths and file contents. With unchanged vendored files, authored content, tool version, and rendering options, a build produces the same generated guidance and installed skills. Reordering sources or selectors in configuration does not change their generated order.
 
@@ -150,7 +150,7 @@ A source whose repository has no library manifest at the revision Trail Guide re
 
 ## Checks before updating your files
 
-Trail Guide fetches and validates every source, and every borrowed source the project's libraries list, before replacing your project's vendor snapshots, generated guidance, or installed skills. If any of them cannot be fetched or validated, your previous complete set of rules and skills stays in place.
+Trail Guide fetches and validates every source, and every curated source the project's libraries list, before replacing your project's vendor snapshots, generated guidance, or installed skills. If any of them cannot be fetched or validated, your previous complete set of rules and skills stays in place.
 
 Validation rejects:
 

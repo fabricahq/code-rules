@@ -1483,7 +1483,7 @@
   {
     "id": "configuration-selector-mixed",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"practices/*\", \"techs/go/*\", \"techs/rust/borrow-check\", \"practices/testing/*\"]}}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"practices/*\", \"techs/go/*\", \"techs/rust/curate-check\", \"practices/testing/*\"]}}}}",
     "location": "configuration",
     "expected": {
       "ok": true,
@@ -1498,7 +1498,7 @@
               "techs/go"
             ],
             "rules": [
-              "techs/rust/borrow-check"
+              "techs/rust/curate-check"
             ],
             "pins": {},
             "exclude": {},
@@ -1912,7 +1912,7 @@
     }
   },
   {
-    "id": "configuration-library-skills-borrowed-undeclared-source",
+    "id": "configuration-library-skills-curated-undeclared-source",
     "operation": "configuration",
     "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"recommended\": [\"mattpocock:skills/to-spec\"]}}}",
     "location": "configuration",
@@ -1920,7 +1920,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library.skills.recommended[0]: mattpocock:skills/to-spec borrows from mattpocock, which isn't a source in sources; add sources.mattpocock with the repository the skill comes from, and a ref unless the repository publishes library releases",
+        "message": "library.skills.recommended[0]: mattpocock:skills/to-spec comes from mattpocock, which isn't a source in sources; add sources.mattpocock with the repository the skill comes from, and a ref unless the repository publishes library releases",
         "location": "library.skills.recommended[0]"
       }
     }

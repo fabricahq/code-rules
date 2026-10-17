@@ -26,7 +26,7 @@ type authoringFlags struct {
 	directory string
 	// git runs Git in a library's own repository; project commands don't use it.
 	git gitexec.Options
-	// imports fetches the sources a library borrows skills from, for library check.
+	// imports fetches the sources a library curates skills from, for library check.
 	imports      imports.Options
 	introduction string
 	prompted     bool

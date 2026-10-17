@@ -93,7 +93,7 @@ to-spec         fabrica:mattpocock:skills/engineering/to-spec    recommended  fa
 
 Each row shows a skill's install name, its ID, its level and the library release that set it, its version, or a commit for a skill without versions, and whether the project installs it. `installed` covers skills you included, required skills, and skills another installed skill calls; `available` means a source offers it and the project doesn't install it.
 
-The `mattpocock:` skills are **borrowed**: Fabrica's library lists them at a level, but their files come from the original repository, at a commit your project resolves when it updates. See [Borrowed skills](/reference/configuration/#borrowed-skills).
+The `mattpocock:` skills are **curated**: Fabrica's library lists them at a level, but their files come from the original repository, at a commit your project resolves when it updates. See [Curated skills](/reference/configuration/#curated-skills).
 
 Narrow the list:
 
@@ -173,9 +173,9 @@ Then run `trailguide project sync`. You don't declare what kind of source it is:
 
 Trail Guide never runs a skill's scripts. Before you install or update a skill from a repository you don't control, read its files, scripts included: your agents may run them. To help, the `trailguide project update` preview flags each new or changed executable script and warns you to read it; see [Update skills](/guides/update/#update-skills).
 
-## Try a newer version of a borrowed skill
+## Try a newer version of a curated skill
 
-A library chooses the `ref` it tracks for each repository it borrows skills from, and your project resolves that ref when it updates. To take a borrowed skill from another revision, declare the same repository as your own source, with your own `ref`:
+A library chooses the `ref` it tracks for each repository it curates skills from, and your project resolves that ref when it updates. To take a curated skill from another revision, declare the same repository as your own source, with your own `ref`:
 
 ```yaml
 sources:
@@ -188,7 +188,7 @@ sources:
     ref: v2.0.0
 ```
 
-The skills Fabrica borrows from that repository now come from `v2.0.0`, still at the level Fabrica sets. Repository identity decides the match, not the source name. Remove the source to go back to the library's ref.
+The skills Fabrica curates from that repository now come from `v2.0.0`, still at the level Fabrica sets. Repository identity decides the match, not the source name. Remove the source to go back to the library's ref.
 
 ## Resolve a name clash
 

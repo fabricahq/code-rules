@@ -216,14 +216,14 @@ type provenanceSource struct {
 	// SkillInclude is the source's skills.include, and Skills the IDs of the skills it installs.
 	SkillInclude []string `json:"skillInclude"`
 	Skills       []string `json:"skills"`
-	// Borrowed records, by name in the library's manifest, the revision of each source the library borrows the
+	// Curated records, by name in the library's manifest, the revision of each source the library curates the
 	// project's installed skills from; it is omitted when there are none.
-	Borrowed map[string]provenanceBorrowed `json:"borrowed,omitempty"`
+	Curated map[string]provenanceCurated `json:"curated,omitempty"`
 }
 
-// provenanceBorrowed is the revision of one source a library borrows skills from, as the project resolved it.
+// provenanceCurated is the revision of one source a library curates skills from, as the project resolved it.
 // Source names the project's own source that supplied the revision, when one declares the same repository.
-type provenanceBorrowed struct {
+type provenanceCurated struct {
 	Kind       string `json:"kind"`
 	Repository string `json:"repository"`
 	Ref        string `json:"ref,omitempty"`
@@ -302,9 +302,9 @@ type provenanceSkillOrigin struct {
 	Folder     string  `json:"folder"`
 	Version    *string `json:"version"`
 	Release    *int    `json:"release"`
-	// BorrowedFrom names, for a borrowed skill, the source in the library's manifest it was borrowed from, whose
+	// CuratedFrom names, for a curated skill, the source in the library's manifest it was curated from, whose
 	// repository and commit Repository and Commit then are; it is null for any other skill.
-	BorrowedFrom *string `json:"borrowedFrom"`
+	CuratedFrom *string `json:"curatedFrom"`
 }
 
 // skillOrigin returns the origin of skill: its source, repository, ref, and commit, which are null for an authored
@@ -314,7 +314,7 @@ func skillOrigin(skill resolvedSkill) provenanceSkillOrigin {
 	if skill.Source != "" {
 		origin.Source, origin.Repository, origin.Ref, origin.Commit = &skill.Source, &skill.Repository, nullableText(skill.Ref), &skill.Commit
 	}
-	origin.BorrowedFrom = nullableText(skill.Borrowed)
+	origin.CuratedFrom = nullableText(skill.Curated)
 	return origin
 }
 
@@ -382,15 +382,15 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		if len(source.Pins) > 0 {
 			record.Pins = source.Pins
 		}
-		for name, borrowed := range source.Borrowed {
-			if record.Borrowed == nil {
-				record.Borrowed = map[string]provenanceBorrowed{}
+		for name, curated := range source.Curated {
+			if record.Curated == nil {
+				record.Curated = map[string]provenanceCurated{}
 			}
 			kind := "library"
-			if borrowed.NonLibrary {
+			if curated.NonLibrary {
 				kind = "non-library"
 			}
-			record.Borrowed[name] = provenanceBorrowed{Kind: kind, Repository: borrowed.Repository, Ref: borrowed.Ref.String(), Release: borrowed.Release, Commit: borrowed.Commit, Source: borrowed.Source}
+			record.Curated[name] = provenanceCurated{Kind: kind, Repository: curated.Repository, Ref: curated.Ref.String(), Release: curated.Release, Commit: curated.Commit, Source: curated.Source}
 		}
 		result.Sources = append(result.Sources, record)
 	}
