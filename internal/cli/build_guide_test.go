@@ -24,10 +24,10 @@ func TestBuildThenCheckAfterGuideUpgrade(t *testing.T) {
 					t.Fatal(code, diagnostic)
 				}
 				guideName := "README.md"
-				guidePath := filepath.Join(directory, ".syllabus", guideName)
+				guidePath := filepath.Join(directory, ".trailguide", guideName)
 				// Simulate an untouched guide from an earlier release using its ownership marker.
-				body := []byte("# Syllabus\n\nProject guide from an earlier release.\n")
-				guide := []byte(fmt.Sprintf("<!-- syllabus:project-guide sha256:%x -->\n%s", sha256.Sum256(body), body))
+				body := []byte("# Trail Guide\n\nProject guide from an earlier release.\n")
+				guide := []byte(fmt.Sprintf("<!-- trailguide:project-guide sha256:%x -->\n%s", sha256.Sum256(body), body))
 				if err := os.WriteFile(guidePath, guide, 0600); err != nil {
 					t.Fatal(err)
 				}
@@ -41,10 +41,10 @@ func TestBuildThenCheckAfterGuideUpgrade(t *testing.T) {
 					if code != 0 {
 						t.Fatalf("project %s after guide upgrade: exit %d\n%s%s", action, code, out, diagnostic)
 					}
-					if i == 0 && !strings.Contains(out, "Syllabus guide ") {
+					if i == 0 && !strings.Contains(out, "Trail Guide guide ") {
 						t.Fatal("guide update not reported", out)
 					}
-					if i == 1 && strings.Contains(out, "Syllabus guide ") {
+					if i == 1 && strings.Contains(out, "Trail Guide guide ") {
 						t.Fatal("guide updated twice", out)
 					}
 					if action == "check" && !strings.Contains(out, "Status: up to date.") {
@@ -67,7 +67,7 @@ func TestBuildPreservesEditedGuide(t *testing.T) {
 					t.Fatal(code, out, diagnostic)
 				}
 			}
-			guide := filepath.Join(dir, ".syllabus/README.md")
+			guide := filepath.Join(dir, ".trailguide/README.md")
 			file, err := os.OpenFile(guide, os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
 				t.Fatal(err)
@@ -97,7 +97,7 @@ func TestBuildGuideJSON(t *testing.T) {
 	if _, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(diagnostic)
 	}
-	if err := os.Remove(filepath.Join(dir, ".syllabus/README.md")); err != nil {
+	if err := os.Remove(filepath.Join(dir, ".trailguide/README.md")); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 2; i++ {

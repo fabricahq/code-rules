@@ -1,5 +1,5 @@
 // Test that sync installs the skills an included skill uses, from the same source, and that build and check keep the
-// recorded skills in step with syllabus-skills-used and skills.uses.
+// recorded skills in step with trailguide-skills-used and skills.uses.
 
 package project
 
@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
-// usingSkill returns a SKILL.md for skill name whose syllabus-skills-used lists used.
+// usingSkill returns a SKILL.md for skill name whose trailguide-skills-used lists used.
 func usingSkill(name string, used ...string) []byte {
 	text := "---\nname: " + name + "\ndescription: Use " + name + ".\n"
 	if len(used) > 0 {
-		text += "metadata:\n  syllabus-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
+		text += "metadata:\n  trailguide-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
 	}
 	return []byte(text + "---\n# " + name + "\n")
 }
@@ -68,7 +68,7 @@ func TestSync_InstallsEverySkillAnIncludedSkillUsesFromTheSameSource(t *testing.
 	if exists(t, options, ".claude/skills/unused") {
 		t.Error("sync installed a skill nothing uses")
 	}
-	record := readRepositoryFile(t, options, ".syllabus/vendor/pstack/_source.json")
+	record := readRepositoryFile(t, options, ".trailguide/vendor/pstack/_source.json")
 	for _, want := range []string{
 		"\"skills/architect\": {\n      \"level\": null,\n      \"included\": false,\n      \"usedBy\": [\n        \"skills/poteto-mode\"\n      ]",
 		"\"skills/poteto-mode\": {\n      \"level\": null,\n      \"included\": true,\n      \"usedBy\": []",
@@ -78,7 +78,7 @@ func TestSync_InstallsEverySkillAnIncludedSkillUsesFromTheSameSource(t *testing.
 			t.Errorf("source record lacks\n%s\nin\n%s", want, record)
 		}
 	}
-	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
+	index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md")
 	for _, want := range []string{
 		"- **Uses:** `how`, `tdd`\n- **Installed because:** used by `poteto-mode`\n",
 		"- **Uses:** `architect`\n- **Installed because:** included\n",
@@ -96,7 +96,7 @@ func TestSync_InstallsEverySkillAnIncludedSkillUsesFromTheSameSource(t *testing.
 	setConfiguration(t, options, f, strings.Replace(withUses, `,"uses":{"skills/architect":["skills/tdd"]}`, "", 1))
 	_, err := Build(ctx, options)
 	var validation errs.ValidationError
-	if !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/pstack/_source.json" || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
+	if !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/pstack/_source.json" || !strings.Contains(validation.ValidationProblem(), "run trailguide project sync") {
 		t.Fatalf("build = %v; want the record reported as out of date", err)
 	}
 	if _, err := Check(ctx, options); !errors.As(err, &validation) || validation.ValidationLocation() != "vendor/pstack/_source.json" {
@@ -111,7 +111,7 @@ func TestSync_InstallsEverySkillAnIncludedSkillUsesFromTheSameSource(t *testing.
 
 	// A skills.uses entry offline checks can't confirm against the record also asks for sync.
 	setConfiguration(t, options, f, strings.Replace(withUses, `"skills/architect":["skills/tdd"]`, `"skills/how":["skills/unused"]`, 1))
-	if _, err := Check(ctx, options); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "run syllabus project sync") {
+	if _, err := Check(ctx, options); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "run trailguide project sync") {
 		t.Fatalf("check = %v; want sync asked for", err)
 	}
 	if _, err := Sync(ctx, options, git); err != nil {
@@ -125,11 +125,11 @@ func TestSync_InstallsEverySkillAnIncludedSkillUsesFromTheSameSource(t *testing.
 func TestSync_InstallsTheSkillsALibrarySkillUses(t *testing.T) {
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                            []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                   []byte(projectMetadata),
-		"techs/go/errors.md":                     []byte(projectRule),
-		".syllabus/skills/fix-bug/SKILL.md":      usingSkill("fix-bug", "skills/review-tests"),
-		".syllabus/skills/review-tests/SKILL.md": usingSkill("review-tests"),
+		"config.yaml":                              []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                     []byte(projectMetadata),
+		"techs/go/errors.md":                       []byte(projectRule),
+		".trailguide/skills/fix-bug/SKILL.md":      usingSkill("fix-bug", "skills/review-tests"),
+		".trailguide/skills/review-tests/SKILL.md": usingSkill("review-tests"),
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -145,7 +145,7 @@ func TestSync_InstallsTheSkillsALibrarySkillUses(t *testing.T) {
 	if !exists(t, options, ".agents/skills/review-tests/SKILL.md") {
 		t.Fatal("sync didn't install the skill fix-bug uses")
 	}
-	if index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md"); !strings.Contains(index, "- **Level:** offered by `team`, release 1\n- **Installed because:** used by `fix-bug`\n") {
+	if index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md"); !strings.Contains(index, "- **Level:** offered by `team`, release 1\n- **Installed because:** used by `fix-bug`\n") {
 		t.Fatalf("SKILLS.md:\n%s", index)
 	}
 }
@@ -166,7 +166,7 @@ func TestSync_FailsWithoutWritingWhenAUsedSkillCannotBeFound(t *testing.T) {
 	}{
 		"a use its metadata declares": {
 			`{"include":["skills/poteto-mode"]}`, "", "sources.pstack.skills",
-			"skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in syllabus-skills-used. Syllabus installs every skill an installed skill uses, so it can't install skills/architect, which skills/poteto-mode uses. Ask the source's maintainer to correct syllabus-skills-used, or stop including skills/poteto-mode",
+			"skills/architect uses skills/how, which isn't a skill in commit " + f.FirstCommit + ": skills/architect names it in trailguide-skills-used. Trail Guide installs every skill an installed skill uses, so it can't install skills/architect, which skills/poteto-mode uses. Ask the source's maintainer to correct trailguide-skills-used, or stop including skills/poteto-mode",
 		},
 		"a use skills.uses declares": {
 			`{"include":["skills/loop"],"uses":{"skills/loop":["skills/gone"]}}`, "", "sources.pstack.skills.uses.skills/loop",
@@ -185,7 +185,7 @@ func TestSync_FailsWithoutWritingWhenAUsedSkillCannotBeFound(t *testing.T) {
 			if !errors.As(err, &validation) || validation.ValidationLocation() != test.location || !strings.Contains(validation.ValidationProblem(), test.problem) {
 				t.Fatalf("got %v\nwant %s: %s", err, test.location, test.problem)
 			}
-			if exists(t, options, ".claude") || exists(t, options, ".syllabus/vendor/pstack") {
+			if exists(t, options, ".claude") || exists(t, options, ".trailguide/vendor/pstack") {
 				t.Fatal("failed sync wrote files")
 			}
 		})

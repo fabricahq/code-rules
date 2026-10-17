@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"unicode/utf8"
 
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/project"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/project"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 	"github.com/spf13/cobra"
 )
 
@@ -99,8 +99,8 @@ func (f *authoringFlags) options(ctx context.Context, initialize bool) (project.
 }
 
 // group returns the explicit metadata for an existing or newly created group.
-func (f *authoringFlags) group(prefix string) syllabus.GroupMetadata {
-	return syllabus.GroupMetadata{Name: f.value(prefix + "name"), Description: f.value(prefix + "description"), WhenToRead: f.value(prefix + "when-to-read")}
+func (f *authoringFlags) group(prefix string) trailguide.GroupMetadata {
+	return trailguide.GroupMetadata{Name: f.value(prefix + "name"), Description: f.value(prefix + "description"), WhenToRead: f.value(prefix + "when-to-read")}
 }
 
 // addGroupFlags defines the three required group fields with an optional creation prefix.

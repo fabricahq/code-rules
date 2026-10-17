@@ -1,6 +1,6 @@
 // Test exact document boundaries against shared fixtures and the splitter's narrow contract.
 
-package syllabus_test
+package trailguide_test
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 func TestSplitDocumentSharedExpectations(t *testing.T) {
@@ -20,7 +20,7 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 		ID, Input, Location string
 		Expected            struct {
 			OK    bool
-			Value syllabus.DocumentText
+			Value trailguide.DocumentText
 			Error *struct{ Name, Message, Location string }
 		}
 	}
@@ -29,18 +29,18 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			got, err := syllabus.SplitDocument(test.Input, test.Location)
+			got, err := trailguide.SplitDocument(test.Input, test.Location)
 			if test.Expected.OK {
 				if err != nil || got != test.Expected.Value {
 					t.Fatalf("got %#v, %v; want %#v", got, err, test.Expected.Value)
 				}
 				return
 			}
-			var validation *syllabus.ValidationError
+			var validation *trailguide.ValidationError
 			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
-			if got != (syllabus.DocumentText{}) {
+			if got != (trailguide.DocumentText{}) {
 				t.Fatalf("failed splitting returned partial text: %#v", got)
 			}
 		})
@@ -61,8 +61,8 @@ func TestSplitDocumentDoesNotInterpretContent(t *testing.T) {
 		{"raw bytes", "---\n\xff\n---\n\xfe", "\xff", "\xfe"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := syllabus.SplitDocument(test.input, "rule")
-			want := syllabus.DocumentText{Frontmatter: test.frontmatter, Body: test.body}
+			got, err := trailguide.SplitDocument(test.input, "rule")
+			want := trailguide.DocumentText{Frontmatter: test.frontmatter, Body: test.body}
 			if err != nil || got != want {
 				t.Fatalf("got %#v, %v; want %#v", got, err, want)
 			}

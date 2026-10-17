@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 const (
@@ -99,7 +99,7 @@ func (b *borrowing) configure(t *testing.T, config string) {
 func (b *borrowing) teamRecord(t *testing.T) map[string]any {
 	t.Helper()
 	var record map[string]any
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, b.options, ".syllabus/vendor/team/_source.json")), &record); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, b.options, ".trailguide/vendor/team/_source.json")), &record); err != nil {
 		t.Fatal(err)
 	}
 	return record
@@ -113,7 +113,7 @@ func TestSync_InstallsBorrowedSkillsFromTheRepositoryTheyComeFrom(t *testing.T) 
 	}
 	for _, name := range []string{"deploy", "grilling"} {
 		installed := readRepositoryFile(t, b.options, ".claude/skills/"+name+"/SKILL.md")
-		if want := "<!-- syllabus:installed team:pocock:skills/"; !strings.Contains(installed, want) || !strings.Contains(installed, b.pocock.FirstCommit) {
+		if want := "<!-- trailguide:installed team:pocock:skills/"; !strings.Contains(installed, want) || !strings.Contains(installed, b.pocock.FirstCommit) {
 			t.Errorf("%s:\n%s\nwant the borrowed skill's project ID and the commit its tag names", name, installed)
 		}
 	}
@@ -123,7 +123,7 @@ func TestSync_InstallsBorrowedSkillsFromTheRepositoryTheyComeFrom(t *testing.T) 
 	if info, err := os.Stat(filepath.Join(b.options.Directory, ".claude/skills/deploy/scripts/deploy.sh")); err != nil || info.Mode().Perm()&0o100 != 0 {
 		t.Errorf("deploy.sh: %v, %v; the fixture commits it without its executable bit", info, err)
 	}
-	if !exists(t, b.options, ".syllabus/vendor/team/borrowed/pocock/skills/ops/deploy/SKILL.md") {
+	if !exists(t, b.options, ".trailguide/vendor/team/borrowed/pocock/skills/ops/deploy/SKILL.md") {
 		t.Error("didn't vendor the borrowed skill under borrowed/<source>/")
 	}
 	borrowed, _ := b.teamRecord(t)["borrowed"].(map[string]any)
@@ -131,13 +131,13 @@ func TestSync_InstallsBorrowedSkillsFromTheRepositoryTheyComeFrom(t *testing.T) 
 	if pocock["resolvedCommit"] != b.pocock.FirstCommit || pocock["ref"] != "stable" || pocock["kind"] != "non-library" || pocock["repository"] != "git@fixture.invalid:pocock" {
 		t.Fatalf("borrowed record: %v", borrowed)
 	}
-	skillsIndex := readRepositoryFile(t, b.options, ".syllabus/generated/SKILLS.md")
+	skillsIndex := readRepositoryFile(t, b.options, ".trailguide/generated/SKILLS.md")
 	for _, want := range []string{"`team:pocock:skills/ops/deploy`, borrowed by `team` from git@fixture.invalid:pocock, commit `" + b.pocock.FirstCommit + "`", "**Level:** required by `team`, release 1", "**Level:** offered by `team`, release 1"} {
 		if !strings.Contains(skillsIndex, want) {
 			t.Errorf("SKILLS.md lacks %q:\n%s", want, skillsIndex)
 		}
 	}
-	provenance := readRepositoryFile(t, b.options, ".syllabus/generated/provenance.json")
+	provenance := readRepositoryFile(t, b.options, ".trailguide/generated/provenance.json")
 	if !strings.Contains(provenance, `"borrowed": "pocock"`) || !strings.Contains(provenance, `"folder": "skills/ops/deploy"`) {
 		t.Errorf("provenance doesn't name the borrowed source and the skill's folder there:\n%s", provenance)
 	}
@@ -168,7 +168,7 @@ func TestSync_IncludesRecommendedBorrowedSkillsWithTheSkillsTheyUse(t *testing.T
 	if _, err := Check(ctx, b.options); err != nil {
 		t.Fatalf("check after sync: %v", err)
 	}
-	provenance := readRepositoryFile(t, b.options, ".syllabus/generated/provenance.json")
+	provenance := readRepositoryFile(t, b.options, ".trailguide/generated/provenance.json")
 	if !strings.Contains(provenance, `"team:pocock:skills/engineering/interview"`) {
 		t.Fatalf("provenance doesn't list the used borrowed skill:\n%s", provenance)
 	}
@@ -265,7 +265,7 @@ func TestSync_AProjectSourceForTheSameRepositoryOverridesTheLibrarysRef(t *testi
 		t.Fatal(err)
 	}
 	installed := readRepositoryFile(t, b.options, ".claude/skills/deploy/SKILL.md")
-	if !strings.Contains(installed, "syllabus:installed team:pocock:skills/ops/deploy "+b.pocock.LatestCommit) {
+	if !strings.Contains(installed, "trailguide:installed team:pocock:skills/ops/deploy "+b.pocock.LatestCommit) {
 		t.Fatalf("deploy:\n%s\nwant the borrowed skill once, from the overriding source's revision", installed)
 	}
 	borrowed, _ := b.teamRecord(t)["borrowed"].(map[string]any)
@@ -283,7 +283,7 @@ func TestSync_ALibraryRepositoryInstallsTheSkillsItRequiresFromItsSources(t *tes
 	if _, err := Sync(ctx, b.options, b.git); err != nil {
 		t.Fatal(err)
 	}
-	if installed := readRepositoryFile(t, b.options, ".claude/skills/deploy/SKILL.md"); !strings.Contains(installed, "syllabus:installed pocock:skills/ops/deploy "+b.pocock.FirstCommit) {
+	if installed := readRepositoryFile(t, b.options, ".claude/skills/deploy/SKILL.md"); !strings.Contains(installed, "trailguide:installed pocock:skills/ops/deploy "+b.pocock.FirstCommit) {
 		t.Fatalf("deploy:\n%s", installed)
 	}
 	if exists(t, b.options, ".claude/skills/grilling") {
@@ -332,7 +332,7 @@ func TestSync_UsesOfAnOverridingSourcesCopyReachTheBorrowedSkill(t *testing.T) {
 	if _, err := Sync(ctx, b.options, b.git); err != nil {
 		t.Fatal(err)
 	}
-	skillsIndex := readRepositoryFile(t, b.options, ".syllabus/generated/SKILLS.md")
+	skillsIndex := readRepositoryFile(t, b.options, ".trailguide/generated/SKILLS.md")
 	if !strings.Contains(skillsIndex, "`team:pocock:skills/ops/deploy`") || strings.Contains(skillsIndex, "`mine:skills/ops/deploy`") {
 		t.Fatalf("SKILLS.md:\n%s\nwant deploy once, as the borrowed skill", skillsIndex)
 	}
@@ -434,10 +434,10 @@ func TestUpdate_PreviewsTheBorrowedSkillsAnOverridingSourceMoves(t *testing.T) {
 func testOverridingSourceMoves(t *testing.T, declaredLater bool) {
 	ctx := context.Background()
 	kit, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                      []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    offered: [skills/deploy]\n"),
-		"techs/go/_group.yaml":             []byte(projectMetadata),
-		"techs/go/errors.md":               []byte(projectRule),
-		".syllabus/skills/deploy/SKILL.md": []byte(deploySkill),
+		"config.yaml":                        []byte("schemaVersion: 2\nsources: {}\nlibrary:\n  skills:\n    offered: [skills/deploy]\n"),
+		"techs/go/_group.yaml":               []byte(projectMetadata),
+		"techs/go/errors.md":                 []byte(projectRule),
+		".trailguide/skills/deploy/SKILL.md": []byte(deploySkill),
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -481,7 +481,7 @@ func testOverridingSourceMoves(t *testing.T, declaredLater bool) {
 	if declaredLater {
 		writeFixture(t, root, configurationFile, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{`+teamSource+`,`+mine+`}}`)
 	}
-	if _, err := kit.Commit(ctx, kit.Worktree(), "Improve deploy", gitfixture.Library(map[string][]byte{".syllabus/skills/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))})); err != nil {
+	if _, err := kit.Commit(ctx, kit.Worktree(), "Improve deploy", gitfixture.Library(map[string][]byte{".trailguide/skills/deploy/SKILL.md": []byte(strings.Replace(deploySkill, "# Deploy", "# Deploy safely", 1))})); err != nil {
 		t.Fatal(err)
 	}
 	if err := kit.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\nchanges: {}\n"); err != nil {

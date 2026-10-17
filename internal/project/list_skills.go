@@ -7,7 +7,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/trailguide/internal/library"
 )
 
 // The statuses a listed skill can have.

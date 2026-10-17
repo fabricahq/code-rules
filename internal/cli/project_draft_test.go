@@ -26,15 +26,15 @@ func TestProjectDraftBlocksConsumption(t *testing.T) {
 			t.Fatal(args, code, out, diagnostic)
 		}
 	}
-	draftPath := filepath.Join(directory, ".syllabus/rules/techs/go/draft.md")
+	draftPath := filepath.Join(directory, ".trailguide/rules/techs/go/draft.md")
 	draft, err := os.ReadFile(draftPath)
-	if err != nil || !strings.Contains(string(draft), "<!-- syllabus:draft -->") {
+	if err != nil || !strings.Contains(string(draft), "<!-- trailguide:draft -->") {
 		t.Fatal("unmarked draft", err, string(draft))
 	}
 	before := projectFileContents(t, directory)
 	for _, action := range []string{"build", "sync", "check"} {
 		out, diagnostic, code := runCLI(t, binary, directory, "project", action)
-		if code != 1 || out != "" || !strings.Contains(diagnostic, "rules/techs/go/draft.md") || !strings.Contains(diagnostic, "remove its syllabus:draft marker") {
+		if code != 1 || out != "" || !strings.Contains(diagnostic, "rules/techs/go/draft.md") || !strings.Contains(diagnostic, "remove its trailguide:draft marker") {
 			t.Fatal(action, code, out, diagnostic)
 		}
 		if after := projectFileContents(t, directory); !reflect.DeepEqual(before, after) {

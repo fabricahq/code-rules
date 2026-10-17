@@ -369,7 +369,7 @@
   {
     "id": "configuration-pins",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"techs/go/*\"], \"pins\": [{\"id\": \"techs/go/wrap-errors\", \"version\": \"1.3.0\", \"reason\": \" Waiting on acme/.syllabus#45. \"}, {\"id\": \"practices/testing/verify-retry-limits\", \"version\": \"999999999.0.0\", \"reason\": \"Largest version\"}]}}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"rules\": {\"include\": [\"techs/go/*\"], \"pins\": [{\"id\": \"techs/go/wrap-errors\", \"version\": \"1.3.0\", \"reason\": \" Waiting on acme/.trailguide#45. \"}, {\"id\": \"practices/testing/verify-retry-limits\", \"version\": \"999999999.0.0\", \"reason\": \"Largest version\"}]}}}}",
     "location": "configuration",
     "expected": {
       "ok": true,
@@ -389,7 +389,7 @@
               },
               "techs/go/wrap-errors": {
                 "version": "1.3.0",
-                "reason": " Waiting on acme/.syllabus#45. "
+                "reason": " Waiting on acme/.trailguide#45. "
               }
             },
             "exclude": {},
@@ -1339,7 +1339,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "schemaVersion: version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run syllabus project check.",
+        "message": "schemaVersion: version 1 configuration is no longer supported, and Trail Guide doesn't convert it. Rewrite .trailguide/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .trailguide/local/ to .trailguide/rules/, and shared assets from .trailguide/local/assets/ to .trailguide/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run trailguide project check.",
         "location": "schemaVersion"
       }
     }
@@ -1353,7 +1353,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "schemaVersion: version 1 configuration is no longer supported, and Syllabus doesn't convert it. Rewrite .syllabus/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .syllabus/local/ to .syllabus/rules/, and shared assets from .syllabus/local/assets/ to .syllabus/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run syllabus project check.",
+        "message": "schemaVersion: version 1 configuration is no longer supported, and Trail Guide doesn't convert it. Rewrite .trailguide/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as \"*\"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .trailguide/local/ to .trailguide/rules/, and shared assets from .trailguide/local/assets/ to .trailguide/assets/.\n\nschemaVersion: 2\nsources:\n  team:\n    repository: https://github.com/example/rules.git\n    rules:\n      include: [techs/go/*, practices/testing/verify-retry-limits]\n      exclude:\n        - id: techs/go/wrap-errors\n          reason: Our errors package covers this.\n      pins:\n        - id: practices/testing/verify-retry-limits\n          version: \"1.3.0\"\n          reason: Waiting on the author's answer.\n\nAfter rewriting it, run trailguide project check.",
         "location": "schemaVersion"
       }
     }
@@ -1819,7 +1819,7 @@
   {
     "id": "configuration-library-license",
     "operation": "configuration",
-    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"spdxExpression\": \"MIT\", \"file\": \"LICENSE.md\", \"notices\": [\".syllabus/assets/NOTICE.md\"]}}}",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"spdxExpression\": \"MIT\", \"file\": \"LICENSE.md\", \"notices\": [\".trailguide/assets/NOTICE.md\"]}}}",
     "location": "configuration",
     "expected": {
       "ok": true,
@@ -1934,7 +1934,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library.skills.offered[0]: expected the ID of one of the library's skills, skills/<name>, the folder's path in .syllabus/, such as skills/build-feature, got \"tools/review\"",
+        "message": "library.skills.offered[0]: expected the ID of one of the library's skills, skills/<name>, the folder's path in .trailguide/, such as skills/build-feature, got \"tools/review\"",
         "location": "library.skills.offered[0]"
       }
     }

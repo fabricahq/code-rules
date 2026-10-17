@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // legacyRule is a valid rule whose body links to the shared asset guide.md as link spells it.
@@ -23,7 +23,7 @@ func legacyRule(name, link string) []byte {
 
 // movedHistory is a library whose release/1 keeps the layout before version 2, with rule a linking to a shared
 // asset with an absolute link, rule b with a relative one, and rule c without links, and whose release/2 moved it
-// into .syllabus/, giving b's link one more ../ as a patch change.
+// into .trailguide/, giving b's link one more ../ as a patch change.
 func movedHistory(t *testing.T) history {
 	t.Helper()
 	ctx := context.Background()
@@ -52,7 +52,7 @@ func movedHistory(t *testing.T) history {
 		"techs/go/c.md":        versionedRule("c 1.0.0"),
 		"assets/guide.md":      []byte("Guide.\n"),
 	}))
-	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .syllabus", moved)
+	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .trailguide", moved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestImport_RefusesALibraryReleaseInTheLayoutBeforeVersion2(t *testing.T) {
 	h := movedHistory(t)
 	_, err := h.sync(t, h.source(t, `"ref":"release/1","rules":{"include":["techs/go/*"]}`), nil)
 	requireCode(t, err, "unsupported-library-layout")
-	want := "sources.team: the library's release/1 keeps its files in the layout from before this version of Syllabus, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .syllabus/config.yaml and its rules from .syllabus/rules/, so it can't import release/1. Ask the library's maintainer to move the library's files into .syllabus/ and publish a library release, then select that release, such as with syllabus project update team."
+	want := "sources.team: the library's release/1 keeps its files in the layout from before this version of Trail Guide, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .trailguide/config.yaml and its rules from .trailguide/rules/, so it can't import release/1. Ask the library's maintainer to move the library's files into .trailguide/ and publish a library release, then select that release, such as with trailguide project update team."
 	if !strings.HasSuffix(err.Error(), want) {
 		t.Fatalf("got %v\nwant %s", err, want)
 	}
@@ -105,16 +105,16 @@ func TestReadPublishedRule_ReadsAVersionPublishedBeforeTheLibraryMoved(t *testin
 	h := movedHistory(t)
 	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
 	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
-	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
+	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", trailguide.RuleVersion{Major: 1}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !published.LegacyLayout || published.Commit != h.commits[1] || published.GroupMetadata == nil || published.Files["assets/guide.md"] == nil {
 		t.Fatalf("published %+v", published)
 	}
-	_, err = ReadPublishedRule(context.Background(), source, "techs/go/b", syllabus.RuleVersion{Major: 1}, options)
+	_, err = ReadPublishedRule(context.Background(), source, "techs/go/b", trailguide.RuleVersion{Major: 1}, options)
 	requireCode(t, err, "unsupported-library-layout")
-	moved, err := ReadPublishedRule(context.Background(), source, "techs/go/b", syllabus.RuleVersion{Major: 1, Patch: 1}, options)
+	moved, err := ReadPublishedRule(context.Background(), source, "techs/go/b", trailguide.RuleVersion{Major: 1, Patch: 1}, options)
 	if err != nil || moved.LegacyLayout || moved.Commit != h.commits[2] {
 		t.Fatalf("published %+v, %v", moved, err)
 	}
@@ -126,7 +126,7 @@ func TestImport_RefusesARuleVersionWhoseLinksMovedWithTheLibrary(t *testing.T) {
 	h := movedHistory(t)
 	_, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/b","version":"1.0.0","reason":"Keep."}]}`), nil)
 	requireCode(t, err, "unsupported-library-layout")
-	want := "sources.team: rule techs/go/b version 1.0.0 comes from the library's release/1, which keeps its files in the layout from before this version of Syllabus, and its link to assets/guide.md resolves differently in the current layout, so this version of Syllabus can't import the rule's version. Select a version of techs/go/b that the library published after moving its files into .syllabus/, such as with syllabus project update team:techs/go/b, or ask the library's maintainer to publish one."
+	want := "sources.team: rule techs/go/b version 1.0.0 comes from the library's release/1, which keeps its files in the layout from before this version of Trail Guide, and its link to assets/guide.md resolves differently in the current layout, so this version of Trail Guide can't import the rule's version. Select a version of techs/go/b that the library published after moving its files into .trailguide/, such as with trailguide project update team:techs/go/b, or ask the library's maintainer to publish one."
 	if !strings.HasSuffix(err.Error(), want) {
 		t.Fatalf("got %v\nwant %s", err, want)
 	}
@@ -144,10 +144,10 @@ func TestImport_ReadsALibraryThatIsAlsoAProject(t *testing.T) {
 		"techs/go/a.md":        versionedRule("a 1.0.0"),
 	})
 	if _, err := f.Commit(ctx, f.Worktree(), "Sync the project", map[string][]byte{
-		".syllabus/vendor/upstream/config.yaml":        []byte("not this library's manifest\n"),
-		".syllabus/vendor/upstream/techs/go/errors.md": []byte("Vendored.\n"),
-		".syllabus/generated/RULES.md":                 []byte("Generated.\n"),
-		".syllabus/rules/README.md":                    []byte("The project's guide.\n"),
+		".trailguide/vendor/upstream/config.yaml":        []byte("not this library's manifest\n"),
+		".trailguide/vendor/upstream/techs/go/errors.md": []byte("Vendored.\n"),
+		".trailguide/generated/RULES.md":                 []byte("Generated.\n"),
+		".trailguide/rules/README.md":                    []byte("The project's guide.\n"),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestImport_RefusesARepositoryWithoutALibrarySection(t *testing.T) {
 
 // legacyLibrary is a library whose release/1 keeps files, by library path, in the layout before version 2, beside
 // rule-library.yaml with manifest, publishing techs/go/a at 1.0.0, and whose release/2 moves the same files into
-// .syllabus/ without changing a.
+// .trailguide/ without changing a.
 func legacyLibrary(t *testing.T, manifest string, files map[string][]byte) history {
 	t.Helper()
 	ctx := context.Background()
@@ -212,7 +212,7 @@ func legacyLibrary(t *testing.T, manifest string, files map[string][]byte) histo
 	maps.Copy(release2, files)
 	release2["techs/go/_group.yaml"] = groupMetadata
 	maps.Copy(moved, gitfixture.Library(release2))
-	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .syllabus", moved)
+	commit, err := f.Commit(ctx, f.Worktree(), "Move the library into .trailguide", moved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestReadPublishedRule_RefusesAVersionWhoseAssetLinksMovedWithTheLibrary(t *
 	})
 	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
 	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
-	_, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
+	_, err := ReadPublishedRule(context.Background(), source, "techs/go/a", trailguide.RuleVersion{Major: 1}, options)
 	requireCode(t, err, "unsupported-library-layout")
 	if !strings.Contains(err.Error(), "its link to assets/guide.md resolves differently") {
 		t.Fatalf("got %v; want the link that moved named", err)
@@ -253,7 +253,7 @@ func TestReadPublishedRule_LeavesOutANoticeThatALegacyManifestDeclares(t *testin
 	})
 	source := rules.Source{Name: "team", Repository: h.fixture.Repository}
 	options := Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}
-	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", syllabus.RuleVersion{Major: 1}, options)
+	published, err := ReadPublishedRule(context.Background(), source, "techs/go/a", trailguide.RuleVersion{Major: 1}, options)
 	if err != nil {
 		t.Fatal(err)
 	}

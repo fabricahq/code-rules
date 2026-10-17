@@ -1,4 +1,4 @@
-// Exercise replacing the repository's AGENTS.md, outside the Syllabus directory, together with managed trees:
+// Exercise replacing the repository's AGENTS.md, outside the Trail Guide directory, together with managed trees:
 // creation, replacement, process death, and journals too old to hold it.
 
 package filetxn
@@ -53,13 +53,13 @@ func TestApplyAgentsFile(t *testing.T) {
 // TestKilledAgentsWriterRecovers stops the writer at each step of replacing AGENTS.md; the next writer restores the
 // previous file and trees, or, once the commit marker exists, keeps everything new.
 func TestKilledAgentsWriterRecovers(t *testing.T) {
-	if directory := os.Getenv("SYLLABUS_AGENTS_CHILD"); directory != "" {
+	if directory := os.Getenv("TRAILGUIDE_AGENTS_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
-		stop := os.Getenv("SYLLABUS_AGENTS_STOP")
+		stop := os.Getenv("TRAILGUIDE_AGENTS_STOP")
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
 			rename := w.rename
 			w.rename = func(from, to string) error {
@@ -82,7 +82,7 @@ func TestKilledAgentsWriterRecovers(t *testing.T) {
 	}
 	for _, test := range []struct{ name, stop, state string }{
 		{"generated", "generated", "old"},
-		{"backup", ".syllabus/" + transactionName + "/" + backupPrefix + "..+AGENTS.md", "old"},
+		{"backup", ".trailguide/" + transactionName + "/" + backupPrefix + "..+AGENTS.md", "old"},
 		{"replaced file", "AGENTS.md", "old"},
 		{"committed", transactionName + "/committed.json", "new"},
 	} {
@@ -90,7 +90,7 @@ func TestKilledAgentsWriterRecovers(t *testing.T) {
 			repository, root := openSkillProject(t)
 			writeFixture(t, repository, "AGENTS.md", "old agents")
 			child := exec.Command(os.Args[0], "-test.run=^TestKilledAgentsWriterRecovers$")
-			child.Env = append(os.Environ(), "SYLLABUS_AGENTS_CHILD="+root.Name(), "SYLLABUS_AGENTS_STOP="+test.stop)
+			child.Env = append(os.Environ(), "TRAILGUIDE_AGENTS_CHILD="+root.Name(), "TRAILGUIDE_AGENTS_STOP="+test.stop)
 			output, err := child.CombinedOutput()
 			var exit *exec.ExitError
 			if !errors.As(err, &exit) || exit.ExitCode() != 42 {

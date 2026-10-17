@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // TestProjectAuthoringLifecycle covers idempotent init, local authoring, offline build, and config-only source addition.
 func TestProjectAuthoringLifecycle(t *testing.T) {
 	ctx := context.Background()
-	directory := filepath.Join(t.TempDir(), ".syllabus")
+	directory := filepath.Join(t.TempDir(), ".trailguide")
 	options := Options{Directory: filepath.Dir(directory)}
 	result, err := Initialize(ctx, options)
 	// config.yaml, rules/README.md, README.md, and AGENTS.md.
@@ -32,7 +32,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil || len(result.Written()) != 0 {
 		t.Fatal(result, err)
 	}
-	metadata := syllabus.GroupMetadata{Name: " Go ", Description: " Local Go guidance. ", WhenToRead: " When editing Go. "}
+	metadata := trailguide.GroupMetadata{Name: " Go ", Description: " Local Go guidance. ", WhenToRead: " When editing Go. "}
 	result, err = AddLocalGroup(ctx, "techs/go", metadata, options)
 	if err != nil || len(result.Written()) != 2 {
 		t.Fatal(result, err)
@@ -57,7 +57,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed, err := syllabus.ParseRule(string(document), "techs/go/errors.md", "local")
+	parsed, err := trailguide.ParseRule(string(document), "techs/go/errors.md", "local")
 	if err != nil || parsed.Title != ruleMeta.Title {
 		t.Fatal(parsed, err)
 	}
@@ -97,7 +97,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 	for _, scenario := range []string{"invalid-config", "linked-rules", "case-alias", "hardlink", "pending-recovery", "cancelled"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx := context.Background()
-			directory := filepath.Join(t.TempDir(), ".syllabus")
+			directory := filepath.Join(t.TempDir(), ".trailguide")
 			options := Options{Directory: filepath.Dir(directory)}
 			if _, err := Initialize(ctx, options); err != nil {
 				t.Fatal(err)
@@ -117,14 +117,14 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 					t.Fatal(err)
 				}
 			case "pending-recovery":
-				os.Mkdir(filepath.Join(directory, ".syllabus-authoring-pending"), 0700)
+				os.Mkdir(filepath.Join(directory, ".trailguide-authoring-pending"), 0700)
 			case "cancelled":
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithCancel(ctx)
 				cancel()
 			}
 			before, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
-			result, err := AddLocalGroup(ctx, "techs/go", syllabus.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
+			result, err := AddLocalGroup(ctx, "techs/go", trailguide.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
 			if err == nil || result.Written() != nil {
 				t.Fatal("expected no partial result", result, err)
 			}
@@ -142,7 +142,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 // TestRuleRequiresGroup rejects missing metadata without changing an existing document.
 func TestRuleRequiresGroup(t *testing.T) {
 	ctx := context.Background()
-	directory := filepath.Join(t.TempDir(), ".syllabus")
+	directory := filepath.Join(t.TempDir(), ".trailguide")
 	options := Options{Directory: filepath.Dir(directory)}
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
@@ -167,7 +167,7 @@ func TestRuleRequiresGroup(t *testing.T) {
 // TestRuleUsesImportedGroup accepts imported metadata without creating a local override.
 func TestRuleUsesImportedGroup(t *testing.T) {
 	ctx := context.Background()
-	directory := filepath.Join(t.TempDir(), ".syllabus")
+	directory := filepath.Join(t.TempDir(), ".trailguide")
 	options := Options{Directory: filepath.Dir(directory)}
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)

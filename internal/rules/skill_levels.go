@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillLevels lists, sorted, the IDs of the skills at each level the manifest names: the library's own skills,
@@ -80,7 +80,7 @@ func parseSkillLevels(input json.RawMessage, location string, sources []string) 
 					return SkillLevels{}, err
 				}
 			} else if name, authored := strings.CutPrefix(id, skills.Directory+"/"); !authored || !skills.ValidName(name) {
-				return SkillLevels{}, invalid(at, "expected the ID of one of the library's skills, skills/<name>, the folder's path in .syllabus/, such as skills/build-feature, got "+decode.Quote(id))
+				return SkillLevels{}, invalid(at, "expected the ID of one of the library's skills, skills/<name>, the folder's path in .trailguide/, such as skills/build-feature, got "+decode.Quote(id))
 			}
 			if other, listed := seen[id]; listed {
 				if other == level {

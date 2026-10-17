@@ -117,11 +117,11 @@ func TestCommandsDiscoverRepositoryRoot(t *testing.T) {
 				run("sync")
 			}
 			run("check")
-			data, err := os.ReadFile(filepath.Join(root, ".syllabus", "rules", "techs/go/errors.md"))
+			data, err := os.ReadFile(filepath.Join(root, ".trailguide", "rules", "techs/go/errors.md"))
 			if err != nil || !strings.Contains(string(data), "Return errors to callers.") {
 				t.Fatal(string(data), err)
 			}
-			if _, err := os.Stat(filepath.Join(child, ".syllabus")); !os.IsNotExist(err) {
+			if _, err := os.Stat(filepath.Join(child, ".trailguide")); !os.IsNotExist(err) {
 				t.Fatal("nested project created", err)
 			}
 		})

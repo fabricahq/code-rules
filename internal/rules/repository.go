@@ -11,7 +11,7 @@ import (
 
 	"github.com/nlnwa/whatwg-url/url"
 
-	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // Repository identifies a Git source without rewriting its transport address.

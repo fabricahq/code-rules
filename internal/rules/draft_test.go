@@ -5,10 +5,10 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
-// TestHasDraftMarker_RecognizesTheCodeRulesMarker that authoring wrote before Code Rules was renamed Syllabus.
+// TestHasDraftMarker_RecognizesTheCodeRulesMarker that authoring wrote before Code Rules was renamed Trail Guide.
 func TestHasDraftMarker_RecognizesTheCodeRulesMarker(t *testing.T) {
 	for document, want := range map[string]bool{
 		"Guidance.\n" + rules.DraftMarker + "\n": true,

@@ -1,6 +1,6 @@
 // Parse complete rule documents while retaining their authored text.
 
-package syllabus
+package trailguide
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 	"github.com/nlnwa/whatwg-url/url"
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 // Impact is the rule's declared consequence level. ParseRule and ParseImpact accept only the six constants.
@@ -86,7 +86,7 @@ func parseRule(text, path, source string) (Rule, error) {
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, exists := fields[key]; exists {
-			return Rule{}, invalid(location+"."+key, "declare one license for the whole library in the library section of .syllabus/config.yaml; rule-level licenses are unsupported")
+			return Rule{}, invalid(location+"."+key, "declare one license for the whole library in the library section of .trailguide/config.yaml; rule-level licenses are unsupported")
 		}
 	}
 	if err := ruleKnownFields(fields, location, "title", "impact", "impactDescription", "whenToRead", "tags", "attribution"); err != nil {

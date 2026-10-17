@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // TestLicenseFixtures checks the license declarations of complete configurations against independent expectations.
@@ -115,7 +115,7 @@ func TestPublishedManifest(t *testing.T) {
 }
 
 // TestLicenseDeclaredInTheLegacyDirectory reads a license file declared in .code-rules/assets/, as a library release
-// from before Code Rules was renamed Syllabus declares it, as the shared asset it is.
+// from before Code Rules was renamed Trail Guide declares it, as the shared asset it is.
 func TestLicenseDeclaredInTheLegacyDirectory(t *testing.T) {
 	text := "schemaVersion: 2\nsources: {}\nlibrary:\n  license:\n    spdxExpression: MIT\n    file: .code-rules/assets/LICENSE.md\n    notices: [.code-rules/assets/NOTICE.md]\n"
 	library, err := rules.ParseLibraryManifest([]byte(text), "config.yaml")

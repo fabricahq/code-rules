@@ -12,11 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/build"
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/build"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // Options identifies the project root and controls rendering.
@@ -37,7 +37,7 @@ type Options struct {
 // names, list rules/<group>/_group.yaml when they add an authored group's metadata, and update also lists
 // config.yaml when it writes pins or exclusions.
 // Empty lists mean matching tree output; Guide reports a separate managed-guide update, and Agents a change to the
-// Syllabus section of the repository's AGENTS.md.
+// Trail Guide section of the repository's AGENTS.md.
 type FileChanges struct {
 	Added   []string      `json:"added"`
 	Changed []string      `json:"changed"`
@@ -62,7 +62,7 @@ type GuideChange struct {
 	Created bool   `json:"created"`
 }
 
-// Build generates rules offline and refreshes the managed project guide and the Syllabus section of the repository's
+// Build generates rules offline and refreshes the managed project guide and the Trail Guide section of the repository's
 // AGENTS.md in one recoverable transaction. Cancellation, validation failure, or detected edits preserve existing
 // output; errors return no changes.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
@@ -103,6 +103,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		changes.Warnings = append(retiredCitationWarnings(output), output.ExcludedUses...)
 		// Build reports paths relative to generated/, two folders below the repository root.
 		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
+		changes.Warnings = append(changes.Warnings, renameWarnings(output)...)
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
 		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)
@@ -137,14 +138,14 @@ type checkedProject struct {
 
 // checkWithFiles checks generated output, the installed skill folders, and additional root-relative files in one
 // optimistic snapshot. Missing files are reported as additions; invalid paths, unreadable files, concurrent edits, a
-// folder in a skill target that Syllabus would install into but didn't install, and a rule an authored skill cites
+// folder in a skill target that Trail Guide would install into but didn't install, and a rule an authored skill cites
 // that its library retired are errors.
 func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (checkedProject, error) {
 	return checkProjectFiles(ctx, options, expected, nil)
 }
 
-// checkProjectFiles is checkWithFiles, also calling inspect, when not nil, with the Syllabus directory and the
-// project's configuration before it rechecks the snapshot, for checks of files outside the Syllabus directory.
+// checkProjectFiles is checkWithFiles, also calling inspect, when not nil, with the Trail Guide directory and the
+// project's configuration before it rechecks the snapshot, for checks of files outside the Trail Guide directory.
 func checkProjectFiles(ctx context.Context, options Options, expected map[string][]byte, inspect func(*os.Root, rules.Configuration) error) (checkedProject, error) {
 	if err := ctx.Err(); err != nil {
 		return checkedProject{}, err
@@ -358,7 +359,7 @@ func authoredFiles(state projectState) (map[string][]byte, error) {
 	files := map[string][]byte{}
 	for name, data := range treeFiles(state.local) {
 		if strings.HasPrefix(name, "assets/") {
-			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .syllabus/assets/; move this file there"}
+			return nil, &ValidationError{Location: "rules/" + name, Problem: "rules/ holds groups under techs/ and practices/, so shared assets belong in .trailguide/assets/; move this file there"}
 		}
 		files[name] = data
 	}
@@ -410,11 +411,11 @@ func verifyLoadedSnapshot(source rules.Source, catalog library.Catalog, snapshot
 	}
 	slices.Sort(loaded)
 	if !slices.Equal(loaded, slices.Sorted(maps.Keys(snapshot.Rules))) {
-		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run syllabus project sync", nil)
+		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run trailguide project sync", nil)
 	}
 	files := catalog.Files()
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run syllabus project sync", nil)
+		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run trailguide project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {

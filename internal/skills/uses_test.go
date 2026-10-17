@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 func TestResolveUsesInstallsEverySkillTheSelectionUses(t *testing.T) {

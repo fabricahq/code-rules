@@ -124,7 +124,7 @@ func readArchive(data []byte, binaryBytes int64) ([]archiveEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		if header.Typeflag != tar.TypeReg || seen[header.Name] || !slices.Contains([]string{"syllabus", "README.txt", "LICENSE.md"}, header.Name) {
+		if header.Typeflag != tar.TypeReg || seen[header.Name] || !slices.Contains([]string{"trailguide", "README.txt", "LICENSE.md"}, header.Name) {
 			return nil, fmt.Errorf("unexpected archive member %q", header.Name)
 		}
 		if header.Size < 0 || header.Size > maxArchiveBytes-total {
@@ -136,7 +136,7 @@ func readArchive(data []byte, binaryBytes int64) ([]archiveEntry, error) {
 			return nil, err
 		}
 		mode := int64(0644)
-		if header.Name == "syllabus" {
+		if header.Name == "trailguide" {
 			mode = 0755
 			if int64(len(content)) != binaryBytes {
 				return nil, fmt.Errorf("binary size mismatch")
@@ -151,7 +151,7 @@ func readArchive(data []byte, binaryBytes int64) ([]archiveEntry, error) {
 	} else if n != 0 {
 		return nil, fmt.Errorf("unexpected data after tar archive")
 	}
-	if !seen["syllabus"] || !seen["README.txt"] {
+	if !seen["trailguide"] || !seen["README.txt"] {
 		return nil, fmt.Errorf("archive is missing the executable or readme")
 	}
 	return entries, nil

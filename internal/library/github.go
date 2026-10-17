@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // maxGitHubCLIOutput bounds what one gh invocation may print on both streams together.
@@ -27,7 +27,7 @@ type gitHubCLI struct {
 }
 
 // gitHubRepository returns OWNER/REPO when a remote URL names a repository on GitHub.com, including one with
-// credentials in it, and "" for other hosts and for URLs Syllabus doesn't recognize, such as SSH host aliases.
+// credentials in it, and "" for other hosts and for URLs Trail Guide doesn't recognize, such as SSH host aliases.
 func gitHubRepository(remoteURL string) string {
 	repository, ok := parseRemote(remoteURL)
 	if !ok || repository.Web == nil {
@@ -114,7 +114,7 @@ func findGitHubCLI(ctx context.Context, environment []string, dir string) (gitHu
 	}
 	runner, err := gitexec.Command(gitexec.Options{Environment: append(slices.Clone(environment), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1")}, "gh")
 	if errors.Is(err, gitexec.ErrNotFound) {
-		return gitHubCLI{}, failure("github-cli-missing", "syllabus library release creates the GitHub Release page with the GitHub CLI, gh, which isn't installed. Install it from https://cli.github.com and sign in with gh auth login, or pass --no-github-release to publish the tag only.", nil)
+		return gitHubCLI{}, failure("github-cli-missing", "trailguide library release creates the GitHub Release page with the GitHub CLI, gh, which isn't installed. Install it from https://cli.github.com and sign in with gh auth login, or pass --no-github-release to publish the tag only.", nil)
 	}
 	if err != nil {
 		return gitHubCLI{}, err
@@ -160,7 +160,7 @@ func (c gitHubCLI) createReleasePage(ctx context.Context, repository, tag, notes
 	return releasePageURL(repository, tag), nil
 }
 
-// releasePageURL returns the URL of tag's GitHub Release page in repository, OWNER/REPO. Syllabus builds it from
+// releasePageURL returns the URL of tag's GitHub Release page in repository, OWNER/REPO. Trail Guide builds it from
 // what it knows rather than show the URL gh prints, which could carry anything.
 func releasePageURL(repository, tag string) string {
 	return "https://github.com/" + repository + "/releases/tag/" + tag
@@ -169,12 +169,12 @@ func releasePageURL(repository, tag string) string {
 // gitHubCLIFailure explains why gh failed to look up, when lookup is true, or create tag's GitHub Release page in
 // repository, and what to do next, with a static cause chosen from gh's diagnostics, which it never shows:
 // GitHub's rate limit, gh signed out or its credentials refused, permission denied, a repository GitHub can't
-// find, or a cause it doesn't recognize. Its next steps never change anything on GitHub: only syllabus library
+// find, or a cause it doesn't recognize. Its next steps never change anything on GitHub: only trailguide library
 // release creates the page, with its generated notes.
 func gitHubCLIFailure(lookup bool, repository, tag, stderr string) string {
-	verb, finish := "create", ", then run syllabus library release again to create the page."
+	verb, finish := "create", ", then run trailguide library release again to create the page."
 	if lookup {
-		verb, finish = "read", ", then run syllabus library release again to finish."
+		verb, finish = "read", ", then run trailguide library release again to finish."
 	}
 	diagnostics := []byte(stderr)
 	switch {
@@ -187,9 +187,9 @@ func gitHubCLIFailure(lookup bool, repository, tag, stderr string) string {
 	case gitexec.Mentions(diagnostics, "http 404", "not found", "could not resolve to a repository"):
 		return "GitHub couldn't find " + repository + ", or your account can't see it. The tag is published; check the repository and your access to it" + finish
 	case lookup:
-		return "gh failed for a reason Syllabus doesn't recognize. The tag is published; run gh release view " + tag + " --repo github.com/" + repository + " to read gh's message" + finish
+		return "gh failed for a reason Trail Guide doesn't recognize. The tag is published; run gh release view " + tag + " --repo github.com/" + repository + " to read gh's message" + finish
 	}
-	return "gh failed for a reason Syllabus doesn't recognize. The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/" + repository + ", then run syllabus library release again, which creates the page with its notes only if it's still missing."
+	return "gh failed for a reason Trail Guide doesn't recognize. The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/" + repository + ", then run trailguide library release again, which creates the page with its notes only if it's still missing."
 }
 
 // run executes gh with args and stdin, returning its stdout, its stderr, and its exit status. Output beyond
@@ -205,5 +205,5 @@ func (c gitHubCLI) run(ctx context.Context, stdin string, args ...string) (strin
 	case errors.As(err, &failed) && (failed.Code == "cancelled" || failed.Code == "timed-out"):
 		return "", "", 0, err
 	}
-	return "", "", 0, failure("github-cli-failed", "syllabus library release couldn't run the GitHub CLI, gh. Check that it's installed and works, or pass --no-github-release to publish the tag only.", nil)
+	return "", "", 0, failure("github-cli-failed", "trailguide library release couldn't run the GitHub CLI, gh. Check that it's installed and works, or pass --no-github-release to publish the tag only.", nil)
 }

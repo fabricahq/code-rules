@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillForkSource names the configured source and the skill in it that a fork copies.
@@ -52,17 +52,20 @@ type SkillForkPlan struct {
 	// name is the skill's install name, which names the fork's folder, and commit the commit of the source's
 	// repository that the source record locks, which the exclusion records as basedOn.
 	name, commit string
-	// files holds the fork's files, by path relative to the Syllabus directory, with their executable bits.
+	// renamed reports whether the source's skills.rename gave the skill its install name; Commit then removes that
+	// entry, since the exclusion replaces it.
+	renamed bool
+	// files holds the fork's files, by path relative to the Trail Guide directory, with their executable bits.
 	files []filetxn.File
 }
 
 // PlanSkillFork checks the project and prepares a fork of the skill from names, copied from vendor/ as the source's
 // last sync recorded it, with its SKILL.md rewritten as forkedSkillFile rewrites it, into skills/<name>/, where name
-// is the skill's install name, without writing. It fails when the source isn't configured, when its record doesn't
-// match its configuration, when its last sync didn't install the skill, when the source's library requires the
-// skill, when the source already excludes the skill, when the project already has an authored skill with that name or
-// another exclusion names it as a replacement, since existing authored skills and exclusions are never replaced, or
-// when forkedSkillFile fails.
+// is the skill's install name, the one the source's skills.rename gives it when it has one, without writing. It fails
+// when the source isn't configured, when its record doesn't match its configuration, when its last sync didn't
+// install the skill, when the source's library requires the skill, when the source already excludes the skill, when
+// the project already has an authored skill with that name or another exclusion names it as a replacement, since
+// existing authored skills and exclusions are never replaced, or when forkedSkillFile fails.
 func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (*SkillForkPlan, error) {
 	plan := &SkillForkPlan{from: from}
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
@@ -73,11 +76,11 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		plan.configBytes = original
 		index := slices.IndexFunc(config.Sources, func(source rules.Source) bool { return source.Name == from.Source })
 		if index < 0 {
-			return &ValidationError{Location: "--from", Problem: "no source named " + from.Source + " in .syllabus/config.yaml; name a configured source"}
+			return &ValidationError{Location: "--from", Problem: "no source named " + from.Source + " in .trailguide/config.yaml; name a configured source"}
 		}
 		source := config.Sources[index]
 		if _, _, borrowed := library.SplitBorrowed(from.Skill); borrowed {
-			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("%s is a skill library %s borrows from another repository, which a fork can't record a revision for; declare that repository as a source of your own, run syllabus project sync, and fork the skill from that source", from.Skill, source.Name)}
+			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("%s is a skill library %s borrows from another repository, which a fork can't record a revision for; declare that repository as a source of your own, run trailguide project sync, and fork the skill from that source", from.Skill, source.Name)}
 		}
 		if _, excluded := source.SkillExclude[from.Skill]; excluded {
 			return &ValidationError{Location: "sources." + source.Name + ".skills.exclude." + from.Skill, Problem: "the source already excludes this skill, and a fork never replaces an existing exclusion; delete the entry to fork the skill"}
@@ -99,7 +102,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		}
 		plan.record = treeFiles(vendor)[source.Name+"/_source.json"]
 		if _, installed := snapshot.Skills[from.Skill]; !installed {
-			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run syllabus project sync first", source.Name, from.Skill)}
+			return &ValidationError{Location: "--from", Problem: fmt.Sprintf("source %s doesn't install skill %s, as its last sync recorded; name a skill its skills.include selects, and if you just added it, run trailguide project sync first", source.Name, from.Skill)}
 		}
 		files := snapshot.SkillFiles(from.Skill)
 		location := "vendor/" + source.Name + "/" + from.Skill + "/" + skills.File
@@ -107,7 +110,9 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		if err != nil {
 			return err
 		}
-		if plan.name, err = skills.InstallName(from.Skill, metadata, location); err != nil {
+		if name, renamed := source.SkillRename[from.Skill]; renamed {
+			plan.name, plan.renamed = name, true
+		} else if plan.name, err = skills.InstallName(from.Skill, metadata, location); err != nil {
 			return err
 		}
 		plan.commit = snapshot.Commit
@@ -119,6 +124,12 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 		for _, name := range slices.Sorted(maps.Keys(files)) {
 			content := files[name]
 			if name == skills.File {
+				if plan.renamed {
+					content = skills.Rename(content, plan.name)
+					if metadata, err = skills.ReadMetadata(content, location); err != nil {
+						return err
+					}
+				}
 				if content, err = forkedSkillFile(content, metadata, plan.name, source.Name, !snapshot.NonLibrary, source.SkillUses[from.Skill], location); err != nil {
 					return err
 				}
@@ -134,7 +145,7 @@ func PlanSkillFork(ctx context.Context, from SkillForkSource, options Options) (
 	return plan, nil
 }
 
-// requireSkillForkTarget fails when the Syllabus directory already has folder, the fork's authored skill folder,
+// requireSkillForkTarget fails when the Trail Guide directory already has folder, the fork's authored skill folder,
 // skills/<name>, or when an exclusion already names that authored skill as its replacement.
 func requireSkillForkTarget(ctx context.Context, root *os.Root, config rules.Configuration, folder string) error {
 	for _, source := range config.Sources {
@@ -154,7 +165,7 @@ func (p *SkillForkPlan) Name() string { return p.name }
 func (p *SkillForkPlan) BasedOn() string { return p.commit }
 
 // Commit writes the fork under writer ownership, and, in the same edit, adds the source's exclusion of the skill
-// with reason, the fork as replacedBy, and the commit it copied as basedOn, so the fork installs in place of the
+// with reason, the fork as replacedBy, and the commit it copied as basedOn, removing the skill's skills.rename entry, so the fork installs in place of the
 // source's skill and updates list the source's later changes to it. It writes nothing when reason is blank, when the
 // configuration or the source record changed after planning, such as when an update moved the source to another
 // commit, or when any of the fork's files exists.
@@ -185,6 +196,9 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 			return nil, err
 		}
 		edit := rules.SourceEdit{SkillExclude: map[string]rules.SkillExclusion{p.from.Skill: {Reason: reason, ReplacedBy: folder, BasedOn: basedOn}}}
+		if p.renamed {
+			edit.SkillUnrename = []string{p.from.Skill}
+		}
 		edited, err := rules.EditConfigurationSource(original, p.from.Source, edit)
 		if err != nil {
 			return nil, err
@@ -195,9 +209,9 @@ func (p *SkillForkPlan) Commit(ctx context.Context, reason string) (AuthoringRes
 
 // forkedSkillFile returns data, the SKILL.md of a skill the source named source supplies, as its fork, the authored
 // skill skills/<name>, needs it: with frontmatter that names the skill name, which a SKILL.md from a repository that
-// isn't a library can lack; with the source's name added to each bare ID its syllabus-skills-used lists, and, when the
-// source is a library, its syllabus-rules-used, since in the project a bare ID names the project's own skill or rule;
-// and with uses, the IDs the source's skills.uses adds for the skill, added to syllabus-skills-used the same way, since
+// isn't a library can lack; with the source's name added to each bare ID its trailguide-skills-used lists, and, when the
+// source is a library, its trailguide-rules-used, since in the project a bare ID names the project's own skill or rule;
+// and with uses, the IDs the source's skills.uses adds for the skill, added to trailguide-skills-used the same way, since
 // skills.uses applies only to the source's own skills. metadata is data's, read at location. It rewrites only what
 // differs, replacing a list it changes with a block string. It fails, at location, when it can't rewrite the
 // frontmatter to say exactly that, such as a list inside a flow mapping, or when the result fails the checks build
@@ -241,7 +255,7 @@ func forkedSkillFile(data []byte, metadata skills.Metadata, name, source string,
 	}
 	forked, err := skills.ReadMetadata([]byte(text), location)
 	if err != nil || forked.Name != name || !slices.Equal(forked.SkillsUsed, skillsUsed) || !slices.Equal(forked.RulesUsed, rulesUsed) || forked.Description != metadata.Description || forked.Type != metadata.Type || !slices.Equal(forked.ReservedKeys, metadata.ReservedKeys) {
-		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("Syllabus can't rewrite this frontmatter for the fork, which must name the skill %s and cite the source's skills and rules with the source's name, such as %s:skills/tdd, because it isn't written as block mappings Syllabus can edit. %s", name, source, forkByHand(name))}
+		return nil, &ValidationError{Location: location, Problem: fmt.Sprintf("Trail Guide can't rewrite this frontmatter for the fork, which must name the skill %s and cite the source's skills and rules with the source's name, such as %s:skills/tdd, because it isn't written as block mappings Trail Guide can edit. %s", name, source, forkByHand(name))}
 	}
 	if problems := skills.Check(name, forked, true); len(problems) > 0 {
 		return nil, &ValidationError{Location: location, Problem: problems[0] + ", and build refuses a skill you author, as a fork is, with this problem. " + forkByHand(name)}
@@ -251,7 +265,7 @@ func forkedSkillFile(data []byte, metadata skills.Metadata, name, source string,
 
 // forkByHand tells how to fork the skill named name when the command can't.
 func forkByHand(name string) string {
-	return "To fork the skill, copy it into .syllabus/skills/" + name + "/, correct its frontmatter, and add the exclusion to config.yaml by hand"
+	return "To fork the skill, copy it into .trailguide/skills/" + name + "/, correct its frontmatter, and add the exclusion to config.yaml by hand"
 }
 
 // setMetadataList returns text, a SKILL.md whose frontmatter starts at its first line, with key of the top-level

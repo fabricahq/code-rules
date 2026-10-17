@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/releasetag"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/releasetag"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // libraryRelease is one library release, read from its release/<number> tag.
@@ -22,7 +22,7 @@ type libraryRelease struct {
 	// tag is the annotated tag object's ID; commit is the commit it tags.
 	tag    string
 	commit string
-	record syllabus.ReleaseRecord
+	record trailguide.ReleaseRecord
 }
 
 // releaseHistory holds every library release in ascending number order; it is empty before the first one.
@@ -50,7 +50,7 @@ func (h releaseHistory) release(number int) *libraryRelease {
 
 // publisher returns the library release that published version of rule id: the one whose changes entry for the
 // rule leads to that version. It returns nil when the rule never published the version.
-func (h releaseHistory) publisher(id string, version syllabus.RuleVersion) *libraryRelease {
+func (h releaseHistory) publisher(id string, version trailguide.RuleVersion) *libraryRelease {
 	for i := range h.releases {
 		record := h.releases[i].record
 		if _, changed := record.Changes[id]; changed && record.Rules[id] == version {
@@ -107,7 +107,7 @@ func (h releaseHistory) currentReplacement(id string) string {
 }
 
 // retirement returns how a library release retired rule id, or nil when none did.
-func (h releaseHistory) retirement(id string) *syllabus.RetiredRule {
+func (h releaseHistory) retirement(id string) *trailguide.RetiredRule {
 	for _, release := range h.releases {
 		if retired, ok := release.record.Retired[id]; ok {
 			return &retired
@@ -119,8 +119,8 @@ func (h releaseHistory) retirement(id string) *syllabus.RetiredRule {
 // summaries returns, oldest first, the summaries of every version of rule id newer than from, up to and including
 // to, one per change note, and the version each belongs to, in the same order. A nil from includes every version up
 // to to. Both are empty, never nil, when there are none.
-func (h releaseHistory) summaries(id string, from *syllabus.RuleVersion, to syllabus.RuleVersion) ([]string, []syllabus.RuleVersion) {
-	summaries, versions := []string{}, []syllabus.RuleVersion{}
+func (h releaseHistory) summaries(id string, from *trailguide.RuleVersion, to trailguide.RuleVersion) ([]string, []trailguide.RuleVersion) {
+	summaries, versions := []string{}, []trailguide.RuleVersion{}
 	for _, release := range h.releases {
 		change, changed := release.record.Changes[id]
 		version := release.record.Rules[id]
@@ -166,10 +166,10 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 		return nil
 	})
 	var invalid *releasetag.RecordError
-	var unsupported *syllabus.UnsupportedReleaseRecordError
+	var unsupported *trailguide.UnsupportedReleaseRecordError
 	switch {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
-		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Syllabus can't read. Upgrade Syllabus, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
+		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Trail Guide can't read. Upgrade Trail Guide, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
 	case invalid != nil:
 		return releaseHistory{}, fail("invalid-release-tag", "Invalid release record: "+invalid.Problem()+". Don't create or move release tags by hand.", invalid.Err)
 	}
@@ -201,7 +201,7 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 	}
 	releases := []libraryRelease{}
 	for _, name := range slices.Sorted(maps.Keys(tags)) {
-		number, err := syllabus.ParseReleaseTag(name)
+		number, err := trailguide.ParseReleaseTag(name)
 		if err != nil {
 			continue
 		}
@@ -232,7 +232,7 @@ func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRe
 		name := "release/" + strconv.Itoa(release.number)
 		tag, ok := fetched[release.number]
 		if !ok || tag.Type != "tag" || tag.Object != release.tag || tag.Target != release.commit {
-			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Syllabus read it; retry. Don't create or move release tags by hand.", name), nil)
+			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Trail Guide read it; retry. Don't create or move release tags by hand.", name), nil)
 		}
 		if tag.TargetType != "commit" {
 			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, tag.TargetType), nil)

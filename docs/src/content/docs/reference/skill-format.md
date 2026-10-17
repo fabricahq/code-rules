@@ -1,19 +1,19 @@
 ---
 title: "Skill format"
-description: "What Syllabus accepts in a skill folder and its SKILL.md: IDs, frontmatter, metadata keys, links, files, and every library check."
+description: "What Trail Guide accepts in a skill folder and its SKILL.md: IDs, frontmatter, metadata keys, links, files, and every library check."
 ---
 
 :::caution[Preview]
-Skill support isn't in a released version of Syllabus yet. This page describes how it will work.
+Skill support isn't in a released version of Trail Guide yet. This page describes how it will work.
 :::
 
-This page defines what Syllabus accepts in a [skill](/concepts/skill/): its folder, its `SKILL.md` file, and the Syllabus keys in its metadata. The same format applies to every skill a repository authors, whether it's a library, a project, or both. For how to write a skill well, see [Write a skill](/guides/write-skills/).
+This page defines what Trail Guide accepts in a [skill](/concepts/skill/): its folder, its `SKILL.md` file, and the Trail Guide keys in its metadata. The same format applies to every skill a repository authors, whether it's a library, a project, or both. For how to write a skill well, see [Write a skill](/guides/write-skills/).
 
-A skill uses the [Agent Skills](https://agentskills.io) format. Syllabus adds three optional `metadata` keys and checks the rest of the format as the Agent Skills specification defines it, so a skill that passes `syllabus library check` also works in tools that read Agent Skills directly.
+A skill uses the [Agent Skills](https://agentskills.io) format. Trail Guide adds three optional `metadata` keys and checks the rest of the format as the Agent Skills specification defines it, so a skill that passes `trailguide library check` also works in tools that read Agent Skills directly.
 
 ## Skill folders
 
-A repository's authored skills live in `.syllabus/skills/`, one folder per skill, beside `rules/`. [Project files](/reference/files/) shows the whole layout.
+A repository's authored skills live in `.trailguide/skills/`, one folder per skill, beside `rules/`. [Project files](/reference/files/) shows the whole layout.
 
 ```text
 skills/
@@ -27,27 +27,27 @@ skills/
     SKILL.md
 ```
 
-Each skill folder holds a `SKILL.md` file and anything the skill bundles. The Agent Skills format suggests `scripts/` for code the agent runs, `references/` for documents it reads when needed, and `assets/` for templates and other files it uses, but any layout inside the folder works. The `assets/` folder inside a skill belongs to the skill; it isn't a rule asset directory, and the shared `.syllabus/assets/` directory isn't part of any skill.
+Each skill folder holds a `SKILL.md` file and anything the skill bundles. The Agent Skills format suggests `scripts/` for code the agent runs, `references/` for documents it reads when needed, and `assets/` for templates and other files it uses, but any layout inside the folder works. The `assets/` folder inside a skill belongs to the skill; it isn't a rule asset directory, and the shared `.trailguide/assets/` directory isn't part of any skill.
 
 `skills/` holds only skill folders, and is flat: a skill folder can't contain another skill's `SKILL.md`, and it can't contain `_group.yaml`. Skills don't belong to rule groups, so a skill folder is never inside `rules/`.
 
 ### Git-tracked files
 
-A skill's content is the files Git tracks in its folder. Files Git ignores, such as `__pycache__/`, `node_modules/`, or `.venv/` that a skill's scripts create, are neither versioned nor installed. `syllabus library check` warns about a file in a skill folder that Git neither tracks nor ignores, because it isn't part of the skill until you commit it. A repository outside Git has no library releases, and Syllabus reads every file in each skill folder.
+A skill's content is the files Git tracks in its folder. Files Git ignores, such as `__pycache__/`, `node_modules/`, or `.venv/` that a skill's scripts create, are neither versioned nor installed. `trailguide library check` warns about a file in a skill folder that Git neither tracks nor ignores, because it isn't part of the skill until you commit it. A repository outside Git has no library releases, and Trail Guide reads every file in each skill folder.
 
-Symbolic links, submodules, and Git LFS pointers aren't supported in a skill folder, as for every file Syllabus takes from a source.
+Symbolic links, submodules, and Git LFS pointers aren't supported in a skill folder, as for every file Trail Guide takes from a source.
 
 ### File modes
 
-A file's executable bit is part of the skill's content. Git records it as mode `100755` for an executable file and `100644` for any other file. Syllabus keeps the mode in a project's vendor snapshot and in every installed copy, so a step that runs `./scripts/verify.sh` works after install. Changing only a file's mode is a change to the skill, and after the first library release it needs a change note, like any other change.
+A file's executable bit is part of the skill's content. Git records it as mode `100755` for an executable file and `100644` for any other file. Trail Guide keeps the mode in a project's vendor snapshot and in every installed copy, so a step that runs `./scripts/verify.sh` works after install. Changing only a file's mode is a change to the skill, and after the first library release it needs a change note, like any other change.
 
 ### File contents
 
-Markdown files in a skill folder, including `SKILL.md`, must be UTF-8, so their links can be checked. Other files can be binary; Syllabus keeps their original bytes. The [source limits](/reference/imports/#source-limits-and-version-errors) on file size and count apply to skill files as to any other vendored file.
+Markdown files in a skill folder, including `SKILL.md`, must be UTF-8, so their links can be checked. Other files can be binary; Trail Guide keeps their original bytes. The [source limits](/reference/imports/#source-limits-and-version-errors) on file size and count apply to skill files as to any other vendored file.
 
 ## Skill IDs
 
-A skill's ID is its folder's path in the repository that holds it. For a skill a repository authors, that's its path in the Syllabus directory, `skills/<name>`, such as `skills/build-feature`. For a skill in a [non-library source](#skills-from-non-library-sources), it's the folder's path from the repository root, such as `skills/engineering/to-spec`. A skill's identity is its repository plus its ID, so two sources that reach the same repository name the same skill.
+A skill's ID is its folder's path in the repository that holds it. For a skill a repository authors, that's its path in the Trail Guide directory, `skills/<name>`, such as `skills/build-feature`. For a skill in a [non-library source](#skills-from-non-library-sources), it's the folder's path from the repository root, such as `skills/engineering/to-spec`. A skill's identity is its repository plus its ID, so two sources that reach the same repository name the same skill.
 
 In a project, an ID from a source is qualified by the source name the project chose, such as `fabrica:skills/build-feature`. A skill a library borrows adds the borrowed source's name, such as `fabrica:mattpocock:skills/engineering/to-spec`. An authored skill's ID has no source name. See [Source names and IDs](/reference/configuration/#source-names-and-ids).
 
@@ -72,11 +72,11 @@ name: build-feature
 description: Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
 license: MIT
 metadata:
-  syllabus-skill-type: playbook
-  syllabus-rules-used: |
+  trailguide-skill-type: playbook
+  trailguide-rules-used: |
     practices/architecture/decide-module-boundaries-first
     practices/testing/test-behavior-not-implementation
-  syllabus-skills-used: |
+  trailguide-skills-used: |
     skills/tdd
 ---
 
@@ -92,8 +92,8 @@ These are the Agent Skills fields. Unknown top-level fields are rejected, becaus
 | `description` | Required. One non-blank string of at most 1,024 characters saying what the skill does and when to use it. Agents read it to decide when to load the skill, so name the task that should trigger it. |
 | `license` | Optional string naming the skill's license, such as an SPDX expression. Informational in a library; see [Licenses](#licenses). |
 | `compatibility` | Optional non-blank string of at most 500 characters describing what the skill needs to run, such as tools, network access, or a product. |
-| `allowed-tools` | Optional string listing tools the skill is approved to use, separated by spaces, as the Agent Skills format defines it. Syllabus preserves it and doesn't interpret it. |
-| `metadata` | Optional map of string keys to string values. Syllabus reads the [three keys below](#metadata) and preserves every other key unchanged. |
+| `allowed-tools` | Optional string listing tools the skill is approved to use, separated by spaces, as the Agent Skills format defines it. Trail Guide preserves it and doesn't interpret it. |
+| `metadata` | Optional map of string keys to string values. Trail Guide reads the [three keys below](#metadata) and preserves every other key unchanged. |
 
 The frontmatter uses one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. A value that YAML reads as something other than a string, such as `true` or `2026-10-14`, must be quoted where a string is required.
 
@@ -101,29 +101,29 @@ A skill has no version field, and no metadata key sets its version. In a library
 
 ## Metadata
 
-Syllabus adds three optional keys under `metadata`. Each value is a string, as the Agent Skills format requires, so the file stays valid everywhere skills are read.
+Trail Guide adds three optional keys under `metadata`. Each value is a string, as the Agent Skills format requires, so the file stays valid everywhere skills are read.
 
 | Key | Value | Checks |
 | --- | --- | --- |
-| `syllabus-skill-type` | `playbook` or `review` | Must be a type on the canonical list. Unknown values fail `syllabus library check`. |
-| `syllabus-rules-used` | The IDs of the rules the skill applies, one per line | Each must be a current rule in this repository, or, outside a library, in a source the project names. |
-| `syllabus-skills-used` | The IDs of the skills this skill calls, one per line | Each must be a current skill in the same repository, other than this one, and the skills called can't form a cycle. |
+| `trailguide-skill-type` | `playbook` or `review` | Must be a type on the canonical list. Unknown values fail `trailguide library check`. |
+| `trailguide-rules-used` | The IDs of the rules the skill applies, one per line | Each must be a current rule in this repository, or, outside a library, in a source the project names. |
+| `trailguide-skills-used` | The IDs of the skills this skill calls, one per line | Each must be a current skill in the same repository, other than this one, and the skills called can't form a cycle. |
 
-Other `metadata` keys, such as `author`, are preserved and ignored. Keys that start with `syllabus-` are reserved for Syllabus, so any other `syllabus-` key fails `syllabus library check`.
+Other `metadata` keys, such as `author`, are preserved and ignored. Keys that start with `trailguide-` are reserved for Trail Guide, so any other `trailguide-` key fails `trailguide library check`.
 
 ### Skill type
 
-`syllabus-skill-type` labels the skill as a `playbook` or a `review`; see [Skill types](/concepts/skill/#skill-types). Leave it out when neither fits. The type is a plain label: Syllabus shows it, and `syllabus project list skills --type` filters by it, but it installs, checks, and updates every skill the same way, whatever its type.
+`trailguide-skill-type` labels the skill as a `playbook` or a `review`; see [Skill types](/concepts/skill/#skill-types). Leave it out when neither fits. The type is a plain label: Trail Guide shows it, and `trailguide project list skills --type` filters by it, but it installs, checks, and updates every skill the same way, whatever its type.
 
-The canonical type list is `canonical-skill-types.yaml` in the Syllabus repository. Each Syllabus release builds the list in, so a new type needs a Syllabus release, and your library's CI must use that release before a skill can declare the type. Only `syllabus library check` checks the type: a project installs a skill whose type its Syllabus doesn't know without complaint, and shows the type as written.
+The canonical type list is `canonical-skill-types.yaml` in the Trail Guide repository. Each Trail Guide release builds the list in, so a new type needs a Trail Guide release, and your library's CI must use that release before a skill can declare the type. Only `trailguide library check` checks the type: a project installs a skill whose type its Trail Guide doesn't know without complaint, and shows the type as written.
 
 ### Rules a skill applies
 
-`syllabus-rules-used` lists the rules the skill applies, one library rule ID per line, in a YAML block string:
+`trailguide-rules-used` lists the rules the skill applies, one library rule ID per line, in a YAML block string:
 
 ```yaml
 metadata:
-  syllabus-rules-used: |
+  trailguide-rules-used: |
     practices/architecture/decide-module-boundaries-first
     practices/testing/test-behavior-not-implementation
     practices/verification/verify-on-the-surface-users-touch
@@ -131,41 +131,41 @@ metadata:
 
 In a library, each line is a rule ID in this library: the rule's path in `rules/` without `.md`, and without a source name, because each project chooses its own source names. Surrounding whitespace and blank lines are ignored. Each ID can appear once. A library's skill can cite rules from any rule group in its library, and only rules in its library. A skill in a repository that isn't a library can also cite its sources' rules by project ID; see [Skills in a project](#skills-in-a-project).
 
-When a project installs the skill, Syllabus takes every cited rule, even ones the project's rule `include` doesn't name, and appends a generated section to the installed `SKILL.md` that links to the project's version of each one. Cited rules are for reference only: they never join `RULES.md`. See [Installed copies](#installed-copies).
+When a project installs the skill, Trail Guide takes every cited rule, even ones the project's rule `include` doesn't name, and appends a generated section to the installed `SKILL.md` that links to the project's version of each one. Cited rules are for reference only: they never join `RULES.md`. See [Installed copies](#installed-copies).
 
 ### Skills a skill uses
 
-`syllabus-skills-used` lists the other skills this skill calls, one skill ID per line, in the same form:
+`trailguide-skills-used` lists the other skills this skill calls, one skill ID per line, in the same form:
 
 ```yaml
 metadata:
-  syllabus-skills-used: |
+  trailguide-skills-used: |
     skills/architect
     skills/tdd
 ```
 
-Each line is a skill ID in the same repository, `skills/<name>`. A skill can't call itself, and the skills called can't form a cycle, directly or through other skills. When a project installs the skill, Syllabus also installs every skill it calls, and the skills those call in turn, from the same repository and revision. A project declares calls a skill's metadata leaves out with [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-calls); Syllabus doesn't search skill text for them.
+Each line is a skill ID in the same repository, `skills/<name>`. A skill can't call itself, and the skills called can't form a cycle, directly or through other skills. When a project installs the skill, Trail Guide also installs every skill it calls, and the skills those call in turn, from the same repository and revision. A project declares calls a skill's metadata leaves out with [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-calls); Trail Guide doesn't search skill text for them.
 
 ## Links
 
-Links in a skill's Markdown files must be absolute URLs, such as `https://agentskills.io`, or relative paths that stay inside the skill's own folder, such as `references/slicing.md` or `scripts/verify.sh`. Installed copies are self-contained, so a skill can't link to a rule file, another skill, the shared `assets/` directory, or any other file in the repository. Cite rules with `syllabus-rules-used` instead, and the installed copy links to the project's version of each one.
+Links in a skill's Markdown files must be absolute URLs, such as `https://agentskills.io`, or relative paths that stay inside the skill's own folder, such as `references/slicing.md` or `scripts/verify.sh`. Installed copies are self-contained, so a skill can't link to a rule file, another skill, the shared `assets/` directory, or any other file in the repository. Cite rules with `trailguide-rules-used` instead, and the installed copy links to the project's version of each one.
 
-Syllabus checks Markdown links, images, reference definitions, and the `href` and `src` attributes of HTML. Relative links must point to a file that exists in the skill's folder. Links to a heading in the same file, such as `#verify`, are allowed. Syllabus keeps external URLs as links and never downloads them. Files other than Markdown, such as scripts, aren't checked for links.
+Trail Guide checks Markdown links, images, reference definitions, and the `href` and `src` attributes of HTML. Relative links must point to a file that exists in the skill's folder. Links to a heading in the same file, such as `#verify`, are allowed. Trail Guide keeps external URLs as links and never downloads them. Files other than Markdown, such as scripts, aren't checked for links.
 
 ## Licenses
 
-A library's license, declared in its [manifest](/reference/library-format/#license-metadata), covers its skills as it covers its rules. The `license` field in `SKILL.md` is informational: Syllabus preserves it, and when it differs from the library's SPDX expression, `syllabus library check` warns. Skills from a non-library source have no library declaration, so their license comes from the skill or the repository instead. See [License rules](/guides/license-rules/#license-skills).
+A library's license, declared in its [manifest](/reference/library-format/#license-metadata), covers its skills as it covers its rules. The `license` field in `SKILL.md` is informational: Trail Guide preserves it, and when it differs from the library's SPDX expression, `trailguide library check` warns. Skills from a non-library source have no library declaration, so their license comes from the skill or the repository instead. See [License rules](/guides/license-rules/#license-skills).
 
 ## Validation
 
-`syllabus library check` validates every skill in the library, whatever a project selects. It reports every skill problem it finds, one per line, each starting with the file or folder it's about, and fails with the code `invalid-skill`:
+`trailguide library check` validates every skill in the library, whatever a project selects. It reports every skill problem it finds, one per line, each starting with the file or folder it's about, and fails with the code `invalid-skill`:
 
 ```text
-$ syllabus library check
+$ trailguide library check
 Error: skills don't pass library check:
-  - skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library
-  - skills/build-feature/SKILL.md: syllabus-skills-used names skills/tdd-loop, which isn't a skill in this library
-  - skills/build-feature/SKILL.md: syllabus-skill-type is design; use playbook or review, or leave it out
+  - skills/build-feature/SKILL.md: trailguide-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library
+  - skills/build-feature/SKILL.md: trailguide-skills-used names skills/tdd-loop, which isn't a skill in this library
+  - skills/build-feature/SKILL.md: trailguide-skill-type is design; use playbook or review, or leave it out
 ```
 
 Check fails with these problems:
@@ -186,24 +186,24 @@ Check fails with these problems:
 | No frontmatter at the start of `SKILL.md` | `skills/build-feature/SKILL.md: expected YAML frontmatter at the start of the file` |
 | Invalid YAML, such as a duplicate key or an alias | `skills/build-feature/SKILL.md: ` followed by the YAML problem and its line |
 | A blank body | `skills/build-feature/SKILL.md: expected instructions after the frontmatter` |
-| An unfinished draft | `skills/build-feature/SKILL.md: complete the draft and remove its syllabus:draft marker` |
+| An unfinished draft | `skills/build-feature/SKILL.md: complete the draft and remove its trailguide:draft marker` |
 | An unknown top-level field | `skills/build-feature/SKILL.md: unknown field version; SKILL.md accepts name, description, license, compatibility, allowed-tools, and metadata` |
 | A missing or blank `name` or `description` | `skills/build-feature/SKILL.md: description is required` |
 | A `name` that differs from the folder name | `skills/build-feature/SKILL.md: name is build-features, but the folder is build-feature; they must match` |
 | A `description` over 1,024 characters | `skills/build-feature/SKILL.md: description is 1,310 characters; use at most 1,024` |
 | A `compatibility` over 500 characters, or blank | `skills/build-feature/SKILL.md: compatibility is 612 characters; use at most 500` |
-| A field or `metadata` value that isn't a string | `skills/build-feature/SKILL.md: metadata.syllabus-skill-type must be a string` |
-| A reserved `syllabus-` key Syllabus doesn't define | `skills/build-feature/SKILL.md: metadata.syllabus-groups isn't a Syllabus key; use syllabus-skill-type, syllabus-rules-used, or syllabus-skills-used` |
-| A type that isn't on the canonical list | `skills/build-feature/SKILL.md: syllabus-skill-type is design; use playbook or review, or leave it out` |
-| A cited rule that doesn't exist | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library` |
-| A cited rule with a source name or `.md` | `skills/build-feature/SKILL.md: syllabus-rules-used names fabrica:practices/testing/test-behavior-not-implementation; cite a rule by its ID in this library, such as practices/testing/test-behavior-not-implementation` |
-| A cited rule that a library release or a pending change note retired, with a replacement | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/check-retry-backoff, which is retired and replaced by practices/testing/verify-retries; cite the replacement` |
-| A cited rule that was retired without a replacement | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/code-design/comment-intent, which is retired; remove it` |
-| An ID listed twice | `skills/build-feature/SKILL.md: syllabus-rules-used names practices/testing/verify-retries twice` |
-| A used skill that doesn't exist | `skills/build-feature/SKILL.md: syllabus-skills-used names skills/tdd-loop, which isn't a skill in this library` |
-| A used skill that is retired | `skills/build-feature/SKILL.md: syllabus-skills-used names skills/triage-bug, which is retired and replaced by skills/fix-bug; use the replacement`, or `which is retired; remove it` when nothing replaces it |
-| A skill that uses itself | `skills/build-feature/SKILL.md: syllabus-skills-used names the skill itself` |
-| Skills that use each other in a cycle | `skills/build-feature/SKILL.md: syllabus-skills-used forms a cycle: skills/build-feature -> skills/tdd -> skills/build-feature` |
+| A field or `metadata` value that isn't a string | `skills/build-feature/SKILL.md: metadata.trailguide-skill-type must be a string` |
+| A reserved `trailguide-` key Trail Guide doesn't define | `skills/build-feature/SKILL.md: metadata.trailguide-groups isn't a Trail Guide key; use trailguide-skill-type, trailguide-rules-used, or trailguide-skills-used` |
+| A type that isn't on the canonical list | `skills/build-feature/SKILL.md: trailguide-skill-type is design; use playbook or review, or leave it out` |
+| A cited rule that doesn't exist | `skills/build-feature/SKILL.md: trailguide-rules-used names practices/testing/test-behaviour-not-implementation, which isn't a rule in this library` |
+| A cited rule with a source name or `.md` | `skills/build-feature/SKILL.md: trailguide-rules-used names fabrica:practices/testing/test-behavior-not-implementation; cite a rule by its ID in this library, such as practices/testing/test-behavior-not-implementation` |
+| A cited rule that a library release or a pending change note retired, with a replacement | `skills/build-feature/SKILL.md: trailguide-rules-used names practices/testing/check-retry-backoff, which is retired and replaced by practices/testing/verify-retries; cite the replacement` |
+| A cited rule that was retired without a replacement | `skills/build-feature/SKILL.md: trailguide-rules-used names practices/code-design/comment-intent, which is retired; remove it` |
+| An ID listed twice | `skills/build-feature/SKILL.md: trailguide-rules-used names practices/testing/verify-retries twice` |
+| A used skill that doesn't exist | `skills/build-feature/SKILL.md: trailguide-skills-used names skills/tdd-loop, which isn't a skill in this library` |
+| A used skill that is retired | `skills/build-feature/SKILL.md: trailguide-skills-used names skills/triage-bug, which is retired and replaced by skills/fix-bug; use the replacement`, or `which is retired; remove it` when nothing replaces it |
+| A skill that uses itself | `skills/build-feature/SKILL.md: trailguide-skills-used names the skill itself` |
+| Skills that use each other in a cycle | `skills/build-feature/SKILL.md: trailguide-skills-used forms a cycle: skills/build-feature -> skills/tdd -> skills/build-feature` |
 | A link that leaves the skill folder | `skills/build-feature/SKILL.md: link leaves the skill folder: ../../practices/testing/verify-retries.md; link inside skills/build-feature/ or use an absolute URL` |
 | A relative link to a missing file | `skills/build-feature/SKILL.md: link target doesn't exist: references/slices.md` |
 | A skill that reuses the ID of a retired skill | `skills/triage-bug reuses the ID of a skill that release/5 retired. Retired IDs can't be reused; give the skill a new ID.` |
@@ -222,30 +222,30 @@ Check validates the format, not whether the steps are good. Use [Write a skill](
 
 ## Installed copies
 
-When a project installs a skill, Syllabus writes a copy of its folder into each of the project's skill targets, such as `.claude/skills/build-feature/`. Every file is copied as the source has it, with its executable bit, and `SKILL.md` gets two changes, plus a new `name` when the project [renames](/reference/configuration/#rename-a-skill) the skill:
+When a project installs a skill, Trail Guide writes a copy of its folder into each of the project's skill targets, such as `.claude/skills/build-feature/`. Every file is copied as the source has it, with its executable bit, and `SKILL.md` gets two changes, plus a new `name` when the project [renames](/reference/configuration/#rename-a-skill) the skill:
 
 - A marker comment becomes the first line after the frontmatter, so the frontmatter still starts the file:
 
   ```markdown
-  <!-- syllabus:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with syllabus project add skill --from. -->
+  <!-- trailguide:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with trailguide project add skill --from. -->
   ```
 
 - When the skill cites rules, a generated **Rules this skill applies** section is appended at the end. It links to the project's version of each rule the skill cites, including an authored rule that replaces one, and marks a rule the project excluded. A **Skills this skill uses** line follows when the skill calls others.
 
-Don't edit installed copies: sync rewrites them, and `syllabus project check` fails when one differs from what sync would write. [Installed skills](/reference/files/#installed-skills) shows the complete generated section and how Syllabus records the folders it owns.
+Don't edit installed copies: sync rewrites them, and `trailguide project check` fails when one differs from what sync would write. [Installed skills](/reference/files/#installed-skills) shows the complete generated section and how Trail Guide records the folders it owns.
 
 ## Skills in a project
 
-A repository that isn't a library authors skills in the same `.syllabus/skills/<name>/` folders, with the same format, and two differences:
+A repository that isn't a library authors skills in the same `.trailguide/skills/<name>/` folders, with the same format, and two differences:
 
-- They can cite rules and call skills from the project's sources, by project ID with the source name, because a project can use several sources: `fabrica:practices/testing/test-behavior-not-implementation` or `fabrica:skills/tdd`. Bare IDs, such as `practices/architecture/follow-bounded-contexts`, name the repository's own rules and skills. Syllabus takes each cited rule, and installs each called skill, from the source it names.
+- They can cite rules and call skills from the project's sources, by project ID with the source name, because a project can use several sources: `fabrica:practices/testing/test-behavior-not-implementation` or `fabrica:skills/tdd`. Bare IDs, such as `practices/architecture/follow-bounded-contexts`, name the repository's own rules and skills. Trail Guide takes each cited rule, and installs each called skill, from the source it names.
 - They have no versions and need no change notes.
 
-`syllabus project add skill` creates one, and `syllabus project add skill --from` forks a skill from a source into one; see [project add skill](/reference/cli/#project-add-skill). Sync and build validate these skills with the checks above and fail on the first problem. `syllabus project check` also fails when one cites a rule its library retired, naming the replacement when there is one, so a project's skills never point at a rule that's gone.
+`trailguide project add skill` creates one, and `trailguide project add skill --from` forks a skill from a source into one; see [project add skill](/reference/cli/#project-add-skill). Sync and build validate these skills with the checks above and fail on the first problem. `trailguide project check` also fails when one cites a rule its library retired, naming the replacement when there is one, so a project's skills never point at a rule that's gone.
 
 ## Skills from non-library sources
 
-A repository without a library manifest, such as a third party's skill collection, can supply skills too. Each folder in it that has a `SKILL.md` file is a skill, and its ID is the folder's path from the repository root, such as `skills/engineering/to-spec`. Syllabus checks these skills leniently: where a skill breaks this format, such as a `name` that doesn't match its folder, a missing `description`, or a link outside its folder, sync warns and installs the skill as it is. The checks that protect your project still fail: unsafe paths, symbolic links, submodules, Git LFS pointers, and the [source limits](/reference/imports/#source-limits-and-version-errors). A non-library source's `syllabus-rules-used` lists are ignored, because it has no rules. Its `syllabus-skills-used` lists name skills in the same repository; the project declares calls they leave out with `skills.uses`. See [Non-library sources](/reference/imports/#non-library-sources).
+A repository without a library manifest, such as a third party's skill collection, can supply skills too. Each folder in it that has a `SKILL.md` file is a skill, and its ID is the folder's path from the repository root, such as `skills/engineering/to-spec`. Trail Guide checks these skills leniently: where a skill breaks this format, such as a `name` that doesn't match its folder, a missing `description`, or a link outside its folder, sync warns and installs the skill as it is. The checks that protect your project still fail: unsafe paths, symbolic links, submodules, Git LFS pointers, and the [source limits](/reference/imports/#source-limits-and-version-errors). A non-library source's `trailguide-rules-used` lists are ignored, because it has no rules. Its `trailguide-skills-used` lists name skills in the same repository; the project declares calls they leave out with `skills.uses`. See [Non-library sources](/reference/imports/#non-library-sources).
 
 ## Related pages
 

@@ -4,14 +4,14 @@ description: "Choose rule groups and rules from libraries and adapt them to your
 ---
 
 :::caution[Preview]
-This guide uses version 2 configuration, which isn't in a released version of Syllabus yet. The released CLI reads version 1 configuration, with `groups` and `rules` lists and authored rules in `.syllabus/local/`.
+This guide uses version 2 configuration, which isn't in a released version of Trail Guide yet. The released CLI reads version 1 configuration, with `groups` and `rules` lists and authored rules in `.trailguide/local/`.
 :::
 
 You can **include rules** written by your team or others instead of writing every rule yourself. These rules come from **libraries**, repositories that publish rules for other projects to take.
 
-In this guide, you'll choose **rule groups** and rules to include, record your choices in `.syllabus/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+In this guide, you'll choose **rule groups** and rules to include, record your choices in `.trailguide/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
 
-Start with a project that already has a `.syllabus/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
+Start with a project that already has a `.trailguide/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
 ## Choose rule groups for your project
 
@@ -30,7 +30,7 @@ Agents choose which rule groups apply to each task using the [rule-loading proce
 
 ## Include rules from each source
 
-In `.syllabus/config.yaml`, each library you take rules from gets a named entry under `sources`, such as `fabrica`. For each source, choose:
+In `.trailguide/config.yaml`, each library you take rules from gets a named entry under `sources`, such as `fabrica`. For each source, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
 - **Which rules to include:** `rules.include` lists [selectors](/reference/configuration/#rule-selectors). A rule group prefix, such as `practices/testing/*`, includes every rule in the rule group, including rules the library adds to it later. A rule ID, such as `techs/go/wrap-errors-with-operation`, includes that rule without the rest of its rule group.
@@ -42,7 +42,7 @@ schemaVersion: 2
 skillTargets: [claude, agents]
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.syllabus.git
+    repository: https://github.com/fabricahq/.trailguide.git
     rules:
       include:
         - techs/typescript/*
@@ -58,13 +58,13 @@ See the [complete configuration example](/reference/configuration/#complete-exam
 To include every rule a library publishes, use `"*"`.
 Use `practices/*` for every practice group, or `techs/*` for every technology group.
 Exclusions and replacements still apply.
-When a library adds rule groups or rules that your selectors reach, `syllabus project update` adds them. Review them as part of that update.
+When a library adds rule groups or rules that your selectors reach, `trailguide project update` adds them. Review them as part of that update.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
-Define your own rule groups with `_group.yaml` under `.syllabus/rules/`; they need no configuration entry.
+Define your own rule groups with `_group.yaml` under `.trailguide/rules/`; they need no configuration entry.
 The [Rule group concept](/concepts/groups/) explains the distinction between technology groups and practice groups.
 
 ## Adapt the selection to your project
@@ -75,14 +75,14 @@ Keep those decisions in configuration and authored files so agents read the reso
 
 ### Add a rule
 
-Write a Markdown rule in the matching rule group under `.syllabus/rules/`:
+Write a Markdown rule in the matching rule group under `.trailguide/rules/`:
 
 ```text
-.syllabus/rules/practices/testing/test-project-contracts.md
+.trailguide/rules/practices/testing/test-project-contracts.md
 ```
 
-The rule group needs `_group.yaml` metadata from an included library or from `.syllabus/rules/<group-id>/`.
-If you later stop including, or remove, the last library supplying the rule group, sync copies the rule group's last vendored metadata to `.syllabus/rules/<group-id>/_group.yaml` and warns that it did, so the rule keeps its rule group; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
+The rule group needs `_group.yaml` metadata from an included library or from `.trailguide/rules/<group-id>/`.
+If you later stop including, or remove, the last library supplying the rule group, sync copies the rule group's last vendored metadata to `.trailguide/rules/<group-id>/_group.yaml` and warns that it did, so the rule keeps its rule group; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 The rule joins the rules from your sources, and its ID has no source name: `practices/testing/test-project-contracts`.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
@@ -124,9 +124,9 @@ sources:
           replacedBy: techs/typescript/prefer-interfaces
 ```
 
-Your rule lives at `.syllabus/rules/techs/typescript/prefer-interfaces.md`.
+Your rule lives at `.trailguide/rules/techs/typescript/prefer-interfaces.md`.
 
-To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `.syllabus/rules/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `syllabus project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
+To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `.trailguide/rules/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `trailguide project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
 
 The resolved rule uses your complete definition, including its ID, title, reading cue, impact, body, attribution, and asset references.
 In this example, the generated ID is `techs/typescript/prefer-interfaces`.
@@ -138,11 +138,11 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, selectors, or pins change, run `syllabus project sync`. Sync takes newly included rules from the library release your project already recorded for the source; to take newer ones, [update the source](/guides/update/).
-For changes limited to your own rules or exceptions, run `syllabus project build` against the existing vendor snapshots.
+When sources, selectors, or pins change, run `trailguide project sync`. Sync takes newly included rules from the library release your project already recorded for the source; to take newer ones, [update the source](/guides/update/).
+For changes limited to your own rules or exceptions, run `trailguide project build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 
-Syllabus rejects exclusions of rules the source's `include` doesn't reach, missing replacement rules, and a rule of yours that replaces more than one rule.
+Trail Guide rejects exclusions of rules the source's `include` doesn't reach, missing replacement rules, and a rule of yours that replaces more than one rule.
 It does not infer overrides from similar wording.
 Rules from different sources remain active even when their paths or titles match.
 If one of your rules or another source contradicts an obligation from a source, explicitly replace or exclude the affected rule inside its owning source.

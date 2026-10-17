@@ -1,21 +1,24 @@
-// Parse a source's skills.exclude: the skills it leaves out, and the authored skills that replace them.
+// Parse a source's skills.exclude and skills.rename: the skills it leaves out, the authored skills that replace them,
+// and the names it installs skills under instead of their own.
 
 package rules
 
 import (
 	"encoding/json"
+	"maps"
+	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillExclusion leaves one skill a source would install out of the installed skills, with the project's reason.
 type SkillExclusion struct {
 	Reason string `json:"reason"`
 	// ReplacedBy is empty, or the ID of the authored skill installed in the excluded skill's place, skills/<name>,
-	// which is also its folder's path in the Syllabus directory.
+	// which is also its folder's path in the Trail Guide directory.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// BasedOn is the commit of the source's repository whose copy of the skill the replacement was made from, which
 	// updates compare the source's newer revisions with. It is the zero GitRef when the project doesn't record one,
@@ -91,7 +94,7 @@ func parseSkillReplacement(raw json.RawMessage, location string) (string, error)
 	if bare := strings.TrimPrefix(named, skills.Directory+"/"); skills.ValidName(bare) {
 		return "", invalid(location, "replacedBy names the authored skill by its ID, "+skills.AuthoredID(bare)+", not "+decode.Quote(text))
 	}
-	return "", invalid(location, "expected the ID of an authored skill in .syllabus/skills/, such as skills/build-feature, got "+decode.Quote(text))
+	return "", invalid(location, "expected the ID of an authored skill in .trailguide/skills/, such as skills/build-feature, got "+decode.Quote(text))
 }
 
 // parseBasedOnCommit reads a skill replacement's basedOn: a full commit SHA, in quotes.
@@ -106,4 +109,36 @@ func parseBasedOnCommit(raw json.RawMessage, location string) (GitRef, error) {
 		return GitRef{}, invalid(location, expected+", got "+decode.Quote(text))
 	}
 	return ref, nil
+}
+
+// parseSkillRenames validates a source's skills.rename, a mapping of skill IDs to the names the project installs
+// them under instead of their own, and returns it, or nil when it renames nothing.
+func parseSkillRenames(input json.RawMessage, location string) (map[string]string, error) {
+	if input == nil {
+		return nil, nil
+	}
+	fields, err := decode.Object(input, location)
+	if err != nil {
+		return nil, invalid(location, "expected a mapping of skill IDs to new names, such as skills/review: team-review")
+	}
+	var result map[string]string
+	for _, id := range slices.Sorted(maps.Keys(fields)) {
+		where := location + "." + id
+		switch id {
+		case skills.Wildcard, "recommended":
+			return nil, invalid(where, "a rename names one skill by ID, such as skills/review, and gives it a new name")
+		}
+		if err := skills.ValidateID(id, where); err != nil {
+			return nil, err
+		}
+		var name string
+		if json.Unmarshal(fields[id], &name) != nil || !skills.ValidName(name) {
+			return nil, invalid(where, "expected the name to install the skill under, which follows the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row, such as team-review")
+		}
+		if result == nil {
+			result = map[string]string{}
+		}
+		result[id] = name
+	}
+	return result, nil
 }
