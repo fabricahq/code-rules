@@ -13,7 +13,8 @@ import (
 )
 
 // linkSkillUses sets the Uses and UsedBy of every skill in resolved, the project's installed skills. A source's skill
-// uses the skills its trailguide-skills-used names, which are skill IDs in the same source, and those its source's skills.uses
+// uses the skills its trailguide-skills-used names, which are skill IDs in the same source, or, for a library's skill,
+// the IDs of skills the library curates, such as anthropic:skills/skill-creator, and those its source's skills.uses
 // adds; sync installed them all. An authored skill uses another authored skill by its bare ID, such as skills/tdd,
 // and a source's skill by its project ID, such as fabrica:skills/tdd. It fails at an authored skill's SKILL.md when
 // it uses a skill the project doesn't install, or when authored skills use each other in a cycle; a source's skill
@@ -64,6 +65,10 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration, aliases
 				prefix, declared = prefix+skill.Curated+":", nil
 			}
 			for _, id := range slices.Concat(skill.SkillsUsed, declared) {
+				// A curated skill's uses of skills its own library curates aren't installed with it.
+				if skill.Curated != "" && strings.Contains(id, ":") {
+					continue
+				}
 				target, kept := redirect(skill, prefix+id)
 				if !kept {
 					continue

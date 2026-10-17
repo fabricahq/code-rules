@@ -356,8 +356,9 @@ A library can list skills from another repository in its levels, such as a third
 - **Files come from the original repository.** A skill's identity is its repository plus its path. Projects fetch a curated skill's files from the curated source, not from the library, and provenance records which library required, recommended, or offered it.
 - **Refs resolve per project.** A library release doesn't lock a curated source's `ref`. Each project resolves it when it runs `trailguide project update` and records the commit in the library source's `_source.json`, so `ref: main` gives each project the newest commit at its own update, without a new library release. `trailguide project sync` keeps the recorded commit.
 - **A project can override the ref.** When a project declares a source with the same repository as a curated source, its own `ref` decides which commit the curated skills come from. Repository identity decides the match, not the source name; see [Repository addresses](#repository-addresses).
+- **The library's skills can call them.** A skill the library authors can name a curated skill in its [`trailguide-skills-used`](/reference/skill-format/#skills-a-skill-uses), such as `anthropic:skills/skill-creator`, as long as a level lists it. A project that installs the calling skill installs the curated skill too, whatever its level, and provenance records which of the library's skills use it.
 
-The library repository is a project too: it installs the required skills of the sources it curates from, as any project would, and whatever it includes from them for its own use.
+The library repository is a project too: it installs the required skills of the sources it curates from, as any project would, and whatever it includes from them for its own use. Its own skills that call a curated skill need it installed there as well, so include the skill in that source's `skills.include`, such as `skills/skill-creator` in `sources.anthropic.skills.include`.
 
 ## Repository addresses
 

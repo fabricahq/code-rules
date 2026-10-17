@@ -48,9 +48,9 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 			"skills/fix/SKILL.md: trailguide-rules-used names practices/testing/old, which is retired; remove it",
 			"skills/fix/SKILL.md: trailguide-rules-used names practices/testing/d, which is retired and replaced by practices/testing/c; cite the replacement",
 		}},
-		"skills it uses": {map[string]string{"fix/SKILL.md": skill("  trailguide-skills-used: |\n    skills/fix\n    mattpocock:skills/tdd\n")}, nil, []string{
+		"skills it uses": {map[string]string{"fix/SKILL.md": skill("  trailguide-skills-used: |\n    skills/fix\n    mattpocock:skills/tdd\n    anthropic:skills/skill-creator\n")}, nil, []string{
 			"skills/fix/SKILL.md: trailguide-skills-used names the skill itself",
-			`skills/fix/SKILL.md: trailguide-skills-used names "mattpocock:skills/tdd"; name a skill in this library by its ID, without a source name, such as skills/tdd`,
+			"skills/fix/SKILL.md: trailguide-skills-used names mattpocock:skills/tdd, which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too",
 		}},
 		"skills it uses that the library doesn't have": {map[string]string{
 			"fix/SKILL.md":      skill("  trailguide-skills-used: |\n    skills/review\n    skills/tdd\n    skills/notes\n"),
@@ -70,12 +70,12 @@ func TestSkillProblemsReportsEachInvalidSkill(t *testing.T) {
 			for file, text := range test.files {
 				tree.Files[file] = []byte(text)
 			}
-			if got := skillProblems(tree, current, changes); !reflect.DeepEqual(got, test.want) {
+			if got := skillProblems(tree, current, []string{"anthropic:skills/skill-creator"}, changes); !reflect.DeepEqual(got, test.want) {
 				t.Fatalf("problems:\n%q\nwant\n%q", got, test.want)
 			}
 		})
 	}
-	if got := skillProblems(nil, current, changes); len(got) != 0 {
+	if got := skillProblems(nil, current, nil, changes); len(got) != 0 {
 		t.Fatalf("a library without skills/ has problems: %q", got)
 	}
 }

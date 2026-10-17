@@ -20,9 +20,9 @@ const skillsDirectory = ".trailguide/" + skills.Directory
 // order, each starting with the file or folder it's about: a file directly in skills/, a folder whose name breaks the
 // skill name grammar or that has no SKILL.md, frontmatter skills.ReadMetadata or skills.Check rejects, and a cited
 // rule that isn't one of current, the library's rules, naming the replacement when the library's release history or
-// a pending change note retired it, and a skill a skill uses that isn't a folder of skills/ with a SKILL.md. A nil
-// tree has no skills.
-func skillProblems(tree *filetxn.Tree, current []string, changes libraryChanges) []string {
+// a pending change note retired it, and a skill a skill uses that isn't a folder of skills/ with a SKILL.md or, when
+// the line names a source, one of curated, the curated skills the library's levels list. A nil tree has no skills.
+func skillProblems(tree *filetxn.Tree, current, curated []string, changes libraryChanges) []string {
 	problems := []string{}
 	if tree == nil {
 		return problems
@@ -68,8 +68,15 @@ func skillProblems(tree *filetxn.Tree, current []string, changes libraryChanges)
 		}
 		missing := []string{}
 		for _, id := range metadata.SkillsUsed {
-			// A skill in the library is a folder with a SKILL.md; skills.Check reports a use that isn't a skill ID.
-			if name, _ := strings.CutPrefix(id, skills.Directory+"/"); skills.ValidSkillCitation(id, false) && !folders[name] && !slices.Contains(missing, id) {
+			// A skill in the library is a folder with a SKILL.md, and a curated one is one its levels list, which
+			// requireCuratedSkills checks its source has; skills.Check reports a use that isn't a skill ID.
+			if !skills.ValidSkillCitation(id) || slices.Contains(missing, id) {
+				continue
+			}
+			if citation := skills.ParseCitation(id); citation.Source != "" && !slices.Contains(curated, id) {
+				missing = append(missing, id)
+				problems = append(problems, fmt.Sprintf("%s: %s names %s, which isn't a skill the library curates; list it in library.skills, at any level, so projects that install the skill can install it too", location, skills.SkillsUsedKey, id))
+			} else if name, _ := strings.CutPrefix(id, skills.Directory+"/"); citation.Source == "" && !folders[name] {
 				missing = append(missing, id)
 				problems = append(problems, fmt.Sprintf("%s: %s names %s, which isn't a skill in this library", location, skills.SkillsUsedKey, id))
 			}

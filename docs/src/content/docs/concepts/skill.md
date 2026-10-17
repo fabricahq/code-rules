@@ -99,7 +99,7 @@ A repository gets skills from three places:
 - **Non-library sources.** Any Git repository with skill folders and no library manifest, such as a third party's skill collection. Every skill in it is offered. Because it has no library releases, its `ref` names a branch, tag, or commit, and Trail Guide records the exact commit.
 - **Your repository.** Skills you author live in `.trailguide/skills/`.
 
-When a skill calls others, Trail Guide installs them alongside it, from the same repository and revision.
+When a skill calls others, Trail Guide installs them alongside it, from the same repository and revision. A library's skill can also call a skill the library curates, which installs from the repository the library curates it from.
 
 A skill's ID is its folder's path in the repository that holds it, such as `skills/build-feature`. Its identity is that repository plus that path, so two sources that reach the same repository name the same skill. In a project, an ID is qualified by the source name you chose, such as `fabrica:skills/build-feature`. Configuration uses these IDs to include, exclude, rename, and replace skills.
 
