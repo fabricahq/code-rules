@@ -141,3 +141,20 @@ func TestLibraryCheck_RejectsACuratedSkillThatUsesOneItsSourceLacks(t *testing.T
 		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
 	}
 }
+
+func TestLibraryAddSkill_ReadsTheSkillsTheSourcesUsesAdds(t *testing.T) {
+	directory, _, environment := forkingLibrary(t, "    recommended: [pocock:skills/ops/deploy]\n")
+	file := filepath.Join(directory, ".trailguide", "config.yaml")
+	config, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config = []byte(strings.Replace(string(config), "    ref: stable\n", "    ref: stable\n    skills:\n      include: [skills/ops/deploy]\n      uses:\n        skills/ops/deploy: [skills/ops/release]\n", 1))
+	if err := os.WriteFile(file, config, 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, diagnostic, code := runCLIWithEnvironment(t, buildCLI(t), directory, environment, "library", "add", "skill", "--from", "pocock:skills/ops/deploy", "--reason", "Ours.")
+	if want := "the skill uses pocock:skills/ops/release, which the library hasn't forked"; code == 0 || !strings.Contains(out+diagnostic, want) {
+		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
+	}
+}
