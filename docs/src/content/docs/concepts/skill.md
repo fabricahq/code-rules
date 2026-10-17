@@ -99,7 +99,7 @@ A repository gets skills from three places:
 - **Non-library sources.** Any Git repository with skill folders and no library manifest, such as a third party's skill collection. Every skill in it is offered. Because it has no library releases, its `ref` names a branch, tag, or commit, and Trail Guide records the exact commit.
 - **Your repository.** Skills you author live in `.trailguide/skills/`.
 
-When a skill calls others, Trail Guide installs them alongside it, from the same repository and revision.
+When a skill calls others in the same repository, Trail Guide installs them alongside it from that repository and revision.
 
 A library's own skill can also call a skill the library curates from another repository. For example, Fabrica's library authors `add-skill` and curates Anthropic's `skill-creator` from the anthropics/skills repository. When `add-skill` lists `anthropic:skills/skill-creator` in its `trailguide-skills-used`, a project that installs `add-skill` also gets `skill-creator`, with its files taken from anthropics/skills, not from Fabrica's library.
 
