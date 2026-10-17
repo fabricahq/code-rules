@@ -117,7 +117,7 @@ Mutating data the function created, or mutating through an API whose contract st
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/preserve-caller-owned-data.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/preserve-caller-owned-data.md)
 
 **Attribution:** [Underlying TypeScript Style Guide material by mkosir, adapted under MIT; copyright and permission notice retained in NOTICE.md.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

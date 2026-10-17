@@ -77,7 +77,7 @@ A dynamic path deliberately excluded from bundling and loaded at runtime is not 
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/keep-import-and-file-paths-analyzable.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/keep-import-and-file-paths-analyzable.md)
 
 **Attribution:** [Adapted from the Vercel Agent Skills rule bundle-analyzable-paths: moved from the React group and restructured to the rule template.](<https://github.com/vercel-labs/agent-skills/blob/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules/bundle-analyzable-paths.md>)
 

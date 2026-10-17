@@ -164,7 +164,7 @@ A `default` branch is not a violation in code that intentionally handles only so
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/model-variants-as-discriminated-unions.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/model-variants-as-discriminated-unions.md)
 
 **Attribution:** [Underlying TypeScript Style Guide material by mkosir, including its boolean-flag and function-argument union guidance, adapted under MIT; copyright and permission notice retained in NOTICE.md.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

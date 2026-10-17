@@ -54,7 +54,7 @@ A specific comparison, such as `count > 0`, is not a violation.
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/use-boolean-for-explicit-boolean-coercion.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/use-boolean-for-explicit-boolean-coercion.md)
 
 **Declared license:** MIT
 

@@ -99,7 +99,7 @@ Running work immediately is not a violation when the user is waiting for its res
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/072c0302c75cec071811dee4748f45e1594b1c23/techs/javascript/defer-non-critical-work-to-idle-time.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/072c0302c75cec071811dee4748f45e1594b1c23/techs/javascript/defer-non-critical-work-to-idle-time.md)
 
 **Attribution:** [Adapted from the Vercel Agent Skills rule js-request-idle-callback: moved from the React group, restructured to the rule template, and generalized the browser support guidance.](<https://github.com/vercel-labs/agent-skills/blob/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules/js-request-idle-callback.md>)
 

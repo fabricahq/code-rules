@@ -60,7 +60,7 @@ A hand-written type for a service with no available contract, with a note about 
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/generate-service-types-from-contracts.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/generate-service-types-from-contracts.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(generate-service-types-from-contracts; MIT, notice retained in NOTICE.md\): restructured to the rule template with an example and runtime-validation note.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

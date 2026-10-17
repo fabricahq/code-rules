@@ -62,7 +62,7 @@ Waiting for required consent is not a violation. A script in its documented non-
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/072c0302c75cec071811dee4748f45e1594b1c23/techs/javascript/load-measurement-scripts-as-documented.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/072c0302c75cec071811dee4748f45e1594b1c23/techs/javascript/load-measurement-scripts-as-documented.md)
 
 **Declared license:** MIT
 

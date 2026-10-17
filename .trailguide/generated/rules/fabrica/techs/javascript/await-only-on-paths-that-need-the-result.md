@@ -122,7 +122,7 @@ An await that must precede a branch because it guards access or has a required s
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/await-only-on-paths-that-need-the-result.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/await-only-on-paths-that-need-the-result.md)
 
 **Attribution:** [Adapted from two Vercel Agent Skills rules \(async-defer-await and async-cheap-condition-before-await\): merged two rules on deferring await and checking cheap conditions first, restructured to the rule template, and added the rule that authorization checks keep their order.](<https://github.com/vercel-labs/agent-skills/tree/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules>)
 

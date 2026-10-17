@@ -87,7 +87,7 @@ An optional property whose absence is meaningful, or a short positional list of 
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/require-properties-and-name-parameters.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/require-properties-and-name-parameters.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(prefer-required-object-properties, keep-function-args-mostly-required, prefer-single-object-function-args; MIT, notice retained in NOTICE.md\): merged the required-properties, required-arguments, and single-object-argument rules, restructured to the rule template, and pointed variant modeling to the discriminated union rule.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

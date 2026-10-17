@@ -70,7 +70,7 @@ A mutable value that is deliberately changed at runtime is not a constant and ne
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/declare-constants-with-as-const.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/declare-constants-with-as-const.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(use-const-assertions-for-constants, use-as-const-satisfies-for-typed-constants; MIT, notice retained in NOTICE.md\): merged the as const and as const satisfies rules, restructured to the rule template, and corrected the inferred types shown in the examples.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

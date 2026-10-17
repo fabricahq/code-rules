@@ -88,7 +88,7 @@ Before reporting a violation, inspect the API's cancellation contract and any wr
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/practices/concurrency/honor-cancellation-across-blocking-stages.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-library/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/practices/concurrency/honor-cancellation-across-blocking-stages.md)
 
 **Declared license:** MIT
 
