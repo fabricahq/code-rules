@@ -85,9 +85,8 @@ The retained `--cr-text-sm`, `--cr-text-body`, and `--cr-line-height-body` value
 
 These variables are implementation details of their owning components. They are not exported in the global Tailwind color theme.
 
-- **AgentPreview and its AgentSession children:** `--session-text`, `--session-text-muted`, `--session-border`, and `--session-surface*` describe the session window; `--session-surface-subtle` groups low-emphasis tool output and control states. `--session-action` marks interaction, `--session-user` identifies the task prompt, and `--session-agent` identifies the agent. `--session-success` / `--session-error` describe command results. `--session-diff-added` / `--session-diff-removed` describe edits independently of command success. Consume them only inside this subtree, for example `text-(--session-action)`.
-- **AgentSetup:** `--setup-agent` identifies the agent and `--setup-rule-path` emphasizes the path in its instructions. Its palette is intentionally independent of the interactive session.
-- **CodeSample:** `--sample-token-*` names follow Shiki's syntax roles. Each tone owns its complete palette, so the terminal tone works without an AgentPreview parent. Syntax colors must not borrow command-success, error, or button colors. Callers may set `--sample-font-size` and `--sample-padding` on their wrapper; syntax variables stay inside the renderer.
+- **AgentSetup:** `--setup-agent` identifies the agent and `--setup-rule-path` emphasizes the path in its instructions.
+- **CodeSample:** `--sample-token-*` names follow Shiki's syntax roles. Each tone owns its complete palette. Syntax colors must not borrow command-success, error, or button colors. Callers may set `--sample-font-size` and `--sample-padding` on their wrapper; syntax variables stay inside the renderer.
 
 ### Adding or reusing a token
 

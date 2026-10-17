@@ -58,11 +58,11 @@ type skillPreview struct {
 	err      error
 	replaced []ReplacedSkillUpdate
 	levels   []SkillLevelUpdate
-	// manifest is the library's .trailguide/config.yaml at the revision, or nil when it has none; borrowed and
-	// revisions are what planBorrowed plans from it.
+	// manifest is the library's .trailguide/config.yaml at the revision, or nil when it has none; curated and
+	// revisions are what planCurated plans from it.
 	manifest  []byte
-	borrowed  []BorrowedUpdate
-	revisions map[string]library.BorrowedSource
+	curated   []CuratedUpdate
+	revisions map[string]library.CuratedSource
 }
 
 // previewSkills reads the skills source installs at each of plans' revisions and compares them with recorded, the
@@ -98,7 +98,7 @@ func (r *repository) previewSkills(ctx context.Context, source rules.Source, rec
 			previews[plan.commit] = skillPreview{err: err, replaced: replaced, levels: levels, manifest: manifest}
 			continue
 		}
-		// A borrowed skill's rows are its borrowed source's, which planBorrowed compares at that source's revisions.
+		// A curated skill's rows are its curated source's, which planCurated compares at that source's revisions.
 		rows := slices.DeleteFunc(skillChanges(recorded, installed), func(row SkillUpdate) bool {
 			_, excluded := source.SkillExclude[row.ID]
 			return excluded || strings.Contains(row.ID, ":")

@@ -95,7 +95,7 @@ Skills don't belong to [rule groups](/concepts/groups/), and including a rule gr
 
 A repository gets skills from three places:
 
-- **Libraries.** A [library](/concepts/libraries/) publishes the skills in its `.trailguide/skills/` folder, and can list skills it **borrows** from other repositories. It sets a level for each one; see [Skill levels](#skill-levels).
+- **Libraries.** A [library](/concepts/libraries/) publishes the skills in its `.trailguide/skills/` folder, and can list skills it **curates** from other repositories. It sets a level for each one; see [Skill levels](#skill-levels).
 - **Non-library sources.** Any Git repository with skill folders and no library manifest, such as a third party's skill collection. Every skill in it is offered. Because it has no library releases, its `ref` names a branch, tag, or commit, and Trail Guide records the exact commit.
 - **Your repository.** Skills you author live in `.trailguide/skills/`.
 
@@ -119,7 +119,7 @@ A library sets a **level** for each skill it publishes, saying how strongly it a
 
 A library's own skill that no level lists is offered, so a library lists only the skills it has an opinion about. An organization can make some skills the floor for every project by requiring them in its org library: a project that takes anything from that library installs them. A project sees only the levels of the libraries it names; levels don't chain through a library's own sources.
 
-A library can also list skills from another repository at a level, such as a third party's skill its teams should use. Projects fetch those **borrowed skills** from the original repository, at a commit each project resolves when it updates, and record which library required, recommended, or offered them. See [Borrowed skills](/reference/configuration/#borrowed-skills).
+A library can also list skills from another repository at a level, such as a third party's skill its teams should use. Projects fetch those **curated skills** from the original repository, at a commit each project resolves when it updates, and record which library required, recommended, or offered them. See [Curated skills](/reference/configuration/#curated-skills).
 
 ## Names, renames, and clashes
 

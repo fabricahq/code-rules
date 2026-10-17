@@ -4,12 +4,12 @@ description: "Move the rules and skills your project takes from its sources to n
 ---
 
 :::caution[Preview]
-Skills, skill levels, borrowed skills, non-library sources, and branch refs aren't in a released version of Trail Guide yet. This guide describes how updating them will work. The released CLI doesn't move a source that uses `ref`.
+Skills, skill levels, curated skills, non-library sources, and branch refs aren't in a released version of Trail Guide yet. This guide describes how updating them will work. The released CLI doesn't move a source that uses `ref`.
 :::
 
 This guide is for projects that take rules and skills from sources: libraries, and repositories of skills that aren't libraries. Updating brings changes from those sources into your project. Library authors may improve advice, fix mistakes, add rules and skills, make rules stricter, change a skill's steps or level, or retire either. Your project takes those changes only when you run `trailguide project update` and confirm them. `trailguide project sync` never moves a source, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
-In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one source](#update-one-source) or [move a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how [skills](#update-skills), [skill levels](#level-changes), [non-library sources and borrowed skills](#update-a-non-library-source), and [one library release](#take-one-library-release) update, how to change what you include, and how to recover from a failed update.
+In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one source](#update-one-source) or [move a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how [skills](#update-skills), [skill levels](#level-changes), [non-library sources and curated skills](#update-a-non-library-source), and [one library release](#take-one-library-release) update, how to change what you include, and how to recover from a failed update.
 
 Start with a project that already [includes rules](/guides/select-rules/). To publish new rule versions from a library you maintain, see [Version your rules](/guides/version-rules/) instead. For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
@@ -18,7 +18,7 @@ Start with a project that already [includes rules](/guides/select-rules/). To pu
 Two commands take rules and skills from your sources, and they do different things:
 
 - **`trailguide project sync`** restores the **lock** recorded in `.trailguide/vendor/`: each source's library release or commit, and each rule's version. Everyone who syncs the project gets the same rules and skills. Sync never moves a source: a rule or skill you newly include comes from the recorded library release or commit too, and a source that's new to the project is taken as an update would take it. When you include something the recorded revision doesn't have, sync fails and names `trailguide project update SOURCE`.
-- **`trailguide project update`** moves each source along its `ref`: it looks for newer rule and skill versions, new rules and skills, level changes, retirements, and new commits on branches and tags, including those of [borrowed skills](/reference/configuration/#borrowed-skills), shows you a preview, and applies the changes once you confirm.
+- **`trailguide project update`** moves each source along its `ref`: it looks for newer rule and skill versions, new rules and skills, level changes, retirements, and new commits on branches and tags, including those of [curated skills](/reference/configuration/#curated-skills), shows you a preview, and applies the changes once you confirm.
 
 Neither command runs during ordinary coding, review, or `trailguide project check`, so rules and skills never change underneath your agents.
 
@@ -179,18 +179,18 @@ Warning: some skills in this update add or change scripts. Trail Guide never run
 
 Scripts are flagged and warned about as they are for [library skills](#update-skills). Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A tag that now names a different commit than at your last update moves too, and the preview warns that the tag moved. A non-library source whose `ref` is a commit never moves; to take another commit, change `ref` and run `trailguide project update SOURCE`. `--keep` and pins don't apply to non-library sources; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
 
-### Borrowed skills
+### Curated skills
 
-A library can list skills it [borrows](/reference/configuration/#borrowed-skills) from another repository at a level. Your project resolves the borrowed source's ref itself, when it updates, so a borrowed skill can move even when the library doesn't publish a new library release. The preview lists the borrowed source's move under the library that borrows it, with the same rows as a non-library source:
+A library can list skills it [curates](/reference/configuration/#curated-skills) from another repository at a level. Your project resolves the curated source's ref itself, when it updates, so a curated skill can move even when the library doesn't publish a new library release. The preview lists the curated source's move under the library that curates it, with the same rows as a non-library source:
 
 ```text
 fabrica  release 7 -> 7
-  fabrica borrows mattpocock  main: 3f9c2e1 -> 8a41d07
+  fabrica curates mattpocock  main: 3f9c2e1a5b7d -> 8a41d07c2e9f
   changed   mattpocock:skills/engineering/to-spec
             Changed: SKILL.md
 ```
 
-To take a newer or older revision of a borrowed skill than the library's ref gives you, declare the same repository as your own source, with the `ref` you want. Your source's ref then decides for every skill from that repository; see [Try a newer version of a borrowed skill](/guides/install-skills/#try-a-newer-version-of-a-borrowed-skill).
+To take a newer or older revision of a curated skill than the library's ref gives you, declare the same repository as your own source, with the `ref` you want. Your source's ref then decides for every skill from that repository; see [Try a newer version of a curated skill](/guides/install-skills/#try-a-newer-version-of-a-curated-skill).
 
 ## Update one source
 

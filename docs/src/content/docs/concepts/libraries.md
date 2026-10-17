@@ -41,7 +41,7 @@ The repository name is your choice. Rules can also include [supporting assets](/
 
 A library sets a **level** for each skill it offers: **required** skills install in every project that uses the library, **recommended** skills install in projects that include the library's recommendations, and **offered** skills install only when a project names them. An organization can publish an **org library**, such as `<organization>/.trailguide`, whose required and recommended skills become the shared default for its projects.
 
-A library can also list skills from another repository at a level, **borrowing** them, such as a third party's skill its teams should use. See [Skill levels](/concepts/skill/#skill-levels).
+A library can also list skills from another repository at a level, **curating** them, such as a third party's skill its teams should use. See [Skill levels](/concepts/skill/#skill-levels).
 
 ## How projects use a library
 

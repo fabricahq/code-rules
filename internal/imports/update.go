@@ -59,10 +59,10 @@ type SourceUpdate struct {
 	// SkillLevels lists, sorted by ID, the skills whose level the library changes at the revision the update takes
 	// the source's skills from. It is empty, never nil, when there are none.
 	SkillLevels []SkillLevelUpdate `json:"skillLevels"`
-	// Borrowed lists, sorted by name, the sources the library borrows skills from whose revision or skills the update
+	// Curated lists, sorted by name, the sources the library curates skills from whose revision or skills the update
 	// changes; it is omitted when there are none. A library source the update doesn't name is listed with only these
-	// rows when a source the update names overrides a repository it borrows from.
-	Borrowed []BorrowedUpdate `json:"borrowed,omitempty"`
+	// rows when a source the update names overrides a repository it curates from.
+	Curated []CuratedUpdate `json:"curated,omitempty"`
 }
 
 // SkillLevelUpdate is a row of the update preview for a skill whose level in its library changes: a skill whose
@@ -76,25 +76,33 @@ type SkillLevelUpdate struct {
 	To   string `json:"to"`
 }
 
-// BorrowedUpdate moves the revision of a source a library borrows skills from, which the project resolves from the
+// CuratedUpdate moves the revision of a source a library curates skills from, which the project resolves from the
 // ref the library names: a branch's newest commit, a tag's commit, or, without a ref, the repository's newest library
 // release.
-type BorrowedUpdate struct {
+type CuratedUpdate struct {
 	Name       string `json:"name"`
 	Repository string `json:"repository"`
 	// Ref is the ref the library names, or empty when it follows the newest library release.
 	Ref string `json:"ref,omitempty"`
-	// From is the commit the project recorded, or empty for a source it didn't borrow from before; To is the commit
-	// the update takes the borrowed skills from, or empty when the project no longer takes any skills from the source,
-	// so the update removes those it installed.
+	// Commit is the move from the commit the project recorded to the one the update takes the curated skills from;
+	// it is nil when the commit doesn't move. Its From is empty for a source the project didn't curate from before,
+	// and its To when the project no longer takes any skills from the source, so the update removes those it
+	// installed. Release is the same move in library releases, when both commits are library releases and Ref is
+	// empty, and is nil otherwise.
+	Commit  *CommitMove        `json:"commit,omitempty"`
+	Release *SharedFilesUpdate `json:"release,omitempty"`
+	// TagMoved reports that Ref names a tag that now names a different commit than at the last update.
+	TagMoved bool `json:"tagMoved,omitempty"`
+	// Changes compares the curated skills the project installs from the source, and the skills they use, at the new
+	// commit with those at the recorded one, as SourceUpdate.Skills compares a source's own skills, by their IDs in
+	// the library. It is empty, never nil, when they don't differ.
+	Changes []SkillUpdate `json:"changes"`
+}
+
+// CommitMove is the move of a source's revision between two commits.
+type CommitMove struct {
 	From string `json:"from,omitempty"`
 	To   string `json:"to,omitempty"`
-	// Skills lists, sorted, the IDs of the borrowed skills the project takes from the source.
-	Skills []string `json:"skills"`
-	// Changes compares the borrowed skills the project installs from the source, and the skills they use, at To with
-	// those at From, as SourceUpdate.Skills compares a source's own skills, by their IDs in the library. It is empty,
-	// never nil, when they don't differ.
-	Changes []SkillUpdate `json:"changes"`
 }
 
 // SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
@@ -166,7 +174,7 @@ func (r RuleUpdate) ReviewedVersion() *trailguide.RuleVersion {
 // Update is a planned project update: each source's preview, and what installing it imports.
 type Update struct {
 	// Sources lists, in configuration order, the sources the update names, and each library source it doesn't name
-	// whose borrowed skills come from one it does, with only its borrowed rows. A source that uses ref has no rule
+	// whose curated skills come from one it does, with only its curated rows. A source that uses ref has no rule
 	// rows.
 	Sources []SourceUpdate
 	// Warnings explain configuration the update tolerates, as sync reports them, for the sources it names. It is
@@ -176,9 +184,9 @@ type Update struct {
 	// doesn't name import what sync would.
 	plans    map[string]plannedSource
 	recorded map[string]library.Snapshot
-	// borrowed holds the preview rows of the library sources the update doesn't name whose borrowed skills come from
+	// curated holds the preview rows of the library sources the update doesn't name whose curated skills come from
 	// a source it does name, which overrides the library's ref, by library source name.
-	borrowed map[string][]BorrowedUpdate
+	curated map[string][]CuratedUpdate
 }
 
 // plannedSource is one source an update names, with what its planner read, so applying the project's decisions
@@ -366,7 +374,7 @@ type ForkedRule struct {
 // and fails when a library release tag those versions, or the versions in forked, come from has moved since
 // planning; any other source imports what sync would.
 func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options, forked []ForkedRule) (map[string]Library, error) {
-	return importSources(ctx, configuration, options, borrowing{recorded: u.recorded, planned: u.borrowedRevisions()}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+	return importSources(ctx, configuration, options, curating{recorded: u.recorded, planned: u.curatedRevisions()}, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		planned, named := u.plans[source.Name]
 		if !named {
 			return planSource(ctx, repo, source, recordedSnapshot(u.recorded, source.Name))
@@ -463,7 +471,7 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 	if err != nil {
 		return Update{}, err
 	}
-	update := Update{Sources: []SourceUpdate{}, Warnings: []string{}, plans: map[string]plannedSource{}, recorded: maps.Clone(recorded), borrowed: map[string][]BorrowedUpdate{}}
+	update := Update{Sources: []SourceUpdate{}, Warnings: []string{}, plans: map[string]plannedSource{}, recorded: maps.Clone(recorded), curated: map[string][]CuratedUpdate{}}
 	for _, source := range configuration.Sources {
 		scope, named := scopes[source.Name]
 		if !named {
@@ -477,7 +485,7 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 		update.Sources = append(update.Sources, preview)
 		update.Warnings = append(update.Warnings, warnings...)
 	}
-	// Borrowed skills come from other repositories, or from a source that overrides the library's ref, whose
+	// Curated skills come from other repositories, or from a source that overrides the library's ref, whose
 	// revision once the update is applied is known only once every source is planned. Only an update of a whole
 	// source resolves the library's refs for them again; a scoped one, and one of a source that uses ref, which the
 	// update doesn't move, keep them where sync would.
@@ -496,36 +504,36 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 			if at.manifest == nil || at.err != nil {
 				continue
 			}
-			at.revisions, at.borrowed, err = planBorrowed(ctx, configuration, source, at.manifest, recordedSnapshot(recorded, source.Name), planned.scoped || !source.Ref.IsZero(), overridden, nil, options)
+			at.revisions, at.curated, err = planCurated(ctx, configuration, source, at.manifest, recordedSnapshot(recorded, source.Name), planned.scoped || !source.Ref.IsZero(), overridden, nil, options)
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return Update{}, gitexec.ContextFailure(ctxErr)
 			}
 			if err != nil {
 				// Only choosing this revision fails, as for a skill it lacks.
-				at.err, at.revisions, at.borrowed = sourceError(source.Name, err), nil, nil
+				at.err, at.revisions, at.curated = sourceError(source.Name, err), nil, nil
 			}
 			planned.skills[commit] = at
 		}
-		update.Sources[i].Borrowed = planned.borrowedRows(nil)
+		update.Sources[i].Curated = planned.curatedRows(nil)
 	}
 	for _, source := range configuration.Sources {
 		if _, named := update.plans[source.Name]; named {
 			continue
 		}
-		rows, err := planOverriddenBorrowing(ctx, configuration, source, recordedSnapshot(recorded, source.Name), update.plans, overridden, options)
+		rows, err := planOverriddenCurating(ctx, configuration, source, recordedSnapshot(recorded, source.Name), update.plans, overridden, options)
 		if err != nil {
 			return Update{}, sourceError(source.Name, err)
 		}
 		if len(rows) > 0 {
-			update.borrowed[source.Name] = rows
+			update.curated[source.Name] = rows
 		}
 	}
-	// A library source the update doesn't name still gets a preview of the borrowed skills it installs from a named
+	// A library source the update doesn't name still gets a preview of the curated skills it installs from a named
 	// source, in configuration order.
 	sources := []SourceUpdate{}
 	for _, source := range configuration.Sources {
-		if rows, moved := update.borrowed[source.Name]; moved {
-			sources = append(sources, SourceUpdate{Name: source.Name, Rules: []RuleUpdate{}, Skills: []SkillUpdate{}, ReplacedSkills: []ReplacedSkillUpdate{}, SkillLevels: []SkillLevelUpdate{}, Borrowed: rows})
+		if rows, moved := update.curated[source.Name]; moved {
+			sources = append(sources, SourceUpdate{Name: source.Name, Rules: []RuleUpdate{}, Skills: []SkillUpdate{}, ReplacedSkills: []ReplacedSkillUpdate{}, SkillLevels: []SkillLevelUpdate{}, Curated: rows})
 			continue
 		}
 		if i := slices.IndexFunc(update.Sources, func(preview SourceUpdate) bool { return preview.Name == source.Name }); i >= 0 {
@@ -547,11 +555,11 @@ func namedSources(configuration rules.Configuration, plans map[string]plannedSou
 	return named
 }
 
-// planOverriddenBorrowing returns the preview rows of the borrowed skills that source, a library source the update
+// planOverriddenCurating returns the preview rows of the curated skills that source, a library source the update
 // doesn't name, whose snapshot is recorded, installs from a source plans names, which overrides the library's ref,
-// so moving that source moves them, including one the project declared since the last sync. overridden is as planBorrowed takes it. It returns no rows when no source the
-// update names overrides one the library borrows from.
-func planOverriddenBorrowing(ctx context.Context, configuration rules.Configuration, source rules.Source, recorded *library.Snapshot, plans map[string]plannedSource, overridden map[string]library.Snapshot, options Options) (_ []BorrowedUpdate, err error) {
+// so moving that source moves them, including one the project declared since the last sync. overridden is as planCurated takes it. It returns no rows when no source the
+// update names overrides one the library curates from.
+func planOverriddenCurating(ctx context.Context, configuration rules.Configuration, source rules.Source, recorded *library.Snapshot, plans map[string]plannedSource, overridden map[string]library.Snapshot, options Options) (_ []CuratedUpdate, err error) {
 	// The project's current sources decide the override, by repository identity, whatever overrode it at the last
 	// sync.
 	moves := func(override *rules.Source) bool {
@@ -561,10 +569,10 @@ func planOverriddenBorrowing(ctx context.Context, configuration rules.Configurat
 		_, named := plans[override.Name]
 		return named
 	}
-	if recorded == nil || recorded.NonLibrary || !slices.ContainsFunc(slices.Collect(maps.Values(recorded.Borrowed)), func(borrowed library.BorrowedSource) bool {
-		return moves(overridingSource(configuration, source.Name, borrowed.Repository))
+	if recorded == nil || recorded.NonLibrary || !slices.ContainsFunc(slices.Collect(maps.Values(recorded.Curated)), func(curated library.CuratedSource) bool {
+		return moves(overridingSource(configuration, source.Name, curated.Repository))
 	}) {
-		return []BorrowedUpdate{}, nil
+		return []CuratedUpdate{}, nil
 	}
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
@@ -585,46 +593,46 @@ func planOverriddenBorrowing(ctx context.Context, configuration rules.Configurat
 	}
 	manifest, err := repo.manifestAt(ctx, recorded.Commit)
 	if err != nil || manifest == nil {
-		return []BorrowedUpdate{}, err
+		return []CuratedUpdate{}, err
 	}
-	// Only the borrowed sources a named source overrides move; sync keeps the others where they are.
-	_, rows, err := planBorrowed(ctx, configuration, source, manifest, recorded, true, overridden, func(_ string, override *rules.Source) bool {
+	// Only the curated sources a named source overrides move; sync keeps the others where they are.
+	_, rows, err := planCurated(ctx, configuration, source, manifest, recorded, true, overridden, func(_ string, override *rules.Source) bool {
 		return moves(override)
 	}, options)
 	return rows, err
 }
 
-// Borrowed returns the preview rows of the sources library source source borrows skills from, once the rules kept
+// Curated returns the preview rows of the sources library source source curates skills from, once the rules kept
 // lists stay at their versions from before the update, as Skills chooses the revision. It is empty, never nil, when
 // none moves.
-func (u Update) Borrowed(source string, kept []string) []BorrowedUpdate {
-	if rows, ok := u.borrowed[source]; ok {
+func (u Update) Curated(source string, kept []string) []CuratedUpdate {
+	if rows, ok := u.curated[source]; ok {
 		return slices.Clone(rows)
 	}
 	planned, named := u.plans[source]
 	if !named {
-		return []BorrowedUpdate{}
+		return []CuratedUpdate{}
 	}
-	return planned.borrowedRows(kept)
+	return planned.curatedRows(kept)
 }
 
-// borrowedRows returns the borrowed rows of the revision kept chooses, as levelRows does.
-func (s plannedSource) borrowedRows(kept []string) []BorrowedUpdate {
+// curatedRows returns the curated rows of the revision kept chooses, as levelRows does.
+func (s plannedSource) curatedRows(kept []string) []CuratedUpdate {
 	_, commit := s.keeping(kept)
-	rows := slices.Clone(s.skills[commit].borrowed)
+	rows := slices.Clone(s.skills[commit].curated)
 	if rows == nil {
-		return []BorrowedUpdate{}
+		return []CuratedUpdate{}
 	}
 	return rows
 }
 
-// borrowedRevisions returns the borrowed revisions the update planned, by library source name, then by the commit of
-// the revision that supplies the library's skills, then by borrowed source name, so the import takes the ones of the
+// curatedRevisions returns the curated revisions the update planned, by library source name, then by the commit of
+// the revision that supplies the library's skills, then by curated source name, so the import takes the ones of the
 // revision the project's decisions choose.
-func (u Update) borrowedRevisions() map[string]map[string]map[string]library.BorrowedSource {
-	revisions := map[string]map[string]map[string]library.BorrowedSource{}
+func (u Update) curatedRevisions() map[string]map[string]map[string]library.CuratedSource {
+	revisions := map[string]map[string]map[string]library.CuratedSource{}
 	for name, planned := range u.plans {
-		revisions[name] = map[string]map[string]library.BorrowedSource{}
+		revisions[name] = map[string]map[string]library.CuratedSource{}
 		for commit, preview := range planned.skills {
 			revisions[name][commit] = preview.revisions
 		}
