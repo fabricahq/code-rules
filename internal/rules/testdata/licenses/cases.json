@@ -5,7 +5,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": null
@@ -21,7 +21,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -55,7 +55,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Apache-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -89,7 +89,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT OR Apache-2.0) AND BSD-2-Clause\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -123,7 +123,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0+\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -157,7 +157,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -191,7 +191,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -225,7 +225,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -259,7 +259,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT or Apache-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -293,7 +293,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" MIT \"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -327,7 +327,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"]}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -361,7 +361,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"LICENSE\", \"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -395,7 +395,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -425,13 +425,13 @@
     "input": {
       "manifest": "{"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: expected one YAML document",
-        "location": "library/.syllabus/config.yaml"
+        "message": "library/.trailguide/config.yaml: expected one YAML document",
+        "location": "library/.trailguide/config.yaml"
       }
     }
   },
@@ -441,13 +441,13 @@
     "input": {
       "manifest": "null"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: configuration: expected an object",
-        "location": "library/.syllabus/config.yaml: configuration"
+        "message": "library/.trailguide/config.yaml: configuration: expected an object",
+        "location": "library/.trailguide/config.yaml: configuration"
       }
     }
   },
@@ -457,13 +457,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": null}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license: expected an object",
-        "location": "library/.syllabus/config.yaml: library.license"
+        "message": "library/.trailguide/config.yaml: library.license: expected an object",
+        "location": "library/.trailguide/config.yaml: library.license"
       }
     }
   },
@@ -473,13 +473,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": null, \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.notices: expected an array of notice paths",
-        "location": "library/.syllabus/config.yaml: library.license.notices"
+        "message": "library/.trailguide/config.yaml: library.license.notices: expected an array of notice paths",
+        "location": "library/.trailguide/config.yaml: library.license.notices"
       }
     }
   },
@@ -489,13 +489,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"../LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: expected a contained relative path, got \"../LICENSE\"",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: expected a contained relative path, got \"../LICENSE\"",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -505,13 +505,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"future\": true}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license: unknown field future",
-        "location": "library/.syllabus/config.yaml: library.license"
+        "message": "library/.trailguide/config.yaml: library.license: unknown field future",
+        "location": "library/.trailguide/config.yaml: library.license"
       }
     }
   },
@@ -521,13 +521,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"expression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license: unknown field expression",
-        "location": "library/.syllabus/config.yaml: library.license"
+        "message": "library/.trailguide/config.yaml: library.license: unknown field expression",
+        "location": "library/.trailguide/config.yaml: library.license"
       }
     }
   },
@@ -537,13 +537,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" \"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected nonempty text",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected nonempty text",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -553,13 +553,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\n\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected a single-line license expression",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected a single-line license expression",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -569,13 +569,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"mit\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -585,13 +585,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Unreal-1.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -601,13 +601,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT OR\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -617,13 +617,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -633,13 +633,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT +\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -649,13 +649,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -665,13 +665,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH Unknown\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -681,13 +681,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT \"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -697,13 +697,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH classpath-exception-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -713,7 +713,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -747,7 +747,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -781,13 +781,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -797,13 +797,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team+ WITH Classpath-exception-2.0\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -813,13 +813,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -829,13 +829,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Team:  \"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -845,13 +845,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT AND (\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/.syllabus/config.yaml: library.license.spdxExpression"
+        "message": "library/.trailguide/config.yaml: library.license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/.trailguide/config.yaml: library.license.spdxExpression"
       }
     }
   },
@@ -861,7 +861,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MVT-1.1\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -890,7 +890,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH PCRE2-exception\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -917,15 +917,15 @@
     "id": "license-file-is-a-rule",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/techs/go/errors.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/rules/techs/go/errors.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/rules/techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -933,15 +933,15 @@
     "id": "license-file-in-a-group-assets-directory",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/techs/go/assets/LICENSE\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/rules/techs/go/assets/LICENSE\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/rules/techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -949,15 +949,15 @@
     "id": "license-notice-in-a-rules-assets",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \".syllabus/rules/practices/testing/assets/verify/nested/NOTICE.md\"]}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \".trailguide/rules/practices/testing/assets/verify/nested/NOTICE.md\"]}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.notices[1]: \".syllabus/rules/practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
-        "location": "library/.syllabus/config.yaml: library.license.notices[1]"
+        "message": "library/.trailguide/config.yaml: library.license.notices[1]: \".trailguide/rules/practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as LICENSE.md at the repository root",
+        "location": "library/.trailguide/config.yaml: library.license.notices[1]"
       }
     }
   },
@@ -965,9 +965,9 @@
     "id": "license-library-wide-paths-in-groups",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/techs/go/LICENSE.md\", \"notices\": [\".syllabus/assets/NOTICE.md\", \".syllabus/rules/techs/go/README.md\"]}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/rules/techs/go/LICENSE.md\", \"notices\": [\".trailguide/assets/NOTICE.md\", \".trailguide/rules/techs/go/README.md\"]}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -988,7 +988,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": null,
@@ -1001,7 +1001,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {\"team\": {\"repository\": \"https://github.com/acme/rules\", \"rules\": {\"include\": [\"techs/go/*\"]}}}, \"library\": {\"license\": {\"file\": \"LICENSE.md\", \"notices\": [], \"spdxExpression\": \"MIT\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -1019,7 +1019,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"docs/LICENSE.md\", \"notices\": [\"docs/NOTICE.md\"]}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -1039,13 +1039,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": []}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library: expected an object",
-        "location": "library/.syllabus/config.yaml: library"
+        "message": "library/.trailguide/config.yaml: library: expected an object",
+        "location": "library/.trailguide/config.yaml: library"
       }
     }
   },
@@ -1055,13 +1055,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"skills\": {\"required\": \"skills/ship\"}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.skills.required: expected a list of the library's skill IDs, such as [skills/build-feature]",
-        "location": "library/.syllabus/config.yaml: library.skills.required"
+        "message": "library/.trailguide/config.yaml: library.skills.required: expected a list of the library's skill IDs, such as [skills/build-feature]",
+        "location": "library/.trailguide/config.yaml: library.skills.required"
       }
     }
   },
@@ -1071,13 +1071,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"formatVersion\": 1}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library: unknown field formatVersion",
-        "location": "library/.syllabus/config.yaml: library"
+        "message": "library/.trailguide/config.yaml: library: unknown field formatVersion",
+        "location": "library/.trailguide/config.yaml: library"
       }
     }
   },
@@ -1087,13 +1087,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"techs/go/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"techs/go/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1103,13 +1103,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"assets/NOTICE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"assets/NOTICE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1119,13 +1119,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"changes/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"changes/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1135,13 +1135,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"config.yaml\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"config.yaml\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1151,13 +1151,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"LICENSE.md\", \"notices\": [\"rules/techs/go/a.md\"]}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.notices[0]: \"rules/techs/go/a.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.notices[0]"
+        "message": "library/.trailguide/config.yaml: library.license.notices[0]: \"rules/techs/go/a.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.notices[0]"
       }
     }
   },
@@ -1167,13 +1167,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"Rules/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"Rules/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"Rules/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1183,13 +1183,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"skills/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"skills/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"skills/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1199,13 +1199,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"borrowed/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"borrowed/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"borrowed/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1215,13 +1215,13 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"_source.json\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \"_source.json\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \"_source.json\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1231,7 +1231,7 @@
     "input": {
       "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \"docs/rules/LICENSE.md\", \"notices\": [\"rules.md\"]}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": true,
       "value": {
@@ -1249,15 +1249,15 @@
     "id": "license-manifest",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/config.yaml\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/config.yaml\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/config.yaml\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/config.yaml\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1265,15 +1265,15 @@
     "id": "license-change-note",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/changes/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/changes/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/changes/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1281,15 +1281,15 @@
     "id": "license-vendor",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/vendor/team/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/vendor/team/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/vendor/team/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1297,15 +1297,15 @@
     "id": "license-generated",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/generated/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/generated/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/generated/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   },
@@ -1313,15 +1313,15 @@
     "id": "license-rules-readme",
     "operation": "licenses",
     "input": {
-      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".syllabus/rules/LICENSE.md\", \"notices\": []}}}"
+      "manifest": "{\"schemaVersion\": 2, \"sources\": {}, \"library\": {\"license\": {\"file\": \".trailguide/rules/LICENSE.md\", \"notices\": []}}}"
     },
-    "location": "library/.syllabus/config.yaml",
+    "location": "library/.trailguide/config.yaml",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/.syllabus/config.yaml: library.license.file: \".syllabus/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .syllabus/, such as LICENSE.md at the repository root, or in .syllabus/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
-        "location": "library/.syllabus/config.yaml: library.license.file"
+        "message": "library/.trailguide/config.yaml: library.license.file: \".trailguide/rules/LICENSE.md\" can't hold a license or notice file; keep it outside .trailguide/, such as LICENSE.md at the repository root, or in .trailguide/assets/. At the repository root, _source.json, config.yaml, and the assets/, borrowed/, changes/, practices/, rules/, skills/, and techs/ folders are reserved for the library's own files and a project's copy of the library",
+        "location": "library/.trailguide/config.yaml: library.license.file"
       }
     }
   }

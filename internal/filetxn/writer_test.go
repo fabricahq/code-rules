@@ -253,7 +253,7 @@ func TestWriterRejectsAmbiguousOwners(t *testing.T) {
 
 // TestKilledWriterReclaimsLock exercises actual process death with a completed first replacement.
 func TestKilledWriterReclaimsLock(t *testing.T) {
-	if dir := os.Getenv("SYLLABUS_WRITER_CHILD"); dir != "" {
+	if dir := os.Getenv("TRAILGUIDE_WRITER_CHILD"); dir != "" {
 		root, err := os.OpenRoot(dir)
 		if err != nil {
 			t.Fatal(err)
@@ -283,7 +283,7 @@ func TestKilledWriterReclaimsLock(t *testing.T) {
 	}
 	root := openProject(t)
 	cmd := exec.Command(os.Args[0], "-test.run=^TestKilledWriterReclaimsLock$")
-	cmd.Env = append(os.Environ(), "SYLLABUS_WRITER_CHILD="+root.Name())
+	cmd.Env = append(os.Environ(), "TRAILGUIDE_WRITER_CHILD="+root.Name())
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // updateFork is the decision that replaces team's fork of techs/go/errors.

@@ -1,4 +1,4 @@
-// Record rule changes as new change notes in .syllabus/changes/, and read the notes library check compares.
+// Record rule changes as new change notes in .trailguide/changes/, and read the notes library check compares.
 
 package library
 
@@ -20,14 +20,14 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // changesDirectory holds change notes, by their library paths; projects never import it. The repository keeps it
-// in .syllabus/changes/.
+// in .trailguide/changes/.
 const changesDirectory = "changes"
 
 // maxNoteNameAttempts bounds the random suffixes tried for a note name that isn't taken.
@@ -38,7 +38,7 @@ type ChangeRequest struct {
 	// IDs are library rule IDs, such as practices/testing/verify-retry-limits, in the order given.
 	IDs []string
 	// Bump is major, minor, or patch for rules that have a version, and empty for new or retired rules.
-	Bump syllabus.Change
+	Bump trailguide.Change
 	// Summary is one line for project maintainers; for a retirement, it explains why.
 	Summary string
 	// Retire records that the rules were retired; their Markdown files must already be gone.
@@ -77,11 +77,11 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 	return &ChangePlan{request: request, options: options, Versioned: versioned}, nil
 }
 
-// Commit writes a new, uniquely named note, such as .syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
+// Commit writes a new, uniquely named note, such as .trailguide/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
 // by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
 // collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
 // A retirement whose replacement isn't a rule yet succeeds with a warning.
-func (p *ChangePlan) Commit(ctx context.Context, bump syllabus.Change, summary string, date time.Time) (AuthoringResult, error) {
+func (p *ChangePlan) Commit(ctx context.Context, bump trailguide.Change, summary string, date time.Time) (AuthoringResult, error) {
 	if p == nil || len(p.request.IDs) == 0 {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned change note", nil)
 	}
@@ -95,7 +95,7 @@ func (p *ChangePlan) Commit(ctx context.Context, bump syllabus.Change, summary s
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
-	dir, err := openSyllabusDirectory(ctx, root, false)
+	dir, err := openTrailGuideDirectory(ctx, root, false)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
@@ -264,7 +264,7 @@ func validateRequest(request ChangeRequest) error {
 		}
 	}
 	switch request.Bump {
-	case "", syllabus.ChangeMajor, syllabus.ChangeMinor, syllabus.ChangePatch:
+	case "", trailguide.ChangeMajor, trailguide.ChangeMinor, trailguide.ChangePatch:
 	default:
 		return failure("invalid-arguments", "--bump must be major, minor, or patch", nil)
 	}
@@ -365,13 +365,13 @@ func renderNote(request ChangeRequest, versioned bool, name string) ([]byte, err
 		var change *yaml.Node
 		switch {
 		case request.Retire && request.ReplacedBy != "":
-			change = &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{text("change"), text(string(syllabus.ChangeRetired)), text("replacedBy"), text(request.ReplacedBy)}}
+			change = &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{text("change"), text(string(trailguide.ChangeRetired)), text("replacedBy"), text(request.ReplacedBy)}}
 		case request.Retire:
-			change = text(string(syllabus.ChangeRetired))
+			change = text(string(trailguide.ChangeRetired))
 		case versioned:
 			change = text(string(request.Bump))
 		default:
-			change = text(string(syllabus.ChangeNew))
+			change = text(string(trailguide.ChangeNew))
 		}
 		entries.Content = append(entries.Content, text(id), change)
 	}
@@ -398,7 +398,7 @@ func readChangeNotes(ctx context.Context, input FileSource) (map[string][]byte, 
 	for _, entry := range entries {
 		name := changesDirectory + "/" + entry.Name()
 		if entry.Type()&fs.ModeType != 0 || !strings.HasSuffix(name, ".yaml") {
-			return nil, bad(name, "expected only change notes, as .yaml files, in .syllabus/changes/")
+			return nil, bad(name, "expected only change notes, as .yaml files, in .trailguide/changes/")
 		}
 		if _, err := r.read(name); err != nil {
 			return nil, err

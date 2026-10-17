@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // leveledLibrary returns a library whose release/1 publishes techs/go/errors and four skills: ship, required;
@@ -20,13 +20,13 @@ func leveledLibrary(t *testing.T) *gitfixture.Fixture {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                             []byte(`{"schemaVersion":2,"sources":{},"library":{"skills":{"required":["skills/ship"],"recommended":["skills/review"],"offered":["skills/deploy"]}}}`),
-		"techs/go/_group.yaml":                    []byte(projectMetadata),
-		"techs/go/errors.md":                      []byte(projectRule),
-		".syllabus/skills/ship/SKILL.md":          []byte("---\nname: ship\ndescription: Ship a service.\n---\n# Ship\n"),
-		".syllabus/skills/review/SKILL.md":        []byte(reviewSkill),
-		".syllabus/skills/deploy/SKILL.md":        []byte("---\nname: deploy\ndescription: Deploy a preview.\n---\n# Deploy\n"),
-		".syllabus/skills/build-feature/SKILL.md": []byte(buildSkill),
+		"config.yaml":                               []byte(`{"schemaVersion":2,"sources":{},"library":{"skills":{"required":["skills/ship"],"recommended":["skills/review"],"offered":["skills/deploy"]}}}`),
+		"techs/go/_group.yaml":                      []byte(projectMetadata),
+		"techs/go/errors.md":                        []byte(projectRule),
+		".trailguide/skills/ship/SKILL.md":          []byte("---\nname: ship\ndescription: Ship a service.\n---\n# Ship\n"),
+		".trailguide/skills/review/SKILL.md":        []byte(reviewSkill),
+		".trailguide/skills/deploy/SKILL.md":        []byte("---\nname: deploy\ndescription: Deploy a preview.\n---\n# Deploy\n"),
+		".trailguide/skills/build-feature/SKILL.md": []byte(buildSkill),
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -44,8 +44,8 @@ func releaseNewLevels(t *testing.T, f *gitfixture.Fixture) {
 	t.Helper()
 	ctx := context.Background()
 	files := map[string][]byte{
-		"config.yaml":                     []byte(`{"schemaVersion":2,"sources":{},"library":{"skills":{"required":["skills/audit","skills/review","skills/ship"],"offered":["skills/deploy"]}}}`),
-		".syllabus/skills/audit/SKILL.md": []byte("---\nname: audit\ndescription: Audit a change.\n---\n# Audit\n"),
+		"config.yaml":                       []byte(`{"schemaVersion":2,"sources":{},"library":{"skills":{"required":["skills/audit","skills/review","skills/ship"],"offered":["skills/deploy"]}}}`),
+		".trailguide/skills/audit/SKILL.md": []byte("---\nname: audit\ndescription: Audit a change.\n---\n# Audit\n"),
 	}
 	if _, err := f.Commit(ctx, f.Worktree(), "Require review and audit", gitfixture.Library(files)); err != nil {
 		t.Fatal(err)
@@ -61,7 +61,7 @@ func installedSkills(t *testing.T, options Options) []string {
 	var record struct {
 		Skills []struct{ Name string } `json:"skills"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/generated/installed-skills.json")), &record); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".trailguide/generated/installed-skills.json")), &record); err != nil {
 		t.Fatal(err)
 	}
 	names := []string{}
@@ -120,7 +120,7 @@ func TestSync_RecordsWhichLibrarySetEachLevel(t *testing.T) {
 			RequiredBy, RecommendedBy, OfferedBy *setter
 		}
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/generated/provenance.json")), &provenance); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".trailguide/generated/provenance.json")), &provenance); err != nil {
 		t.Fatal(err)
 	}
 	// deploy is named by ID, so no level brought it in, and its record names no library.
@@ -145,7 +145,7 @@ func TestSync_RecordsWhichLibrarySetEachLevel(t *testing.T) {
 	if want := map[string]string{"team:skills/ship": "required", "team:skills/review": "recommended"}; !mapsEqual(setBy, want) {
 		t.Fatalf("provenance set by = %v; want %v", setBy, want)
 	}
-	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
+	index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md")
 	for _, want := range []string{"**Level:** required by `team`, release 1", "**Level:** recommended by `team`, release 1", "**Level:** offered by `team`, release 1", "every project that uses the library installs its required skills"} {
 		if !strings.Contains(index, want) {
 			t.Errorf("SKILLS.md lacks %q:\n%s", want, index)
@@ -154,7 +154,7 @@ func TestSync_RecordsWhichLibrarySetEachLevel(t *testing.T) {
 	var record struct {
 		AvailableSkills map[string]struct{ Level string } `json:"availableSkills"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/vendor/team/_source.json")), &record); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".trailguide/vendor/team/_source.json")), &record); err != nil {
 		t.Fatal(err)
 	}
 	if len(record.AvailableSkills) != 4 || record.AvailableSkills["skills/build-feature"].Level != "offered" || record.AvailableSkills["skills/ship"].Level != "required" {

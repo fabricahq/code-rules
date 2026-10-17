@@ -1,6 +1,6 @@
 // Recognize library release tag names and split their messages into release notes and a release record.
 
-package syllabus
+package trailguide
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-// ErrNotReleaseTag identifies a tag name that isn't a library release tag, release/<number>. Syllabus ignores
+// ErrNotReleaseTag identifies a tag name that isn't a library release tag, release/<number>. Trail Guide ignores
 // such tags, so a catalog can skip them too. Check for it with errors.Is.
 var ErrNotReleaseTag = errors.New("not a library release tag")
 

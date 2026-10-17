@@ -17,7 +17,7 @@ func TestPushRefusal_ExplainsTheCauseWithoutTheServersText(t *testing.T) {
 		{"GitHub protected branch or tag", "remote: error: GH006: Protected branch update failed for refs/tags/release/2. " + marker + "\n ! [remote rejected] release/2 -> release/2 (protected branch hook declined)\n",
 			"a repository rule refused the tag (GitHub error GH006)."},
 		{"GitHub large file", "remote: error: GH001: Large files detected. " + marker + "\n ! [remote rejected] release/2 -> release/2 (pre-receive hook declined)\n",
-			"the server refused the tag for a reason Syllabus doesn't recognize (GitHub error GH001)."},
+			"the server refused the tag for a reason Trail Guide doesn't recognize (GitHub error GH001)."},
 		{"GitHub rule violation without a code", " ! [remote rejected] release/2 -> release/2 (push declined due to repository rule violations " + marker + ")\n",
 			"a repository rule or tag protection refused the tag."},
 		{"GitLab protected tag", "remote: GitLab: You are not allowed to create protected tags on this project. " + marker + "\n ! [remote rejected] release/2 -> release/2 (pre-receive hook declined)\n",
@@ -35,7 +35,7 @@ func TestPushRefusal_ExplainsTheCauseWithoutTheServersText(t *testing.T) {
 		{"update hook", "remote: " + marker + "\nremote: error: hook declined to update refs/tags/release/2\n ! [remote rejected] release/2 -> release/2 (hook declined)\n",
 			"a hook on the server declined the tag."},
 		{"unrecognized rejection", " ! [remote rejected] release/2 -> release/2 (" + marker + ")\n",
-			"the server refused the tag for a reason Syllabus doesn't recognize."},
+			"the server refused the tag for a reason Trail Guide doesn't recognize."},
 		{"untrusted certificate", "fatal: unable to access '" + marker + "': server certificate verification failed. CAfile: none CRLfile: none\n",
 			"the HTTPS server's certificate couldn't be verified."},
 		{"unknown SSH host key", "Host key verification failed.\r\nfatal: Could not read from remote repository. " + marker + "\n",
@@ -47,7 +47,7 @@ func TestPushRefusal_ExplainsTheCauseWithoutTheServersText(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			message := pushRefusal("release/2", "origin", []byte(test.diagnostics))
-			if !strings.Contains(message, test.explanation) || !strings.HasPrefix(message, "Git couldn't push release/2 to origin") || !strings.HasSuffix(message, "Syllabus doesn't show messages from Git or the server; to read them, push a test tag with git push.") {
+			if !strings.Contains(message, test.explanation) || !strings.HasPrefix(message, "Git couldn't push release/2 to origin") || !strings.HasSuffix(message, "Trail Guide doesn't show messages from Git or the server; to read them, push a test tag with git push.") {
 				t.Fatalf("message:\n%s\nwant it to contain %q", message, test.explanation)
 			}
 			for _, external := range []string{marker, "remote", "declined to", "hook declined", "403", "github.com:", "publickey"} {

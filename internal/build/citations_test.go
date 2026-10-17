@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/library"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/library"
 )
 
-// citingSkill returns an authored skill, skills/fix, whose syllabus-rules-used lists rulesUsed.
+// citingSkill returns an authored skill, skills/fix, whose trailguide-rules-used lists rulesUsed.
 func citingSkill(rulesUsed ...string) map[string]SkillFiles {
-	text := "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  syllabus-rules-used: |\n    " + strings.Join(rulesUsed, "\n    ") + "\n---\n# Fix\n"
+	text := "---\nname: fix\ndescription: Fix a bug.\nmetadata:\n  trailguide-rules-used: |\n    " + strings.Join(rulesUsed, "\n    ") + "\n---\n# Fix\n"
 	return map[string]SkillFiles{"skills/fix": {Files: map[string][]byte{"SKILL.md": []byte(text)}, Executable: []string{}}}
 }
 
@@ -36,7 +36,7 @@ func generateCiting(t *testing.T, exclude string, local map[string][]byte, skill
 func TestGenerateLinksAnInstalledSkillToEachRuleItCites(t *testing.T) {
 	custom := map[string][]byte{"techs/go/custom.md": []byte(document)}
 	link := func(file string) string {
-		return "[.syllabus/generated/" + file + "](../../../.syllabus/generated/" + file + ")"
+		return "[.trailguide/generated/" + file + "](../../../.trailguide/generated/" + file + ")"
 	}
 	tests := map[string]struct {
 		exclude, cited string
@@ -83,7 +83,7 @@ func TestGenerateReportsARetiredRuleAnAuthoredSkillCitesWithoutFailing(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(output.RetiredCitations) != 1 || output.RetiredCitations[0].Error() != "skills/fix/SKILL.md: syllabus-rules-used names team:techs/go/old, which its library retired; remove it from syllabus-rules-used, or cite the rule that replaces it" {
+	if len(output.RetiredCitations) != 1 || output.RetiredCitations[0].Error() != "skills/fix/SKILL.md: trailguide-rules-used names team:techs/go/old, which its library retired; remove it from trailguide-rules-used, or cite the rule that replaces it" {
 		t.Fatalf("retired citations = %v", output.RetiredCitations)
 	}
 }
@@ -112,14 +112,14 @@ func TestGenerateKeepsCitedRulesOutOfTheRuleIndexes(t *testing.T) {
 func TestGenerateLinksALibrarySkillToTheRulesItCitesInItsLibrary(t *testing.T) {
 	output, err := generateCiting(t, `[]`, nil, nil, func(snapshot *library.Snapshot) {
 		snapshot.Skills = map[string]library.ImportedSkill{"skills/review": {Level: "offered"}}
-		snapshot.Files = map[string][]byte{"skills/review/SKILL.md": []byte("---\nname: review\ndescription: Review.\nmetadata:\n  syllabus-skill-type: audit\n  syllabus-rules-used: |\n    techs/go/errors\n    techs/go/old\n---\n# Review\n")}
+		snapshot.Files = map[string][]byte{"skills/review/SKILL.md": []byte("---\nname: review\ndescription: Review.\nmetadata:\n  trailguide-skill-type: audit\n  trailguide-rules-used: |\n    techs/go/errors\n    techs/go/old\n---\n# Review\n")}
 		snapshot.RetiredRules = []string{"techs/go/old"}
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	installed := string(output.Skills[".claude/skills/review"].Files["SKILL.md"])
-	for _, want := range []string{"- `team:techs/go/errors` 1.0.0: [.syllabus/generated/rules/team/techs/go/errors.md]", "- `team:techs/go/old`: retired by its library"} {
+	for _, want := range []string{"- `team:techs/go/errors` 1.0.0: [.trailguide/generated/rules/team/techs/go/errors.md]", "- `team:techs/go/old`: retired by its library"} {
 		if !strings.Contains(installed, want) {
 			t.Errorf("installed SKILL.md lacks %q:\n%s", want, installed)
 		}
@@ -136,7 +136,7 @@ func TestGenerateListsCitedRulesInSkillsIndexWithoutSkillTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	index := string(output.Files["SKILLS.md"])
-	if want := "- **Applies:**\n  - `team:techs/go/errors` 1.0.0: [.syllabus/generated/rules/team/techs/go/errors.md](rules/team/techs/go/errors.md)"; !strings.Contains(index, want) {
+	if want := "- **Applies:**\n  - `team:techs/go/errors` 1.0.0: [.trailguide/generated/rules/team/techs/go/errors.md](rules/team/techs/go/errors.md)"; !strings.Contains(index, want) {
 		t.Fatalf("SKILLS.md:\n%s\nwant\n%s", index, want)
 	}
 }
@@ -162,10 +162,10 @@ func TestGenerateRejectsInvalidAuthoredSkills(t *testing.T) {
 		want  string
 	}{
 		"name that isn't the folder's": {map[string]SkillFiles{"skills/fix": {Files: map[string][]byte{"SKILL.md": []byte("---\nname: fixer\n---\n")}}}, nil, `name is "fixer", but the folder is fix; they must match`},
-		"unknown type":                 {map[string]SkillFiles{"skills/fix": {Files: map[string][]byte{"SKILL.md": []byte("---\nname: fix\nmetadata:\n  syllabus-skill-type: design\n---\n")}}}, nil, `syllabus-skill-type is "design"; use playbook or review, or leave it out`},
-		"missing authored rule":        {citingSkill("techs/go/missing"), nil, "syllabus-rules-used names techs/go/missing, which isn't a rule in .syllabus/rules/; write the rule, or cite a source's rule with its source name, such as fabrica:techs/go/missing"},
-		"unknown source":               {citingSkill("other:techs/go/errors"), nil, "syllabus-rules-used names other:techs/go/errors, but the configuration has no source named other; add the source, or correct the source name"},
-		"source that isn't a library":  {citingSkill("team:techs/go/errors"), func(snapshot *library.Snapshot) { snapshot.NonLibrary = true }, "syllabus-rules-used names team:techs/go/errors, but team isn't a library, so it has no rules to cite"},
+		"unknown type":                 {map[string]SkillFiles{"skills/fix": {Files: map[string][]byte{"SKILL.md": []byte("---\nname: fix\nmetadata:\n  trailguide-skill-type: design\n---\n")}}}, nil, `trailguide-skill-type is "design"; use playbook or review, or leave it out`},
+		"missing authored rule":        {citingSkill("techs/go/missing"), nil, "trailguide-rules-used names techs/go/missing, which isn't a rule in .trailguide/rules/; write the rule, or cite a source's rule with its source name, such as fabrica:techs/go/missing"},
+		"unknown source":               {citingSkill("other:techs/go/errors"), nil, "trailguide-rules-used names other:techs/go/errors, but the configuration has no source named other; add the source, or correct the source name"},
+		"source that isn't a library":  {citingSkill("team:techs/go/errors"), func(snapshot *library.Snapshot) { snapshot.NonLibrary = true }, "trailguide-rules-used names team:techs/go/errors, but team isn't a library, so it has no rules to cite"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -183,7 +183,7 @@ func TestGenerateRejectsInvalidAuthoredSkills(t *testing.T) {
 // of them, however the project excludes the group. A rule in a group the source doesn't include in full may exist,
 // so it stays not included.
 func TestGenerateRejectsACitedRuleItsSourceDoesntHave(t *testing.T) {
-	const problem = "syllabus-rules-used names team:techs/go/error, which isn't a rule in team's library; correct the rule ID, or remove it from syllabus-rules-used"
+	const problem = "trailguide-rules-used names team:techs/go/error, which isn't a rule in team's library; correct the rule ID, or remove it from trailguide-rules-used"
 	for name, exclude := range map[string]string{
 		"included group":          `[]`,
 		"group excluded by group": `[{"id":"techs/go/*","reason":"Ours"}]`,
@@ -206,7 +206,7 @@ func TestGenerateLeavesTheCitationsOfANonLibrarySkillAlone(t *testing.T) {
 	output, err := generateCiting(t, `[]`, nil, nil, func(snapshot *library.Snapshot) {
 		snapshot.NonLibrary = true
 		snapshot.Skills = map[string]library.ImportedSkill{"tools/review": {}}
-		snapshot.Files = map[string][]byte{"tools/review/SKILL.md": []byte("---\nname: review\nmetadata:\n  syllabus-rules-used: whatever:it/says\n---\n# Review\n")}
+		snapshot.Files = map[string][]byte{"tools/review/SKILL.md": []byte("---\nname: review\nmetadata:\n  trailguide-rules-used: whatever:it/says\n---\n# Review\n")}
 	})
 	if err != nil {
 		t.Fatal(err)

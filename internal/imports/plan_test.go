@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // versionedRule is a valid rule whose body names its version, so tests can tell which version's file arrived.
@@ -149,7 +149,7 @@ func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *test
 func TestImport_RecordedVersionsStayWhenNewerOnesExist(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"rules":{"include":["techs/go/*"]}`)
-	one, two := syllabus.RuleVersion{Major: 1}, syllabus.RuleVersion{Major: 1, Minor: 1}
+	one, two := trailguide.RuleVersion{Major: 1}, trailguide.RuleVersion{Major: 1, Minor: 1}
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 2, Commit: h.commits[2], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/a": {Version: &two, Release: 2, Commit: h.commits[2]}, "techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	imported, err := h.sync(t, config, &recorded)
@@ -203,7 +203,7 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 func TestImport_NewlySelectedRulesGetTheirNewestVersion(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"rules":{"include":["techs/go/*"]}`)
-	one := syllabus.RuleVersion{Major: 1}
+	one := trailguide.RuleVersion{Major: 1}
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/a": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	imported, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*","practices/testing/*"]}`), &recorded)
@@ -283,7 +283,7 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 func TestImport_PinnedRuleTheLibraryRetiredKeepsImporting(t *testing.T) {
 	h := newHistory(t)
 	pinned := `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/b","version":"1.0.0","reason":"Keep."}]}`
-	one := syllabus.RuleVersion{Major: 1}
+	one := trailguide.RuleVersion{Major: 1}
 	config := h.source(t, pinned)
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
@@ -463,7 +463,7 @@ func TestImport_IgnoresUnselectedGroupMetadata(t *testing.T) {
 		"techs/go/_group.yaml": groupMetadata,
 		"techs/go/y.md":        versionedRule("y 1.0.0"),
 	})
-	if _, err := f.Command(ctx, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("5", 40)+",.syllabus/rules/techs/rust/_group.yaml"); err != nil {
+	if _, err := f.Command(ctx, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("5", 40)+",.trailguide/rules/techs/rust/_group.yaml"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.Command(ctx, "commit", "--quiet", "--message", "Add a submodule where metadata belongs"); err != nil {
@@ -493,13 +493,13 @@ func TestImport_RefusesALibraryReleaseDeclaringTermsInsideARulesVersion(t *testi
 	h := history{fixture: f, commits: map[int]string{}}
 	h.release(t, 1, nil, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.0.0\nchanges:\n  techs/go/a: {change: new, summaries: [Add the rule.]}\n  techs/go/b: {change: new, summaries: [Add the rule.]}\n")
 	h.release(t, 2, map[string][]byte{
-		"config.yaml":                       []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":".syllabus/rules/techs/go/assets/a/requirements.md","notices":[]}}}`),
+		"config.yaml":                       []byte(`{"schemaVersion":2,"sources":{},"library":{"license":{"file":".trailguide/rules/techs/go/assets/a/requirements.md","notices":[]}}}`),
 		"techs/go/assets/a/requirements.md": []byte("Replacement requirements.\n"),
 		"techs/go/b.md":                     versionedRule("b 1.1.0"),
 	}, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summaries: [Add an example.]}\n")
 	imported, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/a","version":"1.0.0","reason":"Keep."}]}`), nil)
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || !strings.Contains(invalid.ValidationLocation(), ".syllabus/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "rule's version") {
+	if !errors.As(err, &invalid) || !strings.Contains(invalid.ValidationLocation(), ".trailguide/config.yaml: library.license.file") || !strings.Contains(invalid.ValidationProblem(), "rule's version") {
 		t.Fatalf("imported %q with error %v; want the license declaration refused", imported.Snapshot.Files["techs/go/assets/a/requirements.md"], err)
 	}
 }
@@ -586,7 +586,7 @@ func TestImport_RejectsAReleaseTagWithoutARecord(t *testing.T) {
 }
 
 // TestImport_AsksToUpgradeForANewerReleaseRecordFormat refuses a release record written in a later format with
-// its own code, telling the user to upgrade Syllabus, and reads a record with fields it doesn't know.
+// its own code, telling the user to upgrade Trail Guide, and reads a record with fields it doesn't know.
 func TestImport_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	h := newHistory(t)
 	record := "release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nsignedBy: {name: A later field}\n"
@@ -597,7 +597,7 @@ func TestImport_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	h.release(t, 5, nil, "formatVersion: 2\n"+strings.Replace(record, "release: 4", "release: 5", 1))
 	_, err := h.sync(t, h.source(t, `"rules":{"include":["techs/go/*"]}`), nil)
 	requireCode(t, err, "unsupported-release-record")
-	if !strings.Contains(err.Error(), "release/5 uses release record format 2") || !strings.Contains(err.Error(), "Upgrade Syllabus") {
+	if !strings.Contains(err.Error(), "release/5 uses release record format 2") || !strings.Contains(err.Error(), "Upgrade Trail Guide") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -605,7 +605,7 @@ func TestImport_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 // TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit refuses a release tag with a valid record whose target
 // is a tree or a blob, so a non-commit never becomes a recorded commit.
 func TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit(t *testing.T) {
-	for _, target := range []string{"HEAD^{tree}", "HEAD:.syllabus/config.yaml"} {
+	for _, target := range []string{"HEAD^{tree}", "HEAD:.trailguide/config.yaml"} {
 		t.Run(target, func(t *testing.T) {
 			h := newHistory(t)
 			ctx := context.Background()
@@ -727,8 +727,8 @@ func TestImport_WarnsAboutSelectorsAnotherSelectorCovers(t *testing.T) {
 func TestVersionList_ListsAtMostTenVersionsNewestFirst(t *testing.T) {
 	history := releaseHistory{}
 	for number := 1; number <= 12; number++ {
-		version := syllabus.RuleVersion{Major: 1, Minor: number - 1}
-		history.releases = append(history.releases, libraryRelease{number: number, record: syllabus.ReleaseRecord{Rules: map[string]syllabus.RuleVersion{"techs/go/a": version}, Changes: map[string]syllabus.RecordedChange{"techs/go/a": {Change: syllabus.ChangeMinor}}}})
+		version := trailguide.RuleVersion{Major: 1, Minor: number - 1}
+		history.releases = append(history.releases, libraryRelease{number: number, record: trailguide.ReleaseRecord{Rules: map[string]trailguide.RuleVersion{"techs/go/a": version}, Changes: map[string]trailguide.RecordedChange{"techs/go/a": {Change: trailguide.ChangeMinor}}}})
 	}
 	if got, want := history.versionList("techs/go/a"), "1.11.0, 1.10.0, 1.9.0, 1.8.0, 1.7.0, 1.6.0, 1.5.0, 1.4.0, 1.3.0, 1.2.0, and 2 older"; got != want {
 		t.Fatalf("got %q, want %q", got, want)

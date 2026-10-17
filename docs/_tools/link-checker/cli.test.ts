@@ -21,7 +21,7 @@ function checkSite(
   stdout: string;
   stderr: string;
 } {
-  const workspace = mkdtempSync(join(tmpdir(), 'syllabus-links-'));
+  const workspace = mkdtempSync(join(tmpdir(), 'trailguide-links-'));
   try {
     const site = join(workspace, 'dist');
     for (const [path, content] of Object.entries(pages)) {
@@ -150,15 +150,15 @@ test('should ignore external links with URL whitespace', () => {
 test('should check absolute same-site URLs against the build including fragments', () => {
   const result = checkSite({
     'index.html':
-      '<a href="https://syllabus.fabricahq.com/guide/#ok">good</a><a href="//syllabus.fabricahq.com/absent/">missing</a><a href="http://syllabus.fabricahq.com/guide/#missing">anchor</a>',
+      '<a href="https://trailguide.fabricahq.com/guide/#ok">good</a><a href="//trailguide.fabricahq.com/absent/">missing</a><a href="http://trailguide.fabricahq.com/guide/#missing">anchor</a>',
     'guide/index.html': '<a name="ok">Named anchor</a>',
   });
   expect(result.status).toBe(1);
   expect(result.stderr).not.toContain('missing anchor: https://');
   expect(result.stderr).toContain(
-    'missing destination: //syllabus.fabricahq.com/absent/',
+    'missing destination: //trailguide.fabricahq.com/absent/',
   );
   expect(result.stderr).toContain(
-    'missing anchor: http://syllabus.fabricahq.com/guide/#missing',
+    'missing anchor: http://trailguide.fabricahq.com/guide/#missing',
   );
 });

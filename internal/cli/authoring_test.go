@@ -35,7 +35,7 @@ func TestAuthoringCLIProcess(t *testing.T) {
 			t.Fatal(args, code, stdout, stderr)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(directory, ".syllabus/vendor")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(directory, ".trailguide/vendor")); !os.IsNotExist(err) {
 		t.Fatal("authoring unexpectedly fetched source", err)
 	}
 }

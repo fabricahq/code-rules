@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
-// skillFile returns a SKILL.md for skill name whose syllabus-skills-used lists used.
+// skillFile returns a SKILL.md for skill name whose trailguide-skills-used lists used.
 func skillFile(name string, used ...string) []byte {
 	text := "---\nname: " + name + "\ndescription: " + name + ".\n"
 	if len(used) > 0 {
-		text += "metadata:\n  syllabus-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
+		text += "metadata:\n  trailguide-skills-used: |\n    " + strings.Join(used, "\n    ") + "\n"
 	}
 	return []byte(text + "---\n# " + name + "\n")
 }
@@ -106,19 +106,19 @@ func TestGenerateRejectsAnAuthoredSkillThatUsesASkillTheProjectDoesNotInstall(t 
 	}{
 		"a missing authored skill": {
 			map[string]SkillFiles{"skills/release": authored("release", "skills/tag")}, "skills/release/SKILL.md",
-			"syllabus-skills-used names skills/tag, which isn't a skill in .syllabus/skills/; write the skill, or name a source's skill with its source name, such as fabrica:skills/tag",
+			"trailguide-skills-used names skills/tag, which isn't a skill in .trailguide/skills/; write the skill, or name a source's skill with its source name, such as fabrica:skills/tag",
 		},
 		"an unknown source": {
 			map[string]SkillFiles{"skills/release": authored("release", "other:skills/build")}, "skills/release/SKILL.md",
-			"syllabus-skills-used names other:skills/build, but the configuration has no source named other; add the source, or correct the source name",
+			"trailguide-skills-used names other:skills/build, but the configuration has no source named other; add the source, or correct the source name",
 		},
 		"a source's skill the project doesn't install": {
 			map[string]SkillFiles{"skills/release": authored("release", "team:skills/tdd")}, "skills/release/SKILL.md",
-			"syllabus-skills-used names team:skills/tdd, which the project doesn't install; add skills/tdd to sources.team.skills.include, then run syllabus project sync",
+			"trailguide-skills-used names team:skills/tdd, which the project doesn't install; add skills/tdd to sources.team.skills.include, then run trailguide project sync",
 		},
 		"authored skills in a cycle": {
 			map[string]SkillFiles{"skills/release": authored("release", "skills/tag"), "skills/tag": authored("tag", "skills/release")}, "skills/release/SKILL.md",
-			"syllabus-skills-used forms a cycle: skills/release -> skills/tag -> skills/release. A skill installs with every skill it uses, so uses can't form a cycle; remove one of them",
+			"trailguide-skills-used forms a cycle: skills/release -> skills/tag -> skills/release. A skill installs with every skill it uses, so uses can't form a cycle; remove one of them",
 		},
 	}
 	for name, test := range tests {

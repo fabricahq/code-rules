@@ -1,11 +1,11 @@
-// Package syllabus parses the files and Git tags of a Syllabus library exactly as Syllabus reads them:
+// Package trailguide parses the files and Git tags of a Trail Guide library exactly as Trail Guide reads them:
 // library release tag names and messages, the release records in those messages, rule files, group metadata
 // (_group.yaml), and the canonical group list. The format is specified at
-// https://syllabus.fabricahq.com/reference/library-format/ and
-// https://syllabus.fabricahq.com/reference/rule-versions/.
+// https://trailguide.fabricahq.com/reference/library-format/ and
+// https://trailguide.fabricahq.com/reference/rule-versions/.
 //
 // The package only parses. It has no Git, filesystem, or network access: every function takes bytes or text the
-// caller has already read, such as a tag message read with go-git, and returns typed values. Syllabus itself
+// caller has already read, such as a tag message read with go-git, and returns typed values. Trail Guide itself
 // reads libraries through this package, so the two can't disagree.
 //
 // A catalog typically reads a library in three steps. ParseReleaseTag recognizes the release/<number> tag names
@@ -19,6 +19,6 @@
 // format than this version reads; and *ValidationError, with errors.As, for the location and problem of any other
 // invalid input. Every error these functions return means the input is invalid.
 //
-// This is a public API that follows Syllabus's own version: each Syllabus release includes it, and it may
-// change before Syllabus 1.0.0.
-package syllabus
+// This is a public API that follows Trail Guide's own version: each Trail Guide release includes it, and it may
+// change before Trail Guide 1.0.0.
+package trailguide

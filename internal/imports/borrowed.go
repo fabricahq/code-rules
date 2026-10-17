@@ -11,10 +11,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // borrowing says which revision of each source a library borrows from an import takes skills from.
@@ -248,13 +248,13 @@ func (l lendingSource) read(ctx context.Context, repo *repository, revision libr
 func (l lendingSource) revision(ctx context.Context, repo *repository, recorded, planned library.BorrowedSource, isPlanned bool) (library.BorrowedSource, bool, error) {
 	if l.override != nil {
 		revision := library.BorrowedSource{Repository: l.override.Repository, Ref: l.override.Ref, Release: l.overridden.Release, Commit: l.overridden.Commit, Source: l.override.Name, NonLibrary: l.overridden.NonLibrary}
-		return revision, true, repo.fetchCommits(ctx, []string{revision.Commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s is missing from its repository, so the repository may have rewritten its history. Run syllabus project sync again, or delete vendor/%s and run syllabus project sync to resolve sources.%s again.", l.override.Name, l.override.Name, l.override.Name, l.override.Name))
+		return revision, true, repo.fetchCommits(ctx, []string{revision.Commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s is missing from its repository, so the repository may have rewritten its history. Run trailguide project sync again, or delete vendor/%s and run trailguide project sync to resolve sources.%s again.", l.override.Name, l.override.Name, l.override.Name, l.override.Name))
 	}
 	if isPlanned && l.declares(planned) {
-		return planned, false, repo.fetchCommits(ctx, []string{planned.Commit}, l.vanished("syllabus project update "+l.library))
+		return planned, false, repo.fetchCommits(ctx, []string{planned.Commit}, l.vanished("trailguide project update "+l.library))
 	}
 	if recorded.Source == "" && l.declares(recorded) {
-		missing := fmt.Sprintf("The commit that vendor/%s/_source.json records for the skills library %s borrows from %s is missing from that repository, so it may have rewritten its history. Run syllabus project update %s to resolve the library's ref for %s again.", l.library, l.library, l.name, l.library, l.name)
+		missing := fmt.Sprintf("The commit that vendor/%s/_source.json records for the skills library %s borrows from %s is missing from that repository, so it may have rewritten its history. Run trailguide project update %s to resolve the library's ref for %s again.", l.library, l.library, l.name, l.library, l.name)
 		if err := repo.fetchCommits(ctx, []string{recorded.Commit}, missing); err != nil {
 			return library.BorrowedSource{}, false, err
 		}
@@ -266,10 +266,10 @@ func (l lendingSource) revision(ctx context.Context, repo *repository, recorded,
 	return revision, false, err
 }
 
-// vanished explains a commit of the lending source that its repository no longer has, although Syllabus just read it,
+// vanished explains a commit of the lending source that its repository no longer has, although Trail Guide just read it,
 // and names command, what to run again.
 func (l lendingSource) vanished(command string) string {
-	return fmt.Sprintf("A commit of the repository library %s borrows skills from as %s disappeared while Syllabus read it, so the repository's history changed. Run %s again.", l.library, l.name, command)
+	return fmt.Sprintf("A commit of the repository library %s borrows skills from as %s disappeared while Trail Guide read it, so the repository's history changed. Run %s again.", l.library, l.name, command)
 }
 
 // declares reports whether revision records the repository and ref the library declares for the lending source.
@@ -290,7 +290,7 @@ func (l lendingSource) resolve(ctx context.Context, repo *repository) (library.B
 		}
 		newest := history.newest()
 		if newest == nil {
-			return library.BorrowedSource{}, fail("ref-required", fmt.Sprintf("Library %s borrows skills from its source %s, whose repository has no release/<number> tags, so the library must name a ref for it. Ask the library's maintainer to set sources.%s.ref in its .syllabus/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", l.library, l.name, l.name), nil)
+			return library.BorrowedSource{}, fail("ref-required", fmt.Sprintf("Library %s borrows skills from its source %s, whose repository has no release/<number> tags, so the library must name a ref for it. Ask the library's maintainer to set sources.%s.ref in its .trailguide/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", l.library, l.name, l.name), nil)
 		}
 		revision.Release, revision.Commit = newest.number, newest.commit
 		if err := repo.fetchCommits(ctx, []string{revision.Commit}, l.vanished("the command")); err != nil {
@@ -313,7 +313,7 @@ func (l lendingSource) libraryRef(err error) error {
 	if !errors.As(err, &failure) || !strings.HasPrefix(failure.Problem, "sources."+l.name+".ref") {
 		return err
 	}
-	return fail(failure.Code, fmt.Sprintf("Library %s borrows skills from its source %s at ref %s, which the repository doesn't resolve: %s Ask the library's maintainer to fix sources.%s.ref in its .syllabus/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", l.library, l.name, l.declared.Ref, strings.TrimSpace(strings.TrimPrefix(failure.Problem, "sources."+l.name+".ref:")), l.name), nil)
+	return fail(failure.Code, fmt.Sprintf("Library %s borrows skills from its source %s at ref %s, which the repository doesn't resolve: %s Ask the library's maintainer to fix sources.%s.ref in its .trailguide/config.yaml, or declare the repository as a source of your own with a ref, which overrides the library's.", l.library, l.name, l.declared.Ref, strings.TrimSpace(strings.TrimPrefix(failure.Problem, "sources."+l.name+".ref:")), l.name), nil)
 }
 
 // missing explains a borrowed skill, id, that the lending source's revision doesn't have: a revision a record or an
@@ -323,15 +323,15 @@ func (l lendingSource) missing(id string, revision library.BorrowedSource, kept 
 	where := revisionName(revision.Release, revision.Commit)
 	switch {
 	case l.override != nil:
-		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision of sources.%s, which declares the same repository and so supplies the skills the library borrows from it. Run syllabus project update %s, or set sources.%s.ref to a revision that has the skill, then run syllabus project sync.", l.library, id, where, l.override.Name, l.override.Name, l.override.Name), nil)
+		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision of sources.%s, which declares the same repository and so supplies the skills the library borrows from it. Run trailguide project update %s, or set sources.%s.ref to a revision that has the skill, then run trailguide project sync.", l.library, id, where, l.override.Name, l.override.Name, l.override.Name), nil)
 	case kept:
-		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision vendor/%s/_source.json records for the skills it borrows from %s. Sync never moves that revision; run syllabus project update %s, which resolves the library's ref for %s again.", l.library, id, where, l.library, l.name, l.library, l.name), nil)
+		return fail("skill-not-in-revision", fmt.Sprintf("Library %s lists %s, which isn't in %s, the revision vendor/%s/_source.json records for the skills it borrows from %s. Sync never moves that revision; run trailguide project update %s, which resolves the library's ref for %s again.", l.library, id, where, l.library, l.name, l.library, l.name), nil)
 	}
 	return &ValidationError{Location: "sources." + l.library, Problem: fmt.Sprintf("library %s lists %s, which its repository %s doesn't have at %s; ask the library's maintainer to fix library.skills or sources.%s.ref", l.library, id, l.declared.Repository, where, l.name)}
 }
 
 // planBorrowed plans the revision of each source a library borrows skills from, given manifest, the library's
-// .syllabus/config.yaml at a revision the update can take source's skills from, and recorded, the source's snapshot,
+// .trailguide/config.yaml at a revision the update can take source's skills from, and recorded, the source's snapshot,
 // or nil. It resolves the ref the library names again, as an update of the whole source does, unless keep is set,
 // which keeps the recorded revision while the library still names its repository and ref, as sync does. A borrowed repository that
 // a project source declares too comes from overridden, that source's revision once the update is applied, by source
@@ -442,7 +442,7 @@ func (l lendingSource) plan(ctx context.Context, chosen []borrowedSkill, was lib
 	return revision, &row, nil
 }
 
-// manifestAt returns the .syllabus/config.yaml of a fetched commit, or nil when it has none.
+// manifestAt returns the .trailguide/config.yaml of a fetched commit, or nil when it has none.
 func (r *repository) manifestAt(ctx context.Context, commit string) ([]byte, error) {
 	tree, err := r.repositoryTree(ctx, commit)
 	if err != nil {

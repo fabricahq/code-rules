@@ -1,17 +1,17 @@
 ---
-title: "What is Syllabus?"
+title: "What is Trail Guide?"
 description: "The package manager for the agent skills and engineering rules agents follow when they write and review code."
 ---
 
-Syllabus is the package manager for your agent skills and rules.
+Trail Guide is the package manager for your agent skills and rules.
 
 :::caution[Preview]
-Skill support isn't in a released version of Syllabus yet. This page describes how it will work.
+Skill support isn't in a released version of Trail Guide yet. This page describes how it will work.
 :::
 
 Most teams today use skills to guide their agents, but skills aren't always the ideal package for delivering guidance, and managing skills across repos, organizations, and your local environment can be tricky.
 
-Syllabus solves these problems with two key insights:
+Trail Guide solves these problems with two key insights:
 
 1. Skills need a finer-grained companion: rules.
 2. Skills and rules both need a package manager.
@@ -22,13 +22,13 @@ Skills are coarse-grained: a single skill often bundles many insights, which mak
 
 ## Skills and rules need a package manager
 
-Syllabus manages both skills and rules the way a package manager manages code. Each project declares the skills and rules it uses and where they come from: public or private libraries, your organization's shared library, or the project itself. Skills can also come from any Git repository of skill folders, even one that doesn't use Syllabus.
+Trail Guide manages both skills and rules the way a package manager manages code. Each project declares the skills and rules it uses and where they come from: public or private libraries, your organization's shared library, or the project itself. Skills can also come from any Git repository of skill folders, even one that doesn't use Trail Guide.
 
-Syllabus records each skill's and rule's source and version, updates them only when you choose, and installs skills for Claude Code, Codex, Cursor, and other agents at once.
+Trail Guide records each skill's and rule's source and version, updates them only when you choose, and installs skills for Claude Code, Codex, Cursor, and other agents at once.
 
 ## Use cases
 
-With Syllabus, you can:
+With Trail Guide, you can:
 
 - Start every new repo with exactly the right skills and rules in place.
 - Update a skill once in your organization's library, and have every repo pick up the change on its next update.
@@ -41,17 +41,17 @@ The bigger payoff comes after an agent session. When an agent misses something y
 
 ## How it works
 
-1. Run `syllabus project init` to create a `.syllabus` directory in your repo.
-2. In `.syllabus/config.yaml`, choose the skills and rules you want from libraries, and add any of your own.
-3. Run `syllabus project sync`. Syllabus copies in the rules, writes `RULES.md` to index them, and installs the skills where your agents look for them.
-4. Syllabus adds a **Skills and Rules** section to your `AGENTS.md` and keeps it current, so your agents read the rules and use the skills that fit each task.
-5. Commit the results. When a library publishes new versions, run `syllabus project update` to adopt them.
+1. Run `trailguide project init` to create a `.trailguide` directory in your repo.
+2. In `.trailguide/config.yaml`, choose the skills and rules you want from libraries, and add any of your own.
+3. Run `trailguide project sync`. Trail Guide copies in the rules, writes `RULES.md` to index them, and installs the skills where your agents look for them.
+4. Trail Guide adds a **Skills and Rules** section to your `AGENTS.md` and keeps it current, so your agents read the rules and use the skills that fit each task.
+5. Commit the results. When a library publishes new versions, run `trailguide project update` to adopt them.
 
 [Set up your first project](/start-here/set-up-project/) walks through these steps.
 
 ## Core concepts
 
-Syllabus is built around just a few simple concepts.
+Trail Guide is built around just a few simple concepts.
 
 ### Rules
 
@@ -67,15 +67,15 @@ A [skill](/concepts/skill/) is the AI skill you already know, officially an [Age
 
 ### Projects
 
-You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.syllabus` folder in your project repo. You (or your agent) can use the `syllabus` CLI to initialize a new project, and add your own rules, rule groups, and skills. We recommend committing `/.syllabus`, and the skills Syllabus installs, to version control.
+You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.trailguide` folder in your project repo. You (or your agent) can use the `trailguide` CLI to initialize a new project, and add your own rules, rule groups, and skills. We recommend committing `/.trailguide`, and the skills Trail Guide installs, to version control.
 
 ### Libraries
 
-Finally, you probably want to include some pre-existing rules and skills from a [library](/concepts/libraries/), a repository that publishes rule groups and skills for other projects. A library can require or recommend skills for every project that uses it. You can also install skills from a Git repository that isn't a library, such as a third party's skill collection. Libraries can optionally declare license terms, which Syllabus carries into your project.
+Finally, you probably want to include some pre-existing rules and skills from a [library](/concepts/libraries/), a repository that publishes rule groups and skills for other projects. A library can require or recommend skills for every project that uses it. You can also install skills from a Git repository that isn't a library, such as a third party's skill collection. Libraries can optionally declare license terms, which Trail Guide carries into your project.
 
 ### RULES.md
 
-Syllabus combines your own rules and the ones you include from sources into guidance under `.syllabus/generated/`. Agents start with `RULES.md`, an index that tells them which rule groups to read.
+Trail Guide combines your own rules and the ones you include from sources into guidance under `.trailguide/generated/`. Agents start with `RULES.md`, an index that tells them which rule groups to read.
 
 An abbreviated `RULES.md` entry:
 
@@ -91,14 +91,14 @@ The linked rule group page contains the rules in full, or links to their full de
 
 ### Installed skills
 
-Syllabus writes each installed skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.syllabus/generated/SKILLS.md`. Each installed skill that cites rules ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
+Trail Guide writes each installed skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.trailguide/generated/SKILLS.md`. Each installed skill that cites rules ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
 
-## What Syllabus does not do
+## What Trail Guide does not do
 
-Syllabus assembles rules and skills from multiple sources into a cohesive, agent-friendly collection of files in your repo, and checks that those files are valid and current.
+Trail Guide assembles rules and skills from multiple sources into a cohesive, agent-friendly collection of files in your repo, and checks that those files are valid and current.
 
-Syllabus installs skills into your repository, not on your computer. It doesn't manage the personal skills a person installs for all of their repositories, though it warns when one has the same name as a skill your project installs.
+Trail Guide installs skills into your repository, not on your computer. It doesn't manage the personal skills a person installs for all of their repositories, though it warns when one has the same name as a skill your project installs.
 
-Syllabus also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: a **Skills and Rules** section, which tells them to read `RULES.md` and apply the rules that fit the task, and to use any installed skill listed in `SKILLS.md` that fits it. `syllabus project init` adds the section to `AGENTS.md`, and later commands keep it current between its markers without changing the rest of the file. To manage `AGENTS.md` yourself, turn the section off with [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section). See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
+Trail Guide also supplies the instructions that tell your agents to follow the relevant rules and skills for each task: a **Skills and Rules** section, which tells them to read `RULES.md` and apply the rules that fit the task, and to use any installed skill listed in `SKILLS.md` that fits it. `trailguide project init` adds the section to `AGENTS.md`, and later commands keep it current between its markers without changing the rest of the file. To manage `AGENTS.md` yourself, turn the section off with [`manageAgentsFile: false`](/reference/configuration/#agentsmd-section). See [Set up your first project](/start-here/set-up-project/#6-give-the-rules-to-your-agent).
 
-That is where Syllabus's work ends. It can't guarantee that your agents followed your rules or used your skills. You can add your own guidance on how agents should apply them, in other procedures, in skills, or elsewhere in `AGENTS.md`.
+That is where Trail Guide's work ends. It can't guarantee that your agents followed your rules or used your skills. You can add your own guidance on how agents should apply them, in other procedures, in skills, or elsewhere in `AGENTS.md`.

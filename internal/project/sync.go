@@ -12,11 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/build"
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/build"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // Sync imports the rule versions each source's snapshot records, choosing versions only where configuration asks
@@ -83,7 +83,7 @@ type installation struct {
 // the transaction also writes that copy to rules/<group>/_group.yaml, with a warning. before is the project as read
 // under w; any change to it before replacement fails with concurrent-change. The report lists vendor and generated
 // paths, config.yaml when edited, authored group metadata it adds, and the authored files of each replaced fork. The
-// transaction also refreshes the Syllabus section of the repository's AGENTS.md, which the report lists separately.
+// transaction also refreshes the Trail Guide section of the repository's AGENTS.md, which the report lists separately.
 func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before projectState, in installation) (FileChanges, error) {
 	snapshots := map[string]snapshot{}
 	libraries := map[string]build.Library{}
@@ -134,7 +134,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	}
 	defer agents.close()
 	changes := compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
-	// The report's paths are relative to the Syllabus directory, one folder below the repository root.
+	// The report's paths are relative to the Trail Guide directory, one folder below the repository root.
 	mergeChanges(&changes, prefixChanges(installs.changes, "../"))
 	targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
 	maps.Copy(targets, installs.targets)
@@ -286,7 +286,7 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 			file := record.name + "/" + librarytree.SnapshotPath(group+"/_group.yaml")
 			data, ok := vendored[file]
 			if !ok || digest(data) != recorded {
-				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become rules/%s/_group.yaml, the metadata your authored rules in the group need. Restore it: run syllabus project sync with the previous configuration, then change the configuration and sync again; or write rules/%s/_group.yaml yourself", group, group))
+				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become rules/%s/_group.yaml, the metadata your authored rules in the group need. Restore it: run trailguide project sync with the previous configuration, then change the configuration and sync again; or write rules/%s/_group.yaml yourself", group, group))
 			}
 			kept[group] = data
 			break

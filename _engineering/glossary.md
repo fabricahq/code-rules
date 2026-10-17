@@ -1,6 +1,6 @@
-# Syllabus
+# Trail Guide
 
-Syllabus manages which engineering rules and agent skills a repo takes from shared sources and from its own authors, and delivers them where coding agents read them. A repo can be a project, a library, or both.
+Trail Guide manages which engineering rules and agent skills a repo takes from shared sources and from its own authors, and delivers them where coding agents read them. A repo can be a project, a library, or both.
 
 ## Language
 
@@ -35,7 +35,7 @@ A skill's path within the repository that holds it. A skill's identity is its re
 _Avoid_: Skill name (that is the install name)
 
 **Skill type**:
-An optional label, playbook or review, saying whether a skill changes work or judges work that already exists; it never changes how Syllabus treats the skill.
+An optional label, playbook or review, saying whether a skill changes work or judges work that already exists; it never changes how Trail Guide treats the skill.
 _Avoid_: Skill kind, category
 
 **Cited rule**:
@@ -69,7 +69,7 @@ A library an organization publishes as the shared default for its projects.
 _Avoid_: Preset, org defaults, base config
 
 **Source**:
-A Git repository that a repo takes rules or skills from, declared once and shared by its rule and skill selections. A source has no declared type; Syllabus detects whether it has a manifest and library releases.
+A Git repository that a repo takes rules or skills from, declared once and shared by its rule and skill selections. A source has no declared type; Trail Guide detects whether it has a manifest and library releases.
 _Avoid_: Dependency, import, remote, plain repository
 
 **Non-library source**:
@@ -151,7 +151,7 @@ A project's choice of a different install name for one skill. The skill ID stays
 _Avoid_: Alias, remap
 
 **Shadowed skill**:
-A repo skill that shares its install name with one of the user's personal skills; each agent resolves the pair its own way, and Syllabus only warns.
+A repo skill that shares its install name with one of the user's personal skills; each agent resolves the pair its own way, and Trail Guide only warns.
 _Avoid_: Overridden skill, conflicting skill
 
 ### Versions and locking
@@ -195,13 +195,13 @@ _Avoid_: Install, update, build, pull
 ### Installation
 
 **Skill target**:
-An agent's skill folder that Syllabus writes installed skills into, chosen by each repo.
+An agent's skill folder that Trail Guide writes installed skills into, chosen by each repo.
 _Avoid_: Install target, output directory, harness
 
 **Installed skill**:
-The copy of an included skill that Syllabus writes into each skill target under its install name, linked to the repo's versions of the rules it cites.
+The copy of an included skill that Trail Guide writes into each skill target under its install name, linked to the repo's versions of the rules it cites.
 _Avoid_: Deployed skill, skill copy
 
 **Generated guidance**:
-The files Syllabus writes for agents from the selected rules and installed skills: the rule index, rule group pages, and skill index. Nobody edits them by hand.
+The files Trail Guide writes for agents from the selected rules and installed skills: the rule index, rule group pages, and skill index. Nobody edits them by hand.
 _Avoid_: Output, build artifacts, compiled rules

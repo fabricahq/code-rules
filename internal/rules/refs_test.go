@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // projectedRef is a ref's canonical form as the fixtures describe it: a commit's lowercase SHA or a tag's full name.

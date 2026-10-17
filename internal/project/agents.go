@@ -1,4 +1,4 @@
-// Maintain the Syllabus section of the repository's AGENTS.md, leaving every line outside its markers to the project.
+// Maintain the Trail Guide section of the repository's AGENTS.md, leaving every line outside its markers to the project.
 
 package project
 
@@ -15,15 +15,15 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
-// agentsFile is the instruction file Syllabus maintains a section in, at the repository root, the parent of the
-// Syllabus directory. Agents that read another file, such as Claude Code's CLAUDE.md, import or link it.
+// agentsFile is the instruction file Trail Guide maintains a section in, at the repository root, the parent of the
+// Trail Guide directory. Agents that read another file, such as Claude Code's CLAUDE.md, import or link it.
 const agentsFile = "AGENTS.md"
 
-// agentsSectionTemplate is the text between the section's markers, written for a project in .syllabus/;
+// agentsSectionTemplate is the text between the section's markers, written for a project in .trailguide/;
 // documentation pages quote it.
 //
 //go:embed agents-section.md
@@ -33,11 +33,11 @@ var agentsSectionTemplate string
 // 16 hexadecimal digits of the SHA-256 of the lines between the markers, so a refresh can tell an unedited section
 // written by another version, which it replaces, from a hand edit, which it refuses to overwrite.
 var (
-	agentsBeginMarker = regexp.MustCompile(`^<!-- syllabus:begin (\S+) sha256:([0-9a-f]{16}) -->$`)
-	agentsEndMarker   = regexp.MustCompile(`^<!-- syllabus:end -->$`)
+	agentsBeginMarker = regexp.MustCompile(`^<!-- trailguide:begin (\S+) sha256:([0-9a-f]{16}) -->$`)
+	agentsEndMarker   = regexp.MustCompile(`^<!-- trailguide:end -->$`)
 )
 
-// AgentsChange reports how a command changed the Syllabus section of AGENTS.md.
+// AgentsChange reports how a command changed the Trail Guide section of AGENTS.md.
 type AgentsChange struct {
 	Path string `json:"path"` // Relative to the repository root.
 	// Action is created when the command created AGENTS.md, added when it added the section to an existing file, and
@@ -54,11 +54,11 @@ func toolVersion(options Options) string {
 	return options.ToolVersion
 }
 
-// renderAgentsSection returns the section, markers included, for a project whose Syllabus directory is named
-// directory, such as .syllabus.
+// renderAgentsSection returns the section, markers included, for a project whose Trail Guide directory is named
+// directory, such as .trailguide.
 func renderAgentsSection(directory, version string) string {
-	inner := strings.ReplaceAll(agentsSectionTemplate, ".syllabus/", directory+"/")
-	return fmt.Sprintf("<!-- syllabus:begin %s sha256:%s -->\n%s<!-- syllabus:end -->\n", version, agentsDigest(inner), inner)
+	inner := strings.ReplaceAll(agentsSectionTemplate, ".trailguide/", directory+"/")
+	return fmt.Sprintf("<!-- trailguide:begin %s sha256:%s -->\n%s<!-- trailguide:end -->\n", version, agentsDigest(inner), inner)
 }
 
 func agentsDigest(text string) string {
@@ -66,7 +66,7 @@ func agentsDigest(text string) string {
 	return hex.EncodeToString(sum[:8])
 }
 
-// agentsSection locates the Syllabus section in AGENTS.md's lines. begin and end are -1 when it has none.
+// agentsSection locates the Trail Guide section in AGENTS.md's lines. begin and end are -1 when it has none.
 type agentsSection struct {
 	lines      []string
 	begin, end int
@@ -78,28 +78,28 @@ type agentsSection struct {
 func inspectAgentsSection(existing string) (agentsSection, error) {
 	s := agentsSection{lines: strings.SplitAfter(existing, "\n"), begin: -1, end: -1}
 	invalid := func(problem string) error {
-		return failure("agents-section-invalid", agentsFile+": "+problem+"; fix or remove the syllabus markers, then run the command again", nil)
+		return failure("agents-section-invalid", agentsFile+": "+problem+"; fix or remove the trailguide markers, then run the command again", nil)
 	}
 	for i, line := range s.lines {
 		trimmed := strings.TrimRight(line, "\r\n")
 		switch {
 		case agentsBeginMarker.MatchString(trimmed):
 			if s.begin != -1 {
-				return s, invalid("found more than one syllabus:begin marker")
+				return s, invalid("found more than one trailguide:begin marker")
 			}
 			s.begin = i
 		case agentsEndMarker.MatchString(trimmed):
 			if s.end != -1 {
-				return s, invalid("found more than one syllabus:end marker")
+				return s, invalid("found more than one trailguide:end marker")
 			}
 			s.end = i
-		case strings.HasPrefix(strings.TrimSpace(trimmed), "<!-- syllabus:"):
+		case strings.HasPrefix(strings.TrimSpace(trimmed), "<!-- trailguide:"):
 			// A damaged marker would otherwise hide the section, and the command would add a second one.
-			return s, invalid("found a malformed syllabus marker")
+			return s, invalid("found a malformed trailguide marker")
 		}
 	}
 	if (s.begin == -1) != (s.end == -1) || s.end < s.begin {
-		return s, invalid("found a syllabus:begin or syllabus:end marker without its pair")
+		return s, invalid("found a trailguide:begin or trailguide:end marker without its pair")
 	}
 	if s.begin != -1 {
 		marker := agentsBeginMarker.FindStringSubmatch(strings.TrimRight(s.lines[s.begin], "\r\n"))
@@ -149,11 +149,11 @@ type agentsPlan struct {
 	change     *AgentsChange
 }
 
-// planAgentsSection plans the AGENTS.md beside the Syllabus directory at root so it holds the current section for
+// planAgentsSection plans the AGENTS.md beside the Trail Guide directory at root so it holds the current section for
 // options' version. It plans no change, without reading the file, when config turns off manageAgentsFile, and when
 // the section is current, or when the file has no section but already points to the project's generated/RULES.md, as
-// the block Syllabus once asked users to paste does: that file stays the project's until its pointer is removed. It
-// fails with agents-section-edited when the section's lines changed since Syllabus wrote them, and with
+// the block Trail Guide once asked users to paste does: that file stays the project's until its pointer is removed. It
+// fails with agents-section-edited when the section's lines changed since Trail Guide wrote them, and with
 // agents-section-invalid when its markers are broken.
 func planAgentsSection(ctx context.Context, root *os.Root, config rules.Configuration, options Options) (plan agentsPlan, err error) {
 	if config.SkipAgentsFile {
@@ -191,7 +191,7 @@ func planAgentsSection(ctx context.Context, root *os.Root, config rules.Configur
 			action = "created"
 		}
 	case s.edited:
-		return plan, failure("agents-section-edited", agentsFile+": the Syllabus section was edited after Syllabus wrote it; move your text outside the syllabus:begin and syllabus:end markers and delete the section, then run the command again to restore it", nil)
+		return plan, failure("agents-section-edited", agentsFile+": the Trail Guide section was edited after Trail Guide wrote it; move your text outside the trailguide:begin and trailguide:end markers and delete the section, then run the command again to restore it", nil)
 	case s.current() == want:
 		return plan, nil
 	default:
@@ -207,7 +207,7 @@ func readAgentsFile(ctx context.Context, repository *os.Root) ([]byte, error) {
 	data, err := filetxn.ReadOptional(ctx, repository, agentsFile)
 	var unsafe *filetxn.Error
 	if errors.As(err, &unsafe) && unsafe.Code == "unsafe-file" {
-		return nil, failure("unsafe-file", agentsFile+": Syllabus keeps a section in this file and doesn't write through a link; make AGENTS.md the file, and link or import it from the file your agent reads, such as CLAUDE.md, then run the command again", err)
+		return nil, failure("unsafe-file", agentsFile+": Trail Guide keeps a section in this file and doesn't write through a link; make AGENTS.md the file, and link or import it from the file your agent reads, such as CLAUDE.md, then run the command again", err)
 	}
 	return data, err
 }

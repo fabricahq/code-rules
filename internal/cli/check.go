@@ -5,7 +5,7 @@ package cli
 import (
 	"context"
 
-	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/trailguide/internal/project"
 )
 
 // projectCheckResult describes the current project; checking never applies the suggested repairs.
@@ -30,11 +30,11 @@ type checkProblem struct {
 
 // rebuild is the repair of every problem project check reports about generated files, the managed guide, and the
 // AGENTS.md section: regenerating them.
-var rebuild = nextStep{Instruction: "Regenerate the project's generated files, Syllabus guide, and AGENTS.md section:", Commands: []string{"syllabus project build"}}
+var rebuild = nextStep{Instruction: "Regenerate the project's generated files, Trail Guide guide, and AGENTS.md section:", Commands: []string{"trailguide project build"}}
 
 // reinstallSkills is the repair of every problem project check reports about an installed skill folder: installing
 // fresh copies from each skill's source.
-var reinstallSkills = nextStep{Instruction: "Reinstall the project's skills from their sources, replacing any edits to the installed copies:", Commands: []string{"syllabus project build"}}
+var reinstallSkills = nextStep{Instruction: "Reinstall the project's skills from their sources, replacing any edits to the installed copies:", Commands: []string{"trailguide project build"}}
 
 // checkProject checks generated files, installed skill folders, and the managed README, keeping unreadable or invalid
 // inputs as operational errors.
@@ -55,9 +55,9 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 		case project.UnexpectedFile:
 			message = "Unexpected generated file"
 		case project.OutdatedGuide:
-			message = "Syllabus guide is missing or outdated; preserve any manual edits before refreshing"
+			message = "Trail Guide guide is missing or outdated; preserve any manual edits before refreshing"
 		case project.OutdatedAgents:
-			message = "AGENTS.md is missing the Syllabus section, or holds an outdated one"
+			message = "AGENTS.md is missing the Trail Guide section, or holds an outdated one"
 		case project.MissingSkill:
 			message, repair = "Installed skill "+problem.Skill+" is missing", reinstallSkills
 		case project.ModifiedSkill:

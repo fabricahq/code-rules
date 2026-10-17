@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // fixtureRepository creates a real repository served by an isolated local upload-pack helper.
@@ -221,7 +221,7 @@ func TestFetchRevisionFailsBeforeStartingGit(t *testing.T) {
 func TestReadSkillsFetchesOnlyTheSkillsTheSourceInstalls(t *testing.T) {
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, map[string][]byte{
-		"skills/selected/SKILL.md": []byte("---\nname: selected\ndescription: Use selected.\nmetadata:\n  syllabus-skills-used: skills/used\n---\n"),
+		"skills/selected/SKILL.md": []byte("---\nname: selected\ndescription: Use selected.\nmetadata:\n  trailguide-skills-used: skills/used\n---\n"),
 		"skills/used/SKILL.md":     []byte("---\nname: used\ndescription: Use used.\n---\n"),
 		"skills/unused/SKILL.md":   []byte("---\nname: unused\ndescription: Use unused.\n---\n"),
 	})
