@@ -605,3 +605,29 @@ func TestCheck_RejectsACuratedSkillInTheLibrarysOwnRecord(t *testing.T) {
 		t.Fatalf("check = %v; want the curated skill in the library's own skills refused", err)
 	}
 }
+
+func TestSync_CuratesFromABranchNamedLikeALibraryRelease(t *testing.T) {
+	ctx := context.Background()
+	b := newCuratingAt(t, "release/5", teamSkills, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	if _, err := b.pocock.Command(ctx, "branch", "release/5"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Sync(ctx, b.options, b.git); err != nil {
+		t.Fatal(err)
+	}
+	if installed := readRepositoryFile(t, b.options, ".claude/skills/deploy/SKILL.md"); !strings.Contains(installed, b.pocock.LatestCommit) {
+		t.Fatalf("sync didn't take the curated skill from release/5's newest commit:\n%s", installed)
+	}
+}
+
+func TestSync_ACuratedBareReleaseNameOfABranchAndATagIsAmbiguous(t *testing.T) {
+	ctx := context.Background()
+	b := newCuratingAt(t, "release/5", teamSkills, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":TEAM,"rules":{"include":["techs/go/*"]}}}}`)
+	for _, args := range [][]string{{"branch", "release/5"}, {"tag", "release/5"}} {
+		if _, err := b.pocock.Command(ctx, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err := Sync(ctx, b.options, b.git)
+	requireFailure(t, err, "ambiguous-ref", "both a branch and a tag named release/5.")
+}

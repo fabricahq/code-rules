@@ -163,3 +163,43 @@ func TestUpdate_NamesTheBranchItCannotResolve(t *testing.T) {
 	_, err := PlanUpdate(ctx, options, git, nil, nil)
 	requireFailure(t, err, "version-not-found", "sources.skills.ref: the repository has no branch or tag skills; check the ref, and whether a branch of that name was renamed or deleted.")
 }
+
+func TestSync_FollowsABranchNamedLikeALibraryRelease(t *testing.T) {
+	f := branchSkills(t)
+	if _, err := f.Command(context.Background(), "branch", "release/5"); err != nil {
+		t.Fatal(err)
+	}
+	options, _ := branchProject(t, f, "release/5")
+	if got := recordedCommit(t, options); got != f.LatestCommit {
+		t.Fatalf("sync recorded %s; want release/5's newest commit %s", got, f.LatestCommit)
+	}
+}
+
+func TestSync_ABareReleaseNameOfABranchAndATagIsAmbiguous(t *testing.T) {
+	ctx := context.Background()
+	f := branchSkills(t)
+	for _, args := range [][]string{{"branch", "release/5"}, {"tag", "release/5"}} {
+		if _, err := f.Command(ctx, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"skills":{"repository":REPOSITORY,"ref":"release/5","skills":{"include":["*"]}}}}`)
+	_, err := Sync(ctx, options, git)
+	requireFailure(t, err, "ambiguous-ref", "the repository has both a branch and a tag named release/5.")
+}
+
+func TestUpdate_ATargetedBranchSourceThatSyncHasNotRecordedTakesTheBranch(t *testing.T) {
+	ctx := context.Background()
+	f := branchSkills(t)
+	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"skills":{"repository":REPOSITORY,"ref":"main","skills":{"include":["*"]}}}}`)
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "skills"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := plan.Apply(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := recordedCommit(t, options); got != f.LatestCommit {
+		t.Fatalf("update recorded %s; want main's newest commit %s", got, f.LatestCommit)
+	}
+}

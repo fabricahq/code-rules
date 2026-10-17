@@ -208,6 +208,13 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source) (string,
 			return "", "", err
 		}
 	}
+	return r.fetchName(ctx, source, name)
+}
+
+// fetchName fetches name, the full name of the branch or tag the source's ref names, or the ref's commit, and
+// returns its commit and what it named, as fetchRef does.
+func (r *repository) fetchName(ctx context.Context, source rules.Source, name string) (string, rules.GitRefKind, error) {
+	ref := source.Ref
 	kind := ref.Kind()
 	if strings.HasPrefix(name, "refs/heads/") {
 		kind = rules.GitRefBranch

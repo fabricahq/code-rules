@@ -4,6 +4,7 @@ package imports
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -456,10 +457,23 @@ type resolvedRef struct {
 }
 
 // resolveRef returns the revision the source's ref names now. A missing branch, tag, or commit fails with code
-// version-not-found, and a bare name of both a branch and a tag with ambiguous-ref.
+// version-not-found, and a bare name of both a branch and a tag with ambiguous-ref. A bare name shaped like a library
+// release, such as release/5, names that release only when the repository has no branch of that name.
 func (p *planner) resolveRef() (resolvedRef, error) {
 	if ref := p.source.Ref; ref.Kind() == rules.GitRefTag {
 		if number, err := trailguide.ParseReleaseTag(ref.Name()); err == nil {
+			if ref.Bare() {
+				name, err := p.repo.bareRef(p.ctx, p.source)
+				var failure *Error
+				switch {
+				case err == nil && strings.HasPrefix(name, "refs/heads/"):
+					commit, kind, err := p.repo.fetchName(p.ctx, p.source, name)
+					return resolvedRef{commit: commit, kind: kind}, err
+				// The release history explains a release the library doesn't have.
+				case err != nil && (!errors.As(err, &failure) || failure.Code != "version-not-found"):
+					return resolvedRef{}, err
+				}
+			}
 			history, err := p.releases()
 			if err != nil {
 				return resolvedRef{}, err

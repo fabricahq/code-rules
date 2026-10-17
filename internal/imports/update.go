@@ -668,7 +668,7 @@ func sourceError(source string, err error) error {
 
 // updateScopes maps each source the targets name to the rules they name, or to nil for every rule. No targets
 // names every source. A target can name a source that uses ref only when the update moves it, as followsRef decides
-// from the source's snapshot in recorded, and then only as a whole.
+// from the source's snapshot in recorded, or when sync hasn't recorded its branch or tag yet, and then only as a whole.
 func updateScopes(configuration rules.Configuration, recorded map[string]library.Snapshot, targets []UpdateTarget) (map[string][]string, error) {
 	scopes := map[string][]string{}
 	whole := map[string]bool{}
@@ -687,7 +687,9 @@ func updateScopes(configuration rules.Configuration, recorded map[string]library
 			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .trailguide/config.yaml"}
 		}
 		source := configuration.Sources[index]
-		if !source.Ref.IsZero() && (target.Rule != "" || !followsRef(source, recordedSnapshot(recorded, source.Name))) {
+		snapshot := recordedSnapshot(recorded, source.Name)
+		unrecorded := snapshot == nil && source.Ref.Kind() != rules.GitRefCommit
+		if !source.Ref.IsZero() && (target.Rule != "" || !unrecorded && !followsRef(source, snapshot)) {
 			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run trailguide project sync"}
 		}
 		if target.Rule == "" {
