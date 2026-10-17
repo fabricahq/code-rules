@@ -487,7 +487,7 @@ Error: .trailguide/config.yaml uses schemaVersion 1, which this version of Trail
   skillTargets: [claude, agents]
   sources:
     fabrica:
-      repository: https://github.com/fabricahq/public-rules.git
+      repository: https://github.com/fabricahq/public-library.git
       rules:
         include: [practices/testing/*]
         exclude:
