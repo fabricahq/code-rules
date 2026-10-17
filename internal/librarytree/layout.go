@@ -1,5 +1,5 @@
 // Place a library's files in its repository: each file's library path, which rule IDs, release records, and vendor
-// snapshots use, and where the file lives in the repository's Syllabus directory.
+// snapshots use, and where the file lives in the repository's Trail Guide directory.
 
 package librarytree
 
@@ -9,15 +9,15 @@ import (
 	"strings"
 )
 
-// Directory is the Syllabus directory at the repository root. It holds a library's manifest, rules, shared
+// Directory is the Trail Guide directory at the repository root. It holds a library's manifest, rules, shared
 // assets, and change notes, beside the project files of the same repository.
-const Directory = ".syllabus"
+const Directory = ".trailguide"
 
-// LegacyDirectory is the Syllabus directory's name from before Code Rules was renamed Syllabus. Projects that
+// LegacyDirectory is the Trail Guide directory's name from before Code Rules was renamed Trail Guide. Projects that
 // haven't renamed it, and every library release published before the rename, keep their files there.
 const LegacyDirectory = ".code-rules"
 
-// UsesLegacyDirectory reports whether a tree, given by its repository paths, keeps its Syllabus directory under
+// UsesLegacyDirectory reports whether a tree, given by its repository paths, keeps its Trail Guide directory under
 // LegacyDirectory: it has a file there and none in Directory.
 func UsesLegacyDirectory(paths iter.Seq[string]) bool {
 	legacy := false
@@ -30,7 +30,7 @@ func UsesLegacyDirectory(paths iter.Seq[string]) bool {
 	return legacy
 }
 
-// Upgrade returns the repository path file of a tree that keeps its Syllabus directory under LegacyDirectory with
+// Upgrade returns the repository path file of a tree that keeps its Trail Guide directory under LegacyDirectory with
 // that directory spelled as Directory, so the tree reads like one made after the rename.
 func Upgrade(file string) string {
 	if inside, found := strings.CutPrefix(file, LegacyDirectory+"/"); found {
@@ -39,7 +39,7 @@ func Upgrade(file string) string {
 	return file
 }
 
-// Manifest is the library path of the library's manifest: the repository's configuration, .syllabus/config.yaml,
+// Manifest is the library path of the library's manifest: the repository's configuration, .trailguide/config.yaml,
 // whose library section makes the repository a library.
 const Manifest = "config.yaml"
 
@@ -48,8 +48,8 @@ const Manifest = "config.yaml"
 const LegacyManifest = "rule-library.yaml"
 
 // RepositoryPath returns where the library file at library path file lives in its repository. The manifest is
-// .syllabus/config.yaml; groups, at techs/ and practices/, live in .syllabus/rules/; shared assets, at assets/,
-// and change notes, at changes/, live in .syllabus/. Any other path is a license or notice file, at the same path
+// .trailguide/config.yaml; groups, at techs/ and practices/, live in .trailguide/rules/; shared assets, at assets/,
+// and change notes, at changes/, live in .trailguide/. Any other path is a license or notice file, at the same path
 // relative to the repository root.
 func RepositoryPath(file string) string {
 	if file == Manifest {
@@ -65,20 +65,20 @@ func RepositoryPath(file string) string {
 }
 
 // SnapshotPath returns where the library file at library path file is stored in a project's snapshot of the
-// library, vendor/<source>/: its path relative to the library's Syllabus directory, as RepositoryPath places it,
+// library, vendor/<source>/: its path relative to the library's Trail Guide directory, as RepositoryPath places it,
 // so a rule at rules/techs/go/x.md keeps its relative links to shared assets at assets/. A license or notice file
-// outside the Syllabus directory keeps its path relative to the repository root.
+// outside the Trail Guide directory keeps its path relative to the repository root.
 func SnapshotPath(file string) string {
 	return strings.TrimPrefix(RepositoryPath(file), Directory+"/")
 }
 
 // snapshotNames are the top-level names in a project's snapshot of a library that SnapshotPath gives the files of
-// its Syllabus directory, or that the project keeps for its records of the source: _source.json, and borrowed/
+// its Trail Guide directory, or that the project keeps for its records of the source: _source.json, and borrowed/
 // for the skills the library borrows.
 var snapshotNames = []string{"_source.json", "assets", "borrowed", "changes", Manifest, "rules", "skills"}
 
-// InSnapshotNames reports whether file, the library path of a file outside the Syllabus directory, such as a
-// license file, starts with one of the names a snapshot keeps for the library's Syllabus directory or the project's
+// InSnapshotNames reports whether file, the library path of a file outside the Trail Guide directory, such as a
+// license file, starts with one of the names a snapshot keeps for the library's Trail Guide directory or the project's
 // records of the source, in any letter case. Stored at its repository path, such a file could take the place of one
 // of theirs, as rules/techs/go/errors.md at the repository root would take rule techs/go/errors's.
 func InSnapshotNames(file string) bool {
@@ -87,8 +87,8 @@ func InSnapshotNames(file string) bool {
 }
 
 // LibraryPath returns the library path of the file or directory at repository path file, the inverse of
-// RepositoryPath. It reports false for a path that holds no library file: anything else in .syllabus/, such as
-// vendor/, generated/, or rules/README.md, and a path outside .syllabus/ whose library path would be one of a
+// RepositoryPath. It reports false for a path that holds no library file: anything else in .trailguide/, such as
+// vendor/, generated/, or rules/README.md, and a path outside .trailguide/ whose library path would be one of a
 // file inside it, such as assets/logo.svg or config.yaml at the repository root.
 func LibraryPath(file string) (string, bool) {
 	inside, found := strings.CutPrefix(file, Directory+"/")

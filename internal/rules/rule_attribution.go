@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // AddRuleAttribution returns document, a rule at path, with entry after its existing attribution entries. When the
@@ -19,12 +19,12 @@ import (
 // Otherwise the frontmatter is written again, keeping comments and values but not their formatting, with folded
 // scalars in literal style. The body never changes. It fails when document isn't a valid rule or the result's
 // attribution isn't valid, such as for a URL that isn't an absolute HTTP(S) URL.
-func AddRuleAttribution(document, path string, entry syllabus.Attribution) (string, error) {
-	original, err := syllabus.ParseRule(document, path, "local")
+func AddRuleAttribution(document, path string, entry trailguide.Attribution) (string, error) {
+	original, err := trailguide.ParseRule(document, path, "local")
 	if err != nil {
 		return "", err
 	}
-	sections, err := syllabus.SplitDocument(document, path)
+	sections, err := trailguide.SplitDocument(document, path)
 	if err != nil {
 		return "", err
 	}
@@ -76,8 +76,8 @@ func AddRuleAttribution(document, path string, entry syllabus.Attribution) (stri
 }
 
 // requireAttributionAdded fails unless result is original's rule with only entry added after its attribution.
-func requireAttributionAdded(original syllabus.Rule, result, path string, entry syllabus.Attribution) error {
-	parsed, err := syllabus.ParseRule(result, path, "local")
+func requireAttributionAdded(original trailguide.Rule, result, path string, entry trailguide.Attribution) error {
+	parsed, err := trailguide.ParseRule(result, path, "local")
 	if err != nil {
 		return err
 	}

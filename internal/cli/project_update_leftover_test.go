@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // forkUpdateArguments replace the fixture's hand-written loaders rule, which has no assets, with a fork of loaders
@@ -33,7 +33,7 @@ func interruptedForkUpdate(t *testing.T) updateFixture {
 	if err := u.fixture.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.2.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\nchanges:\n  techs/go/loaders: {change: minor, from: 1.1.0, summaries: [Add an example.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	project := filepath.Join(u.directory, ".syllabus")
+	project := filepath.Join(u.directory, ".trailguide")
 	completed := filepath.Join(t.TempDir(), "project")
 	if err := os.CopyFS(completed, os.DirFS(u.directory)); err != nil {
 		t.Fatal(err)
@@ -41,8 +41,8 @@ func interruptedForkUpdate(t *testing.T) updateFixture {
 	if out, diagnostic, code := u.runBounded(t, completed, forkUpdateArguments...); code != 0 {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	output := updateOutput(t, project, filepath.Join(completed, ".syllabus"))
-	completedRoot, err := os.OpenRoot(filepath.Join(completed, ".syllabus"))
+	output := updateOutput(t, project, filepath.Join(completed, ".trailguide"))
+	completedRoot, err := os.OpenRoot(filepath.Join(completed, ".trailguide"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func interruptedForkUpdate(t *testing.T) updateFixture {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	blocker := filepath.Join(".syllabus-transaction", "old-generated")
+	blocker := filepath.Join(".trailguide-transaction", "old-generated")
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
 		// Apply calls this after staging every target and before writing its journal and creating the parent.
 		return w.Apply(output, func() error { return root.MkdirAll(filepath.Join(blocker, "blocker"), 0700) })
@@ -88,7 +88,7 @@ func TestCommands_IgnoreTheEmptyDirectoriesAnInterruptedForkUpdateLeaves(t *test
 	for _, first := range [][]string{{"project", "build"}, {"project", "sync"}, forkUpdateArguments} {
 		t.Run(strings.Join(first[1:], " "), func(t *testing.T) {
 			u := interruptedForkUpdate(t)
-			if err := os.MkdirAll(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "nested", "assets"), 0700); err != nil {
+			if err := os.MkdirAll(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "nested", "assets"), 0700); err != nil {
 				t.Fatal(err)
 			}
 			commands := [][]string{
@@ -110,7 +110,7 @@ func TestCommands_IgnoreTheEmptyDirectoriesAnInterruptedForkUpdateLeaves(t *test
 					t.Fatalf("%v: exit %d:\n%s%s", args, code, out, diagnostic)
 				}
 			}
-			fork, err := os.ReadFile(filepath.Join(u.directory, ".syllabus", "rules", "techs", "go", "assets", "use-data-loaders", "example.md"))
+			fork, err := os.ReadFile(filepath.Join(u.directory, ".trailguide", "rules", "techs", "go", "assets", "use-data-loaders", "example.md"))
 			if err != nil || string(fork) != "An example.\n" {
 				t.Fatalf("the fork update didn't install the asset: %q, %v", fork, err)
 			}

@@ -15,10 +15,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 const maxTreeBytes = 8 << 20
@@ -143,7 +143,7 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 // does, leaving out the files outside the library, such as the repository's vendor/ and generated/ folders. It also
 // reports whether the commit keeps its library in the layout before version 2, with rule-library.yaml at the
 // repository root: such a commit's files keep their paths, including rule-library.yaml, which is read only for the
-// license and notice files it declares, except its .syllabus/, which held only a project's files.
+// license and notice files it declares, except its .trailguide/, which held only a project's files.
 func libraryTree(files map[string]treeEntry) (map[string]treeEntry, bool) {
 	_, legacy := files[librarytree.LegacyManifest]
 	result := map[string]treeEntry{}
@@ -164,7 +164,7 @@ func libraryTree(files map[string]treeEntry) (map[string]treeEntry, bool) {
 // legacyLayoutProblem explains why a source can't import revision, a library release or commit that keeps the
 // library in the layout before version 2.
 func legacyLayoutProblem(source, revision string) string {
-	return fmt.Sprintf("sources.%s: the library's %s keeps its files in the layout from before this version of Syllabus, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .syllabus/config.yaml and its rules from .syllabus/rules/, so it can't import %s. Ask the library's maintainer to move the library's files into .syllabus/ and publish a library release, then select that release, such as with syllabus project update %s.", source, revision, revision, source)
+	return fmt.Sprintf("sources.%s: the library's %s keeps its files in the layout from before this version of Trail Guide, with rule-library.yaml and rule folders at the repository root. This version reads a library's manifest from the library section of .trailguide/config.yaml and its rules from .trailguide/rules/, so it can't import %s. Ask the library's maintainer to move the library's files into .trailguide/ and publish a library release, then select that release, such as with trailguide project update %s.", source, revision, revision, source)
 }
 
 // revisionName names a library release by its tag, such as release/4, or another revision by its commit, when
@@ -189,7 +189,7 @@ func (r *repository) requireLibraryLayout(source string, release int, commit str
 // requireLegacyRuleLinks fails with unsupported-library-layout when rule id, imported from a fetched commit in the
 // layout before version 2, has a link that resolved to another file then than it does now: a relative link out of
 // the rule folders, such as to a shared asset or a license file, in its Markdown file or a Markdown file in its asset
-// directory. Such links resolved from the repository root then, and resolve from .syllabus/rules/ now, so the
+// directory. Such links resolved from the repository root then, and resolve from .trailguide/rules/ now, so the
 // rule's version would import with broken links. owned holds the rule's files by library path.
 func (r *repository) requireLegacyRuleLinks(ctx context.Context, source, id string, rule library.ImportedRule, owned map[string]treeEntry) error {
 	if !r.legacy[rule.Commit] {
@@ -226,7 +226,7 @@ func (r *repository) requireLegacyRuleLinks(ctx context.Context, source, id stri
 		if rule.Version != nil {
 			version = " version " + rule.Version.String()
 		}
-		return fail("unsupported-library-layout", fmt.Sprintf("sources.%s: rule %s%s comes from the library's %s, which keeps its files in the layout from before this version of Syllabus, and its link to %s resolves differently in the current layout, so this version of Syllabus can't import the rule's version. Select a version of %s that the library published after moving its files into .syllabus/, such as with syllabus project update %s:%s, or ask the library's maintainer to publish one.", source, id, version, revisionName(rule.Release, rule.Commit), before[index], id, source, id), nil)
+		return fail("unsupported-library-layout", fmt.Sprintf("sources.%s: rule %s%s comes from the library's %s, which keeps its files in the layout from before this version of Trail Guide, and its link to %s resolves differently in the current layout, so this version of Trail Guide can't import the rule's version. Select a version of %s that the library published after moving its files into .trailguide/, such as with trailguide project update %s:%s, or ask the library's maintainer to publish one.", source, id, version, revisionName(rule.Release, rule.Commit), before[index], id, source, id), nil)
 	}
 	return nil
 }

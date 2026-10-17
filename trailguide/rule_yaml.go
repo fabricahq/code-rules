@@ -1,6 +1,6 @@
 // Adapt YAML nodes to the rule format without coercing authored text fields.
 
-package syllabus
+package trailguide
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // The reference uses YAML 1.2 core scalars. go-yaml also recognizes legacy dates,

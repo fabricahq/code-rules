@@ -10,11 +10,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // UpdateTarget names what an update moves: every rule of Source when Rule is empty, or only the library rule Rule.
@@ -109,19 +109,19 @@ type RuleUpdate struct {
 	ID     string       `json:"id"`
 	Change UpdateChange `json:"change"`
 	// From is the version the project imports; it is nil for a new rule.
-	From *syllabus.RuleVersion `json:"from,omitempty"`
+	From *trailguide.RuleVersion `json:"from,omitempty"`
 	// To is the version the update installs; it is nil for retired and pinned rules, which don't move, including a
 	// pinned replaced rule.
-	To *syllabus.RuleVersion `json:"to,omitempty"`
+	To *trailguide.RuleVersion `json:"to,omitempty"`
 	// Newest is a pinned rule's newest version, including a pinned replaced rule's, and LastVersion a retired
 	// rule's; each is nil otherwise.
-	Newest      *syllabus.RuleVersion `json:"newest,omitempty"`
-	LastVersion *syllabus.RuleVersion `json:"lastVersion,omitempty"`
+	Newest      *trailguide.RuleVersion `json:"newest,omitempty"`
+	LastVersion *trailguide.RuleVersion `json:"lastVersion,omitempty"`
 	// Summaries holds one line per change note, oldest first: every version after From up to To, every version of
 	// a new rule, or the retirement. It is empty, never nil, for a pinned rule. SummaryVersions holds the version
 	// each summary belongs to, in the same order, a retired rule's being its last version.
-	Summaries       []string               `json:"summaries"`
-	SummaryVersions []syllabus.RuleVersion `json:"summaryVersions"`
+	Summaries       []string                 `json:"summaries"`
+	SummaryVersions []trailguide.RuleVersion `json:"summaryVersions"`
 	// ReplacedBy is the library rule that replaces a retired rule, when there is one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// ReplacementRetired reports that the library later retired ReplacedBy too; CurrentReplacement is then the rule
@@ -129,13 +129,13 @@ type RuleUpdate struct {
 	ReplacementRetired bool   `json:"replacementRetired,omitempty"`
 	CurrentReplacement string `json:"currentReplacement,omitempty"`
 	// ReplacementLocalRule is the project's local rule that already replaces ReplacedBy, when the project replaced
-	// it, relative to the Syllabus directory, so the row doesn't recommend a rule agents don't read.
+	// it, relative to the Trail Guide directory, so the row doesn't recommend a rule agents don't read.
 	ReplacementLocalRule string `json:"replacementLocalRule,omitempty"`
-	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Syllabus directory.
+	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Trail Guide directory.
 	LocalRule string `json:"localRule,omitempty"`
 	// BasedOn is the version of a replaced rule that its local rule incorporates, as the exclusion records it; the
 	// row then lists the changes after it, From being the imported version. It is nil otherwise.
-	BasedOn *syllabus.RuleVersion `json:"basedOn,omitempty"`
+	BasedOn *trailguide.RuleVersion `json:"basedOn,omitempty"`
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
 	Pin *rules.Pin `json:"pin,omitempty"`
 	// Decision is "keep" when the project pins the rule at From instead of applying the change, "exclude" when it
@@ -145,7 +145,7 @@ type RuleUpdate struct {
 	Reason   string `json:"reason,omitempty"`
 	// Overwrites and Removes list, for an update-fork decision, the local files that replacing the fork writes again
 	// and deletes: of the local rule and the files in its asset directory, those the new fork has and those it
-	// doesn't, relative to the Syllabus directory. The project's preview leaves both empty, never nil, for other
+	// doesn't, relative to the Trail Guide directory. The project's preview leaves both empty, never nil, for other
 	// rows; planning leaves them nil.
 	Overwrites []string `json:"overwrites"`
 	Removes    []string `json:"removes"`
@@ -153,7 +153,7 @@ type RuleUpdate struct {
 
 // ReviewedVersion returns the newest version a replaced row lists changes up to, which replacing its fork forks and
 // records as basedOn: To, or Newest when a pin keeps the imported copy. It is nil for other rows.
-func (r RuleUpdate) ReviewedVersion() *syllabus.RuleVersion {
+func (r RuleUpdate) ReviewedVersion() *trailguide.RuleVersion {
 	if r.Change != UpdateReplaced {
 		return nil
 	}
@@ -357,7 +357,7 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 // ForkedRule is a version of a rule that a project forks during an update, from a source the update names.
 type ForkedRule struct {
 	Source, ID string
-	Version    syllabus.RuleVersion
+	Version    trailguide.RuleVersion
 }
 
 // Import imports every source of configuration, the planned configuration plus the pins and exclusions the
@@ -395,7 +395,7 @@ func (u Update) Import(ctx context.Context, configuration rules.Configuration, o
 // ReadFork reads version of rule id from source, which the update names, as ReadPublishedRule does, from the
 // library release that planning found published it. It fails with invalid-release-tag, before reading the rule's
 // files, when that release's tag now names another commit, so a fork never holds content the preview didn't plan.
-func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version syllabus.RuleVersion, options Options) (PublishedRule, error) {
+func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version trailguide.RuleVersion, options Options) (PublishedRule, error) {
 	planned, named := u.plans[source.Name]
 	if !named {
 		return PublishedRule{}, fmt.Errorf("source %s isn't part of the update", source.Name)
@@ -406,7 +406,7 @@ func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, ve
 	}
 	return readPublishedRule(ctx, source, id, version, options, func(release *libraryRelease) error {
 		if release.number != expected.number || release.commit != expected.commit {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when syllabus project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run syllabus project update again.", expected.number, version, id, source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when trailguide project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run trailguide project update again.", expected.number, version, id, source.Name), nil)
 		}
 		return nil
 	})
@@ -441,7 +441,7 @@ func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source
 	}
 	for _, number := range slices.Sorted(maps.Keys(recorded)) {
 		if commit, listed := current[number]; listed && commit != recorded[number] {
-			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when syllabus project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run syllabus project update again.", number, source.Name), nil)
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when trailguide project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run trailguide project update again.", number, source.Name), nil)
 		}
 	}
 	return nil
@@ -580,7 +580,7 @@ func planOverriddenBorrowing(ctx context.Context, configuration rules.Configurat
 			err = errors.Join(err, closeErr)
 		}
 	}()
-	if err := repo.fetchCommits(ctx, []string{recorded.Commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records is missing from its repository, so the repository may have rewritten its history. Run syllabus project sync, then syllabus project update again.", source.Name)); err != nil {
+	if err := repo.fetchCommits(ctx, []string{recorded.Commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records is missing from its repository, so the repository may have rewritten its history. Run trailguide project sync, then trailguide project update again.", source.Name)); err != nil {
 		return nil, err
 	}
 	manifest, err := repo.manifestAt(ctx, recorded.Commit)
@@ -666,10 +666,10 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 		}
 		index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == target.Source })
 		if index < 0 {
-			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .syllabus/config.yaml"}
+			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .trailguide/config.yaml"}
 		}
 		if !configuration.Sources[index].Ref.IsZero() {
-			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run syllabus project sync"}
+			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run trailguide project sync"}
 		}
 		if target.Rule == "" {
 			whole[target.Source] = true
@@ -806,7 +806,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			row.Pin = &pin
 			rows = append(rows, p.withReplacementLocalRule(row))
 		case pinned && latest.Compare(*current.Version) > 0:
-			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []syllabus.RuleVersion{}, Pin: &pin})
+			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []trailguide.RuleVersion{}, Pin: &pin})
 		case pinned:
 		case !published:
 			delete(after, id)
@@ -883,7 +883,7 @@ func retiredRow(id string, current library.ImportedRule, history releaseHistory)
 		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
 	}
 	last := retired.LastVersion
-	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []syllabus.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
+	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []trailguide.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
 	for range row.Summaries {
 		row.SummaryVersions = append(row.SummaryVersions, last)
 	}
@@ -907,7 +907,7 @@ func (p *planner) withReplacementLocalRule(row RuleUpdate) RuleUpdate {
 }
 
 // versionChange classifies moving from one version to a newer one by the largest component that changed.
-func versionChange(from, to syllabus.RuleVersion) UpdateChange {
+func versionChange(from, to trailguide.RuleVersion) UpdateChange {
 	switch {
 	case to.Major != from.Major:
 		return UpdateMajor

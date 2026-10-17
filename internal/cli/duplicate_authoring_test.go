@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/test/terminalfixture"
+	"github.com/fabricahq/trailguide/internal/test/terminalfixture"
 )
 
 func TestDuplicateAuthoringFailsBeforePrompts(t *testing.T) {

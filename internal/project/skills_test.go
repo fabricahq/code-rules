@@ -12,13 +12,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/imports"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/imports"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 const (
-	buildSkill  = "---\nname: build-feature\ndescription: Build a feature from a spec.\nmetadata:\n  syllabus-skill-type: playbook\n---\n# Build a feature\n\n1. Run scripts/run.sh.\n"
+	buildSkill  = "---\nname: build-feature\ndescription: Build a feature from a spec.\nmetadata:\n  trailguide-skill-type: playbook\n---\n# Build a feature\n\n1. Run scripts/run.sh.\n"
 	reviewSkill = "---\nname: review\ndescription: Review a change.\n---\n# Review\n"
 )
 
@@ -28,18 +28,18 @@ func skillLibrary(t *testing.T) (*gitfixture.Fixture, string) {
 	t.Helper()
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, gitfixture.Library(map[string][]byte{
-		"config.yaml":                                   []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
-		"techs/go/_group.yaml":                          []byte(projectMetadata),
-		"techs/go/errors.md":                            []byte(projectRule),
-		".syllabus/skills/build-feature/SKILL.md":       []byte(buildSkill),
-		".syllabus/skills/build-feature/scripts/run.sh": []byte("#!/bin/sh\necho build\n"),
-		".syllabus/skills/review/SKILL.md":              []byte(reviewSkill),
+		"config.yaml":                                     []byte(`{"schemaVersion":2,"sources":{},"library":{}}`),
+		"techs/go/_group.yaml":                            []byte(projectMetadata),
+		"techs/go/errors.md":                              []byte(projectRule),
+		".trailguide/skills/build-feature/SKILL.md":       []byte(buildSkill),
+		".trailguide/skills/build-feature/scripts/run.sh": []byte("#!/bin/sh\necho build\n"),
+		".trailguide/skills/review/SKILL.md":              []byte(reviewSkill),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := os.Chmod(filepath.Join(f.Worktree(), ".syllabus/skills/build-feature/scripts/run.sh"), 0o700); err != nil {
+	if err := os.Chmod(filepath.Join(f.Worktree(), ".trailguide/skills/build-feature/scripts/run.sh"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	commit, err := f.Commit(ctx, f.Worktree(), "Make the script executable", nil)
@@ -106,22 +106,22 @@ func TestSync_InstallsSourceAndAuthoredSkillsIntoEverySkillTarget(t *testing.T) 
 	}
 	for _, target := range []string{".claude/skills", ".agents/skills"} {
 		installed := readRepositoryFile(t, options, target+"/build-feature/SKILL.md")
-		if want := "---\n<!-- syllabus:installed team:skills/build-feature " + commit + ". Do not edit; syllabus project sync replaces this copy. -->\n# Build"; !strings.Contains(installed, want) {
+		if want := "---\n<!-- trailguide:installed team:skills/build-feature " + commit + ". Do not edit; trailguide project sync replaces this copy. -->\n# Build"; !strings.Contains(installed, want) {
 			t.Errorf("%s/build-feature/SKILL.md:\n%s\nwant the marker after the frontmatter", target, installed)
 		}
 		info, err := os.Stat(filepath.Join(options.Directory, target, "build-feature/scripts/run.sh"))
 		if err != nil || info.Mode().Perm()&0o100 == 0 {
 			t.Errorf("%s run.sh isn't executable: %v %v", target, info, err)
 		}
-		if authored := readRepositoryFile(t, options, target+"/check-release/SKILL.md"); !strings.Contains(authored, "<!-- syllabus:installed skills/check-release. Do not edit; edit .syllabus/skills/check-release/ instead. -->") {
+		if authored := readRepositoryFile(t, options, target+"/check-release/SKILL.md"); !strings.Contains(authored, "<!-- trailguide:installed skills/check-release. Do not edit; edit .trailguide/skills/check-release/ instead. -->") {
 			t.Errorf("authored copy:\n%s", authored)
 		}
 	}
-	rulesIndex := readRepositoryFile(t, options, ".syllabus/generated/RULES.md")
+	rulesIndex := readRepositoryFile(t, options, ".trailguide/generated/RULES.md")
 	if !strings.Contains(rulesIndex, "This project also installs agent skills. See [SKILLS.md](SKILLS.md)") {
 		t.Errorf("RULES.md doesn't point to SKILLS.md:\n%s", rulesIndex)
 	}
-	index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md")
+	index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md")
 	for _, want := range []string{"### build-feature", "Build a feature from a spec.", "**Skill:** `team:skills/build-feature`, from release/1, commit `" + commit + "`", "**Level:** offered by `team`, release 1", "**Type:** playbook", "[.claude/skills/build-feature/SKILL.md](../../.claude/skills/build-feature/SKILL.md)", "**Skill:** `skills/check-release`, authored in this project"} {
 		if !strings.Contains(index, want) {
 			t.Errorf("SKILLS.md lacks %q:\n%s", want, index)
@@ -135,7 +135,7 @@ func TestSync_InstallsSourceAndAuthoredSkillsIntoEverySkillTarget(t *testing.T) 
 		Executable    []string                           `json:"executable"`
 		Files         map[string]string                  `json:"files"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/vendor/team/_source.json")), &record); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".trailguide/vendor/team/_source.json")), &record); err != nil {
 		t.Fatal(err)
 	}
 	if record.FormatVersion != 3 || record.Kind != "library" || !slices.Equal(record.SkillInclude, []string{"*"}) || len(record.Skills) != 2 || *record.Skills["skills/review"].Level != "offered" || !slices.Equal(record.Executable, []string{"skills/build-feature/scripts/run.sh"}) || record.Files["skills/build-feature/SKILL.md"] == "" {
@@ -152,7 +152,7 @@ func TestSync_InstallsSourceAndAuthoredSkillsIntoEverySkillTarget(t *testing.T) 
 			Targets []string `json:"targets"`
 		} `json:"skills"`
 	}
-	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".syllabus/generated/provenance.json")), &provenance); err != nil {
+	if err := json.Unmarshal([]byte(readRepositoryFile(t, options, ".trailguide/generated/provenance.json")), &provenance); err != nil {
 		t.Fatal(err)
 	}
 	if len(provenance.Skills) != 3 {
@@ -206,12 +206,12 @@ func TestSync_RemovesTheFoldersOfSkillsNoLongerIncluded(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if exists(t, options, ".claude/skills") || exists(t, options, ".syllabus/generated/SKILLS.md") {
+	if exists(t, options, ".claude/skills") || exists(t, options, ".trailguide/generated/SKILLS.md") {
 		t.Fatal("sync left an emptied skill target or SKILLS.md behind")
 	}
 }
 
-func TestSync_RefusesToReplaceAFolderSyllabusDidNotInstall(t *testing.T) {
+func TestSync_RefusesToReplaceAFolderTrailGuideDidNotInstall(t *testing.T) {
 	ctx := context.Background()
 	f, _ := skillLibrary(t)
 	options, git := skillProject(t, f, `{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/review"]}}}}`)
@@ -224,10 +224,10 @@ func TestSync_RefusesToReplaceAFolderSyllabusDidNotInstall(t *testing.T) {
 	}
 	_, err := Sync(ctx, options, git)
 	projectCode(t, err, "skill-folder-not-managed")
-	if !strings.Contains(err.Error(), ".claude/skills/review already exists, and Syllabus didn't install it") {
+	if !strings.Contains(err.Error(), ".claude/skills/review already exists, and Trail Guide didn't install it") {
 		t.Fatalf("got %v", err)
 	}
-	if readRepositoryFile(t, options, ".claude/skills/review/SKILL.md") != "My own review.\n" || exists(t, options, ".syllabus/vendor/team") {
+	if readRepositoryFile(t, options, ".claude/skills/review/SKILL.md") != "My own review.\n" || exists(t, options, ".trailguide/vendor/team") {
 		t.Fatal("refused sync changed files")
 	}
 }
@@ -259,14 +259,14 @@ func TestSync_InstallsSkillsFromARepositoryThatIsNotALibrary(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(readRepositoryFile(t, options, ".agents/skills/review/SKILL.md"), "syllabus:installed skills:tools/review "+f.FirstCommit) || !exists(t, options, ".agents/skills/review/checklist.md") || exists(t, options, ".agents/skills/own") {
+	if !strings.Contains(readRepositoryFile(t, options, ".agents/skills/review/SKILL.md"), "trailguide:installed skills:tools/review "+f.FirstCommit) || !exists(t, options, ".agents/skills/review/checklist.md") || exists(t, options, ".agents/skills/own") {
 		t.Fatal("sync didn't install exactly the repository's skill outside dot folders")
 	}
-	record := readRepositoryFile(t, options, ".syllabus/vendor/skills/_source.json")
+	record := readRepositoryFile(t, options, ".trailguide/vendor/skills/_source.json")
 	if !strings.Contains(record, `"kind": "non-library"`) || !strings.Contains(record, `"tools/review": {`) {
 		t.Fatalf("source record:\n%s", record)
 	}
-	installed := readRepositoryFile(t, options, ".syllabus/generated/installed-skills.json")
+	installed := readRepositoryFile(t, options, ".trailguide/generated/installed-skills.json")
 	if !strings.Contains(installed, `"commit": "`+f.FirstCommit+`"`) {
 		t.Fatalf("installed-skills.json:\n%s", installed)
 	}
@@ -290,7 +290,7 @@ func TestSync_FailsForANewlyIncludedSkillTheLockedRevisionLacks(t *testing.T) {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Add a skill", map[string][]byte{".syllabus/skills/plan/SKILL.md": []byte("---\nname: plan\n---\n# Plan\n")}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Add a skill", map[string][]byte{".trailguide/skills/plan/SKILL.md": []byte("---\nname: plan\n---\n# Plan\n")}); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\n"); err != nil {
@@ -304,7 +304,7 @@ func TestSync_FailsForANewlyIncludedSkillTheLockedRevisionLacks(t *testing.T) {
 	writeFixture(t, root, configurationFile, strings.ReplaceAll(`{"schemaVersion":2,"skillTargets":["claude"],"sources":{"team":{"repository":REPOSITORY,"skills":{"include":["skills/plan","skills/review"]}}}}`, "REPOSITORY", quoteJSON(f.Repository)))
 	_, err = Sync(ctx, options, git)
 	var failure *imports.Error
-	if !errors.As(err, &failure) || failure.Code != "skill-not-in-revision" || !strings.Contains(err.Error(), "sources.team.skills.include names skills/plan, which isn't in release/1") || !strings.Contains(err.Error(), "Run syllabus project update team") {
+	if !errors.As(err, &failure) || failure.Code != "skill-not-in-revision" || !strings.Contains(err.Error(), "sources.team.skills.include names skills/plan, which isn't in release/1") || !strings.Contains(err.Error(), "Run trailguide project update team") {
 		t.Fatalf("got %v; want skill-not-in-revision naming update team", err)
 	}
 	if exists(t, options, ".claude/skills/plan") {
@@ -318,7 +318,7 @@ func TestSync_FailsForANewlyIncludedSkillTheLockedRevisionLacks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(applied.Added, "../.claude/skills/plan/SKILL.md") || !strings.Contains(readRepositoryFile(t, options, ".syllabus/vendor/team/_source.json"), `"release": 2`) {
+	if !slices.Contains(applied.Added, "../.claude/skills/plan/SKILL.md") || !strings.Contains(readRepositoryFile(t, options, ".trailguide/vendor/team/_source.json"), `"release": 2`) {
 		t.Fatalf("update didn't move the source to release/2 and install the skill: %v", applied.Added)
 	}
 }
@@ -336,10 +336,10 @@ func TestSync_RecordsSkillsWithoutSkillTargetsAndWarns(t *testing.T) {
 			if len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "The project has no skill targets, so no copy of its 2 skill(s) was installed.") {
 				t.Fatalf("warnings = %v", changes.Warnings)
 			}
-			if exists(t, options, ".claude") || exists(t, options, ".agents") || !exists(t, options, ".syllabus/vendor/team/skills/review/SKILL.md") {
+			if exists(t, options, ".claude") || exists(t, options, ".agents") || !exists(t, options, ".trailguide/vendor/team/skills/review/SKILL.md") {
 				t.Fatal("sync installed copies or didn't record the skills")
 			}
-			if index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md"); !strings.Contains(index, "**Installed at:** nowhere, because the project has no skill targets. Read it at [.syllabus/vendor/team/skills/review/SKILL.md](../vendor/team/skills/review/SKILL.md).") {
+			if index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md"); !strings.Contains(index, "**Installed at:** nowhere, because the project has no skill targets. Read it at [.trailguide/vendor/team/skills/review/SKILL.md](../vendor/team/skills/review/SKILL.md).") {
 				t.Fatalf("SKILLS.md:\n%s", index)
 			}
 		})
@@ -373,19 +373,19 @@ func TestSync_RenamesAClashingSkillAndWarnsThatMentionsKeepTheOldName(t *testing
 		t.Fatalf("warnings = %q", changes.Warnings)
 	}
 	renamed := readRepositoryFile(t, options, ".claude/skills/team-review/SKILL.md")
-	if !strings.HasPrefix(renamed, "---\nname: team-review\ndescription: Review a change.\n---\n<!-- syllabus:installed team:skills/review ") || !strings.HasSuffix(renamed, "# Review\n") {
+	if !strings.HasPrefix(renamed, "---\nname: team-review\ndescription: Review a change.\n---\n<!-- trailguide:installed team:skills/review ") || !strings.HasSuffix(renamed, "# Review\n") {
 		t.Fatalf("renamed copy:\n%s", renamed)
 	}
 	if !strings.Contains(readRepositoryFile(t, options, ".claude/skills/review/SKILL.md"), "# Our review") {
 		t.Fatal("the authored skill isn't installed under its own name")
 	}
-	if !strings.Contains(readRepositoryFile(t, options, ".syllabus/vendor/team/skills/review/SKILL.md"), "name: review\n") {
+	if !strings.Contains(readRepositoryFile(t, options, ".trailguide/vendor/team/skills/review/SKILL.md"), "name: review\n") {
 		t.Fatal("the rename changed the vendored copy")
 	}
-	if index := readRepositoryFile(t, options, ".syllabus/generated/SKILLS.md"); !strings.Contains(index, "### team-review\n\nReview a change.\n\n- **Skill:** `team:skills/review`, from release/1") || !strings.Contains(index, "- **Renamed from:** `review`, by the project's configuration. Its own text and other skills from `team` may still call it `review`; they mean this skill.") {
+	if index := readRepositoryFile(t, options, ".trailguide/generated/SKILLS.md"); !strings.Contains(index, "### team-review\n\nReview a change.\n\n- **Skill:** `team:skills/review`, from release/1") || !strings.Contains(index, "- **Renamed from:** `review`, by the project's configuration. Its own text and other skills from `team` may still call it `review`; they mean this skill.") {
 		t.Fatalf("SKILLS.md:\n%s", index)
 	}
-	if provenance := readRepositoryFile(t, options, ".syllabus/generated/provenance.json"); !strings.Contains(provenance, `"renamedFrom": "review"`) {
+	if provenance := readRepositoryFile(t, options, ".trailguide/generated/provenance.json"); !strings.Contains(provenance, `"renamedFrom": "review"`) {
 		t.Fatalf("provenance.json:\n%s", provenance)
 	}
 	if result, err := Check(ctx, options); err != nil || !result.Current() {
@@ -459,12 +459,12 @@ func TestBuild_RejectsInvalidAuthoredSkills(t *testing.T) {
 		location string
 		code     string
 	}{
-		"file directly in skills":       {map[string]string{"skills/notes.md": "x"}, ".syllabus/skills/notes.md", ""},
-		"folder without SKILL.md":       {map[string]string{"skills/tidy/notes.md": "x"}, ".syllabus/skills/tidy/", ""},
-		"invalid folder name":           {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".syllabus/skills/Tidy/", ""},
+		"file directly in skills":       {map[string]string{"skills/notes.md": "x"}, ".trailguide/skills/notes.md", ""},
+		"folder without SKILL.md":       {map[string]string{"skills/tidy/notes.md": "x"}, ".trailguide/skills/tidy/", ""},
+		"invalid folder name":           {map[string]string{"skills/Tidy/SKILL.md": "x"}, ".trailguide/skills/Tidy/", ""},
 		"name that isn't the folder's":  {map[string]string{"skills/one/SKILL.md": "---\nname: shared\n---\n"}, "skills/one/SKILL.md", ""},
-		"unknown skill type":            {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  syllabus-skill-type: design\n---\n"}, "skills/one/SKILL.md", ""},
-		"cited rule that doesn't exist": {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  syllabus-rules-used: techs/go/missing\n---\n"}, "skills/one/SKILL.md", ""},
+		"unknown skill type":            {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  trailguide-skill-type: design\n---\n"}, "skills/one/SKILL.md", ""},
+		"cited rule that doesn't exist": {map[string]string{"skills/one/SKILL.md": "---\nname: one\nmetadata:\n  trailguide-rules-used: techs/go/missing\n---\n"}, "skills/one/SKILL.md", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

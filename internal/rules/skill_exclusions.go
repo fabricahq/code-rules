@@ -9,16 +9,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/decode"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 // SkillExclusion leaves one skill a source would install out of the installed skills, with the project's reason.
 type SkillExclusion struct {
 	Reason string `json:"reason"`
 	// ReplacedBy is empty, or the ID of the authored skill installed in the excluded skill's place, skills/<name>,
-	// which is also its folder's path in the Syllabus directory.
+	// which is also its folder's path in the Trail Guide directory.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// BasedOn is the commit of the source's repository whose copy of the skill the replacement was made from, which
 	// updates compare the source's newer revisions with. It is the zero GitRef when the project doesn't record one,
@@ -94,7 +94,7 @@ func parseSkillReplacement(raw json.RawMessage, location string) (string, error)
 	if bare := strings.TrimPrefix(named, skills.Directory+"/"); skills.ValidName(bare) {
 		return "", invalid(location, "replacedBy names the authored skill by its ID, "+skills.AuthoredID(bare)+", not "+decode.Quote(text))
 	}
-	return "", invalid(location, "expected the ID of an authored skill in .syllabus/skills/, such as skills/build-feature, got "+decode.Quote(text))
+	return "", invalid(location, "expected the ID of an authored skill in .trailguide/skills/, such as skills/build-feature, got "+decode.Quote(text))
 }
 
 // parseBasedOnCommit reads a skill replacement's basedOn: a full commit SHA, in quotes.

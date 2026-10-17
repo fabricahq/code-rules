@@ -177,7 +177,7 @@ func publishAuthored(ctx context.Context, root *os.Root, files []File) (err erro
 	if len(files) == 0 {
 		return nil
 	}
-	stage := ".syllabus-authoring-" + rand.Text()
+	stage := ".trailguide-authoring-" + rand.Text()
 	if err = root.Mkdir(stage, 0700); err != nil {
 		return err
 	}
@@ -214,8 +214,8 @@ func validatePublication(root *os.Root, files []File) error {
 		return err
 	}
 	for _, name := range entries {
-		// Code Rules, before it was renamed Syllabus, staged authoring files as .code-rules-authoring-*.
-		if strings.HasPrefix(name, ".syllabus-authoring-") || strings.HasPrefix(name, ".code-rules-authoring-") {
+		// Code Rules, before it was renamed Trail Guide, staged authoring files as .code-rules-authoring-*.
+		if strings.HasPrefix(name, ".trailguide-authoring-") || strings.HasPrefix(name, ".code-rules-authoring-") {
 			return failure("recovery-required", "inspect retained authoring files before retrying: "+filepath.Join(root.Name(), name), nil)
 		}
 	}
@@ -416,7 +416,7 @@ func Edit(ctx context.Context, root *os.Root, prepare func() ([]File, error)) (C
 }
 
 // EditIn is Edit with writer ownership taken in writer, which may differ from root, where files publish: a library
-// takes the writer of its Syllabus directory, which the repository's project commands share, and publishes files
+// takes the writer of its Trail Guide directory, which the repository's project commands share, and publishes files
 // relative to the repository root.
 func EditIn(ctx context.Context, writer, root *os.Root, prepare func() ([]File, error)) (Changes, error) {
 	if prepare == nil {

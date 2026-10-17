@@ -1,27 +1,27 @@
 ---
 title: "CLI commands"
-description: "Syntax, arguments, options, and results for every supported Syllabus command."
+description: "Syntax, arguments, options, and results for every supported Trail Guide command."
 ---
 
 :::caution[Preview]
-This page describes the commands as they work with version 2 configuration, skill levels, and branch refs, which aren't in a released version of Syllabus yet. The released CLI has no skill commands, adds a library with `syllabus project add library`, writes authored rules to `.syllabus/local/`, and doesn't move a source that uses `ref`.
+This page describes the commands as they work with version 2 configuration, skill levels, and branch refs, which aren't in a released version of Trail Guide yet. The released CLI has no skill commands, adds a library with `trailguide project add library`, writes authored rules to `.trailguide/local/`, and doesn't move a source that uses `ref`.
 :::
 
 Find each command's syntax and options below. Every command also accepts `--json` and `-h` / `--help`; [shared behavior](#shared-options-and-prompts) and [output formats](#command-output) are documented at the end.
 
 ## Project commands
 
-`syllabus project` manages rules and skills for a **project**, the codebase whose rules and skills Syllabus manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
+`trailguide project` manages rules and skills for a **project**, the codebase whose rules and skills Trail Guide manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
-Configuration lives in `.syllabus/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
+Configuration lives in `.trailguide/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
 ### project init
 
 ```sh
-syllabus project init [options]
+trailguide project init [options]
 ```
 
-Create `.syllabus/config.yaml`, the authored `rules/` and `skills/` directories, and the managed Syllabus guide, and add the Syllabus section to the repository's `AGENTS.md`, creating the file if needed. Rerunning init preserves valid configuration and authored content and refreshes an unmodified guide and section.
+Create `.trailguide/config.yaml`, the authored `rules/` and `skills/` directories, and the managed Trail Guide guide, and add the Trail Guide section to the repository's `AGENTS.md`, creating the file if needed. Rerunning init preserves valid configuration and authored content and refreshes an unmodified guide and section.
 
 | Option | Meaning |
 | --- | --- |
@@ -32,15 +32,15 @@ A new configuration gets `schemaVersion: 2` and `skillTargets: [claude, agents]`
 
 Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. A version 1 configuration fails with a message that shows the version 2 shape; see [No backward compatibility](/reference/configuration/#no-backward-compatibility).
 
-Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Syllabus guide or `AGENTS.md` section, and leaves an `AGENTS.md` that already points to `generated/RULES.md` outside the section alone. For file locations and ownership, see [Project and rule group guides](/reference/files/#project-and-rule-group-guides).
+Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Trail Guide guide or `AGENTS.md` section, and leaves an `AGENTS.md` that already points to `generated/RULES.md` outside the section alone. For file locations and ownership, see [Project and rule group guides](/reference/files/#project-and-rule-group-guides).
 
 ### project add source
 
 ```sh
-syllabus project add source NAME [options]
+trailguide project add source NAME [options]
 ```
 
-Record a source in configuration without fetching it. `NAME` is the source name, such as `team`. Run `syllabus project sync` afterward to take the included rules and install the included skills. The same command adds a library or any other Git repository with skill folders: you don't declare which it is, and sync detects whether the repository has a [manifest](/reference/library-format/#the-manifest).
+Record a source in configuration without fetching it. `NAME` is the source name, such as `team`. Run `trailguide project sync` afterward to take the included rules and install the included skills. The same command adds a library or any other Git repository with skill folders: you don't declare which it is, and sync detects whether the repository has a [manifest](/reference/library-format/#the-manifest).
 
 | Option | Meaning |
 | --- | --- |
@@ -53,7 +53,7 @@ Record a source in configuration without fetching it. `NAME` is the source name,
 Quote `*` and selectors that end in `/*` so your shell does not expand them. Pass each selector as a separate option, rather than a comma-separated flag value:
 
 ```sh
-syllabus project add source team \
+trailguide project add source team \
   --repository https://github.com/example/rules.git \
   --rules 'practices/testing/*' \
   --rules 'techs/typescript/*' \
@@ -63,17 +63,17 @@ syllabus project add source team \
 
 The repository address and selectors are illustrative; replace them with a source you can access.
 
-`--rules` and `--skills` are both optional: a source added with neither still installs the skills its library requires. Without `--ref`, the source follows the library's newest library release when the project updates. To hold individual rules, add `pins` to the source in configuration, or use `syllabus project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+`--rules` and `--skills` are both optional: a source added with neither still installs the skills its library requires. Without `--ref`, the source follows the library's newest library release when the project updates. To hold individual rules, add `pins` to the source in configuration, or use `trailguide project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
 Sync checks the source when it first reads it. A source without `release/<number>` tags and without `ref` fails with `ref-required`. `rules` on a non-library source fails, because it has no rules. A `--ref` that names no branch, tag, or commit fails with `version-not-found`, and a skill from a non-library source with no license terms fails with `license-not-found`; see [License rules](/guides/license-rules/#license-skills). An existing source name or repository fails before writing anything; declare each repository once.
 
 ### project add group
 
 ```sh
-syllabus project add group ID [options]
+trailguide project add group ID [options]
 ```
 
-Create an authored rule group in `.syllabus/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`.
+Create an authored rule group in `.trailguide/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
@@ -87,10 +87,10 @@ A rule group can exist before it has rules. Authored rule groups need no source 
 ### project add rule
 
 ```sh
-syllabus project add rule ID [options]
+trailguide project add rule ID [options]
 ```
 
-Create a rule in an existing authored rule group, at `.syllabus/rules/ID.md`. `ID` includes the rule group path and rule name, such as `practices/testing/check-retries`, without `.md`.
+Create a rule in an existing authored rule group, at `.trailguide/rules/ID.md`. `ID` includes the rule group path and rule name, such as `practices/testing/check-retries`, without `.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -101,15 +101,15 @@ Create a rule in an existing authored rule group, at `.syllabus/rules/ID.md`. `I
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the rule group first with `syllabus project add group`. A missing rule group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `syllabus:draft` marker before building. Existing rules are not overwritten.
+Create the rule group first with `trailguide project add group`. A missing rule group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `trailguide:draft` marker before building. Existing rules are not overwritten.
 
 #### Fork a library rule
 
 ```sh
-syllabus project add rule ID --from LIBRARY@VERSION [options]
+trailguide project add rule ID --from LIBRARY@VERSION [options]
 ```
 
-Copy one version of a library rule into `.syllabus/rules/` so the project controls its text. Use a fork to change what a rule says. To take one rule without the rest of its rule group, [include it by ID](/reference/configuration/#rule-selectors) instead, and to keep a rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `.syllabus/rules/practices/testing/verify-retry-limits.md`.
+Copy one version of a library rule into `.trailguide/rules/` so the project controls its text. Use a fork to change what a rule says. To take one rule without the rest of its rule group, [include it by ID](/reference/configuration/#rule-selectors) instead, and to keep a rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `.trailguide/rules/practices/testing/verify-retry-limits.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -120,35 +120,35 @@ Copy one version of a library rule into `.syllabus/rules/` so the project contro
 Metadata options and `--body-file` don't apply to a fork. The command:
 
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
-2. Writes them under `.syllabus/rules/`. When neither authored rule group metadata nor a source the project includes supplies the rule's rule group, it also creates the authored rule group from the library's rule group metadata.
+2. Writes them under `.trailguide/rules/`. When neither authored rule group metadata nor a source the project includes supplies the rule's rule group, it also creates the authored rule group from the library's rule group metadata.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL, and the entry links to that address.
-4. When the `LIBRARY` source includes the rule and its last sync took it, adds an `exclude` entry for it with your reason, the fork's ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned copy, now decides what agents read. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
+4. When the `LIBRARY` source includes the rule and its last sync took it, adds an `exclude` entry for it with your reason, the fork's ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned copy, now decides what agents read. If you changed that source's configuration since its last sync, run `trailguide project sync` first.
 
-If the rule links to files in the library's shared `.syllabus/assets/` directory, the fork copies them into its own asset directory and updates the links, because authored rules can't depend on a source's files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing authored rules and exclusions are never overwritten. A forked rule has no version in your project; it changes only when you edit it. Run `syllabus project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
+If the rule links to files in the library's shared `.trailguide/assets/` directory, the fork copies them into its own asset directory and updates the links, because authored rules can't depend on a source's files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing authored rules and exclusions are never overwritten. A forked rule has no version in your project; it changes only when you edit it. Run `trailguide project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
 ### project add skill
 
 ```sh
-syllabus project add skill NAME [options]
+trailguide project add skill NAME [options]
 ```
 
-Create an authored skill in `.syllabus/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `release-checklist`; the skill's ID is `skills/NAME`.
+Create an authored skill in `.trailguide/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `release-checklist`; the skill's ID is `skills/NAME`.
 
 | Option | Meaning |
 | --- | --- |
 | `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
-| `--type TYPE` | Optional. `playbook` or `review`, recorded as `syllabus-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `trailguide-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes `SKILL.md` with the name, description, and type in its frontmatter, and a body with the `syllabus:draft` marker. Complete it and remove the marker before building; an authored skill that still has the marker fails sync and build. An authored skill cites your own rules by their IDs and rules from sources by project ID, such as `fabrica:practices/testing/verify-retry-limits`; see [Skills in a project](/reference/skill-format/#skills-in-a-project). In a library, use [library add skill](#library-add-skill) instead, whose skills cite only the library's own rules. Existing skills are not overwritten. When a skill the repository installs from a source already has the name, the command warns that sync will fail with `skill-name-clash` until you rename or exclude one of them.
+The command writes `SKILL.md` with the name, description, and type in its frontmatter, and a body with the `trailguide:draft` marker. Complete it and remove the marker before building; an authored skill that still has the marker fails sync and build. An authored skill cites your own rules by their IDs and rules from sources by project ID, such as `fabrica:practices/testing/verify-retry-limits`; see [Skills in a project](/reference/skill-format/#skills-in-a-project). In a library, use [library add skill](#library-add-skill) instead, whose skills cite only the library's own rules. Existing skills are not overwritten. When a skill the repository installs from a source already has the name, the command warns that sync will fail with `skill-name-clash` until you rename or exclude one of them.
 
 #### Fork a skill
 
 ```sh
-syllabus project add skill --from SOURCE:SKILL [options]
+trailguide project add skill --from SOURCE:SKILL [options]
 ```
 
-Copy a skill the project installs into `.syllabus/skills/` so the project controls its steps. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so leave out `NAME`.
+Copy a skill the project installs into `.trailguide/skills/` so the project controls its steps. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so leave out `NAME`.
 
 | Option | Meaning |
 | --- | --- |
@@ -158,23 +158,23 @@ Copy a skill the project installs into `.syllabus/skills/` so the project contro
 
 `--description` and `--type` don't apply to a fork. The command:
 
-1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `.syllabus/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a non-library source, the recorded commit. A renamed skill's fork takes its install name, so the folder and `name` match what agents already see, and the exclusion in step 3 replaces the skill's `skills.rename` entry.
-2. Rewrites the fork's `syllabus-rules-used` and `syllabus-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `syllabus-skills-used`.
-3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `syllabus project sync` first.
+1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `.trailguide/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a non-library source, the recorded commit. A renamed skill's fork takes its install name, so the folder and `name` match what agents already see, and the exclusion in step 3 replaces the skill's `skills.rename` entry.
+2. Rewrites the fork's `trailguide-rules-used` and `trailguide-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because an authored skill cites rules and skills from sources by project ID. For a non-library source, it writes the skills that `skills.uses` lists for the skill into `trailguide-skills-used`.
+3. Adds an `exclude` entry for the skill with your reason, `skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a non-library source, the full commit SHA. If you changed that source's configuration since its last sync, run `trailguide project sync` first.
 
 :::note[Preview]
 Skills have no versions yet, so the fork records the commit it copied as `basedOn` for every source, library or not.
 :::
 
-Links in a skill stay inside its folder, so the fork needs no link changes. A `SKILL.md` without frontmatter, which a repository that isn't a library can supply, gets frontmatter with the skill's name, and each list the fork changes becomes a block string. The command refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/skill-format/#validation); fork such a skill by hand. It also refuses a fork whose folder exists or that another exclusion already names as its `replacedBy`. When an update moves the source while the command waits for your reason, it writes nothing; run it again. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `syllabus project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
+Links in a skill stay inside its folder, so the fork needs no link changes. A `SKILL.md` without frontmatter, which a repository that isn't a library can supply, gets frontmatter with the skill's name, and each list the fork changes becomes a block string. The command refuses a skill whose frontmatter it can't rewrite, such as one that writes `metadata` as a flow mapping, or that would fail the [checks build applies to a skill you author](/reference/skill-format/#validation); fork such a skill by hand. It also refuses a fork whose folder exists or that another exclusion already names as its `replacedBy`. When an update moves the source while the command waits for your reason, it writes nothing; run it again. Existing authored skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `trailguide project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
 
 ### project sync
 
 ```sh
-syllabus project sync [options]
+trailguide project sync [options]
 ```
 
-Take the rule and skill versions recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Syllabus directory with the complete result. Sync also writes each installed skill's folder into the repository's skill targets, removes the folders of skills it no longer installs, refreshes an older, unedited managed Syllabus guide, and adds or refreshes the Syllabus section of `AGENTS.md`, as build does.
+Take the rule and skill versions recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Trail Guide directory with the complete result. Sync also writes each installed skill's folder into the repository's skill targets, removes the folders of skills it no longer installs, refreshes an older, unedited managed Trail Guide guide, and adds or refreshes the Trail Guide section of `AGENTS.md`, as build does.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -182,15 +182,15 @@ Sync needs access to every configured repository and uses your existing Git cred
 
 | Situation | What sync takes |
 | --- | --- |
-| A new source, or a changed repository | The source as `syllabus project update` would: the newest library release, or the commit the source's `ref` names now. |
-| A newly included rule or skill | The source's recorded library release or commit. Each new rule gets the newest version that library release or an earlier one published. A rule or skill that isn't in the recorded revision, such as one the library published later, fails with `skill-not-in-revision`, naming `syllabus project update SOURCE`. |
-| A pin added or changed | The pinned version, up or down, when the recorded library release or an earlier one published it. A later version fails, naming `syllabus project update SOURCE`. |
+| A new source, or a changed repository | The source as `trailguide project update` would: the newest library release, or the commit the source's `ref` names now. |
+| A newly included rule or skill | The source's recorded library release or commit. Each new rule gets the newest version that library release or an earlier one published. A rule or skill that isn't in the recorded revision, such as one the library published later, fails with `skill-not-in-revision`, naming `trailguide project update SOURCE`. |
+| A pin added or changed | The pinned version, up or down, when the recorded library release or an earlier one published it. A later version fails, naming `trailguide project update SOURCE`. |
 | A pin removed | The recorded version, unchanged. The next update offers newer versions. |
-| `ref` added, changed, or removed | Nothing new: the record is out of date, and sync fails, naming `syllabus project update SOURCE`, which takes the revision the configuration now names. A `ref` changed to another spelling of the recorded revision, such as `refs/tags/release/2` for `release/2`, is current. |
+| `ref` added, changed, or removed | Nothing new: the record is out of date, and sync fails, naming `trailguide project update SOURCE`, which takes the revision the configuration now names. A `ref` changed to another spelling of the recorded revision, such as `refs/tags/release/2` for `release/2`, is current. |
 
-Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-vendor-snapshot) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .syllabus/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `syllabus project sync`, which applies any configuration changes; or delete `.syllabus/vendor/<source-name>/` and run `syllabus project sync`, which takes the source again as a new source. Before taking anything from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit it recorded, even after a tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
+Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-vendor-snapshot) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .trailguide/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `trailguide project sync`, which applies any configuration changes; or delete `.trailguide/vendor/<source-name>/` and run `trailguide project sync`, which takes the source again as a new source. Before taking anything from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit it recorded, even after a tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
 
-Sync installs the skills each source's levels and `skills.include` bring in, every skill they use, transitively, and every rule an installed library skill cites; see [Skill selectors](/reference/configuration/#skill-selectors). A skill borrowed by a library comes from the commit the library's record holds for it. Sync writes a skill folder in a target only when `generated/installed-skills.json` records that Syllabus installed it there, or when no folder with that name exists. It fails, writing nothing, with `skill-folder-not-managed` when a folder with an installed skill's install name exists in a target that Syllabus didn't install, and with `skill-name-clash` when two skills would install under the same name, from any sources, authored skills, or both; rename or exclude one of them. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+Sync installs the skills each source's levels and `skills.include` bring in, every skill they use, transitively, and every rule an installed library skill cites; see [Skill selectors](/reference/configuration/#skill-selectors). A skill borrowed by a library comes from the commit the library's record holds for it. Sync writes a skill folder in a target only when `generated/installed-skills.json` records that Trail Guide installed it there, or when no folder with that name exists. It fails, writing nothing, with `skill-folder-not-managed` when a folder with an installed skill's install name exists in a target that Trail Guide didn't install, and with `skill-name-clash` when two skills would install under the same name, from any sources, authored skills, or both; rename or exclude one of them. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move sources to newer revisions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
@@ -207,12 +207,12 @@ Sync warns:
 ### project update
 
 ```sh
-syllabus project update [SOURCE | SOURCE:RULE ...] [options]
+trailguide project update [SOURCE | SOURCE:RULE ...] [options]
 ```
 
 Preview each source's move along its `ref`, with newer rule and skill versions, new rules and skills, level changes, and retirements, then apply it after you confirm, and regenerate guidance and installed skills like sync. With no arguments, every source is updated. `SOURCE`, such as `team`, limits the update to one source. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
 
-A source's skills all come from one revision: the library release that supplies its library-wide files, or a non-library source's commit. They move together, with those library-wide files or that commit, and `syllabus project update SOURCE:SKILL`, such as `fabrica:skills/build-feature`, is refused with a message asking you to update the whole source. `--keep` is for rules only. `--exclude` and `--update-fork` take a skill as `SOURCE:SKILL` the same way they take a rule.
+A source's skills all come from one revision: the library release that supplies its library-wide files, or a non-library source's commit. They move together, with those library-wide files or that commit, and `trailguide project update SOURCE:SKILL`, such as `fabrica:skills/build-feature`, is refused with a message asking you to update the whole source. `--keep` is for rules only. `--exclude` and `--update-fork` take a skill as `SOURCE:SKILL` the same way they take a rule.
 
 | Option | Meaning |
 | --- | --- |
@@ -236,7 +236,7 @@ Skills from a library appear in the same list, by their skill IDs, with the same
 
 A skill whose level changes shows the move on its row, such as `level: recommended -> required` or `level: offered -> recommended`, with the library that set it. A move that installs a skill, such as `offered -> required`, or `offered -> recommended` when you include `recommended`, appears as `new`; a move that stops installing one, such as `recommended -> offered` when you don't name it, appears as `dropped`. A skill whose version doesn't change and that the move neither installs nor drops appears as `level`, so you can decide whether to include it. A skill that becomes required while your configuration excludes or forks it fails the update, naming the library and the exclusion to remove: required skills can't be excluded.
 
-Under each skill's row, from a library or a non-library source, the preview flags every executable file that's new or changed, on its own line, such as `script added: scripts/setup.sh` or `script changed: scripts/verify.sh`: a file whose executable bit is set at the new revision and that the update adds or changes, or a file whose executable bit changed. When it flags any, it prints one warning that Syllabus never runs these scripts but agents may, so read them before confirming. The warning doesn't block the update.
+Under each skill's row, from a library or a non-library source, the preview flags every executable file that's new or changed, on its own line, such as `script added: scripts/setup.sh` or `script changed: scripts/verify.sh`: a file whose executable bit is set at the new revision and that the update adds or changes, or a file whose executable bit changed. When it flags any, it prints one warning that Trail Guide never runs these scripts but agents may, so read them before confirming. The warning doesn't block the update.
 
 A source whose `ref` names a branch or a tag lists its commit move, such as `main: 3f9c2e1 -> 8a41d07`, and warns when a tag now names a different commit than at the last update. A [borrowed source](/reference/configuration/#borrowed-skills) lists its move the same way, under the library that borrows it, such as `fabrica borrows mattpocock: main: 3f9c2e1 -> 8a41d07`, since each project resolves a borrowed ref when it updates. For a non-library source, and for borrowed skills, the preview lists one row for each installed skill folder that differs between the recorded and new commits:
 
@@ -248,20 +248,20 @@ A source whose `ref` names a branch or a tag lists its commit move, such as `mai
 
 See [Update rules and skills](/guides/update/) for examples.
 
-In a terminal, `syllabus project update` shows the preview and asks for confirmation. For each major change and retirement of a rule, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. It asks you to confirm each major change, retirement, and level change of a skill too, but can't keep a skill back on its own: to hold one, decline, then exclude or fork the skill, or set the source's `ref`. For each new rule or skill that isn't required, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose vendored copy a pin keeps, it names the authored files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the sources, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule or skill to move, add, or drop, and no shared files or commits to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no updates are available and no files were written.
+In a terminal, `trailguide project update` shows the preview and asks for confirmation. For each major change and retirement of a rule, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. It asks you to confirm each major change, retirement, and level change of a skill too, but can't keep a skill back on its own: to hold one, decline, then exclude or fork the skill, or set the source's `ref`. For each new rule or skill that isn't required, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose vendored copy a pin keeps, it names the authored files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the sources, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule or skill to move, add, or drop, and no shared files or commits to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no updates are available and no files were written.
 
-A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementAuthoredRule` when your project already replaces that replacement with an authored rule), `authoredRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. A row's `change` is one of the preview's changes: `major`, `minor`, `patch`, `new`, `retired`, `replaced`, or `pinned`. For an `update-fork` decision, a row's `overwrites` lists the authored files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Syllabus directory; both are empty for other rows. A `replaced` row's `from` is the version the project's lock records and `to` the newest version, or `newest` instead when a pin keeps the vendored copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `authoredRule` lacks. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
+A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementAuthoredRule` when your project already replaces that replacement with an authored rule), `authoredRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. A row's `change` is one of the preview's changes: `major`, `minor`, `patch`, `new`, `retired`, `replaced`, or `pinned`. For an `update-fork` decision, a row's `overwrites` lists the authored files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Trail Guide directory; both are empty for other rows. A `replaced` row's `from` is the version the project's lock records and `to` the newest version, or `newest` instead when a pin keeps the vendored copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `authoredRule` lacks. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
 
 In JSON output, each source in `value.sources` also has a `skills` list, whose rows have the same fields as its `rules`, plus `level`, with the levels `from` and `to` when the level changed, absent otherwise; and `scripts`, a list of the flagged scripts, each with its `path`, relative to the skill's folder, and its `change`, `added` or `changed`, empty when the row flags none. A skill row's `change` can also be `dropped` or `level`. A source whose `ref` names a branch or tag, and each entry in a source's `borrowed` list, has `commit`, with the commits `from` and `to`, absent when it doesn't move, and `tagMoved: true` when a tag now names a different commit. Rows for skills from a non-library source or a borrowed source have a `change` of `added`, `changed`, or `removed`, and `files`, the paths of the changed files relative to the skill's folder, empty for other rows.
 
 The preview doesn't list changes to rules or skills you excluded without a replacement. `--keep` and pins in configuration never change which rules are included. When a rule you exclude or include by ID is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your authored rules in a rule group with no metadata, such as a fork of a retired rule, it writes the rule group's metadata to `rules/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep the rule group of an authored rule](/reference/sync/#keep-the-rule-group-of-an-authored-rule).
 
-An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as the manifest, rule group metadata, shared assets, and the library's license files, to the newest library release, or the commit its `ref` names now, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A source whose `ref` names a library release or a commit doesn't move; change `ref` and run `syllabus project update SOURCE` to take the revision it names. A `SOURCE:RULE` update leaves the library-wide files where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published. The source's skills and skill levels always move with its library-wide files.
+An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as the manifest, rule group metadata, shared assets, and the library's license files, to the newest library release, or the commit its `ref` names now, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A source whose `ref` names a library release or a commit doesn't move; change `ref` and run `trailguide project update SOURCE` to take the revision it names. A `SOURCE:RULE` update leaves the library-wide files where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published. The source's skills and skill levels always move with its library-wide files.
 
 #### Skills and their scripts
 
 :::note[Preview]
-Skill rows and the scripts warning in the update preview come in the next Syllabus release.
+Skill rows and the scripts warning in the update preview come in the next Trail Guide release.
 :::
 
 A source's skills come from the revision that supplies its library-wide files, so they move with them. For each source the update names, the preview compares the skills the source installs once updated with the copies its source record holds, and lists, after the rules, one row for each skill that differs:
@@ -277,10 +277,10 @@ Under each skill's row, the preview flags every executable script the update add
 When the preview flags any script, it ends with one warning:
 
 ```text
-Warning: some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm.
+Warning: some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm.
 ```
 
-In a terminal, the warning follows the preview, before any question. It doesn't block the update. A skill row is a change to confirm, so a terminal asks before applying it. An applied update, such as one with `--yes`, lists the same rows and warns `some skills in this update added or changed scripts. Syllabus never runs them, but your agents may; read them before you commit the update.`
+In a terminal, the warning follows the preview, before any question. It doesn't block the update. A skill row is a change to confirm, so a terminal asks before applying it. An applied update, such as one with `--yes`, lists the same rows and warns `some skills in this update added or changed scripts. Trail Guide never runs them, but your agents may; read them before you commit the update.`
 
 In JSON output, each source in `value.sources` has a `skills` list, empty when no skill differs. Each row has its `id`, `change`, `files`, the changed paths relative to the skill's folder for a `changed` row and empty for other rows, and `scripts`, a list of the flagged scripts, each with its `path`, relative to the skill's folder, and its `change`, `added` or `changed`, empty when the row flags none. The warning is in `value.warnings`.
 
@@ -288,25 +288,25 @@ When your decisions keep a `SOURCE:RULE` update's library-wide files at an older
 
 #### Replace a fork with the newest version
 
-For a skill, `--update-fork SOURCE:SKILL` replaces the whole authored skill folder that the exclusion's `replacedBy` names with what [`syllabus project add skill --from SOURCE:SKILL`](#fork-a-skill) writes for the source's newest version, or a non-library source's newest commit, and removes files you added to the folder. The rest of this section describes rules; it applies to skills the same way.
+For a skill, `--update-fork SOURCE:SKILL` replaces the whole authored skill folder that the exclusion's `replacedBy` names with what [`trailguide project add skill --from SOURCE:SKILL`](#fork-a-skill) writes for the source's newest version, or a non-library source's newest commit, and removes files you added to the folder. The rest of this section describes rules; it applies to skills the same way.
 
-`--update-fork SOURCE:RULE` replaces the authored rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the vendored copy at an older one. The new fork is exactly what [`syllabus project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the path of the `replacedBy` rule, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
+`--update-fork SOURCE:RULE` replaces the authored rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the vendored copy at an older one. The new fork is exactly what [`trailguide project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the path of the `replacedBy` rule, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
 
 Passing `--update-fork` is your consent to overwrite the authored rule: your edits to it are lost, so commit them first if you want to compare. The preview, human and JSON, lists every file it replaces and, separately, every file it removes, reading the new fork from the library to tell them apart. The authored rule's asset directory is replaced as a whole, including files you added to it, and the shared assets the new version links to are copied into it, as a fork copies them. Nothing outside the rule and its asset directory changes, because each rule owns its asset directory and no other rule may link into it. A pin stays: it governs only the vendored copy.
 
 `--update-fork` refuses, as an `invalid-arguments` usage error that exits `2`, a rule the source doesn't exclude with `replacedBy`, an unknown source, a `--reason`, and a rule that `--keep` or `--exclude` also names, before reading any source. It also refuses a rule the preview doesn't list as `replaced`, because the library has nothing newer than the version your rule is based on or the update doesn't include the rule, and a rule the library retired, which has no newest version to fork. Like the rest of the update, it fails with `invalid-release-tag`, writing nothing, when the library release tag that published the fork's version names another commit than when the update previewed it, also when a pin or a `SOURCE:RULE` update keeps the vendored copy at an older version. Without `--update-fork`, `--yes` leaves every authored rule as it is.
 
-If you merged the library's changes into your authored rule by hand, record the version you merged by editing `basedOn` in `.syllabus/config.yaml`, so later updates list only newer changes.
+If you merged the library's changes into your authored rule by hand, record the version you merged by editing `basedOn` in `.trailguide/config.yaml`, so later updates list only newer changes.
 
 See [Update rules and skills](/guides/update/) for the workflow.
 
 ### project build
 
 ```sh
-syllabus project build [options]
+trailguide project build [options]
 ```
 
-Regenerate `generated/` from configuration, verified vendor snapshots, and authored rules and skills, and rewrite the installed skill folders in the repository's skill targets. Build works offline and does not change recorded revisions. It also creates a missing managed Syllabus guide or refreshes an older, unedited guide alongside generated output, and adds or refreshes the Syllabus section of the repository's `AGENTS.md`. A manually edited guide or section stops the build before it changes output. See [Where agents start](/reference/files/#where-agents-start).
+Regenerate `generated/` from configuration, verified vendor snapshots, and authored rules and skills, and rewrite the installed skill folders in the repository's skill targets. Build works offline and does not change recorded revisions. It also creates a missing managed Trail Guide guide or refreshes an older, unedited guide alongside generated output, and adds or refreshes the Trail Guide section of the repository's `AGENTS.md`. A manually edited guide or section stops the build before it changes output. See [Where agents start](/reference/files/#where-agents-start).
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -315,10 +315,10 @@ Run sync first if the recorded repository, selectors, pins, or `ref` no longer m
 ### project check
 
 ```sh
-syllabus project check [options]
+trailguide project check [options]
 ```
 
-Check generated guidance, installed skills, the managed Syllabus guide, and the Syllabus section of `AGENTS.md` without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including an installed skill folder that differs from what sync would write, a folder that `generated/installed-skills.json` records but that's missing, such as when `.gitignore` excludes the target folders so they were never committed, a stale `installed-skills.json`, an authored skill that cites a rule its library retired, a missing or outdated `AGENTS.md` section, and a source record in `vendor/` that was changed outside `syllabus project sync`, which no command trusts until you restore it or take the source again; see [the source record's checksum](/reference/provenance/#inspect-the-vendor-snapshot). It warns about personal skills with the same name as installed skills, as sync does, without failing.
+Check generated guidance, installed skills, the managed Trail Guide guide, and the Trail Guide section of `AGENTS.md` without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including an installed skill folder that differs from what sync would write, a folder that `generated/installed-skills.json` records but that's missing, such as when `.gitignore` excludes the target folders so they were never committed, a stale `installed-skills.json`, an authored skill that cites a rule its library retired, a missing or outdated `AGENTS.md` section, and a source record in `vendor/` that was changed outside `trailguide project sync`, which no command trusts until you restore it or take the source again; see [the source record's checksum](/reference/provenance/#inspect-the-vendor-snapshot). It warns about personal skills with the same name as installed skills, as sync does, without failing.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -327,7 +327,7 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 ### project list skills
 
 ```sh
-syllabus project list skills [options]
+trailguide project list skills [options]
 ```
 
 List the skills the repository's sources offer, with their levels, so you can choose which to install. Lists never write files. The command reads each library source's newest library release, or the revision its `ref` names now, and each non-library and borrowed source at the newest commit its `ref` names, and needs access to every configured and borrowed repository.
@@ -335,10 +335,10 @@ List the skills the repository's sources offer, with their levels, so you can ch
 | Option | Meaning |
 | --- | --- |
 | `--type TYPE` | Only skills of this type: `playbook` or `review`. |
-| `--applies-rules-from GROUP` | Only skills whose `syllabus-rules-used` names a rule in this rule group, such as `practices/architecture`. |
+| `--applies-rules-from GROUP` | Only skills whose `trailguide-rules-used` names a rule in this rule group, such as `practices/architecture`. |
 
 ```text
-$ syllabus project list skills --applies-rules-from practices/architecture
+$ trailguide project list skills --applies-rules-from practices/architecture
 NAME                 ID                                  LEVEL        SET BY             VERSION  STATUS
 build-feature        fabrica:skills/build-feature        recommended  fabrica release 7  1.3.0    installed
 review-architecture  fabrica:skills/review-architecture  offered      fabrica release 7  2.0.1    available
@@ -356,7 +356,7 @@ Each row shows:
 - **VERSION:** the skill's newest version, or, for a skill without versions, the commit it would come from.
 - **STATUS:** `installed` for a skill the repository installs, whether included, required, or used by another installed skill, and `available` for one a source offers that the repository doesn't install.
 
-Authored skills aren't listed. Skills are sorted by project ID. To install one, add it to that source's `skills.include` and run `syllabus project sync`, or `syllabus project update SOURCE` when it isn't in the recorded revision yet.
+Authored skills aren't listed. Skills are sorted by project ID. To install one, add it to that source's `skills.include` and run `trailguide project sync`, or `trailguide project update SOURCE` when it isn't in the recorded revision yet.
 
 Skills don't belong to rule groups, so `--applies-rules-from` finds skills by the rules they cite: a skill that cites rules in several rule groups appears under each of them, and a skill that cites no rules, including every skill from a non-library source, appears only without the option. Both options can be combined.
 
@@ -364,17 +364,17 @@ JSON output lists the skills in `value.skills`, each with its `name`, `id`, `lev
 
 ## Library commands
 
-`syllabus library` manages a **library**, a repository whose [manifest](/reference/library-format/#the-manifest) publishes its authored rule groups and skills for projects to take. Library commands use the same `.syllabus/` directory and `config.yaml` as project commands, so a repository can be both. Initialize from the repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
+`trailguide library` manages a **library**, a repository whose [manifest](/reference/library-format/#the-manifest) publishes its authored rule groups and skills for projects to take. Library commands use the same `.trailguide/` directory and `config.yaml` as project commands, so a repository can be both. Initialize from the repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
 
 ### library init
 
 ```sh
-syllabus library init [options]
+trailguide library init [options]
 ```
 
-Add a `library` section, the [manifest](/reference/library-format/#the-manifest), to `.syllabus/config.yaml`, creating the configuration with `schemaVersion: 2` and `sources: {}` when it doesn't exist, and create the authored `rules/` and `skills/` directories, an authoring README, and a GitHub Actions workflow, without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library and declare them in `library.license`. A configuration that already has a `library` section keeps it.
+Add a `library` section, the [manifest](/reference/library-format/#the-manifest), to `.trailguide/config.yaml`, creating the configuration with `schemaVersion: 2` and `sources: {}` when it doesn't exist, and create the authored `rules/` and `skills/` directories, an authoring README, and a GitHub Actions workflow, without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library and declare them in `library.license`. A configuration that already has a `library` section keeps it.
 
-The workflow, `.github/workflows/syllabus.yml`, runs `syllabus library check` on every pull request, using the Syllabus version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`, and prints the version it installed in the job's log and summary. Rerunning `syllabus library init` never changes an existing workflow; to move it to the Syllabus version you run, delete the workflow and run `syllabus library init` again. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+The workflow, `.github/workflows/trailguide.yml`, runs `trailguide library check` on every pull request, using the Trail Guide version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`, and prints the version it installed in the job's log and summary. Rerunning `trailguide library init` never changes an existing workflow; to move it to the Trail Guide version you run, delete the workflow and run `trailguide library init` again. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
 
 | Option | Meaning |
 | --- | --- |
@@ -389,10 +389,10 @@ If you omit the license options, the manifest leaves the license undeclared. Ini
 ### library add group
 
 ```sh
-syllabus library add group ID [options]
+trailguide library add group ID [options]
 ```
 
-Create a rule group in `.syllabus/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`. It writes the same files as `syllabus project add group`.
+Create a rule group in `.trailguide/rules/ID/`, with `_group.yaml` metadata and an authoring README. `ID` is a rule group path such as `practices/testing` or `techs/typescript`. It writes the same files as `trailguide project add group`.
 
 | Option | Meaning |
 | --- | --- |
@@ -407,10 +407,10 @@ Empty rule groups are valid. Existing rule group files are preserved.
 ### library add rule
 
 ```sh
-syllabus library add rule ID [options]
+trailguide library add rule ID [options]
 ```
 
-Create a rule in an existing rule group, at `.syllabus/rules/ID.md`. `ID` includes the rule group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
+Create a rule in an existing rule group, at `.trailguide/rules/ID.md`. `ID` includes the rule group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -422,29 +422,29 @@ Create a rule in an existing rule group, at `.syllabus/rules/ID.md`. `ID` includ
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the rule group first with `syllabus library add group`; rule creation does not create missing rule groups. Without `--body-file`, complete the draft and remove its `syllabus:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `syllabus library change`. Like `syllabus library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
+Create the rule group first with `trailguide library add group`; rule creation does not create missing rule groups. Without `--body-file`, complete the draft and remove its `trailguide:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `trailguide library change`. Like `trailguide library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
 
 ### library add skill
 
 ```sh
-syllabus library add skill NAME [options]
+trailguide library add skill NAME [options]
 ```
 
-Create a skill in `.syllabus/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `fix-bug`; the skill's ID is `skills/NAME`. A new skill that the manifest's levels don't list is offered; to require or recommend it, add it to `library.skills`. See [Skill levels](/reference/library-format/#skill-levels).
+Create a skill in `.trailguide/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `fix-bug`; the skill's ID is `skills/NAME`. A new skill that the manifest's levels don't list is offered; to require or recommend it, add it to `library.skills`. See [Skill levels](/reference/library-format/#skill-levels).
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
-| `--type TYPE` | Optional. `playbook` or `review`, recorded as `syllabus-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `trailguide-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes `.syllabus/skills/NAME/SKILL.md` with the name, description, and type in its frontmatter, and a body with the `syllabus:draft` marker. Complete the draft and remove the marker before validation; see [Write a skill](/guides/write-skills/). An invalid name, or a description that's blank or too long, fails before prompts with exit code `2`. Existing skills are not overwritten, and the ID of a skill a library release retired can't be reused. After the first library release, the next steps include adding the new skill's change note with `syllabus library change`. Like `syllabus library add rule`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags.
+The command writes `.trailguide/skills/NAME/SKILL.md` with the name, description, and type in its frontmatter, and a body with the `trailguide:draft` marker. Complete the draft and remove the marker before validation; see [Write a skill](/guides/write-skills/). An invalid name, or a description that's blank or too long, fails before prompts with exit code `2`. Existing skills are not overwritten, and the ID of a skill a library release retired can't be reused. After the first library release, the next steps include adding the new skill's change note with `trailguide library change`. Like `trailguide library add rule`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags.
 
 ### library change
 
 ```sh
-syllabus library change ID... [options]
+trailguide library change ID... [options]
 ```
 
 Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules and skills. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`, or a skill ID, such as `skills/build-feature`; name several to cover related changes in one note. Before the first library release, rules and skills need no notes, so the command fails and says so.
@@ -457,7 +457,7 @@ Write a new [change note](/reference/rule-versions/#change-notes) for one or mor
 | `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces a retired rule, or the skill that replaces a retired skill. If it isn't a rule or skill in the library yet, the command warns; add it before the next library release. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes a new file in `.syllabus/changes/` with a unique name, such as `.syllabus/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. Rule IDs go in the note's `rules` map and skill IDs in its `skills` map. A rule or skill without any version is recorded as `new`. It rejects an ID that isn't a rule or skill in the library, unless `--retire` is supplied for one that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release, and a skill whose folder's tracked files and their modes are unchanged: edit it first, then record the change. A rule or skill that was never published can't be retired: delete it, and remove it from any pending note.
+The command writes a new file in `.trailguide/changes/` with a unique name, such as `.trailguide/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. Rule IDs go in the note's `rules` map and skill IDs in its `skills` map. A rule or skill without any version is recorded as `new`. It rejects an ID that isn't a rule or skill in the library, unless `--retire` is supplied for one that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release, and a skill whose folder's tracked files and their modes are unchanged: edit it first, then record the change. A rule or skill that was never published can't be retired: delete it, and remove it from any pending note.
 
 `--replaced-by` must be the same kind as the retired ID: a rule for a rule, a skill for a skill. Naming a rule to replace a skill, or the reverse, fails as a usage error with exit code `2`, such as `--replaced-by practices/testing/verify-retries is a rule, but skills/triage-bug is a skill. A skill can only be replaced by a skill.`
 
@@ -466,7 +466,7 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 ### library check
 
 ```sh
-syllabus library check [options]
+trailguide library check [options]
 ```
 
 Validate the manifest, all rule groups and rules, all skills and their levels, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule and skill has a change note. Does not change files.
@@ -478,13 +478,13 @@ Validate the manifest, all rule groups and rules, all skills and their levels, c
 
 Reports rule group, rule, and skill counts, `value.groupCount`, `value.ruleCount`, and `value.skillCount` in JSON, such as `Library is valid: 3 group(s), 6 rule(s), 3 skill(s).`, and file-specific errors. The human output leaves out the skill count when the library has no skills. Empty rule groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `syllabus-skill-type`, `syllabus-rules-used`, and `syllabus-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message.
+Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `trailguide-skill-type`, `trailguide-rules-used`, and `trailguide-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message.
 
 Check also validates the manifest's skill levels. It fails when a level lists a skill the library doesn't have, a skill appears in two levels, or two listed skills, authored or borrowed, have the same name. To check borrowed skills, it reads each borrowed source at the `ref` the library's configuration names, so it needs access to those repositories; see [Name clashes](/reference/library-format/#name-clashes). Levels are library-wide settings, so changing one needs no change note.
 
 After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, and each skill's, meaning the tracked files in its folder and their modes, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when any of the following is true of a rule, and the same for a skill, with the message naming the skill:
 
-- A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `syllabus library change` command to run.
+- A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `trailguide library change` command to run.
 - A new rule has no pending note.
 - A published rule was deleted without a pending note that retires it.
 - A retired rule's `replacedBy` isn't a rule in the library, or a retired skill's `replacedBy` isn't a skill in it.
@@ -495,16 +495,16 @@ After the first library release, check compares each rule's [versioned content](
 
 Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it. When a pending note retires a rule that an earlier library release named as a retired rule's replacement, check warns about it: when the note names a replacement, that updates will point projects that still include the earlier rule on to it; otherwise, that they would be pointed at a retired rule, suggesting a replacement as `replacedBy`. A pending retirement whose `replacedBy` isn't a rule in the library fails.
 
-A skill is compared with the newest library release whose release record has a `skills` field; when a later library release lacks it, because an older Syllabus published it, check warns, as [Skills in the release record](/reference/rule-versions/#skills-in-the-release-record) describes.
+A skill is compared with the newest library release whose release record has a `skills` field; when a later library release lacks it, because an older Trail Guide published it, check warns, as [Skills in the release record](/reference/rule-versions/#skills-in-the-release-record) describes.
 
-This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `syllabus library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
+This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `trailguide library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
-When checks pass, the result previews the pending library release: each rule and skill, its change, and its current and next version, in one list sorted by ID. When no rule or skill change is pending and no library-wide file changed, it says there is nothing to publish, as `syllabus library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as the manifest, rule group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `syllabus project update` name them. `value.pendingRelease.skills` lists pending skill changes in the same form. `syllabus library release` reports the rules and skills it publishes in `value.rules` and `value.skills` the same way.
+When checks pass, the result previews the pending library release: each rule and skill, its change, and its current and next version, in one list sorted by ID. When no rule or skill change is pending and no library-wide file changed, it says there is nothing to publish, as `trailguide library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as the manifest, rule group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `trailguide project update` name them. `value.pendingRelease.skills` lists pending skill changes in the same form. `trailguide library release` reports the rules and skills it publishes in `value.rules` and `value.skills` the same way.
 
 ### library release
 
 ```sh
-syllabus library release [options]
+trailguide library release [options]
 ```
 
 Publish the pending change notes for rules and skills, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). A library release that changes only skills publishes like any other. See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
@@ -520,24 +520,24 @@ Before publishing, the command fetches from the branch's upstream remote. It ref
 
 - you're on the remote's default branch,
 - the branch matches the remote exactly, so the library release contains no unpushed commits and misses none, and
-- `syllabus library check` passes.
+- `trailguide library check` passes.
 
 It then computes each changed rule's and skill's next version from the pending notes, using the largest change when several notes name the same rule or skill. The first library release gives every rule and skill version `1.0.0`. The release record lists skills in its [`skills` field](/reference/rule-versions/#skills-in-the-release-record), and the release notes list skill changes in a section of their own. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
 
 `--dry-run` shows the repository, branch, commit, release number, each rule's and skill's change and versions, and the complete release notes.
 
-If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Syllabus created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Syllabus and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.skills`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `syllabus library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules`, `value.skills`, and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Trail Guide created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Trail Guide and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.skills`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `trailguide library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules`, `value.skills`, and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
-When the push fails, the command fails with `push-failed` and deletes the tag it created, so a rerun starts over. Syllabus doesn't show what Git or the server printed, as [Text from Git, servers, and the GitHub CLI](#text-from-git-servers-and-the-github-cli) explains; its message names the cause it recognizes in that text instead:
+When the push fails, the command fails with `push-failed` and deletes the tag it created, so a rerun starts over. Trail Guide doesn't show what Git or the server printed, as [Text from Git, servers, and the GitHub CLI](#text-from-git-servers-and-the-github-cli) explains; its message names the cause it recognizes in that text instead:
 
 - a repository rule or tag protection, such as a GitHub ruleset or a GitLab protected tag, with GitHub's error code when the server gave `GH006` or `GH013`,
 - the HTTPS server's certificate or the SSH host key couldn't be verified,
 - Git couldn't connect to the server,
 - the server denied access, or authentication failed,
 - a hook on the server, such as a pre-receive or update hook, declined the tag,
-- the server refused the tag for a reason Syllabus doesn't recognize, with GitHub's error code when the server gave another one, such as `GH001` for large files, or
+- the server refused the tag for a reason Trail Guide doesn't recognize, with GitHub's error code when the server gave another one, such as `GH001` for large files, or
 - the push failed before the server answered, such as when your pre-push hook stopped it.
 
 To read the server's own message, push a test tag that your tag rules cover yourself, such as `release/0`, which isn't a library release tag:
@@ -550,7 +550,7 @@ git tag --delete release/0
 
 If that push succeeds, delete the test tag from the remote with `git push origin --delete refs/tags/release/0`.
 
-`syllabus library release` refuses before creating anything, with exit code `1` and `error.code` in JSON output, when:
+`trailguide library release` refuses before creating anything, with exit code `1` and `error.code` in JSON output, when:
 
 | Code | Refusal |
 | --- | --- |
@@ -567,9 +567,9 @@ If that push succeeds, delete the test tag from the remote with `git push origin
 | `remote-changed` | Someone pushed to the branch, or changed a release tag, while the command ran. |
 | `release-tag-mismatch` | A release tag in the clone differs from the remote's, exists only in the clone without being the next one on this commit, or doesn't publish what this commit would. |
 | `invalid-release-tag` | A release tag reachable from the commit isn't a valid annotated tag with a release record. |
-| `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Syllabus. |
+| `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Trail Guide. |
 | `uncommitted-changes` | Library files differ from the checked-out commit. |
-| `change-notes` | Change notes don't match the rule or skill changes, as `syllabus library check` reports; other check failures keep their own codes, such as `invalid-skill`. |
+| `change-notes` | Change notes don't match the rule or skill changes, as `trailguide library check` reports; other check failures keep their own codes, such as `invalid-skill`. |
 | `version-limit` | A change would take a rule's or skill's version past the largest version number. |
 | `git-identity` | Git doesn't know your name and email for the tag's tagger. |
 | `github-cli-missing` | A GitHub Release page applies, but `gh` isn't installed. |
@@ -588,20 +588,20 @@ After it creates the tag, it can fail with:
 | `github-cli-failed` | `gh` couldn't run. |
 | `github-release-failed` | `gh` couldn't look up or create the GitHub Release page. The message names the cause it recognizes: GitHub's rate limit, `gh` signed out or its credentials refused, permission denied, or a repository GitHub can't find. Otherwise, when the lookup failed, it says to run `gh release view` to read `gh`'s message; when creating the page failed, it suggests checks that change nothing, `gh auth status` and `gh repo view`, and running the command again, which creates the page with its generated notes only if it's still missing. The tag is published; run the command again to create the page. |
 
-**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `syllabus library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `syllabus library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only. The page's URL in the result is built from the repository and the tag, never taken from what `gh` printed.
+**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `trailguide library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `trailguide library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only. The page's URL in the result is built from the repository and the tag, never taken from what `gh` printed.
 
 <span id="help-and-version"></span>
 
 ## Help, version, and license
 
 ```sh
-syllabus --help
-syllabus COMMAND --help
-syllabus --version
-syllabus --license
+trailguide --help
+trailguide COMMAND --help
+trailguide --version
+trailguide --license
 ```
 
-Use `-h` or `--help` to inspect command syntax and options. For example, run `syllabus project --help` to find project commands or `syllabus library add rule --help` for rule authoring options.
+Use `-h` or `--help` to inspect command syntax and options. For example, run `trailguide project --help` to find project commands or `trailguide library add rule --help` for rule authoring options.
 
 | Option | Meaning |
 | --- | --- |
@@ -610,19 +610,19 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `sy
 | `--license` | At the root, print the full embedded MIT license and copyright notice. |
 | `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
-Running `syllabus` or a command group such as `syllabus library` without a subcommand displays help. The `syllabus project`, `syllabus project add`, `syllabus project list`, `syllabus library`, and `syllabus library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
+Running `trailguide` or a command group such as `trailguide library` without a subcommand displays help. The `trailguide project`, `trailguide project add`, `trailguide project list`, `trailguide library`, and `trailguide library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
 The root `--version` flag prints the tool version. To choose which versions of a library's rules and skills to take, see [Choose versions](/reference/configuration/#choose-versions).
 
 ## Working directories
 
-In Git repositories, run `syllabus project init` or `syllabus library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `syllabus library init --directory`.
+In Git repositories, run `trailguide project init` or `trailguide library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `trailguide library init --directory`.
 
-Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands both use that root's `.syllabus/config.yaml`; library commands also need its `library` section. They stop at that repository boundary, even if its configuration is missing. A nested `.syllabus/` does not override the root's configuration.
+Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project and library commands both use that root's `.trailguide/config.yaml`; library commands also need its `library` section. They stop at that repository boundary, even if its configuration is missing. A nested `.trailguide/` does not override the root's configuration.
 
 Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
 
-Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` resolve from the directory where you run the command. Paths inside project configuration remain relative to `.syllabus/`.
+Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` resolve from the directory where you run the command. Paths inside project configuration remain relative to `.trailguide/`.
 
 ## Shared options and prompts
 
@@ -632,7 +632,7 @@ Authoring commands accept `--non-interactive`. Without it, commands can prompt f
 
 Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing rule groups, rules, skills, and source names fail before prompts.
 
-Both init commands, both check commands, `syllabus project list skills`, and `syllabus library release` run without prompts. Of these, `syllabus library check` and `syllabus library release` accept `--non-interactive`; `syllabus project check`, `syllabus project sync`, `syllabus project update`, `syllabus project build`, and `syllabus project list skills` do not need or accept it.
+Both init commands, both check commands, `trailguide project list skills`, and `trailguide library release` run without prompts. Of these, `trailguide library check` and `trailguide library release` accept `--non-interactive`; `trailguide project check`, `trailguide project sync`, `trailguide project update`, `trailguide project build`, and `trailguide project list skills` do not need or accept it.
 
 String options accept one value and cannot be repeated, except `--rules`, `--skills`, `--skill-targets`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
@@ -643,7 +643,7 @@ Scaffolding commands validate paths and detect collisions before writing. They p
 Human-readable output is the default. Add `--json` for scripts:
 
 ```sh
-syllabus project check --json
+trailguide project check --json
 ```
 
 JSON mode writes one response to stdout:
@@ -657,23 +657,23 @@ JSON mode writes one response to stdout:
 
 Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 
-Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, `outdated-readme`, or `outdated-agents-section`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Syllabus directory, except paths in a skill target, which are relative to the project root, so the `AGENTS.md` problem's path is `../AGENTS.md`. Generated guidance, installed skills, the managed Syllabus guide, and the `AGENTS.md` section must all be current for success.
+Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, `outdated-readme`, or `outdated-agents-section`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Trail Guide directory, except paths in a skill target, which are relative to the project root, so the `AGENTS.md` problem's path is `../AGENTS.md`. Generated guidance, installed skills, the managed Trail Guide guide, and the `AGENTS.md` section must all be current for success.
 
 Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or rule group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Syllabus directory, or to `generated/` for build, except paths in a skill target, such as `.claude/skills/build-feature/SKILL.md`, which are relative to the project root. Authoring commands, such as init, add source, add group, add rule, add skill, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, a rename, a personal skill with the same name, or authored rule group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Syllabus guide, `value.guide` reports its path relative to the Syllabus directory and whether it was `created`. When they change the Syllabus section of `AGENTS.md`, `value.agents` reports the file's path relative to the repository root and an `action`: `created` for a new file, `added` for a section added to an existing file, or `updated`. Init lists `AGENTS.md` among its `added` or `changed` files instead. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Trail Guide directory, or to `generated/` for build, except paths in a skill target, such as `.claude/skills/build-feature/SKILL.md`, which are relative to the project root. Authoring commands, such as init, add source, add group, add rule, add skill, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, a rename, a personal skill with the same name, or authored rule group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Trail Guide guide, `value.guide` reports its path relative to the Trail Guide directory and whether it was `created`. When they change the Trail Guide section of `AGENTS.md`, `value.agents` reports the file's path relative to the repository root and an `action`: `created` for a new file, `added` for a section added to an existing file, or `updated`. Init lists `AGENTS.md` among its `added` or `changed` files instead. Help, version, and license return their text in `value.text`.
 
-In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/syllabus/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
+In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/trailguide/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 
 ## Text from Git, servers, and the GitHub CLI
 
-Syllabus never shows text that Git, a Git server, or the GitHub CLI, `gh`, produced: not in human output, JSON output, or errors. That includes Git's error messages, the lines a server or its hooks print, the reason in Git's `! [remote rejected]` line, the default branch a server advertises, and everything `gh` prints. Such text can hold anything, including credentials Syllabus can't know about, such as one a Git credential helper, `GIT_ASKPASS`, or `http.extraHeader` supplies, so Syllabus doesn't try to find and remove them. It reads the text privately to choose one of its own fixed messages and error codes, which name the likely cause and what to check. A message may name a GitHub error code it recognizes, such as `GH013`, because those are a fixed set. To read the original text, run the Git or `gh` command yourself; the message or this reference says which.
+Trail Guide never shows text that Git, a Git server, or the GitHub CLI, `gh`, produced: not in human output, JSON output, or errors. That includes Git's error messages, the lines a server or its hooks print, the reason in Git's `! [remote rejected]` line, the default branch a server advertises, and everything `gh` prints. Such text can hold anything, including credentials Trail Guide can't know about, such as one a Git credential helper, `GIT_ASKPASS`, or `http.extraHeader` supplies, so Trail Guide doesn't try to find and remove them. It reads the text privately to choose one of its own fixed messages and error codes, which name the likely cause and what to check. A message may name a GitHub error code it recognizes, such as `GH013`, because those are a fixed set. To read the original text, run the Git or `gh` command yourself; the message or this reference says which.
 
-Syllabus also never shows credentials in a URL it displays. A repository address it shows, such as a library's remote in `syllabus library release`, has any password, query, and fragment removed, and its user name too unless it's an SSH user name, which names an account. An address it can't parse is replaced by a note, including one with an authority but no scheme, such as `//host/rules`, and a `user@host:path` address with a colon before its `@`, which could start a password. The GitHub Release page URL is built from the repository and the tag, not taken from `gh`.
+Trail Guide also never shows credentials in a URL it displays. A repository address it shows, such as a library's remote in `trailguide library release`, has any password, query, and fragment removed, and its user name too unless it's an SSH user name, which names an account. An address it can't parse is replaced by a note, including one with an authority but no scheme, such as `//host/rules`, and a `user@host:path` address with a colon before its `@`, which could start a password. The GitHub Release page URL is built from the repository and the tag, not taken from `gh`.
 
-Syllabus shows some values that Git computes, after checking their form: commit and object IDs, which must be hexadecimal object IDs; commit counts, which must be nonnegative integers; and object types, which must be one of Git's four. A value in any other form fails with code `git-failed` and a fixed message instead.
+Trail Guide shows some values that Git computes, after checking their form: commit and object IDs, which must be hexadecimal object IDs; commit counts, which must be nonnegative integers; and object types, which must be one of Git's four. A value in any other form fails with code `git-failed` and a fixed message instead.
 
-Syllabus shows as they are:
+Trail Guide shows as they are:
 
 - names you chose locally, such as branch and remote names,
 - the repository addresses in project configuration, which can't contain credentials, and
@@ -687,10 +687,10 @@ Human output still shows control characters in that text as visible escapes, as 
 | --- | --- |
 | `0` | Success. |
 | `1` | An operation failed, inputs are invalid, or a project check found stale output. |
-| `2` | Invalid command usage, such as an unknown command, unsupported option, missing required CLI input, or options the command can't combine, such as `syllabus library change --bump` for a new rule, or a `syllabus project update` decision the preview doesn't offer, such as `--keep` for a rule the update doesn't move. |
+| `2` | Invalid command usage, such as an unknown command, unsupported option, missing required CLI input, or options the command can't combine, such as `trailguide library change --bump` for a new rule, or a `trailguide project update` decision the preview doesn't offer, such as `--keep` for a rule the update doesn't move. |
 | `130` | The command was interrupted, such as with Ctrl-C, including at a prompt. It says it was cancelled; a command interrupted before writing files writes none, and one interrupted while replacing files is recovered by the next command, as [Sync and recovery](/reference/sync/) describes. JSON output reports `error.kind` as `cancelled`. |
 
-Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. A failure of `syllabus project sync` or `syllabus project update` that wrote nothing, including an update's refusal of its arguments after the command line is parsed, ends with `No files were written.`, or, when the command first recovered an interrupted earlier command, which restores or finishes that command's files, says so instead, as an update's preview and a declined or interrupted update do too, and names the source, as in `source team:`, when the problem doesn't already. An interrupted one says `cancelled; no files were written`, or, after such a recovery, that it was cancelled and what the recovery did. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
+Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. A failure of `trailguide project sync` or `trailguide project update` that wrote nothing, including an update's refusal of its arguments after the command line is parsed, ends with `No files were written.`, or, when the command first recovered an interrupted earlier command, which restores or finishes that command's files, says so instead, as an update's preview and a declined or interrupted update do too, and names the source, as in `source team:`, when the problem doesn't already. An interrupted one says `cancelled; no files were written`, or, after such a recovery, that it was cancelled and what the recovery did. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
 
 ## Migrating from earlier commands
 
@@ -699,12 +699,12 @@ Update existing scripts to use the scoped commands below. Use `-h` or `--help` f
 
 | Earlier command | Canonical command |
 | --- | --- |
-| `syllabus init` | `syllabus project init` |
-| `syllabus add source` | `syllabus project add source` |
-| `syllabus local add group` | `syllabus project add group` |
-| `syllabus local add rule` | `syllabus project add rule` |
-| `syllabus sync` | `syllabus project sync` |
-| `syllabus build` | `syllabus project build` |
-| `syllabus check` | `syllabus project check` |
+| `trailguide init` | `trailguide project init` |
+| `trailguide add source` | `trailguide project add source` |
+| `trailguide local add group` | `trailguide project add group` |
+| `trailguide local add rule` | `trailguide project add rule` |
+| `trailguide sync` | `trailguide project sync` |
+| `trailguide build` | `trailguide project build` |
+| `trailguide check` | `trailguide project check` |
 
-`syllabus project add library` and `syllabus project add repository` are replaced by `syllabus project add source`, which adds either kind of source. Library command paths are unchanged. For configuration fields that changed, see [No backward compatibility](/reference/configuration/#no-backward-compatibility).
+`trailguide project add library` and `trailguide project add repository` are replaced by `trailguide project add source`, which adds either kind of source. Library command paths are unchanged. For configuration fields that changed, see [No backward compatibility](/reference/configuration/#no-backward-compatibility).

@@ -1,4 +1,4 @@
-// Exercise how syllabus project update previews the skills a library borrows from another repository, in human
+// Exercise how trailguide project update previews the skills a library borrows from another repository, in human
 // output and JSON, when that repository's tag moves and changes a borrowed skill's script.
 
 package cli
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // newBorrowedUpdateFixture syncs a project that uses team, a library that requires deploy, a skill it borrows from
@@ -79,7 +79,7 @@ func TestUpdate_PreviewsBorrowedSkillsAndTheirScripts(t *testing.T) {
 		"            Changed: scripts/deploy.sh\n" +
 		"            script changed: scripts/deploy.sh\n" +
 		"\n" +
-		"Warning: some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm.\n"
+		"Warning: some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm.\n"
 	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, want) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant it to start:\n%s", code, diagnostic, out, want)
 	}
@@ -104,7 +104,7 @@ func TestUpdate_JSONReportsBorrowedSkillsAndTheirScripts(t *testing.T) {
 	if got := compactJSON(t, result.Value.Sources[0].Borrowed[0]); got != want {
 		t.Fatalf("borrowed row:\n%s\nwant:\n%s", got, want)
 	}
-	if wantWarnings := []string{"some skills in this update add or change scripts. Syllabus never runs them, but your agents may; read them before you confirm."}; !reflect.DeepEqual(result.Value.Warnings, wantWarnings) {
+	if wantWarnings := []string{"some skills in this update add or change scripts. Trail Guide never runs them, but your agents may; read them before you confirm."}; !reflect.DeepEqual(result.Value.Warnings, wantWarnings) {
 		t.Fatalf("warnings %q", result.Value.Warnings)
 	}
 }

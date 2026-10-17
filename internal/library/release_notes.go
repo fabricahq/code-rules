@@ -12,7 +12,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // The notes write each paragraph and each list item on one line, because GitHub renders a GitHub Release page's
@@ -27,7 +27,7 @@ const majorChangesAdvice = "Code that complied with the previous rule version co
 const sharedFilesSentence = "This library release also updates shared files, such as group descriptions or shared assets."
 
 // releaseRules lists each rule a release record changed, added, or retired, in ID order.
-func releaseRules(record syllabus.ReleaseRecord) []PendingRule {
+func releaseRules(record trailguide.ReleaseRecord) []PendingRule {
 	list := []PendingRule{}
 	for id, change := range record.Changes {
 		next := record.Rules[id]
@@ -35,7 +35,7 @@ func releaseRules(record syllabus.ReleaseRecord) []PendingRule {
 	}
 	for id, retired := range record.Retired {
 		last := retired.LastVersion
-		list = append(list, PendingRule{ID: id, Change: syllabus.ChangeRetired, LastVersion: &last, ReplacedBy: retired.ReplacedBy, Summaries: slices.Clone(retired.Summaries)})
+		list = append(list, PendingRule{ID: id, Change: trailguide.ChangeRetired, LastVersion: &last, ReplacedBy: retired.ReplacedBy, Summaries: slices.Clone(retired.Summaries)})
 	}
 	slices.SortFunc(list, func(a, b PendingRule) int { return strings.Compare(a.ID, b.ID) })
 	return list
@@ -47,13 +47,13 @@ func releaseRules(record syllabus.ReleaseRecord) []PendingRule {
 // files, and a collapsed table of every rule's version. Each rule is a list item with its summaries, one per
 // change note, as nested items, except in the first library release, whose rules all have the same placeholder
 // summary, firstReleaseSummary. Every paragraph and list item is one line. Library-wide files are never listed.
-func renderReleaseNotes(record syllabus.ReleaseRecord) string {
+func renderReleaseNotes(record trailguide.ReleaseRecord) string {
 	var out strings.Builder
 	out.WriteString(countLine(record))
 	sections := []struct {
-		change  syllabus.Change
+		change  trailguide.Change
 		heading string
-	}{{syllabus.ChangeNew, "New rules"}, {syllabus.ChangeMajor, "Major changes"}, {syllabus.ChangeMinor, "Minor changes"}, {syllabus.ChangePatch, "Patch changes"}}
+	}{{trailguide.ChangeNew, "New rules"}, {trailguide.ChangeMajor, "Major changes"}, {trailguide.ChangeMinor, "Minor changes"}, {trailguide.ChangePatch, "Patch changes"}}
 	for _, section := range sections {
 		var items []string
 		for _, id := range slices.Sorted(maps.Keys(record.Changes)) {
@@ -75,7 +75,7 @@ func renderReleaseNotes(record syllabus.ReleaseRecord) string {
 			continue
 		}
 		out.WriteString("\n\n## " + section.heading + "\n\n")
-		if section.change == syllabus.ChangeMajor {
+		if section.change == trailguide.ChangeMajor {
 			out.WriteString(majorChangesAdvice + "\n\n")
 		}
 		out.WriteString(strings.Join(items, "\n"))
@@ -110,7 +110,7 @@ func renderReleaseNotes(record syllabus.ReleaseRecord) string {
 // each kind of change in the order of the sections. A
 // library release that changes no rules says it updates shared files instead, and the first library release says
 // how many rules it publishes, since they are all new.
-func countLine(record syllabus.ReleaseRecord) string {
+func countLine(record trailguide.ReleaseRecord) string {
 	if record.Release == 1 {
 		switch count := len(record.Changes); count {
 		case 0:
@@ -121,7 +121,7 @@ func countLine(record syllabus.ReleaseRecord) string {
 			return "Library release 1 publishes " + strconv.Itoa(count) + " rules."
 		}
 	}
-	counts := map[syllabus.Change]int{syllabus.ChangeRetired: len(record.Retired)}
+	counts := map[trailguide.Change]int{trailguide.ChangeRetired: len(record.Retired)}
 	for _, change := range record.Changes {
 		counts[change.Change]++
 	}
@@ -131,7 +131,7 @@ func countLine(record syllabus.ReleaseRecord) string {
 		return heading + "no rules. It updates shared files, such as group descriptions or shared assets."
 	}
 	var kinds []string
-	for _, change := range []syllabus.Change{syllabus.ChangeNew, syllabus.ChangeMajor, syllabus.ChangeMinor, syllabus.ChangePatch, syllabus.ChangeRetired} {
+	for _, change := range []trailguide.Change{trailguide.ChangeNew, trailguide.ChangeMajor, trailguide.ChangeMinor, trailguide.ChangePatch, trailguide.ChangeRetired} {
 		if counts[change] > 0 {
 			kinds = append(kinds, strconv.Itoa(counts[change])+" "+string(change))
 		}
@@ -166,14 +166,14 @@ func summaryLines(summaries []string) string {
 // releaseMessage returns a library release tag's message: the notes, a line containing only ---, and the YAML
 // release record. It fails unless the message parses back to exactly these notes and this record, so a tag
 // never carries a record that projects would read differently or reject.
-func releaseMessage(notes string, record syllabus.ReleaseRecord) ([]byte, error) {
+func releaseMessage(notes string, record trailguide.ReleaseRecord) ([]byte, error) {
 	encoded, err := encodeReleaseRecord(record)
 	if err != nil {
 		return nil, err
 	}
 	message := notes + "\n---\n" + string(encoded)
 	tag := "release/" + strconv.Itoa(record.Release)
-	parsedNotes, parsed, err := syllabus.ParseReleaseMessage(tag, []byte(message))
+	parsedNotes, parsed, err := trailguide.ParseReleaseMessage(tag, []byte(message))
 	if err != nil {
 		return nil, fmt.Errorf("render the release record for %s: %w", tag, err)
 	}
@@ -184,15 +184,15 @@ func releaseMessage(notes string, record syllabus.ReleaseRecord) ([]byte, error)
 }
 
 // normalizedRecord is how the parser returns record: absent sections become empty ones.
-func normalizedRecord(record syllabus.ReleaseRecord) syllabus.ReleaseRecord {
+func normalizedRecord(record trailguide.ReleaseRecord) trailguide.ReleaseRecord {
 	if record.Rules == nil {
-		record.Rules = map[string]syllabus.RuleVersion{}
+		record.Rules = map[string]trailguide.RuleVersion{}
 	}
 	if record.Changes == nil {
-		record.Changes = map[string]syllabus.RecordedChange{}
+		record.Changes = map[string]trailguide.RecordedChange{}
 	}
 	if record.Retired == nil {
-		record.Retired = map[string]syllabus.RetiredRule{}
+		record.Retired = map[string]trailguide.RetiredRule{}
 	}
 	if record.LibraryFiles == nil {
 		record.LibraryFiles = []string{}
@@ -202,7 +202,7 @@ func normalizedRecord(record syllabus.ReleaseRecord) syllabus.ReleaseRecord {
 
 // encodeReleaseRecord writes the record's YAML, starting with its formatVersion, with sorted keys, leaving out
 // empty changes, retired, and libraryFiles sections. rules is always present, since the parser requires it.
-func encodeReleaseRecord(record syllabus.ReleaseRecord) ([]byte, error) {
+func encodeReleaseRecord(record trailguide.ReleaseRecord) ([]byte, error) {
 	text := func(value string) *yaml.Node { return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value} }
 	mapping := func(pairs ...*yaml.Node) *yaml.Node { return &yaml.Node{Kind: yaml.MappingNode, Content: pairs} }
 	versions := mapping()
@@ -219,7 +219,7 @@ func encodeReleaseRecord(record syllabus.ReleaseRecord) ([]byte, error) {
 		}
 		return sequence
 	}
-	document := mapping(text("formatVersion"), number(syllabus.ReleaseRecordFormat), text("release"), number(record.Release), text("rules"), versions)
+	document := mapping(text("formatVersion"), number(trailguide.ReleaseRecordFormat), text("release"), number(record.Release), text("rules"), versions)
 	if len(record.Changes) > 0 {
 		changes := mapping()
 		for _, id := range slices.Sorted(maps.Keys(record.Changes)) {

@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // Options selects trusted process settings. Zero values use Git from PATH and a 120-second deadline.
@@ -68,7 +68,7 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if err != nil {
 		return nil, err
 	}
-	dir, err := os.MkdirTemp("", "syllabus-git-*")
+	dir, err := os.MkdirTemp("", "trailguide-git-*")
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
@@ -232,7 +232,7 @@ func (r *repository) tree(ctx context.Context, commit string) (map[string]treeEn
 }
 
 // repositoryTree returns the parsed file tree of a fetched commit by repository path, listing it once. A commit that
-// keeps its Syllabus directory under the name from before the rename lists it as .syllabus/, as librarytree.Upgrade
+// keeps its Trail Guide directory under the name from before the rename lists it as .trailguide/, as librarytree.Upgrade
 // spells it.
 func (r *repository) repositoryTree(ctx context.Context, commit string) (map[string]treeEntry, error) {
 	if entries, ok := r.raw[commit]; ok {

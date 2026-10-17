@@ -1,5 +1,5 @@
-// Package syllabus provides the tool license embedded from the repository's canonical notice.
-package syllabus
+// Package trailguide provides the tool license embedded from the repository's canonical notice.
+package trailguide
 
 import _ "embed"
 

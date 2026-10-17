@@ -1,4 +1,4 @@
-// Keep every published copy of the AGENTS.md section identical to the section Syllabus writes.
+// Keep every published copy of the AGENTS.md section identical to the section Trail Guide writes.
 
 package project
 
@@ -12,9 +12,9 @@ import (
 // agentInstructions matches the fenced "Skills and Rules" section that pages quote from AGENTS.md.
 var agentInstructions = regexp.MustCompile("(?ms)^```markdown\\n(## Skills and Rules\\n.*?)^```$")
 
-// TestAgentInstructions_MatchTheSection fails when the docs drift from the section Syllabus writes.
+// TestAgentInstructions_MatchTheSection fails when the docs drift from the section Trail Guide writes.
 func TestAgentInstructions_MatchTheSection(t *testing.T) {
-	section := renderAgentsSection(".syllabus", "1.2.3")
+	section := renderAgentsSection(".trailguide", "1.2.3")
 	lines := strings.SplitAfter(section, "\n")
 	want := strings.Join(lines[1:len(lines)-2], "")
 	for _, name := range []string{
@@ -39,9 +39,9 @@ func TestRepositoryGuide_IsCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !unmodifiedProjectGuide(data) {
-		t.Fatal(".code-rules/README.md: checksum doesn't match its contents; move it aside, then regenerate it with syllabus project init")
+		t.Fatal(".code-rules/README.md: checksum doesn't match its contents; move it aside, then regenerate it with trailguide project init")
 	}
 	if string(data) != string(renderProjectGuide()) {
-		t.Fatal(".code-rules/README.md: differs from project-guide.md; regenerate it with syllabus project init")
+		t.Fatal(".code-rules/README.md: differs from project-guide.md; regenerate it with trailguide project init")
 	}
 }

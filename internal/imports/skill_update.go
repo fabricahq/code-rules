@@ -9,9 +9,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/gitexec"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/gitexec"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // SkillChange is how an update affects one skill, or one script in a skill, as the update preview lists it.
@@ -58,7 +58,7 @@ type skillPreview struct {
 	err      error
 	replaced []ReplacedSkillUpdate
 	levels   []SkillLevelUpdate
-	// manifest is the library's .syllabus/config.yaml at the revision, or nil when it has none; borrowed and
+	// manifest is the library's .trailguide/config.yaml at the revision, or nil when it has none; borrowed and
 	// revisions are what planBorrowed plans from it.
 	manifest  []byte
 	borrowed  []BorrowedUpdate

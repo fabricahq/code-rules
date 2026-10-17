@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/skills"
 )
 
 func TestValidNameFollowsTheAgentSkillsGrammar(t *testing.T) {
@@ -45,13 +45,13 @@ func TestReadMetadataReadsTheFieldsGuidanceShows(t *testing.T) {
 		input string
 		want  skills.Metadata
 	}{
-		"full":                   {"---\nname: build-feature\ndescription: Build a feature.\nmetadata:\n  syllabus-skill-type: playbook\n  author: someone\n---\nSteps.\n", skills.Metadata{Name: "build-feature", Description: "Build a feature.", Type: "playbook", Frontmatter: true}},
+		"full":                   {"---\nname: build-feature\ndescription: Build a feature.\nmetadata:\n  trailguide-skill-type: playbook\n  author: someone\n---\nSteps.\n", skills.Metadata{Name: "build-feature", Description: "Build a feature.", Type: "playbook", Frontmatter: true}},
 		"crlf":                   {"---\r\nname: tdd\r\n---\r\nBody\r\n", skills.Metadata{Name: "tdd", Frontmatter: true}},
 		"no frontmatter":         {"# A skill\n\nSteps.\n", skills.Metadata{}},
 		"unknown fields kept":    {"---\nname: x\nallowed-tools: Bash\nlicense: MIT\n---\n", skills.Metadata{Name: "x", Frontmatter: true}},
 		"closing at end of file": {"---\nname: x\n---", skills.Metadata{Name: "x", Frontmatter: true}},
-		"cited rules and skills": {"---\nname: x\nmetadata:\n  syllabus-rules-used: |\n    techs/go/errors\n\n      fabrica:practices/testing/verify  \n  syllabus-skills-used: skills/tdd\n  syllabus-groups: x\n  syllabus-skill-type: review\n---\n", skills.Metadata{Name: "x", Type: "review", RulesUsed: []string{"techs/go/errors", "fabrica:practices/testing/verify"}, SkillsUsed: []string{"skills/tdd"}, ReservedKeys: []string{"syllabus-groups"}, Frontmatter: true}},
-		"empty cited rules":      {"---\nname: x\nmetadata:\n  syllabus-rules-used: \"\"\n---\n", skills.Metadata{Name: "x", RulesUsed: []string{}, Frontmatter: true}},
+		"cited rules and skills": {"---\nname: x\nmetadata:\n  trailguide-rules-used: |\n    techs/go/errors\n\n      fabrica:practices/testing/verify  \n  trailguide-skills-used: skills/tdd\n  trailguide-groups: x\n  trailguide-skill-type: review\n---\n", skills.Metadata{Name: "x", Type: "review", RulesUsed: []string{"techs/go/errors", "fabrica:practices/testing/verify"}, SkillsUsed: []string{"skills/tdd"}, ReservedKeys: []string{"trailguide-groups"}, Frontmatter: true}},
+		"empty cited rules":      {"---\nname: x\nmetadata:\n  trailguide-rules-used: \"\"\n---\n", skills.Metadata{Name: "x", RulesUsed: []string{}, Frontmatter: true}},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -70,12 +70,12 @@ func TestReadMetadataRejectsUnreadableFrontmatter(t *testing.T) {
 		"numeric name":     "---\nname: 12\n---\n",
 		"list description": "---\nname: x\ndescription: [a]\n---\n",
 		"scalar metadata":  "---\nname: x\nmetadata: text\n---\n",
-		"boolean type":     "---\nname: x\nmetadata:\n  syllabus-skill-type: true\n---\n",
-		"list rules used":  "---\nname: x\nmetadata:\n  syllabus-rules-used: [techs/go/errors]\n---\n",
-		"number skills":    "---\nname: x\nmetadata:\n  syllabus-skills-used: 3\n---\n",
-		"empty rules used": "---\nname: x\nmetadata:\n  syllabus-rules-used:\n---\n",
-		"null skills used": "---\nname: x\nmetadata:\n  syllabus-skills-used: null\n---\n",
-		"null type":        "---\nname: x\nmetadata:\n  syllabus-skill-type: ~\n---\n",
+		"boolean type":     "---\nname: x\nmetadata:\n  trailguide-skill-type: true\n---\n",
+		"list rules used":  "---\nname: x\nmetadata:\n  trailguide-rules-used: [techs/go/errors]\n---\n",
+		"number skills":    "---\nname: x\nmetadata:\n  trailguide-skills-used: 3\n---\n",
+		"empty rules used": "---\nname: x\nmetadata:\n  trailguide-rules-used:\n---\n",
+		"null skills used": "---\nname: x\nmetadata:\n  trailguide-skills-used: null\n---\n",
+		"null type":        "---\nname: x\nmetadata:\n  trailguide-skill-type: ~\n---\n",
 		"duplicate key":    "---\nname: x\nname: y\n---\n",
 	} {
 		t.Run(name, func(t *testing.T) {

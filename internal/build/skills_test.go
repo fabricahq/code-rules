@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/build"
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/library"
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/build"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/library"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // skillConfig parses a configuration with no sources and the skill targets in targets, a JSON list.
@@ -34,7 +34,7 @@ func TestGenerateInstallsAuthoredSkillsIntoEachTarget(t *testing.T) {
 	}
 	for _, folder := range []string{".claude/skills/tidy", ".agents/skills/tidy"} {
 		installed, ok := output.Skills[folder]
-		if !ok || !strings.Contains(string(installed.Files["SKILL.md"]), "---\n<!-- syllabus:installed skills/tidy. Do not edit; edit .syllabus/skills/tidy/ instead. -->\n# Tidy") || !slices.Equal(installed.Executable, []string{"run.sh"}) {
+		if !ok || !strings.Contains(string(installed.Files["SKILL.md"]), "---\n<!-- trailguide:installed skills/tidy. Do not edit; edit .trailguide/skills/tidy/ instead. -->\n# Tidy") || !slices.Equal(installed.Executable, []string{"run.sh"}) {
 			t.Errorf("%s = %+v", folder, installed)
 		}
 	}
@@ -149,7 +149,7 @@ func TestGenerateRejectsInvalidReplacements(t *testing.T) {
 	local := map[string]build.SkillFiles{"skills/ours": {Files: map[string][]byte{"SKILL.md": []byte("---\nname: ours\n---\n")}}}
 	for name, test := range map[string]struct{ exclude, location, problem string }{
 		"missing skill":     {`[{"id":"skills/plan","reason":"No."}]`, "sources.team.skills.exclude.skills/plan", "the source doesn't install skill skills/plan"},
-		"no authored skill": {`[{"id":"skills/review","reason":"No.","replacedBy":"skills/missing"}]`, "sources.team.skills.exclude.skills/review.replacedBy", "the project has no authored skill skills/missing; add .syllabus/skills/missing/SKILL.md"},
+		"no authored skill": {`[{"id":"skills/review","reason":"No.","replacedBy":"skills/missing"}]`, "sources.team.skills.exclude.skills/review.replacedBy", "the project has no authored skill skills/missing; add .trailguide/skills/missing/SKILL.md"},
 		"one replacing two": {`[{"id":"skills/fix","reason":"No.","replacedBy":"skills/ours"},{"id":"skills/review","reason":"No.","replacedBy":"skills/ours"}]`, "sources.team.skills.exclude.skills/review.replacedBy", "skills/ours already replaces the skill sources.team.skills.exclude.skills/fix names"},
 	} {
 		t.Run(name, func(t *testing.T) {

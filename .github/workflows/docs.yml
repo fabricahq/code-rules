@@ -1,5 +1,5 @@
 name: Documentation
-# Publish checked builds from main to https://syllabus.fabricahq.com, including /install.sh.
+# Publish checked builds from main to https://trailguide.fabricahq.com, including /install.sh.
 # Run on every pushed commit and PR update: sidebar, template, or build changes
 # can break links even when no Markdown file changed, so do not use path filters.
 on:

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/project"
+	"github.com/fabricahq/trailguide/internal/project"
 )
 
 // TestCLIOutputModes covers human initialization and structured success, help, and failures.
@@ -19,7 +19,7 @@ func TestCLIOutputModes(t *testing.T) {
 	binary := buildCLI(t)
 	dir := t.TempDir()
 	out, diagnostic, code := runCLI(t, binary, dir, "project", "init")
-	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Syllabus initialized!\n") || !strings.Contains(out, "config.yaml") || json.Valid([]byte(out)) {
+	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Trail Guide initialized!\n") || !strings.Contains(out, "config.yaml") || json.Valid([]byte(out)) {
 		t.Fatalf("human init: %d %q %q", code, out, diagnostic)
 	}
 	for _, tc := range []struct {
@@ -95,7 +95,7 @@ func TestErrors_EndWithAPeriod(t *testing.T) {
 	if out, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	if err := os.WriteFile(filepath.Join(dir, ".syllabus", "config.yaml"), []byte("schemaVersion: 2\nsources: {}\nversion: 2\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".trailguide", "config.yaml"), []byte("schemaVersion: 2\nsources: {}\nversion: 2\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	for _, args := range [][]string{{"project", "update", "--reason", "Why."}, {"project", "check"}} {

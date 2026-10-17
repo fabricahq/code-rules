@@ -18,7 +18,7 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(options.Directory, ".github", "workflows", "syllabus.yml")
+	path := filepath.Join(options.Directory, ".github", "workflows", "trailguide.yml")
 	if !strings.Contains(strings.Join(result.Written(), "\n"), path) {
 		t.Fatalf("files %q omit the workflow", result.Written())
 	}
@@ -40,7 +40,7 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 		t.Fatal("the guide has no check workflow")
 	}
 	// The guide abbreviates the install step's environment and script as "run: ...".
-	abbreviated := regexp.MustCompile(`(?s)(        )env:\n.*?\n(      - run: syllabus library check)`).ReplaceAllString(workflow, "${1}run: ...\n${2}")
+	abbreviated := regexp.MustCompile(`(?s)(        )env:\n.*?\n(      - run: trailguide library check)`).ReplaceAllString(workflow, "${1}run: ...\n${2}")
 	if abbreviated != string(documented[1]) {
 		t.Fatalf("workflow differs from the guide outside its install step:\n%s\nguide:\n%s", abbreviated, documented[1])
 	}
@@ -48,7 +48,7 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 
 // TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds, which no release published.
 func TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds(t *testing.T) {
-	latest := `version=$(gh release view --repo fabricahq/syllabus --json tagName --jq '.tagName | ltrimstr("v")')`
+	latest := `version=$(gh release view --repo fabricahq/trailguide --json tagName --jq '.tagName | ltrimstr("v")')`
 	for version, installed := range map[string]string{
 		"0.2.0":                   "version=0.2.0",
 		"0.3.0-rc.1":              "version=0.3.0-rc.1",
@@ -59,7 +59,7 @@ func TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds(t *test
 		if _, err := Initialize(context.Background(), options, nil, version); err != nil {
 			t.Fatal(version, err)
 		}
-		data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/syllabus.yml"))
+		data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/trailguide.yml"))
 		if err != nil || !strings.Contains(string(data), "\n          "+installed+"\n") {
 			t.Fatalf("%s: want %q in:\n%s", version, installed, data)
 		}
@@ -70,12 +70,12 @@ func TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds(t *test
 func TestInitialize_KeepsAnExistingWorkflow(t *testing.T) {
 	options := Options{Directory: t.TempDir()}
 	custom := "name: Custom\n"
-	edit(t, options.Directory, map[string]string{".github/workflows/syllabus.yml": custom})
+	edit(t, options.Directory, map[string]string{".github/workflows/trailguide.yml": custom})
 	result, err := Initialize(context.Background(), options, nil, "0.2.0")
-	if err != nil || strings.Contains(strings.Join(result.Written(), "\n"), "syllabus.yml") {
+	if err != nil || strings.Contains(strings.Join(result.Written(), "\n"), "trailguide.yml") {
 		t.Fatal(result, err)
 	}
-	if data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/syllabus.yml")); err != nil || string(data) != custom {
+	if data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/trailguide.yml")); err != nil || string(data) != custom {
 		t.Fatalf("%q %v", data, err)
 	}
 }

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/syllabus/internal/rules"
+	"github.com/fabricahq/trailguide/internal/rules"
 )
 
 // Options selects trusted build inputs and an exclusively created output directory.
@@ -171,29 +171,29 @@ func buildTarget(ctx context.Context, source, directory, version, revision, targ
 		return Artifact{}, err
 	}
 	defer os.RemoveAll(temporary)
-	binary := filepath.Join(temporary, "syllabus")
+	binary := filepath.Join(temporary, "trailguide")
 	platform := strings.Split(target, "/")
 	flags := "-s -w -X main.version=" + version
 	if candidate {
 		flags += " -X main.previewCommit=" + revision
 	}
-	command := exec.CommandContext(ctx, "go", "build", "-trimpath", "-buildvcs=false", "-ldflags", flags, "-o", binary, "./cmd/syllabus")
+	command := exec.CommandContext(ctx, "go", "build", "-trimpath", "-buildvcs=false", "-ldflags", flags, "-o", binary, "./cmd/trailguide")
 	command.Dir = source
 	command.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+platform[0], "GOARCH="+platform[1], "GOWORK=off", "GOFLAGS=", "GOENV=off", "GOAMD64=v1", "GOARM64=v8.0", "GOEXPERIMENT=")
-	// The compiler's output isn't shown; go build ./cmd/syllabus shows it.
+	// The compiler's output isn't shown; go build ./cmd/trailguide shows it.
 	if err := command.Run(); err != nil {
-		return Artifact{}, fmt.Errorf("build %s failed; run go build ./cmd/syllabus to read the compiler's output: %w", target, err)
+		return Artifact{}, fmt.Errorf("build %s failed; run go build ./cmd/trailguide to read the compiler's output: %w", target, err)
 	}
 	data, err := os.ReadFile(binary)
 	if err != nil {
 		return Artifact{}, err
 	}
-	name := "syllabus_" + version + "_" + strings.ReplaceAll(target, "/", "_") + ".tar.gz"
-	note := "Syllabus " + version + "\nExtract syllabus to a private directory and run ./syllabus --help.\nOffline commands need no Node or Bun. Sync also requires Git on PATH.\n"
+	name := "trailguide_" + version + "_" + strings.ReplaceAll(target, "/", "_") + ".tar.gz"
+	note := "Trail Guide " + version + "\nExtract trailguide to a private directory and run ./trailguide --help.\nOffline commands need no Node or Bun. Sync also requires Git on PATH.\n"
 	if candidate {
 		note += "UNPUBLISHED REVIEW CANDIDATE. This archive does not grant a tool license or imply release approval.\n"
 	}
-	entries := []archiveEntry{{"syllabus", data, 0755}, {"README.txt", []byte(note), 0644}}
+	entries := []archiveEntry{{"trailguide", data, 0755}, {"README.txt", []byte(note), 0644}}
 	if len(license) > 0 {
 		entries = append(entries, archiveEntry{"LICENSE.md", license, 0644})
 	}
@@ -250,7 +250,7 @@ func (c *byteCounter) Write(data []byte) (int, error) { c.n += int64(len(data));
 
 // committedSource extracts a fixed Git commit into an isolated build tree so edits cannot change artifact inputs.
 func committedSource(ctx context.Context, source, revision string) (_ string, err error) {
-	directory, err := os.MkdirTemp("", "syllabus-build-source-")
+	directory, err := os.MkdirTemp("", "trailguide-build-source-")
 	if err != nil {
 		return "", err
 	}

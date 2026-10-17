@@ -1,5 +1,5 @@
 {
-  "name": "syllabus-website-tools",
+  "name": "trailguide-website-tools",
   "type": "module",
   "workspaces": [
     "docs"

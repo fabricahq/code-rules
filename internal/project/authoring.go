@@ -1,4 +1,4 @@
-// Package project owns a consuming project's Syllabus state: initialization, local authoring,
+// Package project owns a consuming project's Trail Guide state: initialization, local authoring,
 // library adoption, offline generation, and read-only freshness checks. Storage protocols stay private.
 // Each source's vendor/<source>/_source.json is its lockfile: sync restores the recorded rule versions and chooses
 // one only where configuration asks for something the record lacks, so only update moves rules to newer versions on
@@ -15,10 +15,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // AuthoringResult lists the absolute paths of the authored files an operation created and changed, and cleanup
@@ -42,7 +42,7 @@ type RuleOptions struct {
 // Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and authored
 // files are preserved. A new configuration installs skills into both skill targets, claude and agents. It fails,
 // writing nothing, when the project still has a local/ folder, or when AGENTS.md has an edited section or broken markers.
-// Then it adds or refreshes the Syllabus section of the repository's AGENTS.md, as build does, listing the file among
+// Then it adds or refreshes the Trail Guide section of the repository's AGENTS.md, as build does, listing the file among
 // the changed files, or the added ones when it created it; a failure there comes after the other files were written,
 // and running init again finishes it.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
@@ -180,7 +180,7 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 }
 
 // AddLocalGroup creates one complete authored group definition in rules/ without overwriting existing metadata.
-func AddLocalGroup(ctx context.Context, id string, metadata syllabus.GroupMetadata, options Options) (AuthoringResult, error) {
+func AddLocalGroup(ctx context.Context, id string, metadata trailguide.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
@@ -205,7 +205,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	}
 	if local != nil {
 		if data, ok := local.Files[id+"/_group.yaml"]; ok {
-			_, err = syllabus.ParseGroupMetadata(data, id)
+			_, err = trailguide.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}
@@ -227,7 +227,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 			continue
 		}
 		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
-			_, err = syllabus.ParseGroupMetadata(data, id)
+			_, err = trailguide.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}
@@ -280,6 +280,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `syllabus project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun syllabus project build and syllabus project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `trailguide project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun trailguide project build and trailguide project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

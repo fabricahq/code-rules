@@ -67,11 +67,11 @@ jobs:
             .sourceRevision == $ref and .version == $version and .candidate == false
             and .sourceDirty == false and .license == "SEE LICENSE.md"
             and ([.artifacts[].target] | sort) == ["darwin/amd64", "darwin/arm64", "linux/amd64", "linux/arm64"]
-            and all(.artifacts[]; .file == "syllabus_\($version)_\(.target | sub("/"; "_")).tar.gz")
+            and all(.artifacts[]; .file == "trailguide_\($version)_\(.target | sub("/"; "_")).tar.gz")
           ' manifest.json > /dev/null
           sha256sum --check --strict SHA256SUMS
           find . -mindepth 1 -printf '%P\n' | sort > "$RUNNER_TEMP/files"
-          printf '%s\n' SHA256SUMS manifest.json "syllabus_${VERSION}_"{darwin_amd64,darwin_arm64,linux_amd64,linux_arm64}.tar.gz | sort | diff - "$RUNNER_TEMP/files"
+          printf '%s\n' SHA256SUMS manifest.json "trailguide_${VERSION}_"{darwin_amd64,darwin_arm64,linux_amd64,linux_arm64}.tar.gz | sort | diff - "$RUNNER_TEMP/files"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-assets

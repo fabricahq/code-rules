@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/errs"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/internal/errs"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // TestChangeNoteFixtures checks parsed notes and exact diagnostics.
@@ -57,11 +57,11 @@ func TestChangeNoteFixtures(t *testing.T) {
 
 // TestLargerChange_PicksTheLargestVersionChange resolves several pending notes on one rule.
 func TestLargerChange_PicksTheLargestVersionChange(t *testing.T) {
-	for _, test := range []struct{ a, b, want syllabus.Change }{
-		{syllabus.ChangePatch, syllabus.ChangeMajor, syllabus.ChangeMajor},
-		{syllabus.ChangeMajor, syllabus.ChangeMinor, syllabus.ChangeMajor},
-		{syllabus.ChangeMinor, syllabus.ChangePatch, syllabus.ChangeMinor},
-		{syllabus.ChangePatch, syllabus.ChangePatch, syllabus.ChangePatch},
+	for _, test := range []struct{ a, b, want trailguide.Change }{
+		{trailguide.ChangePatch, trailguide.ChangeMajor, trailguide.ChangeMajor},
+		{trailguide.ChangeMajor, trailguide.ChangeMinor, trailguide.ChangeMajor},
+		{trailguide.ChangeMinor, trailguide.ChangePatch, trailguide.ChangeMinor},
+		{trailguide.ChangePatch, trailguide.ChangePatch, trailguide.ChangePatch},
 	} {
 		if got := rules.LargerChange(test.a, test.b); got != test.want {
 			t.Errorf("larger of %s and %s: got %s, want %s", test.a, test.b, got, test.want)

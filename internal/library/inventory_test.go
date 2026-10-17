@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/librarytree"
 )
 
 // TestInventoryLimits checks exact bounds, aggregate bytes, entry counts, and cancellation.

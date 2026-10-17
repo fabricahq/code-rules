@@ -1,13 +1,13 @@
 // Parse, compare, and advance rule versions and the change levels that move them.
 
-package syllabus
+package trailguide
 
 import (
 	"fmt"
 	"regexp"
 	"strconv"
 
-	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // RuleVersion is a published rule version: plain major.minor.patch, without prerelease or build suffixes. Versions

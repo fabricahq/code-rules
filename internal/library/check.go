@@ -17,10 +17,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/syllabus/internal/filetxn"
-	"github.com/fabricahq/syllabus/internal/librarytree"
-	"github.com/fabricahq/syllabus/internal/rules"
-	"github.com/fabricahq/syllabus/internal/skills"
+	"github.com/fabricahq/trailguide/internal/filetxn"
+	"github.com/fabricahq/trailguide/internal/librarytree"
+	"github.com/fabricahq/trailguide/internal/rules"
+	"github.com/fabricahq/trailguide/internal/skills"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -273,7 +273,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 					return failure("invalid-library", name+": use rule Markdown, _group.yaml, or a conventional assets directory", err)
 				}
 				if rules.HasDraftMarker(files[name]) {
-					return failure("incomplete-rule", name+": complete the draft and remove its syllabus:draft marker", nil)
+					return failure("incomplete-rule", name+": complete the draft and remove its trailguide:draft marker", nil)
 				}
 			}
 		}
@@ -341,7 +341,7 @@ func requireLibraryUnchanged(ctx context.Context, root *os.Root, before checkInp
 }
 
 // requireLeveledSkills fails when manifest, the library's configuration, gives a level to an own skill the library
-// doesn't have: a folder in .syllabus/skills/ with a SKILL.md, in the repository at root.
+// doesn't have: a folder in .trailguide/skills/ with a SKILL.md, in the repository at root.
 func requireLeveledSkills(root *os.Root, manifest []byte) error {
 	declaration, err := rules.ParseLibraryManifest(manifest, manifestPath)
 	if err != nil || declaration == nil {

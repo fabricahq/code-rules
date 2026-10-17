@@ -1,6 +1,6 @@
 // Check release tag message parsing against independent fixtures, including record consistency.
 
-package syllabus_test
+package trailguide_test
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/syllabus"
+	"github.com/fabricahq/trailguide/trailguide"
 )
 
 // TestReleaseMessageFixtures checks the notes, the parsed record, and exact diagnostics.
@@ -36,22 +36,22 @@ func TestReleaseMessageFixtures(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			notes, got, err := syllabus.ParseReleaseMessage(test.Tag, []byte(test.Message))
+			notes, got, err := trailguide.ParseReleaseMessage(test.Tag, []byte(test.Message))
 			if !test.Expected.OK && test.Expected.Error.Kind == "unsupported" {
-				var unsupported *syllabus.UnsupportedReleaseRecordError
+				var unsupported *trailguide.UnsupportedReleaseRecordError
 				if !errors.As(err, &unsupported) || err.Error() != test.Expected.Error.Message || unsupported.Location != test.Expected.Error.Location {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
 				return
 			}
 			if !test.Expected.OK && test.Expected.Error.Kind == "notReleaseTag" {
-				if !errors.Is(err, syllabus.ErrNotReleaseTag) || err.Error() != test.Expected.Error.Message {
+				if !errors.Is(err, trailguide.ErrNotReleaseTag) || err.Error() != test.Expected.Error.Message {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
 				return
 			}
 			if !test.Expected.OK {
-				var validation *syllabus.ValidationError
+				var validation *trailguide.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
@@ -60,7 +60,7 @@ func TestReleaseMessageFixtures(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var expected syllabus.ReleaseRecord
+			var expected trailguide.ReleaseRecord
 			if err := json.Unmarshal(test.Expected.Value, &expected); err != nil {
 				t.Fatal(err)
 			}
@@ -113,11 +113,11 @@ func recordWith(section string, count int) []byte {
 func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
 	for section, limit := range map[string]int{"rules": 10_000, "changes": 10_000, "retired": 10_000, "libraryFiles": 20_000} {
 		t.Run(section, func(t *testing.T) {
-			if _, err := syllabus.ParseReleaseRecord(recordWith(section, limit), "release/2"); err != nil {
+			if _, err := trailguide.ParseReleaseRecord(recordWith(section, limit), "release/2"); err != nil {
 				t.Fatalf("refused %d entries: %v", limit, err)
 			}
-			_, err := syllabus.ParseReleaseRecord(recordWith(section, limit+1), "release/2")
-			var invalid *syllabus.ValidationError
+			_, err := trailguide.ParseReleaseRecord(recordWith(section, limit+1), "release/2")
+			var invalid *trailguide.ValidationError
 			want := fmt.Sprintf("expected at most %d,000 entries", limit/1000)
 			if !errors.As(err, &invalid) || invalid.Location != "release/2."+section || invalid.Problem != want {
 				t.Fatalf("got %v; want %q", err, want)
@@ -130,8 +130,8 @@ func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
 // longest list the limit allows.
 func TestParseReleaseRecord_RefusesDuplicateLibraryFilesInLargeLists(t *testing.T) {
 	record := append(recordWith("libraryFiles", 19_999), "  - assets/f0.md\n"...)
-	_, err := syllabus.ParseReleaseRecord(record, "release/2")
-	var invalid *syllabus.ValidationError
+	_, err := trailguide.ParseReleaseRecord(record, "release/2")
+	var invalid *trailguide.ValidationError
 	if !errors.As(err, &invalid) || invalid.Location != "release/2.libraryFiles[19999]" || !strings.Contains(invalid.Problem, "duplicate path") {
 		t.Fatalf("got %v", err)
 	}
@@ -150,11 +150,11 @@ func TestParseReleaseRecord_IgnoresUnknownFieldsAtEveryLevel(t *testing.T) {
 		"changes:\n  techs/go/a:\n    change: minor\n    from: 1.0.0\n    summaries: [Add an example.]\n    notes: [{id: 7}]\n    breaking: false\n" +
 		"retired:\n  techs/go/b:\n    lastVersion: 2.0.0\n    replacedBy: techs/go/a\n    summaries: [Covered by a.]\n    retiredAt: 2026-10-01\n" +
 		"libraryFiles: [techs/go/_group.yaml]\nfutureSection:\n  techs/go/a: {anything: ~}\n"
-	want, err := syllabus.ParseReleaseRecord([]byte(known), "release/3")
+	want, err := trailguide.ParseReleaseRecord([]byte(known), "release/3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := syllabus.ParseReleaseRecord([]byte(extended), "release/3")
+	got, err := trailguide.ParseReleaseRecord([]byte(extended), "release/3")
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, %v; want %+v", got, err, want)
 	}
@@ -172,7 +172,7 @@ func TestParseReleaseRecord_AppliesDocumentRulesToUnknownFields(t *testing.T) {
 		"two documents":        "---\nfuture: 1\n",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := syllabus.ParseReleaseRecord([]byte(record2+extra), "release/2"); err == nil {
+			if _, err := trailguide.ParseReleaseRecord([]byte(record2+extra), "release/2"); err == nil {
 				t.Fatal("accepted the record")
 			}
 		})
@@ -183,8 +183,8 @@ func TestParseReleaseRecord_AppliesDocumentRulesToUnknownFields(t *testing.T) {
 // *UnsupportedReleaseRecordError whatever the rest of the record holds, and refuses a missing or malformed format
 // as an invalid record.
 func TestParseReleaseRecord_ChecksTheFormatBeforeTheContent(t *testing.T) {
-	if record, err := syllabus.ParseReleaseRecord([]byte(record2), "release/2"); err != nil || record.Release != 2 {
-		t.Fatalf("format %d: got %+v, %v", syllabus.ReleaseRecordFormat, record, err)
+	if record, err := trailguide.ParseReleaseRecord([]byte(record2), "release/2"); err != nil || record.Release != 2 {
+		t.Fatalf("format %d: got %+v, %v", trailguide.ReleaseRecordFormat, record, err)
 	}
 	for name, input := range map[string]string{
 		"newer format":                "formatVersion: 2\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n",
@@ -192,8 +192,8 @@ func TestParseReleaseRecord_ChecksTheFormatBeforeTheContent(t *testing.T) {
 		"newer format, format last":   "release: second\nformatVersion: 2\n",
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := syllabus.ParseReleaseRecord([]byte(input), "release/2")
-			var unsupported *syllabus.UnsupportedReleaseRecordError
+			_, err := trailguide.ParseReleaseRecord([]byte(input), "release/2")
+			var unsupported *trailguide.UnsupportedReleaseRecordError
 			if !errors.As(err, &unsupported) || unsupported.FormatVersion != 2 || unsupported.Location != "release/2.formatVersion" {
 				t.Fatalf("got %v; want UnsupportedReleaseRecordError for format 2", err)
 			}
@@ -201,8 +201,8 @@ func TestParseReleaseRecord_ChecksTheFormatBeforeTheContent(t *testing.T) {
 	}
 	for name, format := range map[string]string{"missing": "", "zero": "formatVersion: 0\n", "negative": "formatVersion: -1\n", "text": "formatVersion: one\n", "list": "formatVersion: [1]\n"} {
 		t.Run(name, func(t *testing.T) {
-			_, err := syllabus.ParseReleaseRecord([]byte(format+"release: 2\nrules: {}\n"), "release/2")
-			var unsupported *syllabus.UnsupportedReleaseRecordError
+			_, err := trailguide.ParseReleaseRecord([]byte(format+"release: 2\nrules: {}\n"), "release/2")
+			var unsupported *trailguide.UnsupportedReleaseRecordError
 			if err == nil || errors.As(err, &unsupported) {
 				t.Fatalf("got %v; want an invalid record", err)
 			}

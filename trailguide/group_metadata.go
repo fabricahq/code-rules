@@ -1,6 +1,6 @@
 // Parse a group's display text and reading guidance without accessing files.
 
-package syllabus
+package trailguide
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // GroupMetadata describes a group for selection, as its _group.yaml file declares it. Text has no surrounding
@@ -47,7 +47,7 @@ func groupMetadataFields(input json.RawMessage, location string) (GroupMetadata,
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, present := fields[key]; present {
-			return GroupMetadata{}, invalid(location+"."+key, "declare one license for the whole library in the library section of .syllabus/config.yaml; group-level licenses are unsupported")
+			return GroupMetadata{}, invalid(location+"."+key, "declare one license for the whole library in the library section of .trailguide/config.yaml; group-level licenses are unsupported")
 		}
 	}
 	// Sort keys so multiple unknown fields produce a deterministic first error.

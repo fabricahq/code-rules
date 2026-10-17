@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const documentationHelp = "\n\nLearn more: https://syllabus.fabricahq.com"
+const documentationHelp = "\n\nLearn more: https://trailguide.fabricahq.com"
 
 // commandUsage preserves command navigation while grouping only the options available at this scope.
 func commandUsage(cmd *cobra.Command) error {
@@ -81,10 +81,10 @@ func writeCommandGroup(out *strings.Builder, cmd *cobra.Command, title, id strin
 // Keep ordering local to presentation: Cobra's sorting setting is shared across command trees and callers.
 func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
 	order := map[string][]string{
-		"syllabus": {"project", "library"},
-		"project":  {"init", "add", "sync", "update", "build", "check"},
-		"library":  {"init", "add", "check"},
-		"add":      {"rule", "group", "source", "skill"},
+		"trailguide": {"project", "library"},
+		"project":    {"init", "add", "sync", "update", "build", "check"},
+		"library":    {"init", "add", "check"},
+		"add":        {"rule", "group", "source", "skill"},
 	}[cmd.Name()]
 	commands := cmd.Commands()
 	ordered := make([]*cobra.Command, 0, len(commands))

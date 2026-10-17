@@ -11,15 +11,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/syllabus/internal/test/ghfixture"
-	"github.com/fabricahq/syllabus/internal/test/gitfixture"
+	"github.com/fabricahq/trailguide/internal/test/ghfixture"
+	"github.com/fabricahq/trailguide/internal/test/gitfixture"
 )
 
 // marker appears in every probe's external text, so finding any of it in output shows that text passed through.
 const marker = "EXTERNAL-TEXT-MARKER"
 
-// noExternalText is how a refused push says where to read the messages Syllabus doesn't show.
-const noExternalText = "Syllabus doesn't show messages from Git or the server; to read them, push a test tag with git push."
+// noExternalText is how a refused push says where to read the messages Trail Guide doesn't show.
+const noExternalText = "Trail Guide doesn't show messages from Git or the server; to read them, push a test tag with git push."
 
 // failureOutput runs args in dir with environment, in human and JSON output, and returns the human stderr, the JSON
 // stdout, and the JSON error, requiring exit code 1 and the JSON error code.
@@ -97,8 +97,8 @@ func TestLibraryRelease_ShowsNoTextFromTheServerThatRefusedTheTag(t *testing.T) 
 			[]string{hookDeclined}, []string{"abcdefgh", "ijklmnop", "qrstuvwx", "mirror.invalid"}},
 		{"GitHub rule violation", "", "echo 'error: GH013: Repository rule violations found for refs/tags/release/2. " + marker + "' >&2\necho '- Cannot create ref due to creations being restricted.' >&2\n",
 			[]string{"Git couldn't push release/2 to origin: a repository rule refused the tag (GitHub error GH013).", "Check the repository's rulesets and tag protection rules"}, []string{"Repository rule violations", "creations being restricted"}},
-		{"GitHub code Syllabus doesn't map to a cause", "", "echo 'error: GH001: Large files detected. " + marker + "' >&2\n",
-			[]string{"Git couldn't push release/2 to origin: the server refused the tag for a reason Syllabus doesn't recognize (GitHub error GH001)."}, []string{"Large files", "rulesets"}},
+		{"GitHub code Trail Guide doesn't map to a cause", "", "echo 'error: GH001: Large files detected. " + marker + "' >&2\n",
+			[]string{"Git couldn't push release/2 to origin: the server refused the tag for a reason Trail Guide doesn't recognize (GitHub error GH001)."}, []string{"Large files", "rulesets"}},
 		{"protected tag", "", "echo '" + marker + ": You are not allowed to create protected tags on this project.' >&2\n",
 			[]string{"Git couldn't push release/2 to origin: a repository rule or tag protection refused the tag."}, []string{"not allowed", "GH0"}},
 		{"permission denied", "", "echo 'ERROR: Permission to acme/rules.git denied to " + marker + ".' >&2\n",
@@ -180,7 +180,7 @@ var (
 // fits the failed operation.
 func TestLibraryRelease_ShowsNoTextFromTheGitHubCLI(t *testing.T) {
 	binary := buildCLI(t)
-	createFinish := ", then run syllabus library release again to create the page."
+	createFinish := ", then run trailguide library release again to create the page."
 	for _, test := range []struct {
 		name   string
 		lookup bool
@@ -191,9 +191,9 @@ func TestLibraryRelease_ShowsNoTextFromTheGitHubCLI(t *testing.T) {
 		{"signed out", false, "HTTP 401: Bad credentials " + marker + "\n", "create the GitHub Release page for release/2: gh isn't signed in to GitHub.com, or GitHub refused its credentials. The tag is published; sign in with gh auth login" + createFinish},
 		{"permission denied", false, "HTTP 403: Resource not accessible by integration " + marker + "\n", "create the GitHub Release page for release/2: GitHub denied permission to create releases in acme/rules. The tag is published; check that your GitHub account can create releases there" + createFinish},
 		{"not found", false, "HTTP 404: Not Found " + marker + "\n", "create the GitHub Release page for release/2: GitHub couldn't find acme/rules, or your account can't see it. The tag is published; check the repository and your access to it" + createFinish},
-		{"other creation failure", false, "token opaque-secret-value rejected " + marker + "\n", "create the GitHub Release page for release/2: gh failed for a reason Syllabus doesn't recognize. The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/acme/rules, then run syllabus library release again, which creates the page with its notes only if it's still missing."},
-		{"permission denied looking up", true, "HTTP 403: Resource not accessible by integration " + marker + "\n", "look up the GitHub Release page for release/2: GitHub denied permission to read releases in acme/rules. The tag is published; check that your GitHub account can read releases there, then run syllabus library release again to finish."},
-		{"other lookup failure", true, "HTTP 502: Bad Gateway " + marker + "\n", "look up the GitHub Release page for release/2: gh failed for a reason Syllabus doesn't recognize. The tag is published; run gh release view release/2 --repo github.com/acme/rules to read gh's message, then run syllabus library release again to finish."},
+		{"other creation failure", false, "token opaque-secret-value rejected " + marker + "\n", "create the GitHub Release page for release/2: gh failed for a reason Trail Guide doesn't recognize. The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/acme/rules, then run trailguide library release again, which creates the page with its notes only if it's still missing."},
+		{"permission denied looking up", true, "HTTP 403: Resource not accessible by integration " + marker + "\n", "look up the GitHub Release page for release/2: GitHub denied permission to read releases in acme/rules. The tag is published; check that your GitHub account can read releases there, then run trailguide library release again to finish."},
+		{"other lookup failure", true, "HTTP 502: Bad Gateway " + marker + "\n", "look up the GitHub Release page for release/2: gh failed for a reason Trail Guide doesn't recognize. The tag is published; run gh release view release/2 --repo github.com/acme/rules to read gh's message, then run trailguide library release again to finish."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			fixture, dir := gitHubLibrary(t)
@@ -252,7 +252,7 @@ func syncFailure(t *testing.T, binary, repository string, environment []string, 
 		t.Fatal(exit, out, diagnostic)
 	}
 	config := "schemaVersion: 2\nsources:\n  team:\n    repository: " + repository + "\n    rules:\n      include:\n        - techs/go/*\n"
-	if err := os.WriteFile(filepath.Join(dir, ".syllabus", "config.yaml"), []byte(config), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".trailguide", "config.yaml"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
 	return failureOutput(t, binary, dir, environment, code, "project", "sync")

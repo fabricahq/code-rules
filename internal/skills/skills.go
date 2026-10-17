@@ -12,7 +12,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/syllabus/internal/decode"
+	"github.com/fabricahq/trailguide/internal/decode"
 )
 
 // File is the file whose presence makes a folder a skill folder.
@@ -36,7 +36,7 @@ const (
 // Levels lists the levels from the strongest to the weakest.
 var Levels = []string{LevelRequired, LevelRecommended, LevelOffered}
 
-// Directory is the folder, in a repository's Syllabus directory, that holds the repository's authored skills,
+// Directory is the folder, in a repository's Trail Guide directory, that holds the repository's authored skills,
 // and, in a library's vendor snapshot, the skills the library publishes.
 const Directory = "skills"
 
@@ -74,13 +74,13 @@ type Metadata struct {
 	Name string
 	// Description is the frontmatter's description, or empty.
 	Description string
-	// Type is metadata.syllabus-skill-type as written, or empty.
+	// Type is metadata.trailguide-skill-type as written, or empty.
 	Type string
-	// RulesUsed and SkillsUsed are the lines of metadata.syllabus-rules-used and metadata.syllabus-skills-used, trimmed of
+	// RulesUsed and SkillsUsed are the lines of metadata.trailguide-rules-used and metadata.trailguide-skills-used, trimmed of
 	// surrounding whitespace, without blank lines, in the order written; nil when the key is absent. Their IDs are
 	// unchecked: Check validates them.
 	RulesUsed, SkillsUsed []string
-	// ReservedKeys lists, sorted, the metadata keys that start with syllabus- but aren't one of the three Syllabus
+	// ReservedKeys lists, sorted, the metadata keys that start with trailguide- but aren't one of the three Trail Guide
 	// defines, which only Check rejects; nil when there are none.
 	ReservedKeys []string
 	// Frontmatter reports whether the file starts with a frontmatter block.
@@ -141,7 +141,7 @@ func ReadMetadata(data []byte, location string) (Metadata, error) {
 			*field.lines = idLines(text)
 		}
 		for _, key := range slices.Sorted(maps.Keys(metadata)) {
-			if strings.HasPrefix(key, "syllabus-") && !slices.Contains([]string{TypeKey, RulesUsedKey, SkillsUsedKey}, key) {
+			if strings.HasPrefix(key, "trailguide-") && !slices.Contains([]string{TypeKey, RulesUsedKey, SkillsUsedKey}, key) {
 				result.ReservedKeys = append(result.ReservedKeys, key)
 			}
 		}
@@ -175,7 +175,7 @@ func InstallName(id string, metadata Metadata, location string) (string, error) 
 		name = id[strings.LastIndex(id, "/")+1:]
 	}
 	if !ValidName(name) {
-		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Syllabus can't install it")
+		return "", invalid(location, "the skill's name "+decode.Quote(name)+" doesn't follow the Agent Skills name grammar: 1 to 64 lowercase letters, digits, and hyphens, without a hyphen at either end or two in a row. Agents find skills by name, so Trail Guide can't install it")
 	}
 	return name, nil
 }
