@@ -12,12 +12,18 @@
 practices/accessibility:
   name: Accessibility
   description: Making interfaces usable with assistive technology, keyboards, and varied vision, hearing, and motor abilities.
+practices/agent-instructions:
+  name: Agent instructions
+  description: Writing and evaluating skills, rules, AGENTS.md files, and other instructions for coding agents; human-facing guides belong in documentation.
 practices/api-design:
   name: API design
   description: The contracts of HTTP, RPC, and library APIs, including resources, errors, pagination, versioning, and compatibility.
+practices/architecture:
+  name: Architecture
+  description: Deciding a feature's or system's shape before writing code, including data models, interfaces, migrations, and when to redesign; how functions and modules are structured belongs in code design.
 practices/code-design:
   name: Code design
-  description: How functions, modules, and folders are structured so code reads clearly and each feature's code stays together; naming has its own group.
+  description: How functions, modules, and folders are structured so code reads clearly and each feature's code stays together; naming has its own group, and a change's overall shape belongs in architecture.
 practices/code-review:
   name: Code review
   description: How to review changes and plans, including agent-written pull requests.
@@ -30,12 +36,15 @@ practices/concurrency:
 practices/database-migrations:
   name: Database migrations
   description: Changing schemas and data safely, with backward compatibility, expand-and-contract steps, and reversibility, whatever the tool.
+practices/debugging:
+  name: Debugging
+  description: Reproducing, isolating, and root-causing defects, including diagnosis from logs, profiles, and heap snapshots; regression tests belong in testing.
 practices/dependency-management:
   name: Dependency management
   description: Choosing, pinning, and updating third-party dependencies; responding to vulnerable dependencies belongs in security.
 practices/documentation:
   name: Documentation
-  description: Guides, references, and other written documentation; READMEs and code comments have their own groups.
+  description: Guides, references, and other written documentation; READMEs, code comments, and prose style have their own groups.
 practices/error-handling:
   name: Error handling
   description: Creating, wrapping, returning, and reporting errors.
@@ -59,10 +68,16 @@ practices/security:
   description: Protecting code and data from attack, including authentication, authorization, secrets, input handling, and vulnerable dependencies.
 practices/testing:
   name: Testing
-  description: What to test and how to write, name, and run tests, regardless of language or framework.
+  description: What to test and how to write, name, and run tests, regardless of language or framework; proving a change works beyond tests belongs in verification.
+practices/verification:
+  name: Verification
+  description: Proving a change works on the real artifact before calling it done, beyond what automated tests show; writing tests belongs in testing.
 practices/version-control:
   name: Version control
   description: Commits, branches, and pull requests.
+practices/writing:
+  name: Writing
+  description: Prose style for anything people read, including replies, pull request text, and commit messages; what documentation covers belongs in documentation.
 techs/angular:
   name: Angular
   description: Angular components, services, dependency injection, and change detection.

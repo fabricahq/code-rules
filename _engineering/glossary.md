@@ -76,13 +76,13 @@ _Avoid_: Dependency, import, remote, plain repository
 A source without a manifest, such as a third party's skill collection; every skill in it counts as offered.
 _Avoid_: Plain repository, raw repository, bare repository, skill repository
 
-**Borrowed source**:
+**Curated source**:
 A source a library declares so that it can place that source's skills in its own levels.
-_Avoid_: Upstream, transitive source
+_Avoid_: Borrowed source, upstream, transitive source
 
-**Borrowed skill**:
-A skill a library lists in one of its levels but takes from a borrowed source instead of authoring it. A library must list every skill it borrows.
-_Avoid_: Endorsed skill, endorsement, re-exported skill
+**Curated skill**:
+A skill a library lists in one of its levels but takes from a curated source instead of authoring it. A library must list every skill it curates.
+_Avoid_: Borrowed skill, endorsed skill, endorsement, re-exported skill
 
 **Authored content**:
 Rules, rule groups, skills, and assets written in the repo itself rather than taken from a source; a library publishes exactly its authored content.
@@ -119,7 +119,7 @@ A replacement that began as a copy of the excluded rule or skill and records the
 _Avoid_: Copy, patch, override
 
 **Skill level**:
-How strongly a library asks its projects to install one of its skills: required, recommended, or offered. A project sees only the levels of the libraries it takes from directly; levels don't chain through borrowed sources.
+How strongly a library asks its projects to install one of its skills: required, recommended, or offered. A project sees only the levels of the libraries it takes from directly; levels don't chain through curated sources.
 _Avoid_: Tier, endorsement, policy, preset, priority
 
 **Required skill**:

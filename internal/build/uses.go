@@ -20,8 +20,8 @@ import (
 // that uses one the project doesn't install fails as invalid output, because its source record, which sync and the
 // offline checks keep complete, can't produce one. A skill that uses a source's skill the project excludes uses the
 // authored skill that replaces it instead; with no replacement, the use is dropped, and linkSkillUses returns a
-// warning for it, in skill order. A use of a skill in aliases, a project source's copy of a borrowed skill that
-// withoutBorrowedCopies dropped, reaches the borrowed skill it maps to.
+// warning for it, in skill order. A use of a skill in aliases, a project source's copy of a curated skill that
+// withoutCuratedCopies dropped, reaches the curated skill it maps to.
 func linkSkillUses(resolved []resolvedSkill, config rules.Configuration, aliases map[string]string) ([]string, error) {
 	sources := map[string]rules.Source{}
 	// excluded maps the project ID of each source's skill the project excludes to the authored skill that replaces
@@ -57,11 +57,11 @@ func linkSkillUses(resolved []resolvedSkill, config rules.Configuration, aliases
 		location := skillLocation(skill)
 		used := []string{}
 		if skill.Source != "" {
-			// A borrowed skill uses skills of the repository it was borrowed from, which the library source installs
-			// as borrowed skills too, and its source's skills.uses names none of them.
+			// A curated skill uses skills of the repository it was curated from, which the library source installs
+			// as curated skills too, and its source's skills.uses names none of them.
 			prefix, declared := skill.Source+":", sources[skill.Source].SkillUses[skill.Folder]
-			if skill.Borrowed != "" {
-				prefix, declared = prefix+skill.Borrowed+":", nil
+			if skill.Curated != "" {
+				prefix, declared = prefix+skill.Curated+":", nil
 			}
 			for _, id := range slices.Concat(skill.SkillsUsed, declared) {
 				target, kept := redirect(skill, prefix+id)

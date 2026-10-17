@@ -39,7 +39,7 @@ func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[str
 			}
 			continue
 		}
-		// A colon separates a borrowed skill's source from its ID, so a folder whose path has one can't be named.
+		// A colon separates a curated skill's source from its ID, so a folder whose path has one can't be named.
 		if !strings.Contains(folder, ":") {
 			ids = append(ids, folder)
 		}
@@ -84,8 +84,8 @@ func skillFolders(files map[string]treeEntry, isLibrary bool) map[string]map[str
 // the revision is the one the source record locks, since sync never moves a source, and otherwise as invalid
 // configuration. Excluding a required skill fails too, since a project that uses the library can't diverge from it,
 // as does excluding one LibraryRequires lists.
-// The skills the library borrows, whose IDs have a colon, are borrowSkills' to choose, and naming one of a repository
-// that isn't a library fails, since only a library borrows skills; the skills the configuration's own library section
+// The skills the library curates, whose IDs have a colon, are curateSkills' to choose, and naming one of a repository
+// that isn't a library fails, since only a library curates skills; the skills the configuration's own library section
 // requires of the source, LibraryRequires, are chosen as required too.
 func chooseSkills(source rules.Source, plan sourcePlan, available []string, levels *rules.SkillLevels) ([]string, error) {
 	chosen := []string{}
@@ -128,7 +128,7 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 			chosen = append(chosen, id)
 		case strings.Contains(id, ":") && levels != nil:
 		case strings.Contains(id, ":"):
-			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("names %s, but only a library's borrowed skills have IDs with a colon, and the repository isn't a library at %s, so it borrows none; name its skills by their folder, such as skills/to-spec", id, revision)}
+			return nil, &ValidationError{Location: "sources." + source.Name + ".skills.include", Problem: fmt.Sprintf("names %s, but only a library's curated skills have IDs with a colon, and the repository isn't a library at %s, so it curates none; name its skills by their folder, such as skills/to-spec", id, revision)}
 		default:
 			return nil, skillNotInRevision(source, plan, "sources."+source.Name+".skills.include", id)
 		}
@@ -137,7 +137,7 @@ func chooseSkills(source rules.Source, plan sourcePlan, available []string, leve
 	return slices.Compact(chosen), nil
 }
 
-// ownSkillLevels returns levels without the skills the library borrows.
+// ownSkillLevels returns levels without the skills the library curates.
 func ownSkillLevels(levels rules.SkillLevels) rules.SkillLevels {
 	own := func(ids []string) []string {
 		return slices.DeleteFunc(slices.Clone(ids), func(id string) bool { return strings.Contains(id, ":") })
@@ -425,8 +425,8 @@ func (r *repository) skillLevelChanges(ctx context.Context, recorded *library.Sn
 	for id := range skillFolders(tree, true) {
 		after[id] = levels.Level(id)
 	}
-	// A borrowed skill is in the library's lists, not its skills/ folder.
-	for _, id := range levels.Borrowed() {
+	// A curated skill is in the library's lists, not its skills/ folder.
+	for _, id := range levels.Curated() {
 		after[id] = levels.Level(id)
 	}
 	ids := slices.Sorted(maps.Keys(after))

@@ -49,7 +49,7 @@ Markdown files in a skill folder, including `SKILL.md`, must be UTF-8, so their 
 
 A skill's ID is its folder's path in the repository that holds it. For a skill a repository authors, that's its path in the Trail Guide directory, `skills/<name>`, such as `skills/build-feature`. For a skill in a [non-library source](#skills-from-non-library-sources), it's the folder's path from the repository root, such as `skills/engineering/to-spec`. A skill's identity is its repository plus its ID, so two sources that reach the same repository name the same skill.
 
-In a project, an ID from a source is qualified by the source name the project chose, such as `fabrica:skills/build-feature`. A skill a library borrows adds the borrowed source's name, such as `fabrica:mattpocock:skills/engineering/to-spec`. An authored skill's ID has no source name. See [Source names and IDs](/reference/configuration/#source-names-and-ids).
+In a project, an ID from a source is qualified by the source name the project chose, such as `fabrica:skills/build-feature`. A skill a library curates adds the curated source's name, such as `fabrica:mattpocock:skills/engineering/to-spec`. An authored skill's ID has no source name. See [Source names and IDs](/reference/configuration/#source-names-and-ids).
 
 `<name>` follows the Agent Skills name grammar:
 
@@ -173,10 +173,10 @@ Check fails with these problems:
 | Problem | Message |
 | --- | --- |
 | A file directly in `skills/` | `skills/README.md: skills/ holds only skill folders` |
-| Two skills the manifest lists, authored or borrowed, with the same name | `library.skills lists skills/review and mattpocock:skills/review, which both install as review; list one of them, or rename the folder of your own skill` |
+| Two skills the manifest lists, authored or curated, with the same name | `library.skills lists skills/review and mattpocock:skills/review, which both install as review; list one of them, or rename the folder of your own skill` |
 | A skill listed in more than one level | `library.skills lists skills/fix-bug as both required and recommended; list it once` |
 | A listed skill that doesn't exist | `library.skills.recommended names skills/fix-bugs, which isn't a skill in this library` |
-| A borrowed skill whose source isn't in `sources`, or that the source doesn't have at its `ref` | `library.skills.offered names mattpocock:skills/productivity/grill, which mattpocock doesn't have at main` |
+| A curated skill whose source isn't in `sources`, or that the source doesn't have at its `ref` | `library.skills.offered names mattpocock:skills/productivity/grill, which mattpocock doesn't have at main` |
 | A folder name that breaks the [name grammar](#skill-ids) | `skills/Build_Feature: a skill name uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen` |
 | A skill folder without `SKILL.md` | `skills/build-feature: expected SKILL.md in the skill folder` |
 | A skill inside another skill's folder | `skills/build-feature/steps/SKILL.md: a skill folder can't contain another skill; move it to its own folder in skills/` |
@@ -216,7 +216,7 @@ Check warns, without failing, when:
 - A skill declares a `license` and the library declares none: `skills/build-feature/SKILL.md: license is MIT, but the library declares no license. Declare the library's terms in library.license.`
 - A file in a skill folder is neither tracked nor ignored by Git: `skills/build-feature/scripts/new-check.sh isn't tracked by Git, so it isn't part of the skill. Add it with git add, or ignore it.`
 
-To find borrowed skills' names, check reads each borrowed source at its `ref`, so it needs access to those repositories.
+To find curated skills' names, check reads each curated source at its `ref`, so it needs access to those repositories.
 
 Check validates the format, not whether the steps are good. Use [Write a skill](/guides/write-skills/) to review a skill's guidance.
 
