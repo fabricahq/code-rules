@@ -13,14 +13,15 @@ import (
 )
 
 // checkCuratingLibrary runs library check in a library outside Git whose configuration is config, with an own
-// skill, skills/review, and pocock, a repository that isn't a library, with the skills skills/ops/deploy and
-// skills/team/review, tagged stable.
+// skill, skills/review, and pocock, a repository that isn't a library, with the skills skills/ops/deploy,
+// skills/team/review, and skills/ops/ship, whose SKILL.md names it review, tagged stable.
 func checkCuratingLibrary(t *testing.T, config string) (string, string, int) {
 	t.Helper()
 	ctx := context.Background()
 	pocock, err := gitfixture.New(ctx, map[string][]byte{
 		"skills/ops/deploy/SKILL.md":  []byte("---\nname: deploy\ndescription: Deploy a service.\n---\n# Deploy\n"),
 		"skills/team/review/SKILL.md": []byte("---\nname: review\ndescription: Review a change.\n---\n# Review\n"),
+		"skills/ops/ship/SKILL.md":    []byte("---\nname: review\ndescription: Ship and review a change.\n---\n# Ship\n"),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +68,14 @@ func TestLibraryCheck_RejectsACuratedSkillItsSourceLacks(t *testing.T) {
 func TestLibraryCheck_RejectsACuratedSkillWithTheNameOfItsOwn(t *testing.T) {
 	out, diagnostic, code := checkCuratingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    recommended: [pocock:skills/team/review]\n")
 	want := "library.skills lists skills/review and pocock:skills/team/review, which both install as review; list one of them, or rename the folder of your own skill"
+	if code == 0 || !strings.Contains(out+diagnostic, want) {
+		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
+	}
+}
+
+func TestLibraryCheck_RejectsACuratedSkillThatInstallsWithTheNameOfItsOwn(t *testing.T) {
+	out, diagnostic, code := checkCuratingLibrary(t, "schemaVersion: 2\nsources:\n  pocock:\n    repository: git@fixture.invalid:pocock\n    ref: stable\nlibrary:\n  skills:\n    offered: [pocock:skills/ops/ship]\n")
+	want := "library.skills lists skills/review and pocock:skills/ops/ship, which both install as review"
 	if code == 0 || !strings.Contains(out+diagnostic, want) {
 		t.Fatalf("exit %d, want %q:\n%s%s", code, want, out, diagnostic)
 	}

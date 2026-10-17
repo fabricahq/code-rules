@@ -34,8 +34,8 @@ func (f *authoringFlags) libraryOptions(ctx context.Context, initialize bool) (l
 }
 
 // readCurated reads a source the library curates skills from, as a project that uses the library would.
-func (f *authoringFlags) readCurated(ctx context.Context, name string, source rules.CuratedSource) ([]string, string, error) {
-	return imports.CuratedSkillIDs(ctx, name, source, f.imports)
+func (f *authoringFlags) readCurated(ctx context.Context, name string, source rules.CuratedSource, ids []string) (map[string]string, string, error) {
+	return imports.CuratedSkillNames(ctx, name, source, ids, f.imports)
 }
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.

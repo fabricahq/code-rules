@@ -5,7 +5,6 @@ package library
 import (
 	"context"
 	"maps"
-	"path"
 	"slices"
 	"strings"
 
@@ -15,9 +14,10 @@ import (
 )
 
 // CuratedReader reads the source a library curates skills from, as its manifest declares it under name: it
-// resolves the source's ref, or its newest library release without one, and returns the IDs of the skills the
-// repository has there, sorted, and the revision's name for messages, such as main or release/3.
-type CuratedReader func(ctx context.Context, name string, source rules.CuratedSource) ([]string, string, error)
+// resolves the source's ref, or its newest library release without one, and returns the name each skill of ids, by
+// their IDs in the repository, installs under, leaving out those the repository has no skill for there, and the
+// revision's name for messages, such as main or release/3.
+type CuratedReader func(ctx context.Context, name string, source rules.CuratedSource, ids []string) (map[string]string, string, error)
 
 // requireCuratedSkills fails when manifest, the library's configuration, lists a curated skill that its source
 // doesn't have at the ref the library declares, or when two skills it offers projects, its own in authored, its
@@ -38,32 +38,32 @@ func requireCuratedSkills(ctx context.Context, manifest []byte, authored *filetx
 		}
 	}
 	listed := declaration.Skills.Curated()
-	sources := map[string][]string{}
+	wanted := map[string][]string{}
 	for _, id := range listed {
-		source, _, _ := SplitCurated(id)
-		sources[source] = nil
+		source, skill, _ := SplitCurated(id)
+		wanted[source] = append(wanted[source], skill)
 	}
-	revisions := map[string]string{}
-	for _, name := range slices.Sorted(maps.Keys(sources)) {
-		if sources[name], revisions[name], err = read(ctx, name, declaration.Curated[name]); err != nil {
+	installed, revisions := map[string]map[string]string{}, map[string]string{}
+	for _, source := range slices.Sorted(maps.Keys(wanted)) {
+		if installed[source], revisions[source], err = read(ctx, source, declaration.Curated[source], wanted[source]); err != nil {
 			return err
 		}
 	}
 	for _, id := range listed {
 		source, skill, _ := SplitCurated(id)
-		if !slices.Contains(sources[source], skill) {
+		if _, ok := installed[source][skill]; !ok {
 			field := "library.skills." + declaration.Skills.Level(id)
 			return &ValidationError{Location: manifestPath + ": " + field, Problem: field + " names " + id + ", which " + source + " doesn't have at " + revisions[source] + "; check the skill ID, or set sources." + source + ".ref to a revision that has it"}
 		}
 	}
-	ids := slices.Concat(slices.Sorted(maps.Values(names)), listed)
+	// A curated skill installs under the name its SKILL.md declares, which needn't be its folder's.
 	seen := map[string]string{}
-	for _, id := range ids {
-		_, skill, _ := SplitCurated(id)
-		if !strings.Contains(id, ":") {
-			skill = id
-		}
-		name := path.Base(skill)
+	for _, name := range slices.Sorted(maps.Keys(names)) {
+		seen[name] = names[name]
+	}
+	for _, id := range listed {
+		source, skill, _ := SplitCurated(id)
+		name := installed[source][skill]
 		if other, clash := seen[name]; clash {
 			return &ValidationError{Location: manifestPath + ": library.skills", Problem: "library.skills lists " + other + " and " + id + ", which both install as " + name + "; list one of them, or rename the folder of your own skill"}
 		}
