@@ -25,7 +25,7 @@ The voiceover comes from [ElevenLabs](https://elevenlabs.io). Set an API key and
 ELEVENLABS_API_KEY=... ELEVENLABS_VOICE_ID=... bun run voiceover
 ```
 
-It writes one clip per scene to `public/voiceover/` and word timings for the captions to `public/voiceover/manifest.json`; commit both. It regenerates only the scenes whose narration, voice, or model changed. Set `ELEVENLABS_MODEL_ID` to use a model other than `eleven_multilingual_v2`.
+It writes one clip per scene to `public/voiceover/` and word timings for the captions to `public/voiceover/manifest.json`; commit both. It regenerates only the scenes whose narration, neighboring narration, voice, or model changed. Set `ELEVENLABS_MODEL_ID` to use a model other than `eleven_multilingual_v2`.
 
 ## Check
 

@@ -10,6 +10,11 @@ export type VoiceoverClip = {
   file: string;
   /** The speech the clip was generated from; a mismatch means the clip is stale. */
   text: string;
+  /**
+   * The neighboring scenes' speech the clip was generated with, which shapes its intonation;
+   * a mismatch means the clip is stale. Absent from clips generated before it was recorded.
+   */
+  context?: string;
   words: ReadonlyArray<TimedWord>;
 };
 
@@ -56,7 +61,12 @@ function parseClip(value: unknown): VoiceoverClip {
   ) {
     throw new Error(`Invalid clip in ${MANIFEST_PATH}: expected file, text, and words`);
   }
-  return { file: value.file, text: value.text, words: value.words.map(parseWord) };
+  if (value.context !== undefined && typeof value.context !== 'string') {
+    throw new Error(`Invalid clip in ${MANIFEST_PATH}: expected context to be a string`);
+  }
+  const clip: VoiceoverClip = { file: value.file, text: value.text, words: value.words.map(parseWord) };
+  if (typeof value.context === 'string') clip.context = value.context;
+  return clip;
 }
 
 /** Validates parsed manifest JSON, failing with the field that's wrong. */

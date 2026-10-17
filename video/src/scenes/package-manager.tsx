@@ -68,9 +68,14 @@ export function PackageManager(props: SceneProps) {
             content: (
               <>
                 <Check />
-                {' 3 skills  → .claude/skills  .agents/skills'}
+                {' 2 required skills  → .claude/skills  .agents/skills'}
               </>
             ),
+          },
+          {
+            kind: 'output',
+            at: syncOutputAt + 10,
+            content: <Muted>{'  tdd is recommended: include recommended skills to install it'}</Muted>,
           },
           { kind: 'command', text: UPDATE_COMMAND, at: updateAt },
           {

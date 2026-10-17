@@ -137,24 +137,22 @@ async function main(): Promise<void> {
   for (const [index, scene] of SCENES.entries()) {
     const existing = isSameVoice ? previous.clips[scene.id] : undefined;
     const speech = speechFor(scene);
-    if (existing?.text === speech && existsSync(join(PUBLIC_DIR, existing.file))) {
-      clips[scene.id] = existing;
+    const previousScene = SCENES[index - 1];
+    const nextScene = SCENES[index + 1];
+    const previousText = previousScene === undefined ? undefined : speechFor(previousScene);
+    const nextText = nextScene === undefined ? undefined : speechFor(nextScene);
+    const context = JSON.stringify([previousText ?? null, nextText ?? null]);
+    // A clip from before contexts were recorded is kept and given the current context.
+    const isSameContext = existing?.context === undefined || existing.context === context;
+    if (existing?.text === speech && isSameContext && existsSync(join(PUBLIC_DIR, existing.file))) {
+      clips[scene.id] = { ...existing, context };
       console.log(`unchanged  ${scene.id}`);
       continue;
     }
-    const previousScene = SCENES[index - 1];
-    const nextScene = SCENES[index + 1];
-    const result = await synthesize({
-      apiKey,
-      voiceId,
-      modelId,
-      text: speech,
-      previousText: previousScene === undefined ? undefined : speechFor(previousScene),
-      nextText: nextScene === undefined ? undefined : speechFor(nextScene),
-    });
+    const result = await synthesize({ apiKey, voiceId, modelId, text: speech, previousText, nextText });
     const file = `voiceover/${scene.id}.mp3`;
     await writeFile(join(PUBLIC_DIR, file), result.audio);
-    clips[scene.id] = { file, text: speech, words: toWords(result.alignment) };
+    clips[scene.id] = { file, text: speech, context, words: toWords(result.alignment) };
     console.log(`generated  ${scene.id}`);
   }
 
