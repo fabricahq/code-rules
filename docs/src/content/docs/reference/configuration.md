@@ -415,7 +415,7 @@ skills/fix-bug
 
 - A rule ID is the rule's path in its repository's `rules/` folder, without `.md`.
 - A skill ID is the skill folder's path: `skills/<name>` for a library's skills, and the folder's path from the repository root for a non-library source's, such as `skills/engineering/to-spec`.
-- A curated skill's project ID adds the curated source's name after the library's, as the manifest lists it. When the project declares the curated repository as its own source, the skill's project ID uses that source's name instead.
+- A curated skill's project ID adds the curated source's name after the library's, as the manifest lists it. It keeps that ID when the project declares the curated repository as its own source, which only decides the commit the skill comes from.
 - Authored rules and skills have no source name.
 
 The source name keeps identical IDs from different sources distinct. Renaming a source changes its project IDs and any external references to them. Replacing a repository under an existing source name also requires reviewing its `exclude`, `pins`, `uses`, and `rename` entries.

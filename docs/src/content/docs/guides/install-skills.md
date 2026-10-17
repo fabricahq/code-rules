@@ -188,7 +188,7 @@ sources:
     ref: v2.0.0
 ```
 
-The skills Fabrica curates from that repository now come from `v2.0.0`, still at the level Fabrica sets. Repository identity decides the match, not the source name. Remove the source to go back to the library's ref.
+The skills Fabrica curates from that repository now come from `v2.0.0`, still at the level Fabrica sets and with the same IDs, such as `fabrica:mattpocock:skills/engineering/to-spec`. Repository identity decides the match, not the source name. Remove the source to go back to the library's ref.
 
 ## Resolve a name clash
 

@@ -340,7 +340,7 @@ When a library's manifest lists [curated skills](/reference/configuration/#curat
 }
 ```
 
-`ref` is the ref the library's manifest names, from the library release your project recorded, and `resolvedCommit` the commit your project resolved it to at its last update; `level` is the level the library sets. A curated library's skills also record `version`, `release`, and `commit`. When your project declares the curated repository as its own source, its skills are recorded in that source's record instead, at your `ref`, and the library's `curated` object omits them. The library record's `checksum` covers `curated`.
+`ref` is the ref the library's manifest names, from the library release your project recorded, and `resolvedCommit` the commit your project resolved it to at its last update; `level` is the level the library sets. A curated library's skills also record `version`, `release`, and `commit`. When your project declares the curated repository as its own source, the entry still records the library's curated skills, from your source's commit: `source` names your source, and `ref` and `resolvedCommit` are your source's. The library record's `checksum` covers `curated`.
 
 ### What offline checks can verify
 
