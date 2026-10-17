@@ -1,3 +1,6 @@
+// Exercise library check diagnostics and project sync warnings, in human output and JSON, when a library's skill
+// uses a skill the library curates from another repository.
+
 package cli
 
 import (
